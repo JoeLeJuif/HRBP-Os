@@ -1,0 +1,392 @@
+// Source: HRBP_OS.jsx L.1740-1998
+import { useState, useEffect } from "react";
+import { C, css, RISK } from '../theme.js';
+import { normalizeRisk } from '../utils/normalize.js';
+import { getProvince } from '../utils/format.js';
+import Badge from '../components/Badge.jsx';
+import Card from '../components/Card.jsx';
+import Mono from '../components/Mono.jsx';
+import Divider from '../components/Divider.jsx';
+import ProvinceBadge from '../components/ProvinceBadge.jsx';
+import ProvinceSelect from '../components/ProvinceSelect.jsx';
+
+// Inline shared helper (used in multiple modules, to be reviewed at Bloc 7)
+function RiskBadge({ level }) {
+  const norm = normalizeRisk(level);
+  const r = RISK[norm] || RISK["Modéré"];
+  return <Badge label={norm} color={r.color} />;
+}
+
+// Inline data constants (Source: L.1742-1768)
+const CASE_TYPES = [
+  {id:"performance",label:"Performance",icon:"📉",color:C.amber},
+  {id:"pip",label:"PIP / Correctif",icon:"📋",color:C.red},
+  {id:"conflict_ee",label:"Conflit EE/EE",icon:"⚡",color:C.amber},
+  {id:"conflict_em",label:"Conflit EE/Mgr",icon:"🔥",color:C.red},
+  {id:"complaint",label:"Plainte",icon:"🚨",color:C.pink},
+  {id:"immigration",label:"Immigration",icon:"✈",color:C.teal},
+  {id:"retention",label:"Rétention / Flight Risk",icon:"🎯",color:C.purple},
+  {id:"promotion",label:"Promotion",icon:"⬆",color:C.purple},
+  {id:"return",label:"Retour d'absence",icon:"🌱",color:C.em},
+  {id:"reorg",label:"Restructuration",icon:"🔄",color:C.blue},
+  {id:"exit",label:"Départ",icon:"🚪",color:C.textM},
+  {id:"investigation",label:"Enquête",icon:"⚖",color:"#7a1e2e"},
+];
+const STATUSES = [
+  {id:"open",label:"Ouvert",color:C.blue},
+  {id:"active",label:"Actif",color:C.amber},
+  {id:"pending",label:"En attente",color:C.purple},
+  {id:"resolved",label:"Résolu",color:C.em},
+  {id:"closed",label:"Fermé",color:C.textD},
+  {id:"escalated",label:"Escaladé",color:C.red},
+];
+const URGENCY_C    = {"Immediat":C.red,"Cette semaine":C.amber,"Ce mois":C.blue,"En veille":C.textD};
+const EVO_C        = {"Nouveau":C.blue,"En cours":C.amber,"Aggravé":C.red,"En amélioration":C.teal,"Bloqué":C.red,"Résolu":C.em};
+const HR_POSTURE_C = {"Partenaire":C.blue,"Garant":C.red,"Coach":C.teal,"Neutre":C.textD,"Enquêteur":"#7a1e2e"};
+const URGENCY_ORDER = {"Immediat":0,"Cette semaine":1,"Ce mois":2,"En veille":3};
+const RISK_ORDER    = {"Critique":0,"Élevé":1,"Modéré":2,"Faible":3};
+const EMPTY_FORM = { title:"", type:"conflict_ee", riskLevel:"Modéré", status:"active",
+  director:"", employee:"", department:"", openDate:new Date().toISOString().split("T")[0],
+  province:"QC",
+  situation:"", interventionsDone:"", hrPosition:"", decision:"", nextFollowUp:"",
+  notes:"", actions:[],
+  scope:"leader", owner:"HRBP", dueDate:"", urgency:"Cette semaine", evolution:"", hrPosture:"", closedDate:"" };
+
+// Field wrapper — plain function (NOT a React component).
+// Called as fl("label", <input/>) so its output is part of CaseForm's own fiber tree.
+// Avoids a component-boundary children-passthrough that breaks input focus in React 18.
+function fl(label, child) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <Mono color={C.textD} size={9}>{label}</Mono>
+      <div style={{ marginTop:6 }}>{child}</div>
+    </div>
+  );
+}
+
+// ── CaseForm ───────────────────────────────────────────────────────────────────
+// Defined at module scope so React assigns it a STABLE component type.
+// When the view switches detail→form, React sees <div>(detail) → <CaseForm>:
+// different types → full unmount/remount (no recycled DOM).
+// When typing in the form, React sees <CaseForm>→<CaseForm>: same type →
+// reconcile only → inputs keep their DOM nodes → focus is preserved.
+function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) {
+  const SF = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const FO = { onFocus:e=>e.target.style.borderColor=C.em+"60", onBlur:e=>e.target.style.borderColor=C.border };
+
+  return (
+    // autoComplete="off" au niveau <form> — Chrome l'ignore sur les champs individuels
+    // mais respecte la directive au niveau du formulaire (fix Chrome Autofill focus theft)
+    <form autoComplete="off" onSubmit={e => e.preventDefault()} style={{ maxWidth:820, margin:"0 auto" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+        <button type="button" onClick={onCancel}
+          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+        <div style={{ fontSize:17, fontWeight:700, color:C.text }}>
+          {editId ? "Modifier le dossier" : "Nouveau dossier"}
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+        {fl("Titre du dossier *",
+          <input value={form.title} onChange={SF("title")}
+            placeholder="Ex: Conflit infra Nolan-Laroche" style={css.input}
+            autoComplete="off" {...FO}/>
+        )}
+        {fl("Date d'ouverture",
+          <input value={form.openDate} onChange={SF("openDate")}
+            style={css.input} autoComplete="off" {...FO}/>
+        )}
+        {fl("Type de dossier",
+          <select value={form.type} onChange={SF("type")} style={css.select}>
+            {CASE_TYPES.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+          </select>
+        )}
+        {fl("Statut",
+          <select value={form.status} onChange={SF("status")} style={css.select}>
+            {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        )}
+        {fl("Niveau de risque",
+          <select value={form.riskLevel} onChange={SF("riskLevel")} style={css.select}>
+            {["Critique","Élevé","Modéré","Faible"].map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        )}
+        {fl("Directeur concerné",
+          <input value={form.director} onChange={SF("director")}
+            placeholder="Nom du directeur" style={css.input}
+            autoComplete="off" {...FO}/>
+        )}
+        {fl("Employé / Groupe concerné",
+          <input value={form.employee} onChange={SF("employee")}
+            placeholder="Prénom, rôle ou groupe" style={css.input}
+            autoComplete="off" {...FO}/>
+        )}
+        {fl("Département / Équipe",
+          <input value={form.department} onChange={SF("department")}
+            placeholder="Ex: IT Infrastructure" style={css.input}
+            autoComplete="off" {...FO}/>
+        )}
+        {fl("Province",
+          <ProvinceSelect
+            value={form.province||defaultProvince||"QC"}
+            onChange={e=>setForm(f=>({...f,province:e.target.value}))}/>
+        )}
+        {fl("Responsable (owner)",
+          <select value={form.owner||"HRBP"} onChange={SF("owner")} style={css.select}>
+            {["HRBP","Gestionnaire","HRBP + Gestionnaire","Direction"].map(o=><option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
+        {fl("Portée du dossier",
+          <select value={form.scope||"leader"} onChange={SF("scope")} style={css.select}>
+            <option value="leader">Leader / Gestionnaire</option>
+            <option value="individual">Employé / Individuel</option>
+            <option value="team">Équipe</option>
+            <option value="org">Organisation / Projet</option>
+          </select>
+        )}
+        {fl("Urgence",
+          <select value={form.urgency||"Cette semaine"} onChange={SF("urgency")} style={css.select}>
+            {["Immediat","Cette semaine","Ce mois","En veille"].map(u=><option key={u} value={u}>{u}</option>)}
+          </select>
+        )}
+        {fl("Évolution (optionnel)",
+          <select value={form.evolution||""} onChange={SF("evolution")} style={css.select}>
+            <option value="">— Non renseignée</option>
+            {["Nouveau","En cours","Aggravé","En amélioration","Bloqué","Résolu"].map(ev=><option key={ev} value={ev}>{ev}</option>)}
+          </select>
+        )}
+        {fl("Posture RH (optionnel)",
+          <select value={form.hrPosture||""} onChange={SF("hrPosture")} style={css.select}>
+            <option value="">— Non renseignée</option>
+            {["Partenaire","Garant","Coach","Neutre","Enquêteur"].map(p=><option key={p} value={p}>{p}</option>)}
+          </select>
+        )}
+      </div>
+
+      {fl("Description de la situation",
+        <textarea rows={3} value={form.situation} onChange={SF("situation")}
+          placeholder="Description factuelle et concise de la situation…" style={css.textarea}
+          autoComplete="off" {...FO}/>
+      )}
+      {fl("Interventions / Actions faites",
+        <textarea rows={2} value={form.interventionsDone} onChange={SF("interventionsDone")}
+          placeholder="Interventions, conversations, documents produits…" style={css.textarea}
+          autoComplete="off" {...FO}/>
+      )}
+      {fl("Position RH recommandée",
+        <textarea rows={2} value={form.hrPosition} onChange={SF("hrPosition")}
+          placeholder="Recommandation formelle ou en cours…" style={css.textarea}
+          autoComplete="off" {...FO}/>
+      )}
+      {fl("Décision prise",
+        <textarea rows={2} value={form.decision||""} onChange={SF("decision")}
+          placeholder="Décision formelle prise ou en attente…" style={css.textarea}
+          autoComplete="off" {...FO}/>
+      )}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+        {fl("Prochain suivi (libre)",
+          <input value={form.nextFollowUp} onChange={SF("nextFollowUp")}
+            placeholder="Ex: 16 mars 2026" style={css.input}
+            autoComplete="off" {...FO}/>
+        )}
+        {fl("Échéance (date)",
+          <input type="date" value={form.dueDate||""} onChange={SF("dueDate")}
+            style={css.input} {...FO}/>
+        )}
+      </div>
+      {fl("Notes HRBP",
+        <textarea rows={2} value={form.notes} onChange={SF("notes")}
+          placeholder="Patterns organisationnels, liens avec d'autres dossiers…" style={css.textarea}
+          autoComplete="off" {...FO}/>
+      )}
+
+      <div style={{ display:"flex", gap:10, marginTop:8 }}>
+        <button type="button" onClick={onSave} disabled={!form.title}
+          style={{ ...css.btn(C.em), flex:1, opacity:form.title?1:.4 }}>
+          {editId ? "💾 Mettre à jour" : "💾 Créer le dossier"}
+        </button>
+        <button type="button" onClick={onCancel} style={{ ...css.btn(C.textM, true) }}>Annuler</button>
+      </div>
+    </form>
+  );
+}
+
+export default function ModuleCases({ data, onSave, focusCaseId, onClearFocus }) {
+  const [view, setView] = useState("list"); // list | form | detail
+  const [form, setForm] = useState({...EMPTY_FORM});
+  const [editId, setEditId] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  // ── Inter-module focus: auto-open a specific case on mount ───────────────────
+  useEffect(() => {
+    if (!focusCaseId) return;
+    const target = (data.cases || []).find(c => c.id === focusCaseId);
+    if (target) { setDetail(target); setView("detail"); }
+    if (onClearFocus) onClearFocus();
+  }, [focusCaseId]); // eslint-disable-line
+
+  const cases = data.cases || [];
+  const todayISO = new Date().toISOString().split("T")[0];
+  const filtered = cases.filter(c => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || c.title?.toLowerCase().includes(q) || c.director?.toLowerCase().includes(q) || c.employee?.toLowerCase().includes(q);
+    const matchStatus = filterStatus === "all" || c.status === filterStatus;
+    return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    const ua = URGENCY_ORDER[a.urgency] ?? 4, ub = URGENCY_ORDER[b.urgency] ?? 4;
+    if (ua !== ub) return ua - ub;
+    const da = a.dueDate || "9999-99-99", db = b.dueDate || "9999-99-99";
+    if (da !== db) return da < db ? -1 : 1;
+    const ra = RISK_ORDER[a.riskLevel] ?? 4, rb = RISK_ORDER[b.riskLevel] ?? 4;
+    if (ra !== rb) return ra - rb;
+    return (b.updatedAt||"0000-00-00") < (a.updatedAt||"0000-00-00") ? -1 : 1;
+  });
+
+  const save = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const isClosing = form.status === "resolved" || form.status === "closed";
+    const closedDate = isClosing ? (form.closedDate || today) : "";
+    const existingCase = editId ? cases.find(c => c.id === editId) : null;
+    const newCase = { ...form, closedDate, id: editId || Date.now().toString(), updatedAt: today,
+      dateCreated: existingCase?.dateCreated || today };
+    const updated = editId ? cases.map(c => c.id===editId ? newCase : c) : [...cases, newCase];
+    onSave("cases", updated);
+    setView("list"); setForm({...EMPTY_FORM}); setEditId(null);
+  };
+
+  const deleteCase = (id) => {
+    onSave("cases", cases.filter(c => c.id !== id));
+    setView("list");
+  };
+
+  const openEdit = (c) => { setForm({...EMPTY_FORM, ...c}); setEditId(c.id); setView("form"); };
+
+  if (view === "form") return (
+    <CaseForm
+      form={form}
+      setForm={setForm}
+      editId={editId}
+      defaultProvince={data.profile?.defaultProvince}
+      onSave={save}
+      onCancel={() => { setView("list"); setForm({...EMPTY_FORM}); setEditId(null); }}
+    />
+  );
+
+  if (view === "detail" && detail) {
+    const c = detail;
+    const typeObj = CASE_TYPES.find(t=>t.id===c.type);
+    const statusObj = STATUSES.find(s=>s.id===c.status);
+    const r = RISK[c.riskLevel]||RISK["Modéré"];
+    return <div style={{ maxWidth:820, margin:"0 auto" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
+        <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+        <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{c.title}</div>
+        <button onClick={() => openEdit(c)} style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12 }}>✏ Modifier</button>
+        <button onClick={() => { if(window.confirm("Supprimer ce dossier?")) deleteCase(c.id); }}
+          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>🗑 Supprimer</button>
+      </div>
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+        <RiskBadge level={c.riskLevel}/>
+        {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
+        {typeObj && <Badge label={`${typeObj.icon} ${typeObj.label}`} color={typeObj.color}/>}
+        {c.urgency && <Badge label={c.urgency} color={URGENCY_C[c.urgency]||C.textD}/>}
+        {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD}/>}
+        {c.hrPosture && <Badge label={c.hrPosture} color={HR_POSTURE_C[c.hrPosture]||C.textD}/>}
+        {c.director && <Badge label={c.director} color={C.blue}/>}
+        {c.owner && <Mono color={C.textD}>Owner · {c.owner}</Mono>}
+        <ProvinceBadge province={getProvince(c, data.profile)}/>
+        {c.openDate && <Mono color={C.textD}>Ouvert: {c.openDate}</Mono>}
+        {c.dueDate && <Mono color={C.purple}>Échéance: {c.dueDate}</Mono>}
+        {c.closedDate && <Mono color={C.em}>Fermé: {c.closedDate}</Mono>}
+      </div>
+      <Card>
+        {[["Employé / Groupe",c.employee],["Département",c.department],["Situation",c.situation],
+          ["Interventions",c.interventionsDone],["Décision",c.decision],["Position RH",c.hrPosition],
+          ["Prochain suivi",c.nextFollowUp],["Notes HRBP",c.notes]].map(([l,v],i) => v ? (
+          <div key={i} style={{ marginBottom:14 }}>
+            <Mono color={C.textD} size={9}>{l}</Mono>
+            <div style={{ fontSize:13, color:C.text, lineHeight:1.65, marginTop:4 }}>{v}</div>
+            <Divider my={8}/>
+          </div>) : null)}
+      </Card>
+    </div>;
+  }
+
+  return (
+    <div style={{ maxWidth:860, margin:"0 auto" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Case Log</div>
+          <div style={{ fontSize:12, color:C.textM }}>{cases.length} dossier(s) · {cases.filter(c=>c.status==="active"||c.status==="open").length} actifs</div>
+        </div>
+        <button onClick={() => { setForm({...EMPTY_FORM}); setEditId(null); setView("form"); }} style={css.btn(C.em)}>
+          + Nouveau dossier
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="🔍 Rechercher..." style={{ ...css.input, maxWidth:240 }}
+          onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
+        <div style={{ display:"flex", gap:4 }}>
+          {["all",...STATUSES.map(s=>s.id)].map(s => {
+            const so = STATUSES.find(x=>x.id===s);
+            return <button key={s} onClick={() => setFilterStatus(s)}
+              style={{ background:filterStatus===s?(so?.color||C.em)+"22":"none",
+                color:filterStatus===s?(so?.color||C.em):C.textM,
+                border:`1px solid ${filterStatus===s?(so?.color||C.em)+"44":C.border}`,
+                borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif" }}>
+              {s==="all" ? "Tous" : so?.label}
+            </button>;
+          })}
+        </div>
+      </div>
+
+      {/* Cases list */}
+      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        {filtered.map((c,i) => {
+          const r = RISK[c.riskLevel]||RISK["Modéré"];
+          const typeObj = CASE_TYPES.find(t=>t.id===c.type);
+          const statusObj = STATUSES.find(s=>s.id===c.status);
+          const isOverdue = c.dueDate && c.dueDate < todayISO && !["resolved","closed"].includes(c.status);
+          return <button key={c.id||i} onClick={() => { setDetail(c); setView("detail"); }}
+            style={{ background:isOverdue ? C.red+"0d" : C.surfL,
+              border:`1px solid ${isOverdue ? C.red+"66" : r.color+"28"}`,
+              borderLeft:`3px solid ${isOverdue ? C.red : r.color}`,
+              borderRadius:8, padding:"13px 15px", cursor:"pointer", textAlign:"left",
+              fontFamily:"'DM Sans',sans-serif", transition:"border-color .15s" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
+              <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{c.title}
+                {isOverdue && <span style={{ fontSize:10, color:C.red, fontFamily:"'DM Mono',monospace", marginLeft:8 }}>⚠ ÉCHÉANCE DÉPASSÉE</span>}
+              </span>
+              <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
+                <RiskBadge level={c.riskLevel}/>
+                {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+              {typeObj && <span style={{ fontSize:11, color:typeObj.color }}>{typeObj.icon} {typeObj.label}</span>}
+              {c.director && <span style={{ fontSize:11, color:C.textM }}>· {c.director}</span>}
+              {c.employee && <span style={{ fontSize:11, color:C.textM }}>· {c.employee}</span>}
+              <ProvinceBadge province={getProvince(c, data.profile)}/>
+              {c.urgency && <span style={{ fontSize:10, color:URGENCY_C[c.urgency]||C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:.3, marginLeft:4 }}>{c.urgency}</span>}
+              {c.scope && c.scope !== "leader" && (
+                <Badge label={{ individual:"Individuel", team:"Équipe", org:"Org" }[c.scope] || c.scope}
+                  color={{ individual:C.blue, team:C.teal, org:C.textD }[c.scope] || C.textD}
+                  size={9}/>
+              )}
+              {(c.dueDate||c.nextFollowUp) && <span style={{ fontSize:10, color:isOverdue ? C.red : C.purple, marginLeft:"auto" }}>📅 {c.dueDate||c.nextFollowUp}</span>}
+            </div>
+          </button>;
+        })}
+        {filtered.length === 0 && <div style={{ textAlign:"center", padding:"40px 20px", color:C.textD, fontSize:13 }}>
+          {search ? "Aucun résultat" : "Aucun dossier. Créez le premier ↑"}
+        </div>}
+      </div>
+    </div>
+  );
+}

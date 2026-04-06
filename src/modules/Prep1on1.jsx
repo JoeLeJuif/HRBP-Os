@@ -1,0 +1,1391 @@
+// ── Module: 1:1 Preparation ──────────────────────────────────────────────────
+// Source: HRBP_OS.jsx L.3947–5228
+// Extraction fidèle — aucune modification de logique
+//
+// PROMPTS: deux prompts dynamiques inline conservés (generatePrep sp, generateOutput sp)
+// → dépendent de variables locales (histCtx) — non externalisables dans src/prompts/
+
+import { useState } from "react";
+import { C, css, RISK } from '../theme.js';
+import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
+import { normKey } from '../utils/format.js';
+import { callAI } from '../api/index.js';
+import Mono          from '../components/Mono.jsx';
+import Badge         from '../components/Badge.jsx';
+import AILoader      from '../components/AILoader.jsx';
+import ProvinceSelect from '../components/ProvinceSelect.jsx';
+
+// ── Inline shared helper ──────────────────────────────────────────────────────
+function RiskBadge({ level }) {
+  const r = RISK[level] || RISK["Modéré"];
+  return <Badge label={level} color={r.color} />;
+}
+
+// ── Static data ───────────────────────────────────────────────────────────────
+const PREP_QUESTIONS_DB = {
+  objectives: [
+    "Obtenir une lecture directe de l'état de l'équipe, au-delà des indicateurs formels.",
+    "Identifier les tensions non verbalisées ou les risques émergents sur les personnes.",
+    "Valider l'alignement du gestionnaire avec les priorités RH et les valeurs organisationnelles.",
+    "Anticiper les enjeux qui pourraient remonter avant la prochaine revue de performance.",
+    "Positionner le HRBP comme partenaire stratégique, pas seulement administratif.",
+  ],
+  strategic: [
+    "Quels sont tes 2-3 enjeux les plus préoccupants en ce moment — sur les personnes, pas les projets ?",
+    "Si tu avais à identifier le risque RH numéro 1 dans ton équipe cette semaine, ce serait quoi ?",
+    "Est-ce que tu as l'impression d'avoir les bonnes personnes aux bons endroits pour les 12 prochains mois ?",
+    "Qu'est-ce qui s'est passé dans ton équipe depuis notre dernière rencontre qui t'a surpris ?",
+  ],
+  people: [
+    "Qui dans ton équipe performe au-dessus de tes attentes ? Qu'est-ce qui l'explique ?",
+    "Y a-t-il quelqu'un dont tu es moins certain·e de l'engagement ou de la trajectoire en ce moment ?",
+    "As-tu des personnes clés dont tu perçois un risque de rétention ou d'épuisement ?",
+    "Est-ce qu'il y a des dynamiques interpersonnelles que tu surveilles de près ?",
+  ],
+  org: [
+    "Est-ce que la structure actuelle de ton équipe est encore adaptée à vos priorités ?",
+    "Y a-t-il des rôles ou des responsabilités qui créent de la confusion ou des frictions ?",
+    "As-tu des besoins de ressources ou de changement de périmètre à court terme ?",
+    "Comment est la collaboration avec les autres équipes — tensions, dépendances à risque ?",
+  ],
+  leadership: [
+    "Comment tu te sens toi-même dans ton rôle en ce moment — charge, clarté, soutien ?",
+    "Est-ce qu'il y a des situations managériales que tu trouves difficiles à gérer seul·e ?",
+    "Comment perçois-tu ta propre efficacité comme gestionnaire sur les dernières semaines ?",
+    "Y a-t-il des décisions que tu remets à plus tard sur lesquelles tu aimerais qu'on travaille ?",
+  ],
+  performance: [
+    "Qui sont tes A-players en ce moment, et est-ce qu'ils sont bien positionnés pour réussir ?",
+    "As-tu des situations de performance insuffisante qui nécessitent une intervention formelle ?",
+    "Comment se passe la gestion de la performance au quotidien — feedbacks, clarté des attentes ?",
+    "Y a-t-il des talents à risque de partir ou de décrocher auxquels on devrait porter attention ?",
+  ],
+  capacity: [
+    "Comment tu évalues la charge de travail globale de ton équipe en ce moment — soutenable ?",
+    "Est-ce qu'il y a des personnes ou des sous-équipes en surcharge ? Des goulets d'étranglement ?",
+    "As-tu des préoccupations liées à des absences, congés ou transitions à venir ?",
+    "Quels sont tes besoins en développement ou en formation dans les 3 à 6 prochains mois ?",
+  ],
+};
+
+const SIGNALS_DB = {
+  disengagement: ["Moins de proactivité, participation en retrait lors des réunions","Réponses monosyllabiques, évitement des discussions sur les projets","Absences plus fréquentes ou départs précipités","Diminution de la qualité du travail sans raison apparente"],
+  burnout: ["Irritabilité ou cynisme inhabituel dans les échanges","Mentions fréquentes de surcharge, de fatigue ou de manque de temps","Difficulté à déléguer ou à lâcher prise sur les tâches","Congés de maladie récurrents ou non posés malgré le besoin apparent"],
+  retention: ["Questions sur les opportunités internes ou les progressions de carrière","Comparaisons avec d'autres employeurs ou d'autres équipes","Attitudes indifférentes face aux reconnaissances ou promotions","Signaux LinkedIn — activité accrue, mise à jour du profil"],
+  tensions: ["Commentaires indirects sur les comportements d'autres membres","Évitement ou plaintes récurrentes liées à des collègues précis","Conflits autour des responsabilités ou des priorités","Silences ou non-dits perceptibles lors d'échanges d'équipe"],
+  leadership: ["Hésitation à prendre des décisions ou à donner du feedback difficile","Gestion par l'évitement — problèmes non adressés depuis longtemps","Micromanagement ou délégation insuffisante","Manque d'alignement visible avec la culture ou les valeurs organisationnelles"],
+  org: ["Confusion sur les rôles, chevauchements ou zones grises fréquentes","Décisions qui ne se prennent pas par manque de clarté sur l'imputabilité","Résistance passive à des changements organisationnels","Structures informelles contournant la hiérarchie formelle"],
+  succession: ["Absence de backup ou de plan de relève pour les rôles critiques","Dépendance trop forte à une ou deux personnes clés","Talents à fort potentiel non développés ou sous-utilisés","Aucune conversation de développement depuis plus de 6 mois"],
+};
+
+const GUIDANCE_DB = {
+  positioning: ["Ouvrir avec une question large et stratégique, pas administrative.","Montrer que tu as lu les signaux de la dernière rencontre — démontre ta présence.","Nommer les enjeux systémiques avant les cas individuels — pense à la forêt, pas aux arbres.","Te positionner comme allié dans la décision, pas comme policier de la conformité."],
+  challenge: ["Reformuler ce que le gestionnaire dit pour l'aider à voir ses angles morts sans l'attaquer.","Utiliser 'Qu'est-ce qui te retient de…?' plutôt que 'Tu devrais…'","Nommer l'inconfort avec bienveillance : 'J'entends que c'est inconfortable, et c'est normal ici.'","Offrir une perspective externe : 'Ce que j'observe depuis ma position, c'est que…'"],
+  redirect: ["Si la conversation devient trop opérationnelle : 'Là tu me décris le quoi — dis-moi plutôt l'impact humain.'","Ramener aux personnes : 'Intéressant. Et dans ton équipe, comment c'est vécu ?'","Recadrer sur le rôle RH : 'Mon angle ici, c'est les gens. Dis-moi ce que ça fait comme pression sur eux.'","Valider puis élever : 'Je comprends l'enjeu opérationnel. Et si on regarde ça du côté talent/culture ?'"],
+  probe: ["Demander des exemples concrets : 'Tu peux me donner une situation récente ?'","Creuser les intuitions : 'Tu dis que tu le sens — qu'est-ce qui te donne ce signal ?'","Explorer la durée : 'C'est quelque chose de récent ou tu observes ça depuis longtemps ?'","Tester la cohérence : 'Et ça, tu l'as partagé avec la personne concernée ?'"],
+  hidden_risks: ["Ce qui n'est PAS dit est souvent plus révélateur que ce qui l'est — noter les silences.","Les enjeux framés comme 'opérationnels' cachent souvent des enjeux relationnels.","Un gestionnaire très 'tout va bien' sans nuances mérite une attention particulière.","Les changements de ton, de rythme de parole ou d'énergie sont des données RH."],
+};
+
+const PREP_MEETING_TYPES = [
+  {value:"regular",label:"1:1 régulier"},{value:"perf",label:"Discussion de performance"},
+  {value:"org",label:"Changement organisationnel"},{value:"talent",label:"Revue de talent"},
+  {value:"concern",label:"Enjeu RH sensible"},{value:"strategic",label:"Alignement stratégique"},
+];
+const PREP_FUNCTIONS = [
+  {value:"",label:"Sélectionner…"},{value:"IT",label:"Technologies de l'information"},
+  {value:"network",label:"Network Planning"},{value:"ops",label:"Opérations"},
+  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporate / Siège"},
+  {value:"hr",label:"Ressources humaines"},{value:"other",label:"Autre"},
+];
+
+function PrepObsSelector({ label, values }) {
+  const [selected, setSelected] = useState(null);
+  const colors = [C.em, C.teal, C.amber, C.red];
+  return (
+    <div>
+      <div style={{ fontSize:11, color:C.textM, marginBottom:6, fontWeight:500 }}>{label}</div>
+      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+        {values.map((v,i) => (
+          <button key={i} onClick={() => setSelected(i)} style={{
+            background: selected===i ? colors[i]+"25" : "transparent",
+            border:`1px solid ${selected===i ? colors[i]+"80" : C.border}`,
+            borderRadius:5, padding:"5px 10px", fontSize:11,
+            color: selected===i ? colors[i] : C.textD, cursor:"pointer",
+            fontFamily:"'DM Sans',sans-serif", textAlign:"left", transition:"all .15s",
+          }}>{v}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const FALLBACK_PREP = {
+  objective: { purpose: "Faire le point sur l'état de l'équipe et les priorités RH du gestionnaire.", expectedOutcome: "Identifier 2-3 actions concrètes à mettre en place d'ici la prochaine rencontre." },
+  priorityIssues: [{ issue: "Enjeux à identifier selon le contexte", why: "Génération IA non disponible — compléter manuellement.", riskLevel: "Modéré" }],
+  recommendedApproach: { how: "Ouvrir avec une question large stratégique, puis sonder les enjeux personnes.", tone: "Partenaire stratégique — allié, pas policier.", pitfalls: ["Éviter de rester dans l'opérationnel", "Ne pas surinterpréter un commentaire isolé"] },
+  suggestedPhrasing: [
+    { type: "Ouverture", text: "Qu'est-ce qui te préoccupe le plus en ce moment sur ton équipe ?" },
+    { type: "Recadrage", text: "J'entends l'enjeu opérationnel — dis-moi ce que ça fait comme pression sur les personnes." },
+  ],
+  context: { summary: "Contexte non disponible — génération IA échouée.", relevantHistory: "Non disponible", keySignals: [] },
+  followUpFromLast1on1: { evolutions: [], stagnations: [], newRisks: [] },
+  recommendedActions: [{ action: "Valider les priorités et l'état de l'équipe avec le gestionnaire", priority: "Modéré" }],
+  overallPriority: "Modéré",
+};
+
+export default function Module1on1Prep({ data, onSave, onNavigate }) {
+
+  // ── State ────────────────────────────────────────────────────────────────
+  const [pTab, setPTab]           = useState("context");
+  const [ctx, setCtx]             = useState({
+    managerName:"", team:"", date:"", meetingType:"regular",
+    purpose:"", background:"", activeCases:"", recentData:"", alerts:"",
+  });
+  const [prep, setPrep]           = useState(null);
+  const [prepLoading, setPrepLoading] = useState(false);
+  const [prepAI, setPrepAI]       = useState(false);
+  const [notes, setNotes]         = useState({ people:"", performance:"", risks:"", org:"", leadership:"", actions:"", followups:"" });
+  const [output, setOutput]       = useState(null);
+  const [outputLoading, setOutputLoading] = useState(false);
+  const [copied, setCopied]       = useState(false);
+  const [saved1on1, setSaved1on1] = useState(false);
+  const [prepPrompt, setPrepPrompt] = useState("");
+  const [outputPrompt, setOutputPrompt] = useState("");
+  const [sigExp, setSigExp]       = useState({});
+  const [histExp, setHistExp]     = useState({});
+
+  // ── History: all meetings for this manager ────────────────────────────────
+  const managerHistory = (data.meetings || [])
+    .filter(m => {
+      if (!m.director || !ctx.managerName) return false;
+      return normKey(m.director) === normKey(ctx.managerName);
+    })
+    .sort((a, b) => Number(b.id) - Number(a.id));
+
+  const lastMeeting  = managerHistory[0] || null;
+  const lastAnalysis = lastMeeting?.analysis || null;
+  const histCount    = managerHistory.length;
+
+  // ── Build history string for AI prompt ───────────────────────────────────
+  const buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
+    const a = m.analysis || {};
+    const risks    = (a.risks    || []).slice(0,2).map(r => r.risk    || r).join("; ");
+    const actions  = (a.actions  || []).slice(0,3).map(ac => ac.action || ac).join("; ");
+    const questions= (a.questions|| []).slice(0,3).map(q  => q.question|| q).join("; ");
+    return `[Meeting ${i+1} — ${m.savedAt}]
+Titre: ${a.meetingTitle||"N/D"} | Risque: ${a.overallRisk||"N/D"}
+Résumé: ${(a.summary||[]).slice(0,2).join(" / ")}
+Risques: ${risks}
+Actions: ${actions}
+Questions posées: ${questions}`;
+  }).join("\n\n");
+
+  // ── AI: generate prep questions — PROMPT DYNAMIQUE INLINE ─────────────────
+  const generatePrep = async () => {
+    if (!ctx.managerName) return;
+    setPrepLoading(true);
+    const histCtx = buildHistCtx();
+    const sp = `Tu es un HRBP senior expert. Génère un plan d intervention structuré pour préparer une rencontre 1:1 avec un gestionnaire.
+${histCtx ? "Tu as l historique des rencontres précédentes — personnalise le plan et fais des liens explicites avec les enjeux non résolus." : "Aucun historique disponible — base-toi uniquement sur le contexte fourni."}
+Réponds UNIQUEMENT en JSON strict. Aucun texte avant ou après. Aucun backtick. Français professionnel. Max 3 items par liste.
+{"objective":{"purpose":"but principal de la rencontre en 1 phrase","expectedOutcome":"résultat concret attendu en 1 phrase"},"priorityIssues":[{"issue":"enjeu prioritaire spécifique","why":"pourquoi c est un enjeu maintenant — contexte ou signal précis","riskLevel":"Faible|Modéré|Élevé"}],"recommendedApproach":{"how":"comment aborder les sujets — concret et actionnable","tone":"ton à adopter avec ce gestionnaire spécifiquement","pitfalls":["piège concret à éviter"]},"suggestedPhrasing":[{"type":"Ouverture","text":"formulation d ouverture naturelle et professionnelle"},{"type":"Recadrage","text":"formulation de recadrage ou confrontation bienveillante"}],"context":{"summary":"résumé des éléments pertinents disponibles","relevantHistory":"synthèse historique utile ou Non disponible","keySignals":["signal important à garder en tête"]},"followUpFromLast1on1":{"evolutions":[],"stagnations":[],"newRisks":[]},"recommendedActions":[{"action":"action concrète à convenir avec le gestionnaire","priority":"Faible|Modéré|Élevé"}],"overallPriority":"Faible|Modéré|Élevé"}
+Règles : sois direct et spécifique, pas générique. Ne pas inventer d information absente du contexte. Utiliser UNIQUEMENT les valeurs exactes Faible, Modéré ou Élevé pour riskLevel, priority et overallPriority — aucune variante. Si historique disponible : remplir followUpFromLast1on1 avec évolutions, stagnations et nouveaux risques observés. Si aucun historique : laisser les trois listes vides. suggestedPhrasing doit contenir au moins 1 phrase d ouverture ET 1 phrase de recadrage ou confrontation.`;
+    const up = [
+      `Gestionnaire: ${ctx.managerName}`,
+      `Equipe: ${ctx.team}`,
+      `Type: ${ctx.meetingType}`,
+      `Objectif: ${ctx.purpose}`,
+      `Contexte: ${ctx.background}`,
+      `Alertes: ${ctx.alerts}`,
+      histCtx ? `\nHISTORIQUE:\n${histCtx}` : "",
+    ].filter(Boolean).join("\n");
+    try { const p = await callAI(sp, up); setPrep(p); setPrepAI(true); }
+    catch { setPrep(FALLBACK_PREP); setPrepAI(false); }
+    finally { setPrepLoading(false); }
+  };
+
+  // ── AI: generate post-meeting output — PROMPT DYNAMIQUE INLINE ───────────
+  const generateOutput = async () => {
+    setOutputLoading(true);
+    const sp = `Tu es un HRBP senior. Genere un compte-rendu post-rencontre ET une strategie HRBP.
+Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe dans les valeurs. Francais professionnel. Max 3 items par liste. Sois direct et specifique, pas generique.
+{"executiveSummary":"2-3 phrases","overallRisk":"Critique|Eleve|Modere|Faible","keySignals":["signal1","signal2"],"mainRisks":["risque1","risque2"],"hrbpFollowups":["action1","action2","action3"],"nextMeetingContext":"phrase de contexte pour le prochain 1:1","nextMeetingQuestions":["q1","q2","q3"],"actionPlan":[{"action":"action","owner":"HRBP|Gestionnaire|HRBP + Gestionnaire","delay":"Immediat|7 jours|30 jours|Continu","priority":"Critique|Elevee|Normale"}],"strategieHRBP":{"lectureGestionnaire":{"style":"style de gestion observe parmi: evitant / directif / deborde / fort mais desaligne / en developpement / reactif","forces":["force observee"],"angles":"angle principal a utiliser avec ce gestionnaire en 1 phrase"},"santeEquipe":{"performance":"Forte|Correcte|A risque|Critique","engagement":"Eleve|Modere|Fragile|Critique","dynamique":"1 phrase sur la dynamique d equipe observee"},"risqueCle":{"nature":"nature du risque principal — attrition / performance / conflit / legal / leadership / engagement","niveau":"Critique|Eleve|Modere|Faible","rationale":"1 phrase — pourquoi ce risque maintenant"},"postureHRBP":{"mode":"Coach|Challenge|Directif|Escalader","justification":"1 phrase — pourquoi ce mode avec ce gestionnaire"},"strategieInfluence":"angle et levier pour cette conversation — comment cadrer pour maximiser l impact","objectifRencontre":"ce que tu veux obtenir concretement a la fin de ce meeting en 1 phrase"}}`;
+    const _prepProv = ctx.province || data.profile?.defaultProvince || "QC";
+    const _prepLegalText = isLegalSensitive(
+      [ctx.purpose,ctx.background,notes.risks,notes.performance,notes.actions].join(" ")
+    ) ? `\n${buildLegalPromptContext(_prepProv)}\n` : "";
+    const up = `Gestionnaire: ${ctx.managerName||"N/A"}\nEquipe: ${ctx.team||"N/A"}\nObjectif: ${ctx.purpose||"N/A"}\nContexte: ${ctx.background||"N/A"}${_prepLegalText}\nNotes — Personnes: ${notes.people||"Aucune"}\nNotes — Performance: ${notes.performance||"Aucune"}\nNotes — Risques: ${notes.risks||"Aucune"}\nNotes — Org: ${notes.org||"Aucune"}\nNotes — Leadership: ${notes.leadership||"Aucune"}\nNotes — Actions: ${notes.actions||"Aucune"}\nNotes — Suivis: ${notes.followups||"Aucune"}`;
+    try { const p = await callAI(sp, up); setOutput(p); }
+    catch { setOutput({ executiveSummary:"Rencontre completee. Voir les notes.", overallRisk:"Modere", keySignals:["A completer"], mainRisks:["A identifier"], hrbpFollowups:["Reviser les notes"], nextMeetingContext:"", nextMeetingQuestions:["A definir"], actionPlan:[{action:"Faire le suivi",owner:"HRBP",delay:"7 jours",priority:"Normale"}] }); }
+    finally { setOutputLoading(false); }
+  };
+
+  // ── Save current session ──────────────────────────────────────────────────
+  const save1on1 = () => {
+    if (!output || saved1on1) return;
+    const session = {
+      id: Date.now().toString(), savedAt: new Date().toISOString().split("T")[0],
+      managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
+      date: ctx.date, purpose: ctx.purpose, notes, output,
+      province: ctx.province || data.profile?.defaultProvince || "QC",
+    };
+    onSave("prep1on1", [...(data["prep1on1"]||[]), session]);
+    setSaved1on1(true);
+  };
+
+  // ── Start next cycle — keep manager, reset everything else ────────────────
+  const startNextCycle = () => {
+    if (!saved1on1) save1on1();
+    setCtx(p => ({
+      ...p,
+      date: "",
+      purpose: "",
+      background: [
+        output?.nextMeetingContext || "",
+        (output?.nextMeetingQuestions||[]).length
+          ? "Suivis a adresser: " + output.nextMeetingQuestions.join(" / ")
+          : "",
+      ].filter(Boolean).join("\n"),
+      activeCases: "",
+      recentData: "",
+      alerts: (output?.mainRisks||[]).join("; "),
+    }));
+    setPrep(null); setPrepAI(false);
+    setNotes({ people:"", performance:"", risks:"", org:"", leadership:"", actions:"", followups:"" });
+    setOutput(null); setSaved1on1(false);
+    setPTab("context");
+  };
+
+  // ── Copy output as text ───────────────────────────────────────────────────
+  const copyOutput = () => {
+    if (!output) return;
+    const lines = [
+      `COMPTE-RENDU 1:1 — ${ctx.managerName||"Gestionnaire"} (${ctx.date||new Date().toLocaleDateString("fr-CA")})`,
+      "", `RESUME\n${output.executiveSummary}`,
+      "", `RISQUE: ${output.overallRisk}`,
+      "", `SIGNAUX\n${(output.keySignals||[]).map((s,i)=>`${i+1}. ${s}`).join("\n")}`,
+      "", `RISQUES\n${(output.mainRisks||[]).map((s,i)=>`${i+1}. ${s}`).join("\n")}`,
+      "", `SUIVIS HRBP\n${(output.hrbpFollowups||[]).map((s,i)=>`${i+1}. ${s}`).join("\n")}`,
+      "", `PROCHAINE RENCONTRE\n${(output.nextMeetingQuestions||[]).map((s,i)=>`${i+1}. ${s}`).join("\n")}`,
+      "", `PLAN D ACTION\n${(output.actionPlan||[]).map(a=>`- ${a.action} [${a.owner} / ${a.delay} / ${a.priority}]`).join("\n")}`,
+    ];
+    navigator.clipboard.writeText(lines.join("\n"))
+      .then(() => { setCopied(true); setTimeout(()=>setCopied(false),2000); });
+  };
+
+  // ── Static data ───────────────────────────────────────────────────────────
+  const PTABS = [
+    {id:"context",  icon:"📋", label:"Contexte",      color:C.blue},
+    {id:"history",  icon:"🕐", label:"Historique",    color:C.purple, badge:histCount||null},
+    {id:"prep",     icon:"🎯", label:"Préparation",   color:C.em,     badge:prep?"✓":null},
+    {id:"signals",  icon:"📡", label:"Signaux",       color:C.amber},
+    {id:"guidance", icon:"🧭", label:"Guidance",      color:C.teal},
+    {id:"notes",    icon:"📝", label:"Notes",         color:C.blue},
+    {id:"output",   icon:"📊", label:"Output",        color:C.red,    badge:output?"✓":null},
+  ];
+  const PREP_CATS = [
+    {key:"objectives",label:"Objectifs HRBP",       icon:"🎯",color:C.em},
+    {key:"strategic", label:"Questions stratégiques",icon:"♟", color:C.blue},
+    {key:"people",    label:"Personnes",             icon:"👥",color:C.teal},
+    {key:"org",       label:"Organisation",          icon:"🏗", color:C.amber},
+    {key:"leadership",label:"Leadership",            icon:"🧭",color:C.purple},
+    {key:"performance",label:"Performance & Talent", icon:"📈",color:C.red},
+    {key:"capacity",  label:"Capacité & Structure",  icon:"⚖️",color:C.em},
+  ];
+  const SIGNAL_CATS = [
+    {key:"disengagement",label:"Désengagement",        icon:"🌡",color:C.amber},
+    {key:"burnout",      label:"Épuisement / Surcharge",icon:"🔥",color:C.red},
+    {key:"retention",    label:"Risques de rétention", icon:"✈", color:C.purple},
+    {key:"tensions",     label:"Tensions d équipe",    icon:"⚡",color:C.amber},
+    {key:"leadership",   label:"Enjeux de leadership", icon:"🧭",color:C.blue},
+    {key:"org",          label:"Enjeux organisationnels",icon:"🏗",color:C.teal},
+    {key:"succession",   label:"Succession & Capacités",icon:"🎯",color:C.em},
+  ];
+  const GUIDE_CATS = [
+    {key:"positioning",label:"Me positionner",        icon:"♟",color:C.blue},
+    {key:"challenge",  label:"Challenger",            icon:"🧲",color:C.purple},
+    {key:"redirect",   label:"Rediriger vers le RH",  icon:"🔄",color:C.amber},
+    {key:"probe",      label:"Sonder pour des preuves",icon:"🔍",color:C.teal},
+    {key:"hidden_risks",label:"Risques cachés",       icon:"🎭",color:C.red},
+  ];
+  const NOTE_CATS = [
+    {key:"people",     label:"Personnes",  icon:"👥",color:C.teal},
+    {key:"performance",label:"Performance",icon:"📈",color:C.blue},
+    {key:"risks",      label:"Risques",    icon:"⚠", color:C.red},
+    {key:"org",        label:"Organisation",icon:"🏗",color:C.amber},
+    {key:"leadership", label:"Leadership", icon:"🧭",color:C.purple},
+    {key:"actions",    label:"Actions",    icon:"✅",color:C.em},
+    {key:"followups",  label:"Suivis HRBP",icon:"🔁",color:C.blue},
+  ];
+  const RISK_C = {Critique:C.red,Eleve:C.amber,Élevé:C.amber,Elevé:C.amber,Modere:C.blue,Modéré:C.blue,Moderé:C.blue,Faible:C.em};
+  const normPrio = v => { if (!v) return v; const l = v.toLowerCase(); if (l==="faible"||l==="low") return "Faible"; if (l==="modéré"||l==="modere"||l==="moyen"||l==="medium") return "Modéré"; if (l==="élevé"||l==="eleve"||l==="elevé"||l==="haute"||l==="high") return "Élevé"; return v; };
+  const activePTab = PTABS.find(t => t.id === pTab);
+  const questions  = prep || PREP_QUESTIONS_DB;
+
+  // ── FLOW STEPS ────────────────────────────────────────────────────────────
+  const flowSteps = [
+    { n:"1", label:"Contexte",         done:!!ctx.managerName,       tab:"context"  },
+    { n:"2", label:"Historique",       done:histCount>0,             tab:"history"  },
+    { n:"3", label:"Génère questions", done:!!prep,                  tab:"prep"     },
+    { n:"4", label:"Fais le meeting",  done:false,                   nav:"meetings" },
+    { n:"5", label:"Analyse transcript",done:false,                  nav:"meetings" },
+    { n:"6", label:"Output + Archiver",done:!!output && saved1on1,   tab:"output"   },
+  ];
+
+  // ── RENDER ────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ display:"flex", height:"calc(100vh - 112px)", overflow:"hidden",
+                  borderRadius:10, border:`1px solid ${C.border}` }}>
+
+      {/* ── SIDEBAR ── */}
+      <div style={{ width:210, background:C.surf, borderRight:`1px solid ${C.border}`,
+                    display:"flex", flexDirection:"column", flexShrink:0 }}>
+
+        {/* Header */}
+        <div style={{ padding:"16px 14px 12px", borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ fontSize:9, fontFamily:"'DM Mono',monospace", color:C.em,
+                        letterSpacing:2, marginBottom:3 }}>MEETINGS</div>
+          <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Préparation 1:1</div>
+          {ctx.managerName && (
+            <div style={{ marginTop:8, padding:"6px 9px", background:C.emD+"30",
+                          borderRadius:6, border:`1px solid ${C.emD}` }}>
+              <div style={{ fontSize:12, color:C.em, fontWeight:700 }}>{ctx.managerName}</div>
+              <div style={{ fontSize:10, color:C.textD }}>
+                {histCount > 0 ? `${histCount} meeting(s) archivé(s)` : "Nouveau gestionnaire"}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Flow tracker */}
+        <div style={{ padding:"12px 13px", borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ fontSize:9, color:C.textD, fontFamily:"'DM Mono',monospace",
+                        letterSpacing:1, marginBottom:8 }}>CYCLE EN COURS</div>
+          {flowSteps.map((s, i) => (
+            <div key={i}
+              onClick={() => s.tab ? setPTab(s.tab) : s.nav ? onNavigate(s.nav) : null}
+              style={{ display:"flex", alignItems:"center", gap:7, marginBottom:6,
+                       cursor:s.tab||s.nav?"pointer":"default" }}>
+              <div style={{ width:18, height:18, borderRadius:"50%", flexShrink:0,
+                             background: s.done ? C.em : C.surfLL,
+                             border:`1px solid ${s.done ? C.em : C.border}`,
+                             display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <span style={{ fontSize:9, color:s.done?C.bg:C.textD,
+                                fontFamily:"'DM Mono',monospace", fontWeight:700 }}>
+                  {s.done ? "✓" : s.n}
+                </span>
+              </div>
+              <span style={{ fontSize:11, color:s.done?C.em:C.textM, lineHeight:1.3 }}>
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab nav */}
+        <nav style={{ flex:1, padding:"8px 7px", display:"flex", flexDirection:"column", gap:2,
+                      overflowY:"auto" }}>
+          {PTABS.map(t => {
+            const active = pTab === t.id;
+            return (
+              <button key={t.id} onClick={()=>setPTab(t.id)} style={{
+                display:"flex", alignItems:"center", gap:8, padding:"8px 9px",
+                borderRadius:7, border:"none", cursor:"pointer", width:"100%",
+                background: active ? t.color+"22" : "transparent",
+                fontFamily:"'DM Sans',sans-serif", transition:"all .15s",
+              }}>
+                <span style={{ fontSize:13 }}>{t.icon}</span>
+                <span style={{ fontSize:12, fontWeight:active?600:400,
+                                color:active?t.color:C.textM, flex:1, textAlign:"left" }}>
+                  {t.label}
+                </span>
+                {t.badge && (
+                  <span style={{ background:t.color+"33", color:t.color, borderRadius:10,
+                                  padding:"1px 6px", fontSize:9,
+                                  fontFamily:"'DM Mono',monospace" }}>
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
+          <button onClick={()=>onNavigate("meetings")}
+            style={{ ...css.btn(C.textM,true), width:"100%", padding:"7px", fontSize:11 }}>
+            ← Meetings
+          </button>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column",
+                    overflow:"hidden", background:C.bg }}>
+
+        {/* Topbar */}
+        <div style={{ padding:"11px 18px", borderBottom:`1px solid ${C.border}`,
+                      background:C.surf, display:"flex", alignItems:"center",
+                      gap:10, flexShrink:0, flexWrap:"wrap" }}>
+          <span style={{ fontSize:15 }}>{activePTab?.icon}</span>
+          <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{activePTab?.label}</div>
+          {ctx.managerName && (
+            <div style={{ fontSize:11, color:C.textD }}>
+              {ctx.managerName}
+              {ctx.team ? " · " + (PREP_FUNCTIONS.find(f=>f.value===ctx.team)?.label||ctx.team) : ""}
+            </div>
+          )}
+
+          <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+            {/* Prep tab actions */}
+            {pTab==="prep" && (
+              <>
+                {prepAI && <Badge label="✦ IA" color={C.em}/>}
+                {histCount > 0 && <Badge label={`${histCount} meetings en mémoire`} color={C.purple}/>}
+                <button onClick={generatePrep} disabled={!ctx.managerName||prepLoading}
+                  style={{ ...css.btn(C.em), padding:"6px 14px", fontSize:12,
+                            opacity:!ctx.managerName?.5:1 }}>
+                  {prepLoading ? "Génération…"
+                    : histCount > 0 ? `✦ Générer avec historique` : "✦ Générer"}
+                </button>
+                {prep && (
+                  <button onClick={()=>onNavigate("meetings")}
+                    style={{ ...css.btn(C.blue), padding:"6px 14px", fontSize:12 }}>
+                    ⚡ Aller analyser →
+                  </button>
+                )}
+              </>
+            )}
+            {/* Output tab actions */}
+            {pTab==="output" && (
+              <>
+                {output && (
+                  <button onClick={copyOutput}
+                    style={{ ...css.btn(C.blue,true), padding:"6px 12px", fontSize:11 }}>
+                    {copied ? "✓ Copié" : "📋 Copier"}
+                  </button>
+                )}
+                {output && (
+                  <button onClick={save1on1} disabled={saved1on1}
+                    style={{ ...css.btn(saved1on1?C.textD:C.purple,true),
+                              padding:"6px 12px", fontSize:11 }}>
+                    {saved1on1 ? "✓ Archivé" : "💾 Archiver"}
+                  </button>
+                )}
+                <button onClick={generateOutput} disabled={outputLoading}
+                  style={{ ...css.btn(C.em), padding:"6px 14px", fontSize:12 }}>
+                  {outputLoading ? "Génération…" : "✦ Générer l'output"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
+
+          {/* ════════════════ CONTEXT ════════════════ */}
+          {pTab==="context" && (
+            <div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+                <div style={{...css.card}}>
+                  <Mono color={C.blue} size={9}>IDENTIFICATION</Mono>
+                  <div style={{marginTop:10}}>
+                    {[["Nom du gestionnaire","managerName","ex. Marie Tremblay"],
+                      ["Date de la rencontre","date",new Date().toLocaleDateString("fr-CA")]
+                    ].map(([label,key,ph]) => (
+                      <div key={key} style={{marginBottom:12}}>
+                        <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                          {label}
+                        </div>
+                        <input value={ctx[key]}
+                          onChange={e=>setCtx(p=>({...p,[key]:e.target.value}))}
+                          placeholder={ph} style={{...css.input}}
+                          onFocus={e=>e.target.style.borderColor=C.em}
+                          onBlur={e=>e.target.style.borderColor=C.border}/>
+                      </div>
+                    ))}
+                    <div style={{marginBottom:12}}>
+                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                        Équipe / Fonction
+                      </div>
+                      <select value={ctx.team}
+                        onChange={e=>setCtx(p=>({...p,team:e.target.value}))}
+                        style={{...css.select}}>
+                        {PREP_FUNCTIONS.map(o =>
+                          <option key={o.value} value={o.value}
+                            style={{background:C.surfL}}>{o.label}</option>
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                        Type de rencontre
+                      </div>
+                      <select value={ctx.meetingType}
+                        onChange={e=>setCtx(p=>({...p,meetingType:e.target.value}))}
+                        style={{...css.select}}>
+                        {PREP_MEETING_TYPES.map(o =>
+                          <option key={o.value} value={o.value}
+                            style={{background:C.surfL}}>{o.label}</option>
+                        )}
+                      </select>
+                    </div>
+                    <div style={{marginTop:12}}>
+                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                        Province
+                      </div>
+                      <ProvinceSelect
+                        value={ctx.province||data.profile?.defaultProvince||"QC"}
+                        onChange={e=>setCtx(p=>({...p,province:e.target.value}))}
+                        style={{width:"100%"}}/>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{...css.card}}>
+                  <Mono color={C.em} size={9}>INTENTION STRATÉGIQUE</Mono>
+                  <div style={{marginTop:10}}>
+                    {[["Objectif principal","purpose",
+                        "ex. Faire le point sur la rétention suite aux changements…",4],
+                      ["Contexte / notes de fond","background",
+                        "ex. Dernier 1:1 il y a 3 semaines — conflit inter-équipes…",5]
+                    ].map(([label,key,ph,rows]) => (
+                      <div key={key} style={{marginBottom:12}}>
+                        <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                          {label}
+                        </div>
+                        <textarea value={ctx[key]}
+                          onChange={e=>setCtx(p=>({...p,[key]:e.target.value}))}
+                          placeholder={ph} rows={rows} style={{...css.textarea}}
+                          onFocus={e=>e.target.style.borderColor=C.em}
+                          onBlur={e=>e.target.style.borderColor=C.border}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{...css.card, borderLeft:`3px solid ${C.amber}`}}>
+                <Mono color={C.amber} size={9}>SIGNAUX CONNUS AVANT LA RENCONTRE</Mono>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:10}}>
+                  {[["Dossiers actifs","activeCases",
+                      "ex. PIP en cours, plainte déposée…",3],
+                    ["Données récentes","recentData",
+                      "ex. 2 départs Q4, taux abs en hausse…",3],
+                    ["Tensions / alertes","alerts",
+                      "ex. Tensions avec l équipe de Morgan…",3]
+                  ].map(([label,key,ph,rows]) => (
+                    <div key={key}>
+                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                        {label}
+                      </div>
+                      <textarea value={ctx[key]}
+                        onChange={e=>setCtx(p=>({...p,[key]:e.target.value}))}
+                        placeholder={ph} rows={rows}
+                        style={{...css.textarea,fontSize:12}}
+                        onFocus={e=>e.target.style.borderColor=C.amber}
+                        onBlur={e=>e.target.style.borderColor=C.border}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* History auto-detect banner */}
+              {ctx.managerName && histCount > 0 && (
+                <div style={{marginTop:12,padding:"11px 14px",
+                              background:C.purple+"18",
+                              border:`1px solid ${C.purple}40`,borderRadius:8,
+                              display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:12,color:C.purple}}>
+                    🕐 <strong>{histCount} meeting(s)</strong> trouvé(s) pour{" "}
+                    <strong>{ctx.managerName}</strong> —
+                    l'historique sera injecté dans la génération des questions.
+                  </span>
+                  <button onClick={()=>setPTab("history")}
+                    style={{...css.btn(C.purple,true),padding:"5px 12px",fontSize:11}}>
+                    Voir l'historique →
+                  </button>
+                </div>
+              )}
+              {ctx.managerName && histCount === 0 && (
+                <div style={{marginTop:12,padding:"10px 14px",
+                              background:C.emD+"20",border:`1px solid ${C.emD}`,
+                              borderRadius:8}}>
+                  <span style={{fontSize:11,color:C.em}}>
+                    🆕 Premier 1:1 avec <strong>{ctx.managerName}</strong> —
+                    les questions seront génériques. À chaque cycle, l'historique s'enrichit.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════════════════ HISTORY ════════════════ */}
+          {pTab==="history" && (
+            <div>
+              {histCount === 0 ? (
+                <div style={{background:C.surfL,border:`2px dashed ${C.border}`,
+                              borderRadius:12,padding:"48px 24px",textAlign:"center"}}>
+                  <div style={{fontSize:36,marginBottom:12}}>🕐</div>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:8}}>
+                    Aucun historique
+                  </div>
+                  <div style={{fontSize:12,color:C.textD,maxWidth:360,margin:"0 auto",
+                                marginBottom:16}}>
+                    {ctx.managerName
+                      ? `Aucun transcript analysé pour "${ctx.managerName}". Chaque meeting analysé dans le module Meetings alimentera automatiquement cet historique.`
+                      : "Remplis le nom du gestionnaire dans Contexte pour voir son historique."}
+                  </div>
+                  <button onClick={()=>onNavigate("meetings")}
+                    style={{...css.btn(C.em)}}>
+                    ⚡ Aller analyser un transcript
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>
+                      Historique — {ctx.managerName}
+                    </div>
+                    <div style={{fontSize:12,color:C.textD}}>
+                      {histCount} transcript(s) analysé(s) · Les 3 plus récents alimentent la génération des questions.
+                    </div>
+                  </div>
+
+                  {/* Last meeting — expanded detail */}
+                  {lastAnalysis && (
+                    <div style={{...css.card,borderLeft:`3px solid ${C.em}`,marginBottom:14}}>
+                      <div style={{display:"flex",alignItems:"center",
+                                    justifyContent:"space-between",marginBottom:10}}>
+                        <Mono color={C.em} size={9}>
+                          DERNIER MEETING — {lastMeeting.savedAt}
+                        </Mono>
+                        <RiskBadge level={lastAnalysis.overallRisk||"Faible"}/>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:12}}>
+                        {lastAnalysis.meetingTitle}
+                      </div>
+
+                      {/* Key signals from last meeting */}
+                      {(lastAnalysis.risks||[]).length > 0 && (
+                        <div style={{marginBottom:12}}>
+                          <Mono color={C.red} size={8}>RISQUES IDENTIFIÉS</Mono>
+                          {lastAnalysis.risks.slice(0,3).map((r,i) => (
+                            <div key={i} style={{display:"flex",gap:8,marginTop:7,
+                                                  padding:"7px 10px",
+                                                  background:C.red+"10",borderRadius:7}}>
+                              <span style={{color:C.red,fontFamily:"'DM Mono',monospace",
+                                             fontSize:10,flexShrink:0,marginTop:2}}>
+                                {String(i+1).padStart(2,"0")}
+                              </span>
+                              <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>
+                                {r.risk||r}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Actions from last meeting — to follow up on */}
+                      {(lastAnalysis.actions||[]).length > 0 && (
+                        <div style={{marginBottom:12}}>
+                          <Mono color={C.amber} size={8}>ACTIONS — À VÉRIFIER CE MEETING</Mono>
+                          {lastAnalysis.actions.slice(0,4).map((a,i) => (
+                            <div key={i} style={{display:"flex",alignItems:"center",
+                                                  gap:8,marginTop:6,padding:"7px 10px",
+                                                  background:C.amber+"10",borderRadius:7}}>
+                              <span style={{fontSize:12,color:C.textM,flex:1}}>
+                                {a.action||a}
+                              </span>
+                              {a.delay && <Badge label={a.delay} color={C.amber} size={9}/>}
+                              {a.owner && <Badge label={a.owner} color={C.blue} size={9}/>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Suggested questions from last analysis */}
+                      {(lastAnalysis.questions||[]).length > 0 && (
+                        <div>
+                          <Mono color={C.blue} size={8}>QUESTIONS DU DERNIER MEETING — À FAIRE ÉVOLUER</Mono>
+                          {lastAnalysis.questions.slice(0,3).map((q,i) => (
+                            <div key={i} style={{display:"flex",gap:8,marginTop:6}}>
+                              <span style={{color:C.blue,fontFamily:"'DM Mono',monospace",
+                                             fontSize:10,flexShrink:0,marginTop:2}}>
+                                Q{i+1}
+                              </span>
+                              <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>
+                                {q.question||q}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* All past meetings — collapsible timeline */}
+                  <Mono color={C.textD} size={9}>TOUS LES MEETINGS ({histCount})</Mono>
+                  <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:7}}>
+                    {managerHistory.map((m,i) => {
+                      const a = m.analysis || {};
+                      const r = RISK[a.overallRisk] || RISK["Faible"];
+                      const open = histExp[i];
+                      return (
+                        <div key={i} style={{background:C.surfL,
+                                              border:`1px solid ${open?r.color+"50":C.border}`,
+                                              borderRadius:9,overflow:"hidden",
+                                              transition:"border-color .15s"}}>
+                          <button onClick={()=>setHistExp(p=>({...p,[i]:!p[i]}))}
+                            style={{width:"100%",background:"none",border:"none",
+                                    padding:"11px 13px",display:"flex",
+                                    alignItems:"center",gap:10,cursor:"pointer",
+                                    fontFamily:"'DM Sans',sans-serif"}}>
+                            <div style={{width:7,height:7,borderRadius:"50%",
+                                          background:r.color,flexShrink:0}}/>
+                            <span style={{fontSize:13,color:C.text,flex:1,textAlign:"left",
+                                           fontWeight:500}}>
+                              {a.meetingTitle||"Meeting"}
+                            </span>
+                            <RiskBadge level={a.overallRisk||"Faible"}/>
+                            <Mono color={C.textD} size={8}>{m.savedAt}</Mono>
+                            <span style={{color:C.textD,fontSize:12,marginLeft:4}}>
+                              {open?"▲":"▼"}
+                            </span>
+                          </button>
+                          {open && (
+                            <div style={{padding:"0 13px 12px",
+                                          borderTop:`1px solid ${C.border}`}}>
+                              {(a.summary||[]).map((s,j) => (
+                                <div key={j} style={{display:"flex",gap:8,marginTop:8}}>
+                                  <div style={{width:4,height:4,borderRadius:"50%",
+                                                background:C.em,marginTop:7,flexShrink:0}}/>
+                                  <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>
+                                    {s}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{marginTop:14,display:"flex",gap:10}}>
+                    <button onClick={()=>setPTab("prep")}
+                      style={{...css.btn(C.em),flex:1}}>
+                      🎯 Générer les questions avec cet historique →
+                    </button>
+                    <button onClick={()=>onNavigate("meetings")}
+                      style={{...css.btn(C.blue,true),padding:"9px 16px",fontSize:13}}>
+                      ⚡ Analyser nouveau transcript
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════════════════ PREP ════════════════ */}
+          {pTab==="prep" && (
+            <div>
+              {/* Empty state */}
+              {!prep && !prepLoading && (
+                <div style={{background:C.surfL,border:`2px dashed ${C.border}`,
+                              borderRadius:12,padding:"32px 24px",textAlign:"center",
+                              marginBottom:16}}>
+                  <div style={{fontSize:32,marginBottom:10}}>🎯</div>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>
+                    Questions non générées
+                  </div>
+                  <div style={{fontSize:12,color:C.textD,marginBottom:16,maxWidth:420,margin:"0 auto 16px"}}>
+                    {histCount > 0
+                      ? `L'IA va s'appuyer sur les ${histCount} meeting(s) avec ${ctx.managerName||"ce gestionnaire"} pour personnaliser les questions et faire des liens avec les enjeux non résolus.`
+                      : "Remplis le contexte puis génère des questions stratégiques pour ce 1:1."}
+                  </div>
+                  <button onClick={generatePrep} disabled={!ctx.managerName}
+                    style={{...css.btn(!ctx.managerName?C.textD:C.em),
+                              opacity:!ctx.managerName?.5:1}}>
+                    {histCount > 0
+                      ? `✦ Générer avec l'historique (${histCount} meetings)`
+                      : "✦ Générer les questions"}
+                  </button>
+                </div>
+              )}
+
+              {prepLoading && <AILoader label="Génération des questions…"/>}
+
+              {/* ── Plan d'intervention structuré ── */}
+              {prep && (
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+                  {/* Priorité globale */}
+                  {prep.overallPriority && <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                    <Mono color={C.textD} size={9}>PRIORITÉ GLOBALE</Mono>
+                    <Badge label={normPrio(prep.overallPriority)} color={{"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(prep.overallPriority)]||C.textM}/>
+                  </div>}
+
+                  {/* 1. Objectif */}
+                  {prep.objective && <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
+                    <Mono color={C.em} size={9}>🎯 OBJECTIF DU 1:1</Mono>
+                    <div style={{marginTop:10}}>
+                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>But</div>
+                      <div style={{fontSize:13,color:C.text,lineHeight:1.65,marginBottom:10}}>{prep.objective.purpose}</div>
+                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Résultat attendu</div>
+                      <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.objective.expectedOutcome}</div>
+                    </div>
+                  </div>}
+
+                  {/* 2. Enjeux prioritaires */}
+                  {prep.priorityIssues?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
+                    <Mono color={C.red} size={9}>⚠ ENJEUX PRIORITAIRES</Mono>
+                    <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:10}}>
+                      {prep.priorityIssues.map((issue,i) => {
+                        const rc = {"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(issue.riskLevel)]||C.textM;
+                        return <div key={i} style={{padding:"10px 12px",background:rc+"0D",borderRadius:8,border:`1px solid ${rc}25`}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:issue.why?6:0}}>
+                            <Badge label={normPrio(issue.riskLevel)||issue.riskLevel} color={rc} size={10}/>
+                            <span style={{fontSize:13,fontWeight:600,color:C.text}}>{issue.issue}</span>
+                          </div>
+                          {issue.why && <div style={{fontSize:12,color:C.textM,lineHeight:1.55,fontStyle:"italic"}}>{issue.why}</div>}
+                        </div>;
+                      })}
+                    </div>
+                  </div>}
+
+                  {/* 3. Contexte */}
+                  {prep.context && <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
+                    <Mono color={C.blue} size={9}>📋 CONTEXTE</Mono>
+                    <div style={{marginTop:10}}>
+                      <div style={{fontSize:13,color:C.text,lineHeight:1.65,marginBottom:prep.context.keySignals?.length>0||prep.context.relevantHistory?10:0}}>{prep.context.summary}</div>
+                      {prep.context.relevantHistory && prep.context.relevantHistory!=="Non disponible" && <div style={{marginBottom:10,padding:"7px 10px",background:C.blue+"0D",borderRadius:7,fontSize:12,color:C.textM,lineHeight:1.55}}><span style={{color:C.blue,fontWeight:600}}>Historique → </span>{prep.context.relevantHistory}</div>}
+                      {prep.context.keySignals?.length > 0 && <div>
+                        <Mono color={C.blue} size={8}>Signaux à garder en tête</Mono>
+                        {prep.context.keySignals.map((sig,i) => <div key={i} style={{display:"flex",gap:8,marginTop:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.blue,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{sig}</span></div>)}
+                      </div>}
+                    </div>
+                  </div>}
+
+                  {/* 4. Suivi depuis le dernier 1:1 — affiché seulement si données */}
+                  {prep.followUpFromLast1on1 && (prep.followUpFromLast1on1.evolutions?.length>0||prep.followUpFromLast1on1.stagnations?.length>0||prep.followUpFromLast1on1.newRisks?.length>0) && (
+                    <div style={{...css.card,borderLeft:`3px solid ${C.purple}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                        <Mono color={C.purple} size={9}>🔁 SUIVI DEPUIS LE DERNIER 1:1</Mono>
+                        <Badge label="Basé sur l'historique" color={C.purple}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        {prep.followUpFromLast1on1.evolutions?.length > 0 && <div>
+                          <Mono color={C.em} size={8}>Évolutions</Mono>
+                          {prep.followUpFromLast1on1.evolutions.map((e,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.em,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{e}</span></div>)}
+                        </div>}
+                        {prep.followUpFromLast1on1.stagnations?.length > 0 && <div>
+                          <Mono color={C.amber} size={8}>Stagnations</Mono>
+                          {prep.followUpFromLast1on1.stagnations.map((s,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.amber,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{s}</span></div>)}
+                        </div>}
+                        {prep.followUpFromLast1on1.newRisks?.length > 0 && <div>
+                          <Mono color={C.red} size={8}>Nouveaux risques</Mono>
+                          {prep.followUpFromLast1on1.newRisks.map((r,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.red,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{r}</span></div>)}
+                        </div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 5. Approche recommandée */}
+                  {prep.recommendedApproach && <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
+                    <Mono color={C.amber} size={9}>🧭 APPROCHE RECOMMANDÉE</Mono>
+                    <div style={{marginTop:10}}>
+                      <div style={{marginBottom:10}}>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Comment aborder</div>
+                        <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.how}</div>
+                      </div>
+                      <div style={{marginBottom:prep.recommendedApproach.pitfalls?.length>0?10:0}}>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Ton à adopter</div>
+                        <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.tone}</div>
+                      </div>
+                      {prep.recommendedApproach.pitfalls?.length > 0 && <div>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:6}}>Pièges à éviter</div>
+                        {prep.recommendedApproach.pitfalls.map((p,i) => <div key={i} style={{display:"flex",gap:8,marginBottom:5}}><span style={{color:C.amber,fontSize:11,flexShrink:0,marginTop:2}}>⚠</span><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{p}</span></div>)}
+                      </div>}
+                    </div>
+                  </div>}
+
+                  {/* 6. Phrases suggérées */}
+                  {prep.suggestedPhrasing?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
+                    <Mono color={C.teal} size={9}>💬 PHRASES SUGGÉRÉES</Mono>
+                    <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
+                      {prep.suggestedPhrasing.map((ph,i) => {
+                        const pc = {"Ouverture":C.em,"Recadrage":C.amber,"Confrontation":C.amber,"Suivi":C.blue}[ph.type]||C.teal;
+                        return <div key={i} style={{borderRadius:8,border:`1px solid ${pc}28`,overflow:"hidden"}}>
+                          <div style={{background:pc+"18",borderLeft:`3px solid ${pc}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:8}}>
+                            <Badge label={ph.type||"Script"} color={pc} size={10}/>
+                          </div>
+                          <div style={{padding:"10px 13px",background:C.surfL,borderLeft:`3px solid ${pc}`}}>
+                            <div style={{fontSize:13,color:C.text,lineHeight:1.7,fontStyle:"italic"}}>"{ph.text||ph}"</div>
+                          </div>
+                        </div>;
+                      })}
+                    </div>
+                  </div>}
+
+                  {/* 7. Actions recommandées */}
+                  {prep.recommendedActions?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
+                    <Mono color={C.em} size={9}>✅ ACTIONS RECOMMANDÉES</Mono>
+                    <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
+                      {prep.recommendedActions.map((a,i) => {
+                        const ac = {"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(a.priority)]||C.textM;
+                        return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 11px",background:C.surfLL,borderRadius:8,border:`1px solid ${C.border}`}}>
+                          <span style={{color:C.em,fontFamily:"'DM Mono',monospace",fontSize:10,flexShrink:0}}>{String(i+1).padStart(2,"0")}</span>
+                          <span style={{fontSize:13,color:C.text,flex:1,lineHeight:1.5}}>{a.action}</span>
+                          <Badge label={normPrio(a.priority)||a.priority} color={ac} size={10}/>
+                        </div>;
+                      })}
+                    </div>
+                  </div>}
+
+                </div>
+              )}
+
+              {prep && (
+                <div style={{marginTop:14,padding:"11px 14px",
+                              background:C.em+"10",
+                              border:`1px solid ${C.em}33`,borderRadius:8,
+                              display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:12,color:C.em}}>
+                    ✅ Plan d'intervention prêt. Fais ton meeting, puis reviens analyser le transcript.
+                  </span>
+                  <button onClick={()=>onNavigate("meetings")}
+                    style={{...css.btn(C.em),padding:"7px 14px",fontSize:12}}>
+                    ⚡ Aller analyser →
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════════════════ SIGNALS ════════════════ */}
+          {pTab==="signals" && (
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+                {SIGNAL_CATS.map(cat => (
+                  <div key={cat.key}
+                    style={{background:C.surfL,
+                              border:`1px solid ${sigExp[cat.key]?cat.color+"60":C.border}`,
+                              borderLeft:`3px solid ${cat.color}`,
+                              borderRadius:10,overflow:"hidden",transition:"border-color .2s"}}>
+                    <button onClick={()=>setSigExp(p=>({...p,[cat.key]:!p[cat.key]}))}
+                      style={{width:"100%",background:"none",border:"none",
+                               padding:"12px 14px",display:"flex",alignItems:"center",
+                               justifyContent:"space-between",cursor:"pointer",
+                               fontFamily:"'DM Sans',sans-serif"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:9}}>
+                        <span style={{fontSize:15}}>{cat.icon}</span>
+                        <span style={{fontSize:13,fontWeight:600,color:C.text}}>
+                          {cat.label}
+                        </span>
+                      </div>
+                      <span style={{color:cat.color,fontSize:14,fontWeight:700}}>
+                        {sigExp[cat.key]?"−":"+"}
+                      </span>
+                    </button>
+                    {sigExp[cat.key] && (
+                      <div style={{padding:"0 13px 12px"}}>
+                        {SIGNALS_DB[cat.key].map((sig,i) => (
+                          <div key={i} style={{display:"flex",gap:8,marginBottom:7}}>
+                            <div style={{width:5,height:5,borderRadius:"50%",
+                                          background:cat.color,marginTop:7,flexShrink:0}}/>
+                            <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{sig}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Observation grid */}
+              <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
+                <Mono color={C.em} size={9}>GRILLE D'OBSERVATION — PENDANT LA RENCONTRE</Mono>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",
+                              gap:12,marginTop:12}}>
+                  {[
+                    {label:"Énergie générale",  values:["Haute","Normale","Basse","Épuisée"]},
+                    {label:"Ouverture",          values:["Très ouverte","Normale","Réservée","Défensive"]},
+                    {label:"Clarté / équipe",    values:["Excellente","Bonne","Partielle","Floue"]},
+                    {label:"Alerte globale",     values:["Aucune","Légère","Modérée","Élevée"]},
+                  ].map((obs,i) => (
+                    <PrepObsSelector key={i} label={obs.label} values={obs.values}/>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════ GUIDANCE ════════════════ */}
+          {pTab==="guidance" && (
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {GUIDE_CATS.map(cat => (
+                <div key={cat.key}
+                  style={{...css.card,borderLeft:`3px solid ${cat.color}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                    <span style={{fontSize:15}}>{cat.icon}</span>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{cat.label}</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {GUIDANCE_DB[cat.key].map((tip,i) => (
+                      <div key={i}
+                        style={{background:cat.color+"08",
+                                  border:`1px solid ${cat.color}25`,
+                                  borderRadius:8,padding:"11px 12px",
+                                  display:"flex",gap:9}}>
+                        <span style={{color:cat.color,
+                                       fontFamily:"'DM Mono',monospace",
+                                       fontSize:10,marginTop:2,flexShrink:0}}>
+                          {String(i+1).padStart(2,"0")}
+                        </span>
+                        <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ════════════════ NOTES ════════════════ */}
+          {pTab==="notes" && (
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                {NOTE_CATS.map(cat => (
+                  <div key={cat.key}
+                    style={{...css.card,borderLeft:`3px solid ${cat.color}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                      <span style={{fontSize:13}}>{cat.icon}</span>
+                      <Mono color={cat.color} size={9}>{cat.label}</Mono>
+                    </div>
+                    <textarea value={notes[cat.key]||""}
+                      onChange={e=>setNotes(p=>({...p,[cat.key]:e.target.value}))}
+                      placeholder={`Notes sur ${cat.label.toLowerCase()}…`}
+                      rows={4} style={{...css.textarea,fontSize:12}}
+                      onFocus={e=>e.target.style.borderColor=cat.color}
+                      onBlur={e=>e.target.style.borderColor=C.border}/>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:12,padding:"10px 14px",
+                            background:C.teal+"10",
+                            border:`1px solid ${C.teal}33`,borderRadius:8}}>
+                <span style={{fontSize:11,color:C.teal}}>
+                  💾 Ces notes sont indépendantes du transcript. Génère l'output pour les consolider.
+                  Si tu as analysé le transcript dans Meetings, les deux analyses se complètent.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════ OUTPUT ════════════════ */}
+          {pTab==="output" && (
+            <div>
+              {outputLoading && <AILoader label="Génération du compte-rendu…"/>}
+
+              {!output && !outputLoading && (
+                <div style={{background:C.surfL,border:`2px dashed ${C.border}`,
+                              borderRadius:12,padding:"48px 24px",textAlign:"center"}}>
+                  <div style={{fontSize:36,marginBottom:12}}>📊</div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>
+                    Aucun output généré
+                  </div>
+                  <div style={{fontSize:12,color:C.textD,maxWidth:400,margin:"0 auto 16px"}}>
+                    Complète les notes pendant ou après le meeting, puis génère le compte-rendu.
+                    Cet output deviendra le contexte de ton prochain 1:1 avec ce gestionnaire.
+                  </div>
+                  <button onClick={generateOutput}
+                    style={{...css.btn(C.em)}}>
+                    ✦ Générer le compte-rendu
+                  </button>
+                </div>
+              )}
+
+              {output && (
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  {/* Summary + risk */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12}}>
+                    <div style={{...css.card,
+                                  borderLeft:`3px solid ${RISK_C[output.overallRisk]||C.em}`}}>
+                      <Mono color={C.em} size={9}>RÉSUMÉ EXÉCUTIF</Mono>
+                      <p style={{fontSize:13,color:C.text,margin:"10px 0 0",lineHeight:1.7}}>
+                        {output.executiveSummary}
+                      </p>
+                    </div>
+                    <div style={{background:(RISK_C[output.overallRisk]||C.em)+"18",
+                                  border:`2px solid ${RISK_C[output.overallRisk]||C.em}`,
+                                  borderRadius:10,padding:"16px 20px",
+                                  textAlign:"center",minWidth:110,flexShrink:0}}>
+                      <Mono color={RISK_C[output.overallRisk]||C.em} size={9}>RISQUE</Mono>
+                      <div style={{fontSize:18,fontWeight:800,
+                                    color:RISK_C[output.overallRisk]||C.em,marginTop:8}}>
+                        {output.overallRisk}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4-quadrant cards */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                    {[
+                      {title:"📡 Signaux clés",    key:"keySignals",          color:C.amber},
+                      {title:"⚠ Risques",           key:"mainRisks",           color:C.red},
+                      {title:"🔁 Suivis HRBP",      key:"hrbpFollowups",       color:C.em},
+                      {title:"❓ Prochain meeting", key:"nextMeetingQuestions", color:C.blue},
+                    ].map(({title,key,color}) => (
+                      <div key={key} style={{...css.card,borderLeft:`3px solid ${color}`}}>
+                        <Mono color={color} size={9}>{title}</Mono>
+                        <div style={{marginTop:10}}>
+                          {(output[key]||[]).map((item,i) => (
+                            <div key={i} style={{display:"flex",gap:8,marginBottom:7}}>
+                              <div style={{width:5,height:5,borderRadius:"50%",
+                                            background:color,marginTop:6,flexShrink:0}}/>
+                              <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>
+                                {item}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action plan */}
+                  <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
+                    <Mono color={C.em} size={9}>PLAN D'ACTION</Mono>
+                    <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
+                      {(output.actionPlan||[]).map((a,i) => (
+                        <div key={i}
+                          style={{display:"flex",alignItems:"center",gap:10,
+                                   padding:"9px 11px",background:C.surfLL,
+                                   borderRadius:8,border:`1px solid ${C.border}`}}>
+                          <span style={{color:C.em,fontFamily:"'DM Mono',monospace",
+                                         fontSize:10,flexShrink:0}}>
+                            {String(i+1).padStart(2,"0")}
+                          </span>
+                          <span style={{fontSize:13,color:C.text,flex:1}}>{a.action}</span>
+                          <Badge label={a.owner} color={C.blue} size={10}/>
+                          <Badge label={a.delay} color={C.teal} size={10}/>
+                          <Badge label={a.priority}
+                            color={a.priority==="Critique"||a.priority==="Elevee"
+                              ?C.red:a.priority==="Élevée"?C.red
+                              :C.textD}
+                            size={10}/>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── STRATÉGIE HRBP ── */}
+                  {output.strategieHRBP && (() => {
+                    const s = output.strategieHRBP;
+                    const postureColor = {
+                      "Coach": C.em, "Challenge": C.amber,
+                      "Directif": C.red, "Escalader": "#7a1e2e"
+                    }[s.postureHRBP?.mode] || C.purple;
+                    const perfColor = { "Forte":C.em, "Correcte":C.blue, "A risque":C.amber, "Critique":C.red }[s.santeEquipe?.performance] || C.textD;
+                    const engColor  = { "Eleve":C.em, "Modere":C.blue, "Fragile":C.amber, "Critique":C.red }[s.santeEquipe?.engagement] || C.textD;
+                    const riskColor = { "Critique":C.red, "Eleve":C.amber, "Modere":C.blue, "Faible":C.textD }[s.risqueCle?.niveau] || C.textD;
+                    return (
+                    <div style={{ border:`2px solid ${C.purple}40`, borderRadius:11,
+                      background:C.purple+"06", overflow:"hidden" }}>
+                      {/* Header */}
+                      <div style={{ padding:"12px 18px", borderBottom:`1px solid ${C.purple}25`,
+                        display:"flex", alignItems:"center", gap:10,
+                        background:C.purple+"10" }}>
+                        <div style={{ width:28, height:28, background:C.purple, borderRadius:6,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          fontSize:14, flexShrink:0 }}>🧠</div>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:700, color:C.purple }}>Stratégie HRBP</div>
+                          <div style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:0.5 }}>ANALYSE STRATÉGIQUE — AVANT LE MEETING</div>
+                        </div>
+                      </div>
+
+                      <div style={{ padding:"16px 18px", display:"flex", flexDirection:"column", gap:14 }}>
+
+                        {/* Lecture gestionnaire */}
+                        {s.lectureGestionnaire && (
+                          <div>
+                            <Mono color={C.purple} size={9}>LECTURE DU GESTIONNAIRE</Mono>
+                            <div style={{ marginTop:8, display:"flex", gap:10, flexWrap:"wrap", alignItems:"flex-start" }}>
+                              <div style={{ background:C.purple+"18", border:`1px solid ${C.purple}40`,
+                                borderRadius:7, padding:"5px 12px", fontSize:12,
+                                color:C.purple, fontWeight:600 }}>
+                                {s.lectureGestionnaire.style}
+                              </div>
+                            </div>
+                            {s.lectureGestionnaire.forces?.length > 0 && (
+                              <div style={{ marginTop:8, display:"flex", flexDirection:"column", gap:5 }}>
+                                {s.lectureGestionnaire.forces.map((f,i) => (
+                                  <div key={i} style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
+                                    <span style={{ color:C.em, fontSize:11, flexShrink:0, marginTop:2 }}>+</span>
+                                    <span style={{ fontSize:12, color:C.textM, lineHeight:1.6 }}>{f}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {s.lectureGestionnaire.angles && (
+                              <div style={{ marginTop:8, padding:"7px 10px", background:C.purple+"10",
+                                borderRadius:7, fontSize:12, color:C.text, lineHeight:1.6 }}>
+                                <span style={{ color:C.purple, fontWeight:600 }}>Angle → </span>
+                                {s.lectureGestionnaire.angles}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Santé équipe */}
+                        {s.santeEquipe && (
+                          <div>
+                            <Mono color={C.purple} size={9}>SANTÉ DE L'ÉQUIPE</Mono>
+                            <div style={{ marginTop:8, display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+                              <div style={{ display:"flex", gap:6, alignItems:"center",
+                                padding:"5px 11px", borderRadius:7, background:perfColor+"15",
+                                border:`1px solid ${perfColor}35` }}>
+                                <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>PERF</span>
+                                <span style={{ fontSize:12, fontWeight:700, color:perfColor }}>{s.santeEquipe.performance}</span>
+                              </div>
+                              <div style={{ display:"flex", gap:6, alignItems:"center",
+                                padding:"5px 11px", borderRadius:7, background:engColor+"15",
+                                border:`1px solid ${engColor}35` }}>
+                                <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>ENG</span>
+                                <span style={{ fontSize:12, fontWeight:700, color:engColor }}>{s.santeEquipe.engagement}</span>
+                              </div>
+                            </div>
+                            {s.santeEquipe.dynamique && (
+                              <div style={{ marginTop:8, fontSize:12, color:C.textM, lineHeight:1.6 }}>
+                                {s.santeEquipe.dynamique}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Risque clé */}
+                        {s.risqueCle && (
+                          <div style={{ padding:"10px 12px", background:riskColor+"10",
+                            border:`1px solid ${riskColor}30`, borderRadius:8 }}>
+                            <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
+                              <Mono color={riskColor} size={9}>RISQUE CLÉ</Mono>
+                              <div style={{ background:riskColor+"20", border:`1px solid ${riskColor}50`,
+                                borderRadius:5, padding:"2px 8px", fontSize:10,
+                                fontWeight:700, color:riskColor }}>
+                                {s.risqueCle.niveau}
+                              </div>
+                              <div style={{ fontSize:12, fontWeight:600, color:riskColor }}>
+                                {s.risqueCle.nature}
+                              </div>
+                            </div>
+                            {s.risqueCle.rationale && (
+                              <div style={{ fontSize:12, color:C.textM }}>{s.risqueCle.rationale}</div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Posture + Stratégie côte à côte */}
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                          {s.postureHRBP && (
+                            <div>
+                              <Mono color={C.purple} size={9}>POSTURE HRBP</Mono>
+                              <div style={{ marginTop:8, display:"flex", gap:8, alignItems:"center",
+                                padding:"8px 12px", background:postureColor+"15",
+                                border:`2px solid ${postureColor}50`, borderRadius:8 }}>
+                                <span style={{ fontSize:18, flexShrink:0 }}>
+                                  {{"Coach":"🎯","Challenge":"⚡","Directif":"🔴","Escalader":"🚨"}[s.postureHRBP.mode]||"🧠"}
+                                </span>
+                                <div>
+                                  <div style={{ fontSize:13, fontWeight:700, color:postureColor }}>{s.postureHRBP.mode}</div>
+                                  {s.postureHRBP.justification && (
+                                    <div style={{ fontSize:11, color:C.textM, lineHeight:1.5, marginTop:2 }}>
+                                      {s.postureHRBP.justification}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {s.objectifRencontre && (
+                            <div>
+                              <Mono color={C.purple} size={9}>OBJECTIF MEETING</Mono>
+                              <div style={{ marginTop:8, padding:"8px 12px",
+                                background:C.em+"10", border:`1px solid ${C.em}30`,
+                                borderRadius:8, fontSize:12, color:C.text,
+                                lineHeight:1.65 }}>
+                                {s.objectifRencontre}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Stratégie d'influence */}
+                        {s.strategieInfluence && (
+                          <div>
+                            <Mono color={C.purple} size={9}>STRATÉGIE D'INFLUENCE</Mono>
+                            <div style={{ marginTop:8, padding:"9px 12px",
+                              background:C.purple+"10", border:`1px solid ${C.purple}25`,
+                              borderRadius:8, fontSize:12, color:C.text, lineHeight:1.7,
+                              fontStyle:"italic" }}>
+                              "{s.strategieInfluence}"
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                    </div>
+                    );
+                  })()}
+
+                  {/* ── CYCLE CLOSER ── */}
+                  <div style={{padding:"16px 18px",
+                                background:C.purple+"18",
+                                border:`2px solid ${C.purple}40`,
+                                borderRadius:11}}>
+                    <div style={{display:"flex",alignItems:"flex-start",
+                                  justifyContent:"space-between",gap:16}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:700,
+                                      color:C.purple,marginBottom:5}}>
+                          🔄 Préparer le prochain 1:1 avec cet output
+                        </div>
+                        <div style={{fontSize:12,color:C.textD,marginBottom:10}}>
+                          {output.nextMeetingContext
+                            ? output.nextMeetingContext
+                            : "Les risques, signaux et questions de suivi seront injectés comme contexte dans le prochain cycle."}
+                        </div>
+                        {output.nextMeetingQuestions?.length > 0 && (
+                          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                            {output.nextMeetingQuestions.map((q,i) => (
+                              <div key={i}
+                                style={{background:C.purple+"20",
+                                          border:`1px solid ${C.purple}40`,
+                                          borderRadius:6,padding:"4px 10px",
+                                          fontSize:11,color:C.purple}}>
+                                {q.length > 55 ? q.substring(0,55)+"…" : q}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={startNextCycle}
+                        style={{...css.btn(C.purple),padding:"10px 18px",
+                                  fontSize:13,whiteSpace:"nowrap",flexShrink:0}}>
+                        🔄 Nouveau cycle →
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>{/* end body */}
+      </div>{/* end main */}
+    </div>
+  );
+}

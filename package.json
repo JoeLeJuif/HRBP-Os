@@ -1,0 +1,9 @@
+{
+  "name": "hrbp-os",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node api/chat.js",
+    "build": "npx esbuild src/index.jsx --bundle --platform=browser --format=iife --global-name=HRBPOSApp --external:react --external:react-dom --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --outfile=public/app.js"
+  }
+}
