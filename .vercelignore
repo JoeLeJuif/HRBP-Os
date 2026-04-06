@@ -1,0 +1,4 @@
+node_modules
+.git
+.env
+public/app_src.js
