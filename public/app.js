@@ -11790,12 +11790,12 @@ ${situation.trim()}`;
     { id: "copilot", icon: "\u26A1", label: "Copilot", color: C.em },
     { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple },
     { id: "meetings", icon: "\u{1F399}\uFE0F", label: "Meetings", color: C.blue },
+    { id: "leaders", icon: "\u{1F464}", label: "Portfolio", color: C.purple },
     { id: "cases", icon: "\u{1F4C2}", label: "Case Log", color: C.blue },
     { id: "signals", icon: "\u{1F4E1}", label: "Signaux", color: C.purple },
     { id: "brief", icon: "\u{1F4CA}", label: "Weekly", color: C.amber }
   ];
   var NAV_MORE = [
-    { id: "leaders", icon: "\u{1F464}", label: "Fiches Leaders", color: C.purple },
     { id: "radar", icon: "\u{1F52D}", label: "Org Radar", color: C.red },
     { id: "decisions", icon: "\u2696\uFE0F", label: "D\xE9cisions", color: C.red },
     { id: "coaching", icon: "\u{1F91D}", label: "Coaching", color: C.teal },

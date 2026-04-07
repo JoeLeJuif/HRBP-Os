@@ -66,12 +66,12 @@ const NAV_MAIN = [
   { id:"copilot",   icon:"⚡",  label:"Copilot",   color:C.em },
   { id:"autoprompt",icon:"🧩",  label:"Prompt AI",  color:C.purple },
   { id:"meetings",  icon:"🎙️", label:"Meetings",   color:C.blue },
+  { id:"leaders",   icon:"👤",  label:"Portfolio",  color:C.purple },
   { id:"cases",     icon:"📂",  label:"Case Log",   color:C.blue },
   { id:"signals",   icon:"📡",  label:"Signaux",    color:C.purple },
   { id:"brief",     icon:"📊",  label:"Weekly",     color:C.amber },
 ];
 const NAV_MORE = [
-  { id:"leaders",      icon:"👤",  label:"Fiches Leaders", color:C.purple },
   { id:"radar",        icon:"🔭",  label:"Org Radar",  color:C.red },
   { id:"decisions",    icon:"⚖️", label:"Décisions",  color:C.red },
   { id:"coaching",     icon:"🤝",  label:"Coaching",   color:C.teal },
