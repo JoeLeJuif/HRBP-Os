@@ -353,6 +353,7 @@ export default function ModuleCases({ data, onSave, focusCaseId, onClearFocus })
           const typeObj = CASE_TYPES.find(t=>t.id===c.type);
           const statusObj = STATUSES.find(s=>s.id===c.status);
           const isOverdue = c.dueDate && c.dueDate < todayISO && !["resolved","closed"].includes(c.status);
+          const hasLinkedDecision = (data.decisions||[]).some(d => d.linkedCaseId === c.id);
           return <button key={c.id||i} onClick={() => { setDetail(c); setView("detail"); }}
             style={{ background:isOverdue ? C.red+"0d" : C.surfL,
               border:`1px solid ${isOverdue ? C.red+"66" : r.color+"28"}`,
@@ -366,6 +367,7 @@ export default function ModuleCases({ data, onSave, focusCaseId, onClearFocus })
               <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
                 <RiskBadge level={c.riskLevel}/>
                 {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
+                {hasLinkedDecision && <Badge label="⚖ Décision liée" color={C.purple} size={9}/>}
               </div>
             </div>
             <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
