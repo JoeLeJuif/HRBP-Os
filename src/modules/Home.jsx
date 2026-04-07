@@ -286,7 +286,7 @@ export default function ModuleHome({ data, onNavigate }) {
       {managers.length > 0 && (
         <Card style={{ marginBottom:14 }}>
           <SH icon="👥" label="MANAGERS TO WATCH" color={C.blue}
-            action={<button onClick={()=>onNavigate("portfolio")} style={{ background:"none", border:"none", color:C.blue, fontSize:10, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>PORTFOLIO →</button>}/>
+            action={<button onClick={()=>onNavigate("leaders")} style={{ background:"none", border:"none", color:C.blue, fontSize:10, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>LEADERS →</button>}/>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:8 }}>
             {managers.map((m,i) => {
               const reason = m.highRisk > 0 ? `${m.highRisk} décision${m.highRisk>1?"s":""} à risque élevé`
@@ -295,7 +295,7 @@ export default function ModuleHome({ data, onNavigate }) {
                 : `${m.total} items actifs`;
               const accent = m.highRisk > 0 ? C.red : m.cases >= 2 ? C.amber : C.blue;
               return (
-                <button key={i} onClick={()=>onNavigate("portfolio")} style={{
+                <button key={i} onClick={()=>{ sessionStorage.setItem("hrbpos:pendingLeader", m.name); onNavigate("leaders"); }} style={{
                   background:C.surfL, border:`1px solid ${accent}28`, borderLeft:`3px solid ${accent}`,
                   borderRadius:8, padding:"10px 12px", cursor:"pointer", textAlign:"left",
                   fontFamily:"'DM Sans',sans-serif" }}>

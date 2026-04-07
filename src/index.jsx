@@ -35,7 +35,6 @@ import ModuleSignals   from './modules/Signals.jsx';
 import ModuleCoaching  from './modules/Coaching.jsx';
 import ModuleExit      from './modules/Exit.jsx';
 import Module306090    from './modules/Plan306090.jsx';
-import ModulePortfolio from './modules/Portfolio.jsx';
 import ModuleRadar     from './modules/Radar.jsx';
 // Bloc 6 — complex CRUD
 import ModuleCases         from './modules/Cases.jsx';
@@ -74,7 +73,6 @@ const NAV_MAIN = [
 const NAV_MORE = [
   { id:"leaders",      icon:"👤",  label:"Fiches Leaders", color:C.purple },
   { id:"radar",        icon:"🔭",  label:"Org Radar",  color:C.red },
-  { id:"portfolio",    icon:"👥",  label:"Portfolio",  color:C.teal },
   { id:"decisions",    icon:"⚖️", label:"Décisions",  color:C.red },
   { id:"coaching",     icon:"🤝",  label:"Coaching",   color:C.teal },
   { id:"investigation",icon:"🔍",  label:"Enquêtes",   color:"#7a1e2e" },
@@ -167,7 +165,7 @@ export default function HRBPOS() {
   const [authed, setAuthed]   = useState(() => localStorage.getItem(AUTH_KEY) === "1");
   const [module, setModule]   = useState("home");
   const [showMore, setShowMore] = useState(false);
-  const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
+  const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
   const [toast, setToast]     = useState(false);
   const [loaded, setLoaded]   = useState(false);
   const [focusCaseId,    setFocusCaseId]    = useState(null); // inter-module focus bridge
@@ -177,7 +175,7 @@ export default function HRBPOS() {
 
   // Load all data on mount — always resolves even if storage fails
   useEffect(() => {
-    const defaults = { cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } };
+    const defaults = { cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } };
     const timeout = setTimeout(() => setLoaded(true), 1500);
     Promise.allSettled(
       Object.entries(SK).map(async ([k, sk]) => {
@@ -243,7 +241,7 @@ export default function HRBPOS() {
       const text = await file.text();
       const parsed = JSON.parse(text);
       const restored = parsed.data || parsed;
-      const keys = ["cases","meetings","signals","decisions","coaching","exits","investigations","briefs","prep1on1","sentRecaps","plans306090","profile"];
+      const keys = ["cases","meetings","signals","decisions","coaching","exits","investigations","briefs","prep1on1","sentRecaps","plans306090","profile","leaders"];
       const updates = {};
       for (const k of keys) {
         if (restored[k] !== undefined) {
@@ -476,7 +474,6 @@ export default function HRBPOS() {
             </div>
           ) : module === "home"         ? <ModuleHome data={data} onNavigate={setModule}/>
           : module === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
-          : module === "portfolio"      ? <ModulePortfolio data={data} onSave={handleSave}/>
           : module === "copilot"        ? <ModuleCopilot data={data}/>
           : module === "meetings"       ? <ModuleMeetings data={data} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={setModule} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
           : module === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={setModule}/>
@@ -492,7 +489,7 @@ export default function HRBPOS() {
           : module === "convkit"        ? <ModuleConvKit />
           : module === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
           : module === "knowledge"      ? <ModuleKnowledge />
-          : module === "leaders"        ? <ModuleLeader data={data} onNavigate={(id, ctx) => { if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId); if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId); if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId); if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId); setModule(id); }}/>
+          : module === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={(id, ctx) => { if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId); if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId); if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId); if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId); setModule(id); }}/>
           : null}
         </div>
       </div>

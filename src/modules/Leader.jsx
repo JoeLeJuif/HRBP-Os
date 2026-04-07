@@ -7,9 +7,13 @@ import { useState, useMemo, useEffect } from "react";
 import Badge from '../components/Badge.jsx';
 import Card  from '../components/Card.jsx';
 import Mono  from '../components/Mono.jsx';
-import { C, RISK, DELAY_C } from '../theme.js';
+import { C, css, RISK, DELAY_C } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
 import { normKey } from '../utils/format.js';
+import { callAIJson } from '../api/index.js';
+import { PORTFOLIO_ASSESS_SP } from '../prompts/portfolio.js';
+import { getLeadersMap, getMeta, setMeta, topFocusLeaders, computeFocusScore,
+         MANAGER_TYPES, PRESSURE_LEVELS, RISK_LEVELS, TYPE_ICON, PRESSURE_EMOJI } from '../utils/leaderStore.js';
 
 // ── Inline helpers ─────────────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -332,16 +336,52 @@ function buildLeaderTimeline(l) {
 }
 
 // ── Module ─────────────────────────────────────────────────────────────────────
-export default function ModuleLeader({ data, onNavigate }) {
+export default function ModuleLeader({ data, onSave, onNavigate }) {
   const [selected,    setSelected]    = useState(null);
   const [tlExpanded,  setTlExpanded]  = useState(false);
   const [tlFilter,    setTlFilter]    = useState("all");
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [metaForm,    setMetaForm]    = useState(null);
+  const [aiAssessing, setAiAssessing] = useState(false);
 
   // Selects a leader and resets timeline state
-  const selectLeader = (key) => { setSelected(key); setTlExpanded(false); setTlFilter("all"); };
+  const selectLeader = (key) => { setSelected(key); setTlExpanded(false); setTlFilter("all"); setEditingMeta(false); setMetaForm(null); };
 
   const leaders = useMemo(() => buildLeaderIndex(data), [data]);
   const leaderList = Object.values(leaders);
+  const leadersMap = useMemo(() => getLeadersMap(data), [data]);
+  const todayISO_top = new Date().toISOString().split("T")[0];
+  const topFocus = useMemo(() => topFocusLeaders(leaderList, leadersMap, todayISO_top, 3), [leaderList, leadersMap, todayISO_top]);
+
+  const saveMeta = (name, patch) => {
+    if (!onSave) return;
+    const next = setMeta(leadersMap, name, patch);
+    onSave("leaders", next);
+  };
+
+  const aiAssess = async (autoLeader) => {
+    if (!onSave) return;
+    const mData = (autoLeader.meetings||[]).slice(-5);
+    const cData = (autoLeader.cases||[]).slice(-5);
+    if (!mData.length && !cData.length) { alert("Aucune donnée trouvée pour ce gestionnaire."); return; }
+    const ctx = [
+      mData.length && `MEETINGS:\n${mData.map(x=>`- ${x.savedAt||""} Risk:${x.analysis?.overallRisk||""} ${x.analysis?.overallRiskRationale||""}`).join("\n")}`,
+      cData.length && `CASES:\n${cData.map(x=>`- ${x.title||""} | ${x.riskLevel||""} | ${x.situation||""}`).join("\n")}`,
+    ].filter(Boolean).join("\n\n");
+    setAiAssessing(true);
+    try {
+      const p = await callAIJson(PORTFOLIO_ASSESS_SP, `Gestionnaire: ${autoLeader.name}\n\n${ctx}`, 500);
+      saveMeta(autoLeader.name, {
+        riskOverride: normalizeRisk(p.riskAssessment) || "",
+        pressure: p.pressureLevel || "",
+        type: p.managerType || "",
+        topIssue: p.topIssue || "",
+        nextAction: p.recommendedAction || "",
+        lastInteraction: new Date().toISOString().split("T")[0],
+      });
+    } catch (e) { alert("Erreur: " + e.message); }
+    finally { setAiAssessing(false); }
+  };
 
   // Auto-select leader passed from another module via sessionStorage bridge
   useEffect(() => {
@@ -370,9 +410,47 @@ export default function ModuleLeader({ data, onNavigate }) {
           <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Fiches Leaders</div>
           <div style={{ fontSize:12, color:C.textM }}>
             {leaderList.length} gestionnaire{leaderList.length>1?"s":""} détecté{leaderList.length>1?"s":""}
-            <span style={{ color:C.textD }}> · Agrégation lecture seule — données issues de Meetings, Cases et Préparations 1:1</span>
+            <span style={{ color:C.textD }}> · Agrégation auto + couche éditoriale HRBP</span>
           </div>
         </div>
+
+        {/* ── TOP 3 FOCUS HRBP ── */}
+        {topFocus.length > 0 && (
+          <div style={{ background:"linear-gradient(135deg,#ef444412,#f59e0b08)",
+            border:`1px solid ${C.red}25`, borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+              <span style={{ fontSize:14 }}>🎯</span>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.text }}>Où passer mes 5 prochaines heures HRBP ?</div>
+                <div style={{ fontSize:11, color:C.textD }}>Score basé sur risque, inactivité, pression et pattern</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+              {topFocus.map((m, i) => {
+                const meta = m._meta;
+                const rk = meta.riskOverride || "Modéré";
+                const rc = ({ "Critique":C.red, "Élevé":C.amber, "Eleve":C.amber, "Modéré":C.blue, "Modere":C.blue, "Faible":C.em }[rk]) || C.textD;
+                return (
+                  <button key={m.key} onClick={()=>selectLeader(m.key)}
+                    style={{ display:"flex", gap:10, alignItems:"center", padding:"9px 12px",
+                      background:C.surfL, borderRadius:8, borderLeft:`3px solid ${rc}`,
+                      border:"none", cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif", width:"100%" }}>
+                    <div style={{ width:22, height:22, background:rc+"22", border:`1px solid ${rc}44`,
+                      borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:12, fontWeight:800, color:rc, flexShrink:0 }}>{i+1}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:C.text }}>
+                        {TYPE_ICON[meta.type] || ""} {m.name}
+                      </div>
+                      <div style={{ fontSize:11, color:C.textD, marginTop:2 }}>{m._focus.reasons.join(" · ") || "Priorité"}</div>
+                      {meta.nextAction && <div style={{ fontSize:11, color:C.em, marginTop:2 }}>→ {meta.nextAction}</div>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {leaderList.length === 0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px" }}>
@@ -409,7 +487,8 @@ export default function ModuleLeader({ data, onNavigate }) {
               {group.leaders.map(l => {
                 const activeCases = l.cases.filter(c => c.status!=="closed" && c.status!=="resolved");
                 const lastMeeting = sortByDate(l.meetings,"savedAt")[0];
-                const globalRisk  = worstRisk([
+                const lMeta = getMeta(l.name, leadersMap);
+                const globalRisk  = lMeta.riskOverride || worstRisk([
                   ...activeCases.map(c => c.riskLevel),
                   lastMeeting?.analysis?.overallRisk,
                 ]);
@@ -425,10 +504,14 @@ export default function ModuleLeader({ data, onNavigate }) {
                     onMouseEnter={e => e.currentTarget.style.borderColor = group.meta.color}
                     onMouseLeave={e => e.currentTarget.style.borderColor = r.color+"28"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-                      <span style={{ fontSize:18 }}>{group.meta.icon}</span>
-                      <RiskBadge level={globalRisk}/>
+                      <span style={{ fontSize:18 }}>{TYPE_ICON[lMeta.type] || group.meta.icon}</span>
+                      <div style={{ display:"flex", gap:3, alignItems:"center" }}>
+                        {PRESSURE_EMOJI[lMeta.pressure] && <span style={{ fontSize:11 }}>{PRESSURE_EMOJI[lMeta.pressure]}</span>}
+                        <RiskBadge level={globalRisk}/>
+                      </div>
                     </div>
                     <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:6 }}>{l.name}</div>
+                    {lMeta.topIssue && <div style={{ fontSize:11, color:C.amber, marginBottom:6, lineHeight:1.4, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>⚑ {lMeta.topIssue}</div>}
                     <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
                       {l.meetings.length>0 && <Mono size={8} color={C.textD}>{l.meetings.length} meeting{l.meetings.length>1?"s":""}</Mono>}
                       {activeCases.length>0 && <Mono size={8} color={C.amber}>{activeCases.length} dossier{activeCases.length>1?"s":""} actif{activeCases.length>1?"s":""}</Mono>}
@@ -623,6 +706,119 @@ export default function ModuleLeader({ data, onNavigate }) {
           ))}
         </div>
       </div>
+
+      {/* ── NOTE HRBP — couche éditoriale ── */}
+      {(() => {
+        const meta = getMeta(l.name, leadersMap);
+        const form = metaForm || meta;
+        const startEdit = () => { setMetaForm({ ...meta }); setEditingMeta(true); };
+        const cancelEdit = () => { setMetaForm(null); setEditingMeta(false); };
+        const commitEdit = () => {
+          saveMeta(l.name, form);
+          setMetaForm(null);
+          setEditingMeta(false);
+        };
+        const FF = (k, v) => setMetaForm(p => ({ ...p, [k]: v }));
+        const hasMeta = !!(meta.type || meta.pressure || meta.topIssue || meta.nextAction || meta.execSummary || meta.riskOverride);
+
+        return (
+          <div style={{ background:C.surf, border:`1px solid ${C.purple}33`,
+            borderLeft:`4px solid ${C.purple}`, borderRadius:12,
+            padding:"16px 20px", marginBottom:16 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12,
+              paddingBottom:8, borderBottom:`1px solid ${C.purple}22` }}>
+              <span style={{ fontSize:13 }}>📝</span>
+              <Mono size={9} color={C.purple}>NOTE HRBP — COUCHE ÉDITORIALE</Mono>
+              <div style={{ flex:1 }}/>
+              {!editingMeta && (
+                <>
+                  <button onClick={()=>aiAssess(l)} disabled={aiAssessing}
+                    title="Réévaluer depuis le OS (meetings + cases)"
+                    style={{ ...css.btn(C.teal, true), padding:"5px 11px", fontSize:11, opacity:aiAssessing?.5:1 }}>
+                    {aiAssessing ? "⏳..." : "🔄 AI assess"}
+                  </button>
+                  <button onClick={startEdit}
+                    style={{ ...css.btn(C.purple, true), padding:"5px 11px", fontSize:11 }}>
+                    {hasMeta ? "✏ Modifier" : "+ Ajouter"}
+                  </button>
+                </>
+              )}
+              {editingMeta && (
+                <>
+                  <button onClick={commitEdit} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>✓ Enregistrer</button>
+                  <button onClick={cancelEdit} style={{ ...css.btn(C.textM, true), padding:"5px 11px", fontSize:11 }}>Annuler</button>
+                </>
+              )}
+            </div>
+
+            {!editingMeta && !hasMeta && (
+              <div style={{ fontSize:12, color:C.textD, fontStyle:"italic" }}>
+                Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.
+              </div>
+            )}
+
+            {!editingMeta && hasMeta && (
+              <div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:10 }}>
+                  {meta.type && <Badge label={`${TYPE_ICON[meta.type]||""} ${meta.type}`} color={C.purple}/>}
+                  {meta.pressure && <Badge label={`Pression ${meta.pressure}`} color={meta.pressure==="Elevee"||meta.pressure==="Élevée"?C.red:meta.pressure==="Moderee"||meta.pressure==="Modérée"?C.amber:C.em}/>}
+                  {meta.riskOverride && <Badge label={`Risque (override): ${meta.riskOverride}`} color={C.red}/>}
+                </div>
+                {meta.topIssue && <InfoRow label="Enjeu principal"><div style={{ fontSize:13, color:C.text, lineHeight:1.5 }}>⚑ {meta.topIssue}</div></InfoRow>}
+                {meta.nextAction && <InfoRow label="Prochaine action HRBP"><div style={{ fontSize:13, color:C.em, lineHeight:1.5 }}>→ {meta.nextAction}</div></InfoRow>}
+                {meta.execSummary && <InfoRow label="Note libre"><div style={{ fontSize:12, color:C.textM, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{meta.execSummary}</div></InfoRow>}
+                {meta.lastInteraction && <Mono size={8} color={C.textD}>Dernière éval: {meta.lastInteraction}</Mono>}
+              </div>
+            )}
+
+            {editingMeta && (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                <div>
+                  <Mono size={8} color={C.textD}>Type</Mono>
+                  <select value={form.type||""} onChange={e=>FF("type", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
+                    <option value="">—</option>
+                    {MANAGER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Mono size={8} color={C.textD}>Pression</Mono>
+                  <select value={form.pressure||""} onChange={e=>FF("pressure", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
+                    <option value="">—</option>
+                    <option value="Elevee">Élevée</option>
+                    <option value="Moderee">Modérée</option>
+                    <option value="Faible">Faible</option>
+                  </select>
+                </div>
+                <div>
+                  <Mono size={8} color={C.textD}>Risque (override)</Mono>
+                  <select value={form.riskOverride||""} onChange={e=>FF("riskOverride", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
+                    <option value="">— (auto)</option>
+                    {RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div style={{ gridColumn:"1 / -1" }}>
+                  <Mono size={8} color={C.textD}>Enjeu principal</Mono>
+                  <input value={form.topIssue||""} onChange={e=>FF("topIssue", e.target.value)}
+                    placeholder="Ex: Évite les conversations de performance"
+                    style={{ ...css.input, marginTop:4, fontSize:12 }}/>
+                </div>
+                <div style={{ gridColumn:"1 / -1" }}>
+                  <Mono size={8} color={C.textD}>Prochaine action HRBP</Mono>
+                  <input value={form.nextAction||""} onChange={e=>FF("nextAction", e.target.value)}
+                    placeholder="Ex: Coaching ciblé conversation difficile"
+                    style={{ ...css.input, marginTop:4, fontSize:12 }}/>
+                </div>
+                <div style={{ gridColumn:"1 / -1" }}>
+                  <Mono size={8} color={C.textD}>Note libre HRBP</Mono>
+                  <textarea rows={3} value={form.execSummary||""} onChange={e=>FF("execSummary", e.target.value)}
+                    placeholder="Contexte, observations, patterns, plan stratégique..."
+                    style={{ ...css.textarea, marginTop:4, fontSize:12 }}/>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── LEADER 360 — LECTURE STRATÉGIQUE ── */}
       <div style={{ background:C.surf, border:`1px solid ${r360Color}44`,

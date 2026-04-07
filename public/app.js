@@ -28,7 +28,7 @@ var HRBPOSApp = (() => {
   __export(index_exports, {
     default: () => HRBPOS
   });
-  var import_react19 = __require("react");
+  var import_react18 = __require("react");
 
   // src/theme.js
   if (typeof document !== "undefined" && !document.getElementById("hrbp-fonts")) {
@@ -219,6 +219,7 @@ var HRBPOSApp = (() => {
     sentRecaps: "hrbp_os:sentRecaps",
     nextWeekLocks: "hrbp_os:nextWeekLocks",
     portfolio: "hrbp_os:portfolio",
+    leaders: "hrbp_os:leaders",
     radars: "hrbp_os:radars",
     plans306090: "hrbp_os:plans306090"
   };
@@ -4271,472 +4272,8 @@ ${(result?.checkpoints || []).map((c) => `${c.timing} \u2014 ${c.focus}
 ${(c.questions || []).map((q) => `  \u2022 ${q}`).join("\n")}`).join("\n\n")}`)));
   }
 
-  // src/modules/Portfolio.jsx
-  var import_react9 = __require("react");
-
-  // src/prompts/portfolio.js
-  var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
-A partir des donnees historiques d un gestionnaire (meetings analyses, dossiers actifs), evalue son profil de risque RH actuel.
-Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
-{"riskAssessment":"Critique|Eleve|Modere|Faible","pressureLevel":"Elevee|Moderee|Faible","managerType":"Solide|En developpement|A risque|Critique","topIssue":"enjeu principal identifie en 1 phrase courte","recommendedAction":"action HRBP recommandee en 1 phrase courte"}`;
-
-  // src/modules/Portfolio.jsx
-  var EMPTY_MANAGER = {
-    id: "",
-    name: "",
-    team: "",
-    level: 3,
-    risk: "Mod\xE9r\xE9",
-    pressure: "Moderee",
-    type: "Solide",
-    topIssue: "",
-    hrbpAction: "",
-    lastInteraction: "",
-    notes: ""
-  };
-  function InlineEdit({ form, setForm, onSave, onCancel }) {
-    const FF = (k, v) => setForm((p) => ({ ...p, [k]: v }));
-    return /* @__PURE__ */ React.createElement("div", { style: {
-      padding: "12px 14px",
-      background: C.surfLL,
-      borderTop: `1px solid ${C.border}`,
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8
-    } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Risque"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: form.risk || "Mod\xE9r\xE9",
-        onChange: (e) => FF("risk", e.target.value),
-        style: { ...css.select, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      },
-      ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"].map((r) => /* @__PURE__ */ React.createElement("option", { key: r }, r))
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Type"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: form.type || "Solide",
-        onChange: (e) => FF("type", e.target.value),
-        style: { ...css.select, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      },
-      ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"].map((t) => /* @__PURE__ */ React.createElement("option", { key: t }, t))
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Pression"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: form.pressure || "Moderee",
-        onChange: (e) => FF("pressure", e.target.value),
-        style: { ...css.select, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      },
-      /* @__PURE__ */ React.createElement("option", { value: "Elevee" }, "\xC9lev\xE9e"),
-      /* @__PURE__ */ React.createElement("option", { value: "Moderee" }, "Mod\xE9r\xE9e"),
-      /* @__PURE__ */ React.createElement("option", { value: "Faible" }, "Faible")
-    )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Enjeu"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: form.topIssue || "",
-        onChange: (e) => FF("topIssue", e.target.value),
-        placeholder: "Ex: \xC9vite les feedbacks difficiles",
-        style: { ...css.input, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Action HRBP"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: form.hrbpAction || "",
-        onChange: (e) => FF("hrbpAction", e.target.value),
-        placeholder: "Ex: Coaching conversation difficile",
-        style: { ...css.input, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, gridColumn: "1/-1", marginTop: 4 } }, /* @__PURE__ */ React.createElement("button", { onClick: onSave, style: { ...css.btn(C.em), padding: "7px 16px", fontSize: 12 } }, "\u2713 Enregistrer"), /* @__PURE__ */ React.createElement("button", { onClick: onCancel, style: { ...css.btn(C.textM, true), padding: "7px 12px", fontSize: 12 } }, "Annuler")));
-  }
-  function ModulePortfolio({ data, onSave }) {
-    const managers = data.portfolio || [];
-    const [expandedId, setExpandedId] = (0, import_react9.useState)(null);
-    const [form, setForm] = (0, import_react9.useState)({});
-    const [riskFilter, setRiskFilter] = (0, import_react9.useState)("Tous");
-    const [typeFilter, setTypeFilter] = (0, import_react9.useState)("Tous");
-    const [search, setSearch] = (0, import_react9.useState)("");
-    const [assessing, setAssessing] = (0, import_react9.useState)(null);
-    const [assessPrompt, setAssessPrompt] = (0, import_react9.useState)(null);
-    const [adding, setAdding] = (0, import_react9.useState)(false);
-    const [newForm, setNewForm] = (0, import_react9.useState)({ ...EMPTY_MANAGER });
-    const [deletedQueue, setDeletedQueue] = (0, import_react9.useState)([]);
-    const RISK_ORDER_P = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
-    const riskC = (r) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em })[r] || C.textD;
-    const TYPE_ICON = { "Solide": "\u2705", "Evitant": "\u{1FAE5}", "\xC9vitant": "\u{1FAE5}", "Surcharge": "\u{1F525}", "Surcharg\xE9": "\u{1F525}", "Micromanager": "\u{1F52C}", "Politique": "\u{1F3AD}", "En developpement": "\u{1F331}", "En d\xE9veloppement": "\u{1F331}" };
-    const pressLabel = { "Elevee": "\u{1F534}", "\xC9lev\xE9e": "\u{1F534}", "Moderee": "\u{1F7E1}", "Mod\xE9r\xE9e": "\u{1F7E1}", "Faible": "\u{1F7E2}" };
-    const saveEdit = (id) => {
-      onSave("portfolio", managers.map((m) => m.id === id ? { ...m, ...form } : m));
-      setExpandedId(null);
-      setForm({});
-    };
-    const saveNew = () => {
-      if (!newForm.name?.trim()) return;
-      onSave("portfolio", [...managers, { ...newForm, id: Date.now().toString(), lastInteraction: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] }]);
-      setAdding(false);
-      setNewForm({ ...EMPTY_MANAGER });
-    };
-    const del = (m) => {
-      onSave("portfolio", managers.filter((x) => x.id !== m.id));
-      const timer = setTimeout(() => {
-        setDeletedQueue((q) => q.filter((x) => x.m.id !== m.id));
-      }, 4e3);
-      setDeletedQueue((q) => [...q, { m, timer }]);
-    };
-    const undoDel = (m) => {
-      setDeletedQueue((q) => {
-        const item = q.find((x) => x.m.id === m.id);
-        if (item) clearTimeout(item.timer);
-        return q.filter((x) => x.m.id !== m.id);
-      });
-      onSave("portfolio", [...managers, m].sort((a, b) => (RISK_ORDER_P[a.risk] || 9) - (RISK_ORDER_P[b.risk] || 9)));
-    };
-    const openEdit = (m) => {
-      if (expandedId === m.id) {
-        setExpandedId(null);
-        setForm({});
-        return;
-      }
-      setExpandedId(m.id);
-      setForm({
-        name: m.name,
-        team: m.team || "",
-        risk: m.risk || "Mod\xE9r\xE9",
-        pressure: m.pressure || "Moderee",
-        type: m.type || "Solide",
-        topIssue: m.topIssue || "",
-        hrbpAction: m.hrbpAction || "",
-        lastInteraction: m.lastInteraction || "",
-        notes: m.notes || ""
-      });
-    };
-    const assessFromData = async (m) => {
-      const mData = (data.meetings || []).filter((x) => normKey(x.director) === normKey(m.name)).slice(-5);
-      const cData = (data.cases || []).filter((x) => normKey(x.director) === normKey(m.name)).slice(-5);
-      if (!mData.length && !cData.length) {
-        alert("Aucune donn\xE9e trouv\xE9e pour ce gestionnaire.");
-        return;
-      }
-      const ctx = [
-        mData.length && `MEETINGS:
-${mData.map((x) => `- ${fmtDate(x.savedAt)} Risk:${x.analysis?.overallRisk} ${x.analysis?.overallRiskRationale || ""}`).join("\n")}`,
-        cData.length && `CASES:
-${cData.map((x) => `- ${x.title} | ${x.riskLevel} | ${x.situation || ""}`).join("\n")}`
-      ].filter(Boolean).join("\n\n");
-      setAssessing(m.id);
-      try {
-        const p = await callAIJson(PORTFOLIO_ASSESS_SP, `Gestionnaire: ${m.name}
-
-${ctx}`, 500);
-        onSave("portfolio", managers.map((x) => x.id === m.id ? {
-          ...x,
-          risk: normalizeRisk(p.riskAssessment) || x.risk,
-          pressure: p.pressureLevel || x.pressure,
-          type: p.managerType || x.type,
-          topIssue: p.topIssue || x.topIssue,
-          hrbpAction: p.recommendedAction || x.hrbpAction,
-          lastInteraction: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
-        } : x));
-      } catch (e) {
-        alert("Erreur: " + e.message);
-      } finally {
-        setAssessing(null);
-      }
-    };
-    const importAssessResponse = (parsed, managerId) => {
-      const p = parsed;
-      onSave("portfolio", managers.map((x) => x.id === managerId ? {
-        ...x,
-        risk: normalizeRisk(p.riskAssessment) || x.risk,
-        pressure: p.pressureLevel || x.pressure,
-        type: p.managerType || x.type,
-        topIssue: p.topIssue || x.topIssue,
-        hrbpAction: p.recommendedAction || x.hrbpAction,
-        lastInteraction: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
-      } : x));
-      setAssessPrompt(null);
-    };
-    const topFocus = [...managers].map((m) => {
-      let score = 0;
-      const ro = RISK_ORDER_P[m.risk] || 3;
-      score += (3 - ro) * 30;
-      const days = m.lastInteraction ? Math.floor((Date.now() - new Date(m.lastInteraction).getTime()) / 864e5) : 99;
-      if (days > 21) score += 20;
-      else if (days > 14) score += 10;
-      if (m.pressure === "Elevee" || m.pressure === "\xC9lev\xE9e") score += 15;
-      if (m.type === "\xC9vitant" || m.type === "Evitant") score += 10;
-      if (m.type === "Surcharg\xE9" || m.type === "Surcharge") score += 8;
-      return { ...m, _score: score, _days: days };
-    }).filter((m) => m._score > 10).sort((a, b) => b._score - a._score).slice(0, 3);
-    const focusReason = (m) => {
-      const parts = [];
-      if (m.risk === "Critique") parts.push("risque critique");
-      else if (m.risk === "\xC9lev\xE9" || m.risk === "Eleve") parts.push("risque \xE9lev\xE9");
-      if (m._days > 21) parts.push(`${m._days}j sans contact`);
-      else if (m._days > 14) parts.push(`${m._days}j sans contact`);
-      if (m.pressure === "Elevee" || m.pressure === "\xC9lev\xE9e") parts.push("pression \xE9lev\xE9e");
-      if (m.type === "\xC9vitant" || m.type === "Evitant") parts.push("pattern \xE9vitant");
-      if (m.type === "Surcharg\xE9" || m.type === "Surcharge") parts.push("d\xE9bord\xE9");
-      return parts.slice(0, 2).join(" \xB7 ") || "Priorit\xE9";
-    };
-    const RISK_FILTERS = ["Tous", "Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
-    const TYPE_FILTERS = [
-      { val: "Tous", label: "Tous" },
-      { val: "\xC9vitant", label: "\xC9vitant" },
-      { val: "Surcharg\xE9", label: "D\xE9bord\xE9" },
-      { val: "Micromanager", label: "Micro" },
-      { val: "Politique", label: "Politique" }
-    ];
-    const filtered = managers.filter((m) => {
-      if (riskFilter !== "Tous" && normalizeRisk(m.risk) !== riskFilter && m.risk !== riskFilter) return false;
-      if (typeFilter !== "Tous" && m.type !== typeFilter && !(typeFilter === "\xC9vitant" && m.type === "Evitant") && !(typeFilter === "Surcharg\xE9" && m.type === "Surcharge")) return false;
-      if (search && !m.name.toLowerCase().includes(search.toLowerCase()) && !(m.team || "").toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    }).sort((a, b) => (RISK_ORDER_P[a.risk] || 9) - (RISK_ORDER_P[b.risk] || 9));
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 900, margin: "0 auto" } }, deletedQueue.map(({ m }) => /* @__PURE__ */ React.createElement("div", { key: m.id, style: {
-      position: "fixed",
-      bottom: 20,
-      right: 20,
-      zIndex: 9999,
-      background: C.surfL,
-      border: `1px solid ${C.border}`,
-      borderRadius: 8,
-      padding: "10px 16px",
-      display: "flex",
-      gap: 12,
-      alignItems: "center",
-      boxShadow: "0 4px 20px #0004",
-      fontFamily: "'DM Sans',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, m.name, " supprim\xE9"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => undoDel(m),
-        style: { ...css.btn(C.em), padding: "4px 12px", fontSize: 11 }
-      },
-      "Annuler"
-    ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16, fontWeight: 700, color: C.text } }, "Portfolio"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, marginLeft: 10 } }, managers.length, " gestionnaires \xB7 ", managers.filter((m) => m.risk === "Critique" || m.risk === "\xC9lev\xE9" || m.risk === "Eleve").length, " \xE0 risque \xE9lev\xE9+")), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          setAdding((v) => !v);
-          setNewForm({ ...EMPTY_MANAGER });
-        },
-        style: { ...css.btn(adding ? C.textM : C.em, adding), padding: "7px 16px", fontSize: 12 }
-      },
-      adding ? "\u2715 Annuler" : "\u2795 Ajouter"
-    )), adding && /* @__PURE__ */ React.createElement("div", { style: {
-      background: C.em + "08",
-      border: `1px solid ${C.em}30`,
-      borderRadius: 9,
-      padding: "12px 14px",
-      marginBottom: 12,
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8
-    } }, /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "span 2" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Nom *"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: newForm.name || "",
-        onChange: (e) => setNewForm((f) => ({ ...f, name: e.target.value })),
-        placeholder: "Pr\xE9nom ou identifier",
-        autoFocus: true,
-        style: { ...css.input, marginTop: 4, fontSize: 12, padding: "6px 9px" }
-      }
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "\xC9quipe"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: newForm.team || "",
-        onChange: (e) => setNewForm((f) => ({ ...f, team: e.target.value })),
-        placeholder: "Ex: Data, Infra...",
-        style: { ...css.input, marginTop: 4, fontSize: 12, padding: "6px 9px" }
-      }
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Risque"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: newForm.risk || "Mod\xE9r\xE9",
-        onChange: (e) => setNewForm((f) => ({ ...f, risk: e.target.value })),
-        style: { ...css.select, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      },
-      ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"].map((r) => /* @__PURE__ */ React.createElement("option", { key: r }, r))
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Type"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: newForm.type || "Solide",
-        onChange: (e) => setNewForm((f) => ({ ...f, type: e.target.value })),
-        style: { ...css.select, marginTop: 4, fontSize: 12, padding: "5px 8px" }
-      },
-      ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"].map((t) => /* @__PURE__ */ React.createElement("option", { key: t }, t))
-    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, gridColumn: "1/-1", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: newForm.topIssue || "",
-        onChange: (e) => setNewForm((f) => ({ ...f, topIssue: e.target.value })),
-        placeholder: "Enjeu principal (optionnel)",
-        style: { ...css.input, fontSize: 12, padding: "6px 9px", flex: 1 }
-      }
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: saveNew,
-        disabled: !newForm.name?.trim(),
-        style: {
-          ...css.btn(!newForm.name?.trim() ? C.textD : C.em),
-          padding: "7px 16px",
-          fontSize: 12,
-          flexShrink: 0,
-          opacity: newForm.name?.trim() ? 1 : 0.5
-        }
-      },
-      "Ajouter \u2713"
-    ))), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
-      background: "linear-gradient(135deg,#ef444412,#f59e0b08)",
-      border: `1px solid ${C.red}25`,
-      borderRadius: 10,
-      padding: "14px 16px",
-      marginBottom: 14
-    } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, "O\xF9 passer mes 5 prochaines heures HRBP ?"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD } }, "Score bas\xE9 sur le risque, l'inactivit\xE9 et le pattern"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, topFocus.map((m, i) => {
-      const rc = riskC(m.risk);
-      return /* @__PURE__ */ React.createElement("div", { key: m.id, style: {
-        display: "flex",
-        gap: 10,
-        alignItems: "center",
-        padding: "9px 12px",
-        background: C.surfL,
-        borderRadius: 8,
-        borderLeft: `3px solid ${rc}`
-      } }, /* @__PURE__ */ React.createElement("div", { style: {
-        width: 22,
-        height: 22,
-        background: rc + "22",
-        border: `1px solid ${rc}44`,
-        borderRadius: "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 12,
-        fontWeight: 800,
-        color: rc,
-        flexShrink: 0
-      } }, i + 1), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, TYPE_ICON[m.type] || "", " ", m.name, m.team && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, fontWeight: 400, marginLeft: 6 } }, m.team)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 2 } }, focusReason(m)), m.hrbpAction && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em, marginTop: 2 } }, "\u2192 ", m.hrbpAction)), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => openEdit(m),
-          style: { ...css.btn(C.textM, true), padding: "4px 10px", fontSize: 11, flexShrink: 0 }
-        },
-        "\u270F"
-      ));
-    }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, RISK_FILTERS.map((r) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: r,
-        onClick: () => setRiskFilter(r),
-        style: {
-          padding: "3px 10px",
-          borderRadius: 5,
-          fontSize: 11,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          border: "none",
-          background: riskFilter === r ? C.em + "22" : C.surfL,
-          color: riskFilter === r ? C.em : C.textM,
-          fontWeight: riskFilter === r ? 600 : 400,
-          outline: riskFilter === r ? `1px solid ${C.em}55` : "none"
-        }
-      },
-      r
-    ))), /* @__PURE__ */ React.createElement("div", { style: { width: 1, height: 16, background: C.border, margin: "0 2px" } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, TYPE_FILTERS.map(({ val, label }) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: val,
-        onClick: () => setTypeFilter(val),
-        style: {
-          padding: "3px 10px",
-          borderRadius: 5,
-          fontSize: 11,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          border: "none",
-          background: typeFilter === val ? C.purple + "22" : C.surfL,
-          color: typeFilter === val ? C.purple : C.textM,
-          fontWeight: typeFilter === val ? 600 : 400,
-          outline: typeFilter === val ? `1px solid ${C.purple}55` : "none"
-        }
-      },
-      label
-    ))), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: search,
-        onChange: (e) => setSearch(e.target.value),
-        placeholder: "Nom ou \xE9quipe...",
-        style: { ...css.input, marginLeft: "auto", maxWidth: 150, fontSize: 12, padding: "4px 9px" }
-      }
-    ), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, filtered.length, "/", managers.length)), managers.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "50px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.textM, marginBottom: 8 } }, "Portfolio vide"), /* @__PURE__ */ React.createElement("button", { onClick: () => setAdding(true), style: { ...css.btn(C.em), padding: "9px 20px" } }, "\u2795 Ajouter")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, filtered.map((m) => {
-      const rc = riskC(m.risk);
-      const isExpanded = expandedId === m.id;
-      const isAssessing = assessing === m.id;
-      const days = m.lastInteraction ? Math.floor((Date.now() - new Date(m.lastInteraction).getTime()) / 864e5) : null;
-      return /* @__PURE__ */ React.createElement("div", { key: m.id, style: {
-        background: C.surfL,
-        border: `1px solid ${isExpanded ? C.em + "55" : C.border}`,
-        borderLeft: `3px solid ${rc}`,
-        borderRadius: 8,
-        overflow: "hidden"
-      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "0 0 175px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, TYPE_ICON[m.type] || "\u{1F464}", " ", m.name), m.team && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM } }, m.team)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flex: "0 0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: {
-        background: rc + "20",
-        border: `1px solid ${rc}40`,
-        borderRadius: 5,
-        padding: "2px 8px",
-        fontSize: 10,
-        fontWeight: 700,
-        color: rc
-      } }, m.risk || "\u2014"), m.pressure && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, pressLabel[m.pressure] || "")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, m.topIssue && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber } }, "\u2691 "), m.topIssue), m.hrbpAction && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, "\u2192 ", m.hrbpAction)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, alignItems: "center", flexShrink: 0 } }, days !== null && /* @__PURE__ */ React.createElement(Mono, { color: days > 21 ? C.amber : C.textD, size: 8 }, days, "j"), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => assessFromData(m),
-          disabled: !!assessing,
-          title: "R\xE9\xE9valuer depuis le OS",
-          style: {
-            background: "none",
-            border: `1px solid ${C.border}`,
-            borderRadius: 5,
-            padding: "3px 7px",
-            cursor: "pointer",
-            fontSize: 11,
-            color: C.textD,
-            opacity: assessing && assessing !== m.id ? 0.4 : 1
-          }
-        },
-        isAssessing ? "\u2026" : "\u{1F504}"
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => openEdit(m),
-          style: { ...css.btn(isExpanded ? C.em : C.textM, !isExpanded), padding: "4px 10px", fontSize: 11 }
-        },
-        isExpanded ? "\u2715" : "\u270F"
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => del(m),
-          style: { background: "none", border: "none", cursor: "pointer", fontSize: 13, color: C.textD, padding: "2px" }
-        },
-        "\u2715"
-      ))), isExpanded && /* @__PURE__ */ React.createElement(
-        InlineEdit,
-        {
-          form,
-          setForm,
-          onSave: () => saveEdit(m.id),
-          onCancel: () => {
-            setExpandedId(null);
-            setForm({});
-          }
-        }
-      ));
-    }), filtered.length === 0 && managers.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "30px", color: C.textD, fontSize: 13 } }, "Aucun r\xE9sultat.")));
-  }
-
   // src/modules/Radar.jsx
-  var import_react10 = __require("react");
+  var import_react9 = __require("react");
 
   // src/prompts/radar.js
   var RADAR_SP = `Tu es un HRBP senior, groupe IT, Quebec. Tu analyses un portefeuille RH complet pour produire un radar organisationnel strategique.
@@ -4818,13 +4355,13 @@ REGLES DE SPECIFICITE ABSOLUE pour themeOfWeek:
 
   // src/modules/Radar.jsx
   function ModuleRadar({ data, onSave }) {
-    const [radar, setRadar] = (0, import_react10.useState)(() => (data.radars || [])[0]?.radar || null);
-    const [loading, setLoading] = (0, import_react10.useState)(false);
-    const [error, setError] = (0, import_react10.useState)("");
-    const [done, setDone] = (0, import_react10.useState)({});
-    const [week, setWeek] = (0, import_react10.useState)(0);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react10.useState)("");
-    const [actionFeedback, setActionFeedback] = (0, import_react10.useState)({});
+    const [radar, setRadar] = (0, import_react9.useState)(() => (data.radars || [])[0]?.radar || null);
+    const [loading, setLoading] = (0, import_react9.useState)(false);
+    const [error, setError] = (0, import_react9.useState)("");
+    const [done, setDone] = (0, import_react9.useState)({});
+    const [week, setWeek] = (0, import_react9.useState)(0);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react9.useState)("");
+    const [actionFeedback, setActionFeedback] = (0, import_react9.useState)({});
     const rC = (r) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em })[r] || C.textD;
     const dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue;
     const savedRadars = data.radars || [];
@@ -5211,7 +4748,7 @@ ${buildContext()}`, 3500);
   }
 
   // src/modules/Cases.jsx
-  var import_react11 = __require("react");
+  var import_react10 = __require("react");
   function RiskBadge2({ level }) {
     const norm = normalizeRisk(level);
     const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
@@ -5491,13 +5028,13 @@ ${buildContext()}`, 3500);
     );
   }
   function ModuleCases({ data, onSave, focusCaseId, onClearFocus }) {
-    const [view, setView] = (0, import_react11.useState)("list");
-    const [form, setForm] = (0, import_react11.useState)({ ...EMPTY_FORM });
-    const [editId, setEditId] = (0, import_react11.useState)(null);
-    const [detail, setDetail] = (0, import_react11.useState)(null);
-    const [search, setSearch] = (0, import_react11.useState)("");
-    const [filterStatus, setFilterStatus] = (0, import_react11.useState)("all");
-    (0, import_react11.useEffect)(() => {
+    const [view, setView] = (0, import_react10.useState)("list");
+    const [form, setForm] = (0, import_react10.useState)({ ...EMPTY_FORM });
+    const [editId, setEditId] = (0, import_react10.useState)(null);
+    const [detail, setDetail] = (0, import_react10.useState)(null);
+    const [search, setSearch] = (0, import_react10.useState)("");
+    const [filterStatus, setFilterStatus] = (0, import_react10.useState)("all");
+    (0, import_react10.useEffect)(() => {
       if (!focusCaseId) return;
       const target = (data.cases || []).find((c) => c.id === focusCaseId);
       if (target) {
@@ -5663,7 +5200,7 @@ ${buildContext()}`, 3500);
   }
 
   // src/modules/Investigation.jsx
-  var import_react12 = __require("react");
+  var import_react11 = __require("react");
 
   // src/prompts/investigation.js
   var INV_SP_1 = `Tu es un expert en enquetes en milieu de travail au Canada et au Quebec, forme selon les standards Rubin Thomlinson. Tu travailles avec Samuel Chartrand, HRBP senior.
@@ -5755,19 +5292,19 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     "Preuve insuffisante": { color: C.textM, icon: "\u25CC" }
   };
   function ModuleInvestigation({ data, onSave }) {
-    const [view, setView] = (0, import_react12.useState)("list");
-    const [complaint, setComplaint] = (0, import_react12.useState)("");
-    const [context, setContext] = (0, import_react12.useState)("");
-    const [parties, setParties] = (0, import_react12.useState)("");
-    const [policy, setPolicy] = (0, import_react12.useState)("");
-    const [evidence, setEvidence] = (0, import_react12.useState)("");
-    const [invProvince, setInvProvince] = (0, import_react12.useState)("QC");
-    const [invPrompt, setInvPrompt] = (0, import_react12.useState)("");
-    const [activeTab, setActiveTab] = (0, import_react12.useState)("summary");
-    const [caseData, setCaseData] = (0, import_react12.useState)(null);
-    const [error, setError] = (0, import_react12.useState)("");
-    const [saved, setSaved] = (0, import_react12.useState)(false);
-    const [gtab, setGtab] = (0, import_react12.useState)("complainant");
+    const [view, setView] = (0, import_react11.useState)("list");
+    const [complaint, setComplaint] = (0, import_react11.useState)("");
+    const [context, setContext] = (0, import_react11.useState)("");
+    const [parties, setParties] = (0, import_react11.useState)("");
+    const [policy, setPolicy] = (0, import_react11.useState)("");
+    const [evidence, setEvidence] = (0, import_react11.useState)("");
+    const [invProvince, setInvProvince] = (0, import_react11.useState)("QC");
+    const [invPrompt, setInvPrompt] = (0, import_react11.useState)("");
+    const [activeTab, setActiveTab] = (0, import_react11.useState)("summary");
+    const [caseData, setCaseData] = (0, import_react11.useState)(null);
+    const [error, setError] = (0, import_react11.useState)("");
+    const [saved, setSaved] = (0, import_react11.useState)(false);
+    const [gtab, setGtab] = (0, import_react11.useState)("complainant");
     const investigations = data.investigations || [];
     const generate = async () => {
       if (!complaint.trim()) return;
@@ -5986,7 +5523,7 @@ ${evidence}` : ""
   }
 
   // src/modules/AutoPrompt.jsx
-  var import_react13 = __require("react");
+  var import_react12 = __require("react");
   var APE_TEMPLATES = {
     weekly_intervention: {
       title: "Plan d'intervention hebdomadaire",
@@ -6708,11 +6245,11 @@ Pr\xE9pare la conversation d'accueil:
     return situations.sort((a, b) => pScore(b) - pScore(a));
   }
   function ModuleAutoPrompt({ data }) {
-    const [selected, setSelected] = (0, import_react13.useState)(null);
-    const [mode, setMode] = (0, import_react13.useState)(null);
-    const [generated, setGenerated] = (0, import_react13.useState)("");
-    const [copied, setCopied] = (0, import_react13.useState)(false);
-    const [variant, setVariant] = (0, import_react13.useState)(null);
+    const [selected, setSelected] = (0, import_react12.useState)(null);
+    const [mode, setMode] = (0, import_react12.useState)(null);
+    const [generated, setGenerated] = (0, import_react12.useState)("");
+    const [copied, setCopied] = (0, import_react12.useState)(false);
+    const [variant, setVariant] = (0, import_react12.useState)(null);
     const situations = detectSituations(data);
     const riskC = (r) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em })[r] || C.textD;
     const generate = (sit, m, vari) => {
@@ -6949,7 +6486,7 @@ Pr\xE9pare la conversation d'accueil:
   }
 
   // src/modules/Meetings.jsx
-  var import_react14 = __require("react");
+  var import_react13 = __require("react");
 
   // src/prompts/meetings.js
   var MEETING_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Analyse le transcript de reunion et reponds UNIQUEMENT en JSON valide.
@@ -7096,23 +6633,23 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD } }, secs, "s \xE9coul\xE9es", chars > 1e4 ? ` \xB7 Transcript ${Math.round(chars / 1e3)}k car.` : "", secs > est ? " \xB7 Presque termin\xE9\u2026" : ` \xB7 ~${Math.max(1, est - secs)}s restantes`));
   }
   function ModuleMeetings({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus }) {
-    const [view, setView] = (0, import_react14.useState)("list");
-    const [transcript, setTranscript] = (0, import_react14.useState)("");
-    const [meetingType, setMeetingType] = (0, import_react14.useState)("director");
-    const [meetingProvince, setMeetingProvince] = (0, import_react14.useState)("QC");
-    const [dirName, setDirName] = (0, import_react14.useState)("");
-    const [context, setContext] = (0, import_react14.useState)("");
-    const [loading, setLoading] = (0, import_react14.useState)(false);
-    const [error, setError] = (0, import_react14.useState)("");
-    const [result, setResult] = (0, import_react14.useState)(null);
-    const [saved, setSaved] = (0, import_react14.useState)(false);
-    const [briefPrompt, setBriefPrompt] = (0, import_react14.useState)("");
-    const [meetingPrompt, setMeetingPrompt] = (0, import_react14.useState)("");
-    const [activeDir, setActiveDir] = (0, import_react14.useState)(null);
-    const [activeSession, setActiveSession] = (0, import_react14.useState)(null);
-    const [meetingDate, setMeetingDate] = (0, import_react14.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [meetingScope, setMeetingScope] = (0, import_react14.useState)("leader");
-    (0, import_react14.useEffect)(() => {
+    const [view, setView] = (0, import_react13.useState)("list");
+    const [transcript, setTranscript] = (0, import_react13.useState)("");
+    const [meetingType, setMeetingType] = (0, import_react13.useState)("director");
+    const [meetingProvince, setMeetingProvince] = (0, import_react13.useState)("QC");
+    const [dirName, setDirName] = (0, import_react13.useState)("");
+    const [context, setContext] = (0, import_react13.useState)("");
+    const [loading, setLoading] = (0, import_react13.useState)(false);
+    const [error, setError] = (0, import_react13.useState)("");
+    const [result, setResult] = (0, import_react13.useState)(null);
+    const [saved, setSaved] = (0, import_react13.useState)(false);
+    const [briefPrompt, setBriefPrompt] = (0, import_react13.useState)("");
+    const [meetingPrompt, setMeetingPrompt] = (0, import_react13.useState)("");
+    const [activeDir, setActiveDir] = (0, import_react13.useState)(null);
+    const [activeSession, setActiveSession] = (0, import_react13.useState)(null);
+    const [meetingDate, setMeetingDate] = (0, import_react13.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [meetingScope, setMeetingScope] = (0, import_react13.useState)("leader");
+    (0, import_react13.useEffect)(() => {
       if (!focusMeetingId) return;
       const target = (data.meetings || []).find((m) => m.id === focusMeetingId);
       if (target) {
@@ -7211,11 +6748,11 @@ ${t}`;
       { id: "questions", icon: "\u{1F4AC}", label: "Questions", badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
       { id: "case", icon: "\u{1F4C2}", label: "Case Log" }
     ];
-    const [tab, setTab] = (0, import_react14.useState)("summary");
-    const [qsub, setQsub] = (0, import_react14.useState)("meeting");
-    const [groupBy, setGroupBy] = (0, import_react14.useState)("director");
-    const [editingMeta, setEditingMeta] = (0, import_react14.useState)(false);
-    const [metaDraft, setMetaDraft] = (0, import_react14.useState)({});
+    const [tab, setTab] = (0, import_react13.useState)("summary");
+    const [qsub, setQsub] = (0, import_react13.useState)("meeting");
+    const [groupBy, setGroupBy] = (0, import_react13.useState)("director");
+    const [editingMeta, setEditingMeta] = (0, import_react13.useState)(false);
+    const [metaDraft, setMetaDraft] = (0, import_react13.useState)({});
     if (view === "list") {
       const TYPE_META = {
         executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
@@ -7882,7 +7419,7 @@ ${t}`;
   }
 
   // src/modules/Prep1on1.jsx
-  var import_react15 = __require("react");
+  var import_react14 = __require("react");
   function RiskBadge4({ level }) {
     const r = RISK[level] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: level, color: r.color });
@@ -7967,7 +7504,7 @@ ${t}`;
     { value: "other", label: "Autre" }
   ];
   function PrepObsSelector({ label, values }) {
-    const [selected, setSelected] = (0, import_react15.useState)(null);
+    const [selected, setSelected] = (0, import_react14.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
@@ -7996,8 +7533,8 @@ ${t}`;
     overallPriority: "Mod\xE9r\xE9"
   };
   function Module1on1Prep({ data, onSave, onNavigate }) {
-    const [pTab, setPTab] = (0, import_react15.useState)("context");
-    const [ctx, setCtx] = (0, import_react15.useState)({
+    const [pTab, setPTab] = (0, import_react14.useState)("context");
+    const [ctx, setCtx] = (0, import_react14.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -8008,18 +7545,18 @@ ${t}`;
       recentData: "",
       alerts: ""
     });
-    const [prep, setPrep] = (0, import_react15.useState)(null);
-    const [prepLoading, setPrepLoading] = (0, import_react15.useState)(false);
-    const [prepAI, setPrepAI] = (0, import_react15.useState)(false);
-    const [notes, setNotes] = (0, import_react15.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
-    const [output, setOutput] = (0, import_react15.useState)(null);
-    const [outputLoading, setOutputLoading] = (0, import_react15.useState)(false);
-    const [copied, setCopied] = (0, import_react15.useState)(false);
-    const [saved1on1, setSaved1on1] = (0, import_react15.useState)(false);
-    const [prepPrompt, setPrepPrompt] = (0, import_react15.useState)("");
-    const [outputPrompt, setOutputPrompt] = (0, import_react15.useState)("");
-    const [sigExp, setSigExp] = (0, import_react15.useState)({});
-    const [histExp, setHistExp] = (0, import_react15.useState)({});
+    const [prep, setPrep] = (0, import_react14.useState)(null);
+    const [prepLoading, setPrepLoading] = (0, import_react14.useState)(false);
+    const [prepAI, setPrepAI] = (0, import_react14.useState)(false);
+    const [notes, setNotes] = (0, import_react14.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [output, setOutput] = (0, import_react14.useState)(null);
+    const [outputLoading, setOutputLoading] = (0, import_react14.useState)(false);
+    const [copied, setCopied] = (0, import_react14.useState)(false);
+    const [saved1on1, setSaved1on1] = (0, import_react14.useState)(false);
+    const [prepPrompt, setPrepPrompt] = (0, import_react14.useState)("");
+    const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
+    const [sigExp, setSigExp] = (0, import_react14.useState)({});
+    const [histExp, setHistExp] = (0, import_react14.useState)({});
     const managerHistory = (data.meetings || []).filter((m) => {
       if (!m.director || !ctx.managerName) return false;
       return normKey(m.director) === normKey(ctx.managerName);
@@ -9019,7 +8556,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   }
 
   // src/modules/Brief.jsx
-  var import_react16 = __require("react");
+  var import_react15 = __require("react");
 
   // src/prompts/brief.js
   var BRIEF_SP = `Tu es un HRBP senior expert, groupe IT corporatif, Quebec. Tu produis des briefings strategiques RH hebdomadaires pour Samuel Chartrand.
@@ -9072,28 +8609,28 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, label));
   }
   function ModuleBrief({ data, onSave }) {
-    const [view, setView] = (0, import_react16.useState)("new");
-    const [briefTab, setBriefTab] = (0, import_react16.useState)("brief");
-    const [inputs, setInputs] = (0, import_react16.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" });
-    const [recapSubTab, setRecapSubTab] = (0, import_react16.useState)("generate");
-    const [sentRecapText, setSentRecapText] = (0, import_react16.useState)("");
-    const [sentRecapSaved, setSentRecapSaved] = (0, import_react16.useState)(false);
-    const [recapResult, setRecapResult] = (0, import_react16.useState)(null);
-    const [recapLoading, setRecapLoading] = (0, import_react16.useState)(false);
-    const [recapError, setRecapError] = (0, import_react16.useState)("");
-    const [copied, setCopied] = (0, import_react16.useState)(false);
-    const [recapPrompt, setRecapPrompt] = (0, import_react16.useState)("");
-    const [nwlSourceIdx, setNwlSourceIdx] = (0, import_react16.useState)(0);
-    const [nwlResult, setNwlResult] = (0, import_react16.useState)(null);
-    const [nwlLoading, setNwlLoading] = (0, import_react16.useState)(false);
-    const [nwlError, setNwlError] = (0, import_react16.useState)("");
-    const [nwlSaved, setNwlSaved] = (0, import_react16.useState)(false);
-    const [nwlCopied, setNwlCopied] = (0, import_react16.useState)(false);
-    const [nwlPrompt, setNwlPrompt] = (0, import_react16.useState)("");
-    const [loading, setLoading] = (0, import_react16.useState)(false);
-    const [error, setError] = (0, import_react16.useState)("");
-    const [result, setResult] = (0, import_react16.useState)(null);
-    const [saved, setSaved] = (0, import_react16.useState)(false);
+    const [view, setView] = (0, import_react15.useState)("new");
+    const [briefTab, setBriefTab] = (0, import_react15.useState)("brief");
+    const [inputs, setInputs] = (0, import_react15.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" });
+    const [recapSubTab, setRecapSubTab] = (0, import_react15.useState)("generate");
+    const [sentRecapText, setSentRecapText] = (0, import_react15.useState)("");
+    const [sentRecapSaved, setSentRecapSaved] = (0, import_react15.useState)(false);
+    const [recapResult, setRecapResult] = (0, import_react15.useState)(null);
+    const [recapLoading, setRecapLoading] = (0, import_react15.useState)(false);
+    const [recapError, setRecapError] = (0, import_react15.useState)("");
+    const [copied, setCopied] = (0, import_react15.useState)(false);
+    const [recapPrompt, setRecapPrompt] = (0, import_react15.useState)("");
+    const [nwlSourceIdx, setNwlSourceIdx] = (0, import_react15.useState)(0);
+    const [nwlResult, setNwlResult] = (0, import_react15.useState)(null);
+    const [nwlLoading, setNwlLoading] = (0, import_react15.useState)(false);
+    const [nwlError, setNwlError] = (0, import_react15.useState)("");
+    const [nwlSaved, setNwlSaved] = (0, import_react15.useState)(false);
+    const [nwlCopied, setNwlCopied] = (0, import_react15.useState)(false);
+    const [nwlPrompt, setNwlPrompt] = (0, import_react15.useState)("");
+    const [loading, setLoading] = (0, import_react15.useState)(false);
+    const [error, setError] = (0, import_react15.useState)("");
+    const [result, setResult] = (0, import_react15.useState)(null);
+    const [saved, setSaved] = (0, import_react15.useState)(false);
     const getWeekBounds = () => {
       const today = /* @__PURE__ */ new Date();
       const day = today.getDay();
@@ -9106,8 +8643,8 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const toISO2 = (d) => d.toISOString().split("T")[0];
       return { start: toISO2(monday), end: toISO2(friday) };
     };
-    const [periodStart, setPeriodStart] = (0, import_react16.useState)("");
-    const [periodEnd, setPeriodEnd] = (0, import_react16.useState)("");
+    const [periodStart, setPeriodStart] = (0, import_react15.useState)("");
+    const [periodEnd, setPeriodEnd] = (0, import_react15.useState)("");
     const briefs = data.briefs || [];
     const parseDate = (str) => {
       if (!str) return null;
@@ -10232,12 +9769,15 @@ ${recap.sentText}`,
         icon: "\u{1F465}",
         label: "MANAGERS TO WATCH",
         color: C.blue,
-        action: /* @__PURE__ */ React.createElement("button", { onClick: () => onNavigate("portfolio"), style: { background: "none", border: "none", color: C.blue, fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono',monospace", letterSpacing: 1 } }, "PORTFOLIO \u2192")
+        action: /* @__PURE__ */ React.createElement("button", { onClick: () => onNavigate("leaders"), style: { background: "none", border: "none", color: C.blue, fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono',monospace", letterSpacing: 1 } }, "LEADERS \u2192")
       }
     ), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 } }, managers.map((m, i) => {
       const reason = m.highRisk > 0 ? `${m.highRisk} d\xE9cision${m.highRisk > 1 ? "s" : ""} \xE0 risque \xE9lev\xE9` : m.cases >= 2 ? `${m.cases} dossiers actifs` : m.signals >= 2 ? `${m.signals} signaux en attente` : `${m.total} items actifs`;
       const accent = m.highRisk > 0 ? C.red : m.cases >= 2 ? C.amber : C.blue;
-      return /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => onNavigate("portfolio"), style: {
+      return /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => {
+        sessionStorage.setItem("hrbpos:pendingLeader", m.name);
+        onNavigate("leaders");
+      }, style: {
         background: C.surfL,
         border: `1px solid ${accent}28`,
         borderLeft: `3px solid ${accent}`,
@@ -10279,7 +9819,135 @@ ${recap.sentText}`,
   }
 
   // src/modules/Leader.jsx
-  var import_react17 = __require("react");
+  var import_react16 = __require("react");
+
+  // src/prompts/portfolio.js
+  var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
+A partir des donnees historiques d un gestionnaire (meetings analyses, dossiers actifs), evalue son profil de risque RH actuel.
+Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
+{"riskAssessment":"Critique|Eleve|Modere|Faible","pressureLevel":"Elevee|Moderee|Faible","managerType":"Solide|En developpement|A risque|Critique","topIssue":"enjeu principal identifie en 1 phrase courte","recommendedAction":"action HRBP recommandee en 1 phrase courte"}`;
+
+  // src/utils/leaderStore.js
+  var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
+  var RISK_LEVELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
+  var TYPE_ICON = {
+    "Solide": "\u2705",
+    "\xC9vitant": "\u{1FAE5}",
+    "Evitant": "\u{1FAE5}",
+    "Surcharg\xE9": "\u{1F525}",
+    "Surcharge": "\u{1F525}",
+    "Micromanager": "\u{1F52C}",
+    "Politique": "\u{1F3AD}",
+    "En d\xE9veloppement": "\u{1F331}",
+    "En developpement": "\u{1F331}"
+  };
+  var PRESSURE_EMOJI = { "Elevee": "\u{1F534}", "\xC9lev\xE9e": "\u{1F534}", "Moderee": "\u{1F7E1}", "Mod\xE9r\xE9e": "\u{1F7E1}", "Faible": "\u{1F7E2}" };
+  function emptyMeta() {
+    return {
+      type: "",
+      pressure: "",
+      riskOverride: "",
+      topIssue: "",
+      nextAction: "",
+      execSummary: "",
+      tags: [],
+      lastInteraction: "",
+      updatedAt: "",
+      legacy: {}
+    };
+  }
+  function getLeadersMap(data) {
+    const existing = data.leaders;
+    if (existing && typeof existing === "object" && !Array.isArray(existing) && Object.keys(existing).length > 0) {
+      return existing;
+    }
+    const portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+    if (portfolio.length === 0) return {};
+    const out = {};
+    portfolio.forEach((p) => {
+      if (!p?.name) return;
+      const key = normKey(p.name);
+      if (!key) return;
+      const known = ["id", "name", "team", "level", "risk", "pressure", "type", "topIssue", "hrbpAction", "lastInteraction", "notes"];
+      const legacy = {};
+      Object.keys(p).forEach((k) => {
+        if (!known.includes(k)) legacy[k] = p[k];
+      });
+      out[key] = {
+        type: p.type || "",
+        pressure: p.pressure || "",
+        riskOverride: p.risk || "",
+        topIssue: p.topIssue || "",
+        nextAction: p.hrbpAction || "",
+        execSummary: p.notes || "",
+        tags: [],
+        lastInteraction: p.lastInteraction || "",
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        legacy
+      };
+    });
+    return out;
+  }
+  function getMeta(name, leadersMap) {
+    if (!name) return emptyMeta();
+    const k = normKey(name);
+    return leadersMap[k] || emptyMeta();
+  }
+  function setMeta(leadersMap, name, patch) {
+    const k = normKey(name);
+    if (!k) return leadersMap;
+    const cur = leadersMap[k] || emptyMeta();
+    const next = { ...cur, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] };
+    return { ...leadersMap, [k]: next };
+  }
+  var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
+  function computeFocusScore(autoLeader, meta, todayISO) {
+    let score = 0;
+    const reasons = [];
+    const activeCases = (autoLeader.cases || []).filter((c) => c.status !== "closed" && c.status !== "resolved");
+    const lastMeeting = (autoLeader.meetings || [])[0];
+    const autoRisks = [...activeCases.map((c) => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
+    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER2[r] ?? 3)) : 3;
+    const overrideOrder = meta.riskOverride ? RISK_ORDER2[meta.riskOverride] ?? 3 : 9;
+    const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
+    score += (3 - effectiveOrder) * 30;
+    if (effectiveOrder === 0) reasons.push("risque critique");
+    else if (effectiveOrder === 1) reasons.push("risque \xE9lev\xE9");
+    const lastDate = meta.lastInteraction || lastMeeting?.savedAt || null;
+    const days = lastDate ? Math.floor((new Date(todayISO) - new Date(lastDate)) / 864e5) : 99;
+    if (days > 21) {
+      score += 20;
+      reasons.push(`${days}j sans contact`);
+    } else if (days > 14) {
+      score += 10;
+      reasons.push(`${days}j sans contact`);
+    }
+    if (meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e") {
+      score += 15;
+      reasons.push("pression \xE9lev\xE9e");
+    }
+    if (meta.type === "\xC9vitant" || meta.type === "Evitant") {
+      score += 10;
+      reasons.push("pattern \xE9vitant");
+    }
+    if (meta.type === "Surcharg\xE9" || meta.type === "Surcharge") {
+      score += 8;
+      reasons.push("d\xE9bord\xE9");
+    }
+    if (activeCases.length >= 2) {
+      score += 5;
+    }
+    return { score, reasons: reasons.slice(0, 3), days };
+  }
+  function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {
+    return autoLeaders.map((l) => {
+      const meta = getMeta(l.name, leadersMap);
+      const f = computeFocusScore(l, meta, todayISO);
+      return { ...l, _meta: meta, _focus: f };
+    }).filter((x) => x._focus.score > 10).sort((a, b) => b._focus.score - a._focus.score).slice(0, n);
+  }
+
+  // src/modules/Leader.jsx
   function RiskBadge6({ level }) {
     const r = RISK[normalizeRisk(level)] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: level || "\u2014", color: r.color });
@@ -10303,7 +9971,7 @@ ${recap.sentText}`,
   function InfoRow({ label, children }) {
     return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, label), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, children));
   }
-  var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
+  var RISK_ORDER3 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
   var RISK_LABELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
   var LEVEL_ORDER = { executif: 0, vp: 1, director: 2, manager: 3 };
   var LEVEL_META = {
@@ -10370,7 +10038,7 @@ ${recap.sentText}`,
   })[r] || C.blue;
   var normName = normKey;
   var worstRisk = (arr) => {
-    const filtered = arr.filter(Boolean).map((r) => RISK_ORDER2[r] ?? 3);
+    const filtered = arr.filter(Boolean).map((r) => RISK_ORDER3[r] ?? 3);
     if (filtered.length === 0) return "Faible";
     return RISK_LABELS[Math.min(...filtered)] || "Faible";
   };
@@ -10560,18 +10228,64 @@ ${recap.sentText}`,
       return b.date.localeCompare(a.date);
     });
   }
-  function ModuleLeader({ data, onNavigate }) {
-    const [selected, setSelected] = (0, import_react17.useState)(null);
-    const [tlExpanded, setTlExpanded] = (0, import_react17.useState)(false);
-    const [tlFilter, setTlFilter] = (0, import_react17.useState)("all");
+  function ModuleLeader({ data, onSave, onNavigate }) {
+    const [selected, setSelected] = (0, import_react16.useState)(null);
+    const [tlExpanded, setTlExpanded] = (0, import_react16.useState)(false);
+    const [tlFilter, setTlFilter] = (0, import_react16.useState)("all");
+    const [editingMeta, setEditingMeta] = (0, import_react16.useState)(false);
+    const [metaForm, setMetaForm] = (0, import_react16.useState)(null);
+    const [aiAssessing, setAiAssessing] = (0, import_react16.useState)(false);
     const selectLeader = (key) => {
       setSelected(key);
       setTlExpanded(false);
       setTlFilter("all");
+      setEditingMeta(false);
+      setMetaForm(null);
     };
-    const leaders = (0, import_react17.useMemo)(() => buildLeaderIndex(data), [data]);
+    const leaders = (0, import_react16.useMemo)(() => buildLeaderIndex(data), [data]);
     const leaderList = Object.values(leaders);
-    (0, import_react17.useEffect)(() => {
+    const leadersMap = (0, import_react16.useMemo)(() => getLeadersMap(data), [data]);
+    const todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const topFocus = (0, import_react16.useMemo)(() => topFocusLeaders(leaderList, leadersMap, todayISO_top, 3), [leaderList, leadersMap, todayISO_top]);
+    const saveMeta = (name, patch) => {
+      if (!onSave) return;
+      const next = setMeta(leadersMap, name, patch);
+      onSave("leaders", next);
+    };
+    const aiAssess = async (autoLeader) => {
+      if (!onSave) return;
+      const mData = (autoLeader.meetings || []).slice(-5);
+      const cData = (autoLeader.cases || []).slice(-5);
+      if (!mData.length && !cData.length) {
+        alert("Aucune donn\xE9e trouv\xE9e pour ce gestionnaire.");
+        return;
+      }
+      const ctx = [
+        mData.length && `MEETINGS:
+${mData.map((x) => `- ${x.savedAt || ""} Risk:${x.analysis?.overallRisk || ""} ${x.analysis?.overallRiskRationale || ""}`).join("\n")}`,
+        cData.length && `CASES:
+${cData.map((x) => `- ${x.title || ""} | ${x.riskLevel || ""} | ${x.situation || ""}`).join("\n")}`
+      ].filter(Boolean).join("\n\n");
+      setAiAssessing(true);
+      try {
+        const p = await callAIJson(PORTFOLIO_ASSESS_SP, `Gestionnaire: ${autoLeader.name}
+
+${ctx}`, 500);
+        saveMeta(autoLeader.name, {
+          riskOverride: normalizeRisk(p.riskAssessment) || "",
+          pressure: p.pressureLevel || "",
+          type: p.managerType || "",
+          topIssue: p.topIssue || "",
+          nextAction: p.recommendedAction || "",
+          lastInteraction: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
+        });
+      } catch (e) {
+        alert("Erreur: " + e.message);
+      } finally {
+        setAiAssessing(false);
+      }
+    };
+    (0, import_react16.useEffect)(() => {
       const pending = sessionStorage.getItem("hrbpos:pendingLeader");
       if (!pending) return;
       sessionStorage.removeItem("hrbpos:pendingLeader");
@@ -10587,7 +10301,53 @@ ${recap.sentText}`,
       });
       const groupOrder = ["Ex\xE9cutif", "VP", "Directeur", "Gestionnaire", "Autre"];
       const groups = groupOrder.filter((g) => groupMap[g]).map((g) => groupMap[g]);
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 880, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Fiches Leaders"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, leaderList.length, " gestionnaire", leaderList.length > 1 ? "s" : "", " d\xE9tect\xE9", leaderList.length > 1 ? "s" : "", /* @__PURE__ */ React.createElement("span", { style: { color: C.textD } }, " \xB7 Agr\xE9gation lecture seule \u2014 donn\xE9es issues de Meetings, Cases et Pr\xE9parations 1:1"))), leaderList.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun leader d\xE9tect\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 16, lineHeight: 1.6 } }, "Les fiches se construisent automatiquement \xE0 partir de tes meetings, dossiers et pr\xE9parations 1:1.", /* @__PURE__ */ React.createElement("br", null), "Commence par analyser un meeting ou cr\xE9er un dossier Case Log."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center" } }, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 880, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Fiches Leaders"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, leaderList.length, " gestionnaire", leaderList.length > 1 ? "s" : "", " d\xE9tect\xE9", leaderList.length > 1 ? "s" : "", /* @__PURE__ */ React.createElement("span", { style: { color: C.textD } }, " \xB7 Agr\xE9gation auto + couche \xE9ditoriale HRBP"))), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+        background: "linear-gradient(135deg,#ef444412,#f59e0b08)",
+        border: `1px solid ${C.red}25`,
+        borderRadius: 10,
+        padding: "14px 16px",
+        marginBottom: 16
+      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, "O\xF9 passer mes 5 prochaines heures HRBP ?"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD } }, "Score bas\xE9 sur risque, inactivit\xE9, pression et pattern"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, topFocus.map((m, i) => {
+        const meta = m._meta;
+        const rk = meta.riskOverride || "Mod\xE9r\xE9";
+        const rc = { "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em }[rk] || C.textD;
+        return /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: m.key,
+            onClick: () => selectLeader(m.key),
+            style: {
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              padding: "9px 12px",
+              background: C.surfL,
+              borderRadius: 8,
+              borderLeft: `3px solid ${rc}`,
+              border: "none",
+              cursor: "pointer",
+              textAlign: "left",
+              fontFamily: "'DM Sans',sans-serif",
+              width: "100%"
+            }
+          },
+          /* @__PURE__ */ React.createElement("div", { style: {
+            width: 22,
+            height: 22,
+            background: rc + "22",
+            border: `1px solid ${rc}44`,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+            fontWeight: 800,
+            color: rc,
+            flexShrink: 0
+          } }, i + 1),
+          /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, TYPE_ICON[meta.type] || "", " ", m.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 2 } }, m._focus.reasons.join(" \xB7 ") || "Priorit\xE9"), meta.nextAction && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em, marginTop: 2 } }, "\u2192 ", meta.nextAction))
+        );
+      }))), leaderList.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun leader d\xE9tect\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 16, lineHeight: 1.6 } }, "Les fiches se construisent automatiquement \xE0 partir de tes meetings, dossiers et pr\xE9parations 1:1.", /* @__PURE__ */ React.createElement("br", null), "Commence par analyser un meeting ou cr\xE9er un dossier Case Log."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center" } }, /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => onNavigate("meetings"),
@@ -10629,7 +10389,8 @@ ${recap.sentText}`,
       } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, group.meta.icon), /* @__PURE__ */ React.createElement(Mono, { color: group.meta.color, size: 9 }, group.meta.label), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "\u2014 ", group.leaders.length, " personne", group.leaders.length > 1 ? "s" : "")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10 } }, group.leaders.map((l2) => {
         const activeCases2 = l2.cases.filter((c) => c.status !== "closed" && c.status !== "resolved");
         const lastMeeting2 = sortByDate(l2.meetings, "savedAt")[0];
-        const globalRisk2 = worstRisk([
+        const lMeta = getMeta(l2.name, leadersMap);
+        const globalRisk2 = lMeta.riskOverride || worstRisk([
           ...activeCases2.map((c) => c.riskLevel),
           lastMeeting2?.analysis?.overallRisk
         ]);
@@ -10653,8 +10414,9 @@ ${recap.sentText}`,
             onMouseEnter: (e) => e.currentTarget.style.borderColor = group.meta.color,
             onMouseLeave: (e) => e.currentTarget.style.borderColor = r.color + "28"
           },
-          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, group.meta.icon), /* @__PURE__ */ React.createElement(RiskBadge6, { level: globalRisk2 })),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, TYPE_ICON[lMeta.type] || group.meta.icon), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, alignItems: "center" } }, PRESSURE_EMOJI[lMeta.pressure] && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, PRESSURE_EMOJI[lMeta.pressure]), /* @__PURE__ */ React.createElement(RiskBadge6, { level: globalRisk2 }))),
           /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 } }, l2.name),
+          lMeta.topIssue && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.amber, marginBottom: 6, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } }, "\u2691 ", lMeta.topIssue),
           /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 3 } }, l2.meetings.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, l2.meetings.length, " meeting", l2.meetings.length > 1 ? "s" : ""), activeCases2.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.amber }, activeCases2.length, " dossier", activeCases2.length > 1 ? "s" : "", " actif", activeCases2.length > 1 ? "s" : ""), l2.preps.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.teal }, l2.preps.length, " pr\xE9p. 1:1"), lastMeeting2?.savedAt && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Contact: ", lastMeeting2.savedAt))
         );
       })))));
@@ -10799,7 +10561,81 @@ ${recap.sentText}`,
       { label: "Dossiers actifs", value: activeCases.length, color: activeCases.length > 0 ? C.amber : C.textD },
       { label: "Pr\xE9p. 1:1", value: l.preps.length, color: C.teal },
       { label: "Plans 30-60-90", value: (l.plans || []).length, color: (l.plans || []).length > 0 ? "#06b6d4" : C.textD }
-    ].map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: s.color } }, s.value), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, s.label))))), /* @__PURE__ */ React.createElement("div", { style: {
+    ].map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: s.color } }, s.value), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, s.label))))), (() => {
+      const meta = getMeta(l.name, leadersMap);
+      const form = metaForm || meta;
+      const startEdit = () => {
+        setMetaForm({ ...meta });
+        setEditingMeta(true);
+      };
+      const cancelEdit = () => {
+        setMetaForm(null);
+        setEditingMeta(false);
+      };
+      const commitEdit = () => {
+        saveMeta(l.name, form);
+        setMetaForm(null);
+        setEditingMeta(false);
+      };
+      const FF = (k, v) => setMetaForm((p) => ({ ...p, [k]: v }));
+      const hasMeta = !!(meta.type || meta.pressure || meta.topIssue || meta.nextAction || meta.execSummary || meta.riskOverride);
+      return /* @__PURE__ */ React.createElement("div", { style: {
+        background: C.surf,
+        border: `1px solid ${C.purple}33`,
+        borderLeft: `4px solid ${C.purple}`,
+        borderRadius: 12,
+        padding: "16px 20px",
+        marginBottom: 16
+      } }, /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 12,
+        paddingBottom: 8,
+        borderBottom: `1px solid ${C.purple}22`
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.purple }, "NOTE HRBP \u2014 COUCHE \xC9DITORIALE"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), !editingMeta && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => aiAssess(l),
+          disabled: aiAssessing,
+          title: "R\xE9\xE9valuer depuis le OS (meetings + cases)",
+          style: { ...css.btn(C.teal, true), padding: "5px 11px", fontSize: 11, opacity: aiAssessing ? 0.5 : 1 }
+        },
+        aiAssessing ? "\u23F3..." : "\u{1F504} AI assess"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: startEdit,
+          style: { ...css.btn(C.purple, true), padding: "5px 11px", fontSize: 11 }
+        },
+        hasMeta ? "\u270F Modifier" : "+ Ajouter"
+      )), editingMeta && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { onClick: commitEdit, style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Enregistrer"), /* @__PURE__ */ React.createElement("button", { onClick: cancelEdit, style: { ...css.btn(C.textM, true), padding: "5px 11px", fontSize: 11 } }, "Annuler"))), !editingMeta && !hasMeta && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, 'Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.'), !editingMeta && hasMeta && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 } }, meta.type && /* @__PURE__ */ React.createElement(Badge, { label: `${TYPE_ICON[meta.type] || ""} ${meta.type}`, color: C.purple }), meta.pressure && /* @__PURE__ */ React.createElement(Badge, { label: `Pression ${meta.pressure}`, color: meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e" ? C.red : meta.pressure === "Moderee" || meta.pressure === "Mod\xE9r\xE9e" ? C.amber : C.em }), meta.riskOverride && /* @__PURE__ */ React.createElement(Badge, { label: `Risque (override): ${meta.riskOverride}`, color: C.red })), meta.topIssue && /* @__PURE__ */ React.createElement(InfoRow, { label: "Enjeu principal" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, "\u2691 ", meta.topIssue)), meta.nextAction && /* @__PURE__ */ React.createElement(InfoRow, { label: "Prochaine action HRBP" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.em, lineHeight: 1.5 } }, "\u2192 ", meta.nextAction)), meta.execSummary && /* @__PURE__ */ React.createElement(InfoRow, { label: "Note libre" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, meta.execSummary)), meta.lastInteraction && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Derni\xE8re \xE9val: ", meta.lastInteraction)), editingMeta && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.type || "", onChange: (e) => FF("type", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), MANAGER_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t, value: t }, t)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Pression"), /* @__PURE__ */ React.createElement("select", { value: form.pressure || "", onChange: (e) => FF("pressure", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), /* @__PURE__ */ React.createElement("option", { value: "Elevee" }, "\xC9lev\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Moderee" }, "Mod\xE9r\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Faible" }, "Faible"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Risque (override)"), /* @__PURE__ */ React.createElement("select", { value: form.riskOverride || "", onChange: (e) => FF("riskOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), RISK_LEVELS.map((r) => /* @__PURE__ */ React.createElement("option", { key: r, value: r }, r)))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Enjeu principal"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: form.topIssue || "",
+          onChange: (e) => FF("topIssue", e.target.value),
+          placeholder: "Ex: \xC9vite les conversations de performance",
+          style: { ...css.input, marginTop: 4, fontSize: 12 }
+        }
+      )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Prochaine action HRBP"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: form.nextAction || "",
+          onChange: (e) => FF("nextAction", e.target.value),
+          placeholder: "Ex: Coaching cibl\xE9 conversation difficile",
+          style: { ...css.input, marginTop: 4, fontSize: 12 }
+        }
+      )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Note libre HRBP"), /* @__PURE__ */ React.createElement(
+        "textarea",
+        {
+          rows: 3,
+          value: form.execSummary || "",
+          onChange: (e) => FF("execSummary", e.target.value),
+          placeholder: "Contexte, observations, patterns, plan strat\xE9gique...",
+          style: { ...css.textarea, marginTop: 4, fontSize: 12 }
+        }
+      ))));
+    })(), /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surf,
       border: `1px solid ${r360Color}44`,
       borderLeft: `4px solid ${r360Color}`,
@@ -11379,7 +11215,7 @@ ${recap.sentText}`,
   }
 
   // src/modules/Copilot.jsx
-  var import_react18 = __require("react");
+  var import_react17 = __require("react");
 
   // src/prompts/copilot.js
   var COPILOT_SP = `You are the embedded strategic intelligence layer of my HRBP OS.
@@ -11601,15 +11437,15 @@ Be sharp, structured, and decisive.`;
 
   // src/modules/Copilot.jsx
   function ModuleCopilot({ data }) {
-    const [situation, setSituation] = (0, import_react18.useState)("");
-    const [loading, setLoading] = (0, import_react18.useState)(false);
-    const [response, setResponse] = (0, import_react18.useState)(null);
-    const [error, setError] = (0, import_react18.useState)("");
-    const [history, setHistory] = (0, import_react18.useState)([]);
-    const [copied, setCopied] = (0, import_react18.useState)(false);
-    const [contextExpanded, setContextExpanded] = (0, import_react18.useState)(false);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react18.useState)("");
-    const responseRef = (0, import_react18.useRef)(null);
+    const [situation, setSituation] = (0, import_react17.useState)("");
+    const [loading, setLoading] = (0, import_react17.useState)(false);
+    const [response, setResponse] = (0, import_react17.useState)(null);
+    const [error, setError] = (0, import_react17.useState)("");
+    const [history, setHistory] = (0, import_react17.useState)([]);
+    const [copied, setCopied] = (0, import_react17.useState)(false);
+    const [contextExpanded, setContextExpanded] = (0, import_react17.useState)(false);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react17.useState)("");
+    const responseRef = (0, import_react17.useRef)(null);
     const buildContext = () => {
       const cases = data.cases || [];
       const meetings = data.meetings || [];
@@ -11961,7 +11797,6 @@ ${situation.trim()}`;
   var NAV_MORE = [
     { id: "leaders", icon: "\u{1F464}", label: "Fiches Leaders", color: C.purple },
     { id: "radar", icon: "\u{1F52D}", label: "Org Radar", color: C.red },
-    { id: "portfolio", icon: "\u{1F465}", label: "Portfolio", color: C.teal },
     { id: "decisions", icon: "\u2696\uFE0F", label: "D\xE9cisions", color: C.red },
     { id: "coaching", icon: "\u{1F91D}", label: "Coaching", color: C.teal },
     { id: "investigation", icon: "\u{1F50D}", label: "Enqu\xEAtes", color: "#7a1e2e" },
@@ -11973,10 +11808,10 @@ ${situation.trim()}`;
   ];
   var AUTH_KEY = "hrbpos_auth";
   function LoginScreen({ onAuth }) {
-    const [pw, setPw] = (0, import_react19.useState)("");
-    const [error, setError] = (0, import_react19.useState)(false);
-    const [shake, setShake] = (0, import_react19.useState)(false);
-    const [checking, setChecking] = (0, import_react19.useState)(false);
+    const [pw, setPw] = (0, import_react18.useState)("");
+    const [error, setError] = (0, import_react18.useState)(false);
+    const [shake, setShake] = (0, import_react18.useState)(false);
+    const [checking, setChecking] = (0, import_react18.useState)(false);
     const attempt = async () => {
       if (!pw || checking) return;
       setChecking(true);
@@ -12065,18 +11900,18 @@ ${situation.trim()}`;
     ))));
   }
   function HRBPOS() {
-    const [authed, setAuthed] = (0, import_react19.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
-    const [module, setModule] = (0, import_react19.useState)("home");
-    const [showMore, setShowMore] = (0, import_react19.useState)(false);
-    const [data, setData] = (0, import_react19.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
-    const [toast, setToast] = (0, import_react19.useState)(false);
-    const [loaded, setLoaded] = (0, import_react19.useState)(false);
-    const [focusCaseId, setFocusCaseId] = (0, import_react19.useState)(null);
-    const [focusMeetingId, setFocusMeetingId] = (0, import_react19.useState)(null);
-    const [focusExitId, setFocusExitId] = (0, import_react19.useState)(null);
-    const [focusSignalId, setFocusSignalId] = (0, import_react19.useState)(null);
-    (0, import_react19.useEffect)(() => {
-      const defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } };
+    const [authed, setAuthed] = (0, import_react18.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
+    const [module, setModule] = (0, import_react18.useState)("home");
+    const [showMore, setShowMore] = (0, import_react18.useState)(false);
+    const [data, setData] = (0, import_react18.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
+    const [toast, setToast] = (0, import_react18.useState)(false);
+    const [loaded, setLoaded] = (0, import_react18.useState)(false);
+    const [focusCaseId, setFocusCaseId] = (0, import_react18.useState)(null);
+    const [focusMeetingId, setFocusMeetingId] = (0, import_react18.useState)(null);
+    const [focusExitId, setFocusExitId] = (0, import_react18.useState)(null);
+    const [focusSignalId, setFocusSignalId] = (0, import_react18.useState)(null);
+    (0, import_react18.useEffect)(() => {
+      const defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } };
       const timeout = setTimeout(() => setLoaded(true), 1500);
       Promise.allSettled(
         Object.entries(SK).map(async ([k, sk]) => {
@@ -12133,9 +11968,9 @@ ${situation.trim()}`;
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     };
-    const [restoreStatus, setRestoreStatus] = (0, import_react19.useState)(null);
-    const [restoreMsg, setRestoreMsg] = (0, import_react19.useState)("");
-    const fileInputRef = (0, import_react19.useRef)(null);
+    const [restoreStatus, setRestoreStatus] = (0, import_react18.useState)(null);
+    const [restoreMsg, setRestoreMsg] = (0, import_react18.useState)("");
+    const fileInputRef = (0, import_react18.useRef)(null);
     const handleRestoreClick = () => fileInputRef.current?.click();
     const handleRestoreFile = async (e) => {
       const file = e.target.files?.[0];
@@ -12147,7 +11982,7 @@ ${situation.trim()}`;
         const text = await file.text();
         const parsed = JSON.parse(text);
         const restored = parsed.data || parsed;
-        const keys = ["cases", "meetings", "signals", "decisions", "coaching", "exits", "investigations", "briefs", "prep1on1", "sentRecaps", "plans306090", "profile"];
+        const keys = ["cases", "meetings", "signals", "decisions", "coaching", "exits", "investigations", "briefs", "prep1on1", "sentRecaps", "plans306090", "profile", "leaders"];
         const updates = {};
         for (const k of keys) {
           if (restored[k] !== void 0) {
@@ -12167,14 +12002,14 @@ ${situation.trim()}`;
         setTimeout(() => setRestoreStatus(null), 4e3);
       }
     };
-    const handleSave = (0, import_react19.useCallback)(async (key, value) => {
+    const handleSave = (0, import_react18.useCallback)(async (key, value) => {
       const skKey = SK[key];
       if (!skKey) return;
       await sSet(skKey, value);
       setData((d) => ({ ...d, [key]: value }));
       showToast();
     }, []);
-    const handleSaveMeeting = (0, import_react19.useCallback)(async (session, caseEntry) => {
+    const handleSaveMeeting = (0, import_react18.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
       const newMeetings = [...data.meetings || [], session];
       await sSet(SK.meetings, newMeetings);
@@ -12204,7 +12039,7 @@ ${situation.trim()}`;
       }
       showToast();
     }, [data]);
-    const handleUpdateMeeting = (0, import_react19.useCallback)(async (updatedSession) => {
+    const handleUpdateMeeting = (0, import_react18.useCallback)(async (updatedSession) => {
       const newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
@@ -12427,7 +12262,7 @@ ${situation.trim()}`;
       "\u26A0 ",
       c.title?.substring(0, 20),
       c.title?.length > 20 ? "\u2026" : ""
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "portfolio" ? /* @__PURE__ */ React.createElement(ModulePortfolio, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onNavigate: (id, ctx) => {
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);

@@ -15,6 +15,7 @@ export const SK = {
   sentRecaps:     "hrbp_os:sentRecaps",
   nextWeekLocks:  "hrbp_os:nextWeekLocks",
   portfolio:      "hrbp_os:portfolio",
+  leaders:        "hrbp_os:leaders",
   radars:         "hrbp_os:radars",
   plans306090:    "hrbp_os:plans306090",
 };
