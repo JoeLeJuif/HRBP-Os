@@ -7580,6 +7580,12 @@ Questions pos\xE9es: ${questions2}`;
       if (!ctx.managerName) return;
       setPrepLoading(true);
       const histCtx = buildHistCtx();
+      const openCases = (data.cases || []).filter(
+        (c) => c.status !== "closed" && c.status !== "resolved" && c.director && normKey(c.director) === normKey(ctx.managerName)
+      );
+      const openCasesCtx = openCases.map(
+        (c) => `- ${c.title || "Sans titre"} [${c.status}${c.riskLevel ? ` \xB7 ${c.riskLevel}` : ""}]${c.employee ? ` \xB7 ${c.employee}` : ""}: ${(c.description || c.summary || "").slice(0, 200)}`
+      ).join("\n");
       const sp = `Tu es un HRBP senior expert. G\xE9n\xE8re un plan d intervention structur\xE9 pour pr\xE9parer une rencontre 1:1 avec un gestionnaire.
 ${histCtx ? "Tu as l historique des rencontres pr\xE9c\xE9dentes \u2014 personnalise le plan et fais des liens explicites avec les enjeux non r\xE9solus." : "Aucun historique disponible \u2014 base-toi uniquement sur le contexte fourni."}
 R\xE9ponds UNIQUEMENT en JSON strict. Aucun texte avant ou apr\xE8s. Aucun backtick. Fran\xE7ais professionnel. Max 3 items par liste.
@@ -7590,11 +7596,18 @@ R\xE8gles : sois direct et sp\xE9cifique, pas g\xE9n\xE9rique. Ne pas inventer d
         `Equipe: ${ctx.team}`,
         `Type: ${ctx.meetingType}`,
         `Objectif: ${ctx.purpose}`,
-        `Contexte: ${ctx.background}`,
-        `Alertes: ${ctx.alerts}`,
-        histCtx ? `
-HISTORIQUE:
-${histCtx}` : ""
+        ``,
+        `CONTEXTE ACTUEL (priorit\xE9 maximale):`,
+        ctx.background || "Aucun contexte saisi",
+        ctx.alerts ? `Alertes: ${ctx.alerts}` : "",
+        ``,
+        `CAS OUVERTS (${openCases.length}):`,
+        openCasesCtx || "Aucun cas ouvert",
+        ``,
+        `HISTORIQUE PERTINENT:`,
+        histCtx || "Aucun historique disponible",
+        ``,
+        `Priorise le contexte actuel et les cas ouverts. N'utilise l'historique que si le sujet est encore non r\xE9solu. Ignore tout sujet d\xE9j\xE0 ferm\xE9 ou r\xE9solu.`
       ].filter(Boolean).join("\n");
       try {
         const p = await callAI(sp, up);

@@ -185,6 +185,13 @@ Questions posées: ${questions}`;
     if (!ctx.managerName) return;
     setPrepLoading(true);
     const histCtx = buildHistCtx();
+    const openCases = (data.cases || []).filter(c =>
+      c.status !== "closed" && c.status !== "resolved"
+      && c.director && normKey(c.director) === normKey(ctx.managerName)
+    );
+    const openCasesCtx = openCases.map(c =>
+      `- ${c.title || "Sans titre"} [${c.status}${c.riskLevel?` · ${c.riskLevel}`:""}]${c.employee?` · ${c.employee}`:""}: ${(c.description||c.summary||"").slice(0,200)}`
+    ).join("\n");
     const sp = `Tu es un HRBP senior expert. Génère un plan d intervention structuré pour préparer une rencontre 1:1 avec un gestionnaire.
 ${histCtx ? "Tu as l historique des rencontres précédentes — personnalise le plan et fais des liens explicites avec les enjeux non résolus." : "Aucun historique disponible — base-toi uniquement sur le contexte fourni."}
 Réponds UNIQUEMENT en JSON strict. Aucun texte avant ou après. Aucun backtick. Français professionnel. Max 3 items par liste.
@@ -195,9 +202,18 @@ Règles : sois direct et spécifique, pas générique. Ne pas inventer d informa
       `Equipe: ${ctx.team}`,
       `Type: ${ctx.meetingType}`,
       `Objectif: ${ctx.purpose}`,
-      `Contexte: ${ctx.background}`,
-      `Alertes: ${ctx.alerts}`,
-      histCtx ? `\nHISTORIQUE:\n${histCtx}` : "",
+      ``,
+      `CONTEXTE ACTUEL (priorité maximale):`,
+      ctx.background || "Aucun contexte saisi",
+      ctx.alerts ? `Alertes: ${ctx.alerts}` : "",
+      ``,
+      `CAS OUVERTS (${openCases.length}):`,
+      openCasesCtx || "Aucun cas ouvert",
+      ``,
+      `HISTORIQUE PERTINENT:`,
+      histCtx || "Aucun historique disponible",
+      ``,
+      `Priorise le contexte actuel et les cas ouverts. N'utilise l'historique que si le sujet est encore non résolu. Ignore tout sujet déjà fermé ou résolu.`,
     ].filter(Boolean).join("\n");
     try { const p = await callAI(sp, up); setPrep(p); setPrepAI(true); }
     catch { setPrep(FALLBACK_PREP); setPrepAI(false); }
