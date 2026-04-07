@@ -9848,26 +9848,26 @@ ${recap.sentText}`,
       },
       saved ? "\u2713 Archiv\xE9" : "\u{1F4BE} Archiver"
     ))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, fontStyle: "italic" } }, result.executiveSummary)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F3AF}", label: "Top priorit\xE9s", color: C.red }), result.topPriorities?.map((p, i) => {
-      const EVO_C4 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
-      const ec = p.evolution ? EVO_C4[p.evolution] || C.textD : null;
+      const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
+      const ec = p.evolution ? EVO_C3[p.evolution] || C.textD : null;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: p.urgency, color: DELAY_C[p.urgency] || C.blue, size: 10 }), ec && /* @__PURE__ */ React.createElement(Badge, { label: p.evolution, color: ec, size: 9 }), p.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontWeight: 500 } }, p.priority), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginTop: 3 } }, p.why), p.source && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8, style: { marginTop: 3 } }, "SOURCE \xB7 ", p.source));
     })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u26A0", label: "Risques cl\xE9s", color: C.amber }), result.keyRisks?.map((r, i) => {
-      const EVO_C4 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
-      const ec = r.evolution ? EVO_C4[r.evolution] || C.textD : null;
+      const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
+      const ec = r.evolution ? EVO_C3[r.evolution] || C.textD : null;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 } }, /* @__PURE__ */ React.createElement(RiskBadge5, { level: r.level }), ec && /* @__PURE__ */ React.createElement(Badge, { label: r.evolution, color: ec, size: 9 }), r.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, r.risk));
     })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F441}", label: "Leadership Watch", color: C.purple }), result.leadershipWatch?.map((l, i) => {
-      const EVO_C4 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
-      const ec = l.evolution ? EVO_C4[l.evolution] || C.textD : null;
+      const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
+      const ec = l.evolution ? EVO_C3[l.evolution] || C.textD : null;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, l.person), ec && /* @__PURE__ */ React.createElement(Badge, { label: l.evolution, color: ec, size: 9 }), l.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 3 } }, l.signal), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", l.action));
     })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u2708", label: "Retention Watch", color: C.red }), result.retentionWatch?.map((r, i) => {
-      const EVO_C4 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
-      const ec = r.evolution ? EVO_C4[r.evolution] || C.textD : null;
+      const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
+      const ec = r.evolution ? EVO_C3[r.evolution] || C.textD : null;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 } }, /* @__PURE__ */ React.createElement(RiskBadge5, { level: r.risk }), /* @__PURE__ */ React.createElement(Badge, { label: r.window, color: C.purple, size: 10 }), ec && /* @__PURE__ */ React.createElement(Badge, { label: r.evolution, color: ec, size: 9 }), r.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text } }, r.profile), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em, marginTop: 3 } }, "Levier: ", r.lever));
     }))), /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4C5}", label: "Actions de la semaine", color: C.em }), result.weeklyActions?.map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.deadline, color: C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER: ", a.owner))))), result.lookAhead && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F52D}", label: "Semaine prochaine", color: C.teal }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, result.lookAhead)), result.watchList?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 10, borderLeft: `3px solid ${C.textD}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4E1}", label: "Radar \u2014 Sujets \xE0 garder en m\xE9moire", color: C.textM }), result.watchList.map((w, i) => {
-      const CLASSIF_C2 = { "activeRisk": C.amber, "latentSignal": C.blue, "resolved": C.teal };
-      const cc = CLASSIF_C2[w.classification] || C.textD;
-      const EVO_C4 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
-      const ec = w.evolution ? EVO_C4[w.evolution] || C.textD : C.textD;
+      const CLASSIF_C = { "activeRisk": C.amber, "latentSignal": C.blue, "resolved": C.teal };
+      const cc = CLASSIF_C[w.classification] || C.textD;
+      const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
+      const ec = w.evolution ? EVO_C3[w.evolution] || C.textD : C.textD;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: i < result.watchList.length - 1 ? 10 : 0, paddingBottom: i < result.watchList.length - 1 ? 10 : 0, borderBottom: i < result.watchList.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 5 } }, /* @__PURE__ */ React.createElement(Badge, { label: w.classification, color: cc, size: 9 }), w.evolution && /* @__PURE__ */ React.createElement(Badge, { label: w.evolution, color: ec, size: 9 }), w.source && /* @__PURE__ */ React.createElement(Badge, { label: w.source, color: C.textD, size: 9 }), w.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA carry-over", color: C.textD, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginBottom: w.note ? 3 : 0 } }, w.subject), w.note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, w.note));
     })), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginTop: 16 } }, /* @__PURE__ */ React.createElement(
       "button",
@@ -10002,252 +10002,261 @@ ${recap.sentText}`,
   }
 
   // src/modules/Home.jsx
-  function SH({ icon, label, color, sub }) {
+  var DAY = 864e5;
+  var daysBetween = (isoA, isoB) => Math.floor((/* @__PURE__ */ new Date(isoA + "T00:00:00") - /* @__PURE__ */ new Date(isoB + "T00:00:00")) / DAY);
+  function SH({ icon, label, color, sub, action }) {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: color || C.textD }, label), sub && /* @__PURE__ */ React.createElement("span", { style: {
       fontFamily: "'DM Mono',monospace",
       fontSize: 9,
       color: C.textD,
       letterSpacing: 1.5,
       textTransform: "uppercase"
-    } }, " \xB7 ", sub));
+    } }, " \xB7 ", sub), action && /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto" } }, action));
   }
-  function Row({ left, right, sub, accent }) {
-    return /* @__PURE__ */ React.createElement("div", { style: { borderBottom: `1px solid ${C.border}`, padding: "7px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 500, color: accent || C.text, lineHeight: 1.4, flex: 1 } }, left), right && /* @__PURE__ */ React.createElement("div", { style: { flexShrink: 0, display: "flex", gap: 4, alignItems: "center" } }, right)), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 3, lineHeight: 1.4 } }, sub));
+  function Row({ onClick, left, right, sub, accent }) {
+    const base = { borderBottom: `1px solid ${C.border}`, padding: "8px 0", cursor: onClick ? "pointer" : "default", background: "none", border: "none", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: C.border, width: "100%", textAlign: "left", fontFamily: "'DM Sans',sans-serif" };
+    const Tag = onClick ? "button" : "div";
+    return /* @__PURE__ */ React.createElement(Tag, { onClick, style: base }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 500, color: accent || C.text, lineHeight: 1.4, flex: 1 } }, left), right && /* @__PURE__ */ React.createElement("div", { style: { flexShrink: 0, display: "flex", gap: 4, alignItems: "center" } }, right)), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 3, lineHeight: 1.4 } }, sub));
   }
-  var URGENCY_C2 = { "Immediat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
-  var EVO_C2 = {
-    // Brief values (no accent)
-    "Nouveau": C.blue,
-    "Persistant": C.amber,
-    "Aggrave": C.red,
-    "En amelioration": C.teal,
-    "Resolu": C.textD,
-    // Cases values (with accent)
-    "En cours": C.amber,
-    "Aggrav\xE9": C.red,
-    "En am\xE9lioration": C.teal,
-    "Bloqu\xE9": C.red,
-    "R\xE9solu": C.textD
-  };
-  var CLASSIF_C = { "activeRisk": C.amber, "latentSignal": C.blue, "resolved": C.teal };
-  var PULSE_C = { "Sain": C.em, "Fragile": C.amber, "Sous tension": C.red, "En crise": "#7a1e2e" };
+  function Empty({ msg }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", padding: "6px 0" } }, msg);
+  }
+  var URGENCY_C2 = { "Immediat": C.red, "Imm\xE9diat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
   var SEV_C = { "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em };
+  var DEC_RISK_C = { low: C.em, medium: C.amber, high: C.red };
+  var DEC_RISK_L = { low: "Faible", medium: "Mod\xE9r\xE9", high: "\xC9lev\xE9" };
+  var DEC_STATUS_C = { draft: C.textM, decided: C.em, reviewed: C.blue, archived: C.textD };
+  var DEC_STATUS_L = { draft: "Brouillon", decided: "D\xE9cid\xE9", reviewed: "R\xE9vis\xE9", archived: "Archiv\xE9" };
+  var DEC_TYPE_L = { discipline: "Discipline", performance: "Performance", organizational: "Organisationnel", talent: "Talent", legal: "L\xE9gal", other: "Autre" };
   function ModuleHome({ data, onNavigate }) {
     const cases = data.cases || [];
     const signals = data.signals || [];
+    const decisions = data.decisions || [];
     const prep1on1 = data.prep1on1 || [];
-    const briefs = data.briefs || [];
-    const nextWeekLocks = data.nextWeekLocks || [];
     const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    const today = /* @__PURE__ */ new Date();
-    const dow = today.getDay();
-    const daysToFri = dow === 0 ? 5 : 6 - dow;
-    const fri = new Date(today);
-    fri.setDate(today.getDate() + daysToFri);
-    const endOfWeekISO = fri.toISOString().split("T")[0];
-    const lastBriefEntry = briefs.length > 0 ? briefs[briefs.length - 1] : null;
-    const lastBrief = lastBriefEntry?.brief || null;
-    const briefWeekOf = lastBrief?.weekOf || null;
-    const lastLockEntry = nextWeekLocks.length > 0 ? nextWeekLocks[nextWeekLocks.length - 1] : null;
-    const weekTheme = lastLockEntry?.lock?.theme || null;
-    const activeCases = cases.filter((c) => c.status !== "closed" && c.status !== "resolved");
+    const activeCases = cases.filter((c) => !["closed", "resolved"].includes(c.status));
     const overdueCases = activeCases.filter((c) => c.dueDate && c.dueDate < todayISO);
-    const immediateNotOvdue = activeCases.filter(
-      (c) => c.urgency === "Immediat" && !(c.dueDate && c.dueDate < todayISO)
-    );
-    const thisWeekCases = activeCases.filter(
-      (c) => c.dueDate && c.dueDate >= todayISO && c.dueDate <= endOfWeekISO
-    );
-    const urgentItems = [...overdueCases, ...immediateNotOvdue].slice(0, 4);
-    const upcomingPreps = prep1on1.filter((p) => p.date && p.date >= todayISO && p.date <= endOfWeekISO);
-    const lwItems = lastBrief?.leadershipWatch?.slice(0, 2) || [];
-    const rwItems = lastBrief?.retentionWatch?.slice(0, Math.max(1, 3 - lwItems.length)) || [];
     const pendingSignals = signals.filter((s) => !s.actioned);
-    const overdueCount = overdueCases.length;
-    const immediateCount = activeCases.filter((c) => c.urgency === "Immediat").length;
-    const orgPulse = lastBrief?.orgPulse?.overall || null;
-    const pulseColor = PULSE_C[orgPulse] || C.textD;
-    const bannerText = weekTheme || lastBrief?.orgPulse?.signals?.[0] || null;
-    const bannerIsLock = !!weekTheme;
-    const quickActions = [
-      { id: "meetings", icon: "\u{1F399}\uFE0F", label: "Analyser r\xE9union", color: C.blue },
-      { id: "cases", icon: "\u{1F4C2}", label: "Nouveau dossier", color: C.amber },
-      { id: "signals", icon: "\u{1F4E1}", label: "Nouveau signal", color: C.purple },
-      { id: "brief", icon: "\u{1F4CA}", label: "Weekly Brief", color: C.em },
-      { id: "prep1on1", icon: "\u{1F5C2}\uFE0F", label: "Pr\xE9parer 1:1", color: C.blue }
+    const overdueReviews = decisions.filter((d) => d.reviewDate && d.reviewDate < todayISO && d.status !== "archived");
+    const reviewDueSoon = decisions.filter((d) => d.reviewDate && d.reviewDate >= todayISO && daysBetween(d.reviewDate, todayISO) <= 7 && d.status !== "archived");
+    const highRiskDecisions = decisions.filter((d) => d.riskLevel === "high" && d.status !== "archived");
+    const draftDecisions = decisions.filter((d) => d.status === "draft");
+    const agedSignals = pendingSignals.filter((s) => s.savedAt && daysBetween(todayISO, s.savedAt) >= 7);
+    const agedCases = activeCases.filter((c) => {
+      const created = c.createdAt || c.savedAt;
+      return created && daysBetween(todayISO, created) >= 14;
+    });
+    const kpis = [
+      { label: "Active Cases", value: activeCases.length, color: C.blue, sub: "en cours", nav: "cases" },
+      { label: "Overdue Reviews", value: overdueReviews.length, color: overdueReviews.length > 0 ? C.red : C.textD, sub: overdueReviews.length > 0 ? "\u26A0 \xE0 revoir" : "aucun", nav: "decisions" },
+      { label: "Urgent Items", value: overdueCases.length + highRiskDecisions.length, color: overdueCases.length + highRiskDecisions.length > 0 ? C.red : C.textD, sub: "high risk / overdue", nav: "cases" },
+      { label: "Pending Signals", value: pendingSignals.length, color: pendingSignals.length > 0 ? C.amber : C.textD, sub: "non trait\xE9s", nav: "signals" }
     ];
-    const isEmpty = urgentItems.length === 0 && thisWeekCases.length === 0 && upcomingPreps.length === 0 && !lastBrief && pendingSignals.length === 0;
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 920, margin: "0 auto", fontFamily: "'DM Sans',sans-serif" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18, paddingTop: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: -0.5 } }, "HRBP OS"), orgPulse && /* @__PURE__ */ React.createElement(Badge, { label: orgPulse, color: pulseColor }), briefWeekOf && /* @__PURE__ */ React.createElement("span", { style: {
-      fontFamily: "'DM Mono',monospace",
-      fontSize: 9,
-      color: C.textD,
-      letterSpacing: 1.5,
-      textTransform: "uppercase"
-    } }, "Brief \xB7 ", briefWeekOf), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: C.textD } }, (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" }))), bannerText && /* @__PURE__ */ React.createElement("div", { style: {
-      marginTop: 10,
-      background: bannerIsLock ? C.em + "18" : C.amber + "14",
-      border: `1px solid ${bannerIsLock ? C.em + "44" : C.amber + "33"}`,
-      borderLeft: `3px solid ${bannerIsLock ? C.em : C.amber}`,
-      borderRadius: 6,
-      padding: "8px 13px",
-      display: "flex",
-      alignItems: "baseline",
-      gap: 8
-    } }, /* @__PURE__ */ React.createElement("span", { style: {
-      fontFamily: "'DM Mono',monospace",
-      fontSize: 9,
-      color: bannerIsLock ? C.em : C.amber,
-      letterSpacing: 1.5,
-      textTransform: "uppercase",
-      flexShrink: 0
-    } }, bannerIsLock ? "SEMAINE \u2192" : "ORG SIGNAL \u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text, lineHeight: 1.5 } }, bannerText))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 18 } }, [
-      {
-        label: "Dossiers actifs",
-        value: activeCases.length,
-        color: C.blue,
-        sub: "en cours"
-      },
-      {
-        label: "\xC9ch\xE9ances d\xE9pass\xE9es",
-        value: overdueCount,
-        color: overdueCount > 0 ? C.red : C.textD,
-        sub: overdueCount > 0 ? "\u26A0 action requise" : "aucune"
-      },
-      {
-        label: "Urgences imm\xE9diates",
-        value: immediateCount,
-        color: immediateCount > 0 ? C.red : C.textD,
-        sub: immediateCount > 0 ? "\xE0 traiter" : "aucune"
-      },
-      {
-        label: "Signaux en attente",
-        value: pendingSignals.length,
-        color: pendingSignals.length > 0 ? C.amber : C.textD,
-        sub: "non trait\xE9s"
+    const focusItems = [];
+    if (highRiskDecisions.length > 0)
+      focusItems.push({ icon: "\u2696", text: `${highRiskDecisions.length} d\xE9cision${highRiskDecisions.length > 1 ? "s" : ""} \xE0 risque \xE9lev\xE9 \xE0 revoir`, color: C.red, nav: "decisions" });
+    if (agedSignals.length > 0)
+      focusItems.push({ icon: "\u{1F4E1}", text: `${agedSignals.length} signal${agedSignals.length > 1 ? "aux" : ""} non trait\xE9${agedSignals.length > 1 ? "s" : ""} depuis plus de 7 jours`, color: C.amber, nav: "signals" });
+    if (agedCases.length > 0)
+      focusItems.push({ icon: "\u{1F4C2}", text: `${agedCases.length} dossier${agedCases.length > 1 ? "s" : ""} actif${agedCases.length > 1 ? "s" : ""} depuis plus de 14 jours`, color: C.amber, nav: "cases" });
+    if (overdueReviews.length > 0)
+      focusItems.push({ icon: "\u{1F504}", text: `${overdueReviews.length} suivi${overdueReviews.length > 1 ? "s" : ""} en retard sur le Decision Log`, color: C.red, nav: "decisions" });
+    if (overdueCases.length > 0)
+      focusItems.push({ icon: "\u23F0", text: `${overdueCases.length} dossier${overdueCases.length > 1 ? "s" : ""} avec \xE9ch\xE9ance d\xE9pass\xE9e`, color: C.red, nav: "cases" });
+    const topFocus = focusItems.slice(0, 4);
+    const calmState = topFocus.length === 0 ? activeCases.length > 0 ? `Aucun point critique aujourd'hui. ${activeCases.length} dossier${activeCases.length > 1 ? "s" : ""} actif${activeCases.length > 1 ? "s" : ""} \xE0 suivre cette semaine.` : "Aucun point critique aujourd'hui." : null;
+    const attentionItems = [];
+    overdueCases.forEach((c) => attentionItems.push({
+      sortKey: 0,
+      type: "case",
+      id: c.id,
+      title: c.title || "(dossier)",
+      sub: [c.director, c.dueDate && `\xE9ch\xE9ance ${fmtDate(c.dueDate)}`].filter(Boolean).join(" \xB7 "),
+      badge: { label: "\u26A0 retard", color: C.red },
+      nav: "cases"
+    }));
+    overdueReviews.forEach((d) => attentionItems.push({
+      sortKey: 1,
+      type: "decision",
+      id: d.id,
+      title: d.title || "(d\xE9cision)",
+      sub: [d.managerName, `review ${fmtDate(d.reviewDate)}`].filter(Boolean).join(" \xB7 "),
+      badge: { label: "Review due", color: C.red },
+      nav: "decisions"
+    }));
+    highRiskDecisions.filter((d) => !overdueReviews.includes(d)).forEach((d) => attentionItems.push({
+      sortKey: 2,
+      type: "decision",
+      id: d.id,
+      title: d.title || "(d\xE9cision)",
+      sub: [DEC_TYPE_L[d.decisionType] || d.decisionType, d.managerName].filter(Boolean).join(" \xB7 "),
+      badge: { label: "Risque \xE9lev\xE9", color: C.red },
+      nav: "decisions"
+    }));
+    agedSignals.slice(0, 4).forEach((s) => attentionItems.push({
+      sortKey: 3,
+      type: "signal",
+      id: s.id,
+      title: s.analysis?.title || (s.signal || "Signal").substring(0, 60),
+      sub: [s.analysis?.category, s.savedAt && `il y a ${daysBetween(todayISO, s.savedAt)}j`].filter(Boolean).join(" \xB7 "),
+      badge: { label: s.analysis?.severity || "En attente", color: SEV_C[s.analysis?.severity] || C.amber },
+      nav: "signals"
+    }));
+    agedCases.filter((c) => !overdueCases.includes(c)).slice(0, 3).forEach((c) => {
+      const age = c.createdAt || c.savedAt;
+      attentionItems.push({
+        sortKey: 4,
+        type: "case",
+        id: c.id,
+        title: c.title || "(dossier)",
+        sub: [c.director, age && `ouvert depuis ${daysBetween(todayISO, age)}j`].filter(Boolean).join(" \xB7 "),
+        badge: { label: "Aging", color: C.amber },
+        nav: "cases"
+      });
+    });
+    const attentionTop = attentionItems.sort((a, b) => a.sortKey - b.sortKey).slice(0, 6);
+    const recentDecisions = [...decisions].sort((a, b) => (b.updatedAt || b.createdAt || b.decisionDate || "").localeCompare(a.updatedAt || a.createdAt || a.decisionDate || "")).slice(0, 4);
+    const managerMap = /* @__PURE__ */ new Map();
+    const touch = (name, key) => {
+      if (!name) return;
+      const k = name.trim();
+      if (!k) return;
+      const cur = managerMap.get(k) || { name: k, cases: 0, signals: 0, decisions: 0, highRisk: 0 };
+      cur[key]++;
+      managerMap.set(k, cur);
+    };
+    activeCases.forEach((c) => touch(c.director, "cases"));
+    pendingSignals.forEach((s) => {
+      const mgr = s.managerName || s.analysis?.person || s.person;
+      touch(mgr, "signals");
+    });
+    decisions.forEach((d) => {
+      touch(d.managerName, "decisions");
+      if (d.riskLevel === "high") {
+        const cur = managerMap.get((d.managerName || "").trim());
+        if (cur) cur.highRisk++;
       }
-    ].map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
-      background: C.surf,
-      border: `1px solid ${s.value > 0 ? s.color + "44" : C.border}`,
-      borderRadius: 8,
-      padding: "12px 14px"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 24, fontWeight: 800, color: s.color } }, s.value), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: C.text, marginTop: 2 } }, s.label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, marginTop: 2 } }, s.sub)))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, urgentItems.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(
+    });
+    const managers = [...managerMap.values()].map((m) => ({ ...m, total: m.cases + m.signals + m.decisions })).filter((m) => m.total >= 2 || m.highRisk > 0).sort((a, b) => b.highRisk - a.highRisk || b.total - a.total).slice(0, 5);
+    const reco = [];
+    if (draftDecisions.length > 0)
+      reco.push({ icon: "\u2696", label: `Compl\xE9ter ${draftDecisions.length} d\xE9cision${draftDecisions.length > 1 ? "s" : ""} en brouillon`, color: C.red, nav: "decisions" });
+    if (pendingSignals.length > 0)
+      reco.push({ icon: "\u{1F4E1}", label: `Traiter ${pendingSignals.length} signal${pendingSignals.length > 1 ? "aux" : ""} en attente`, color: C.purple, nav: "signals" });
+    if (overdueCases.length > 0)
+      reco.push({ icon: "\u{1F4C2}", label: `Relancer ${overdueCases.length} dossier${overdueCases.length > 1 ? "s" : ""} en retard`, color: C.amber, nav: "cases" });
+    if (prep1on1.length === 0 || !prep1on1.some((p) => p.date && p.date >= todayISO))
+      reco.push({ icon: "\u{1F5C2}\uFE0F", label: "Pr\xE9parer un prochain 1:1", color: C.blue, nav: "prep1on1" });
+    reco.push({ icon: "\u{1F4CA}", label: "G\xE9n\xE9rer un Weekly Brief", color: C.em, nav: "brief" });
+    reco.push({ icon: "\u{1F399}\uFE0F", label: "Analyser une r\xE9union", color: C.blue, nav: "meetings" });
+    const recommended = reco.slice(0, 6);
+    const criticalCount = overdueCases.length + overdueReviews.length + highRiskDecisions.length;
+    const headline = criticalCount > 0 ? `${criticalCount} item${criticalCount > 1 ? "s" : ""} critique${criticalCount > 1 ? "s" : ""} \u2014 ${activeCases.length} dossier${activeCases.length > 1 ? "s" : ""} actif${activeCases.length > 1 ? "s" : ""}` : `${activeCases.length} dossier${activeCases.length > 1 ? "s" : ""} actif${activeCases.length > 1 ? "s" : ""} \xB7 ${pendingSignals.length} signal${pendingSignals.length > 1 ? "aux" : ""} en attente`;
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1100, margin: "0 auto", fontFamily: "'DM Sans',sans-serif" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16, paddingTop: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: -0.5 } }, "HRBP OS"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, headline), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: C.textD } }, (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 } }, kpis.map((s, i) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: i,
+        onClick: () => onNavigate(s.nav),
+        style: {
+          background: C.surf,
+          border: `1px solid ${s.value > 0 ? s.color + "44" : C.border}`,
+          borderRadius: 8,
+          padding: "12px 14px",
+          textAlign: "left",
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          transition: "border-color .15s, background .15s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.borderColor = s.color;
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.borderColor = s.value > 0 ? s.color + "44" : C.border;
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 24, fontWeight: 800, color: s.color } }, s.value),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: C.text, marginTop: 2 } }, s.label),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, marginTop: 2 } }, s.sub)
+    ))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${topFocus.length > 0 ? C.red : C.em}` } }, /* @__PURE__ */ React.createElement(SH, { icon: "\u{1F3AF}", label: "FOCUS TODAY", color: topFocus.length > 0 ? C.red : C.em }), calmState && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, calmState), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, topFocus.map((f, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => onNavigate(f.nav), style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "6px 0",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      textAlign: "left",
+      fontFamily: "'DM Sans',sans-serif",
+      borderBottom: i < topFocus.length - 1 ? `1px solid ${C.border}` : "none"
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, f.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text, flex: 1, lineHeight: 1.4 } }, f.text), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: f.color } }, "\u2192"))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(
       SH,
       {
-        icon: "\u{1F534}",
-        label: "IMM\xC9DIAT + RETARD",
-        color: C.red,
-        sub: `${urgentItems.length} dossier${urgentItems.length > 1 ? "s" : ""}`
+        icon: "\u26A0",
+        label: "ATTENTION REQUIRED",
+        color: C.amber,
+        sub: attentionTop.length > 0 ? `${attentionTop.length} item${attentionTop.length > 1 ? "s" : ""}` : ""
       }
-    ), urgentItems.map((c, i) => {
-      const isOverdue = c.dueDate && c.dueDate < todayISO;
-      const rObj = RISK[normalizeRisk(c.riskLevel)] || RISK["Mod\xE9r\xE9"];
+    ), attentionTop.length === 0 && /* @__PURE__ */ React.createElement(Empty, { msg: "Aucun point critique aujourd'hui." }), attentionTop.map((it, i) => /* @__PURE__ */ React.createElement(
+      Row,
+      {
+        key: it.type + it.id + i,
+        onClick: () => onNavigate(it.nav),
+        left: it.title,
+        sub: it.sub,
+        right: /* @__PURE__ */ React.createElement(Badge, { label: it.badge.label, color: it.badge.color, size: 9 })
+      }
+    ))), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(
+      SH,
+      {
+        icon: "\u2696",
+        label: "RECENT DECISIONS",
+        color: C.purple,
+        action: decisions.length > 0 && /* @__PURE__ */ React.createElement("button", { onClick: () => onNavigate("decisions"), style: { background: "none", border: "none", color: C.purple, fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono',monospace", letterSpacing: 1 } }, "VOIR TOUT \u2192")
+      }
+    ), recentDecisions.length === 0 && /* @__PURE__ */ React.createElement(Empty, { msg: "Aucune d\xE9cision r\xE9cente \xE0 afficher." }), recentDecisions.map((d, i) => {
+      const isReviewDue = d.reviewDate && d.reviewDate < todayISO;
+      const isReviewSoon = reviewDueSoon.includes(d);
       return /* @__PURE__ */ React.createElement(
         Row,
         {
-          key: c.id || i,
-          left: c.title,
-          accent: isOverdue ? C.red : URGENCY_C2[c.urgency] || C.text,
-          right: isOverdue ? /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 retard", color: C.red, size: 9 }) : /* @__PURE__ */ React.createElement(Badge, { label: c.urgency, color: URGENCY_C2[c.urgency] || C.textD, size: 9 }),
-          sub: [
-            c.director,
-            isOverdue && c.dueDate ? `\xC9ch\xE9ance: ${c.dueDate}` : null,
-            c.riskLevel ? c.riskLevel : null
-          ].filter(Boolean).join(" \xB7 ")
+          key: d.id || i,
+          onClick: () => onNavigate("decisions"),
+          left: d.title || "(sans titre)",
+          sub: [DEC_TYPE_L[d.decisionType] || d.decisionType, d.managerName, d.decisionDate && fmtDate(d.decisionDate)].filter(Boolean).join(" \xB7 "),
+          right: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: DEC_RISK_L[d.riskLevel] || "\u2014", color: DEC_RISK_C[d.riskLevel] || C.textD, size: 9 }), /* @__PURE__ */ React.createElement(Badge, { label: DEC_STATUS_L[d.status] || d.status, color: DEC_STATUS_C[d.status] || C.textD, size: 9 }), isReviewDue && /* @__PURE__ */ React.createElement(Badge, { label: "Review due", color: C.red, size: 9 }), !isReviewDue && isReviewSoon && /* @__PURE__ */ React.createElement(Badge, { label: "Review 7j", color: C.amber, size: 9 }))
         }
       );
-    })), (thisWeekCases.length > 0 || upcomingPreps.length > 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SH, { icon: "\u{1F4C5}", label: "CETTE SEMAINE", color: C.blue }), [
-      ...thisWeekCases.slice(0, 3).map((c) => ({
-        _type: "case",
-        id: c.id,
-        left: c.title,
-        sub: [c.dueDate && `\u{1F4C5} ${c.dueDate}`, c.urgency, c.director].filter(Boolean).join(" \xB7 "),
-        right: c.urgency ? /* @__PURE__ */ React.createElement(Badge, { label: c.urgency, color: URGENCY_C2[c.urgency] || C.textD, size: 9 }) : null
-      })),
-      ...upcomingPreps.slice(0, 2).map((p) => ({
-        _type: "prep",
-        id: p.id,
-        left: `1:1 \xB7 ${p.managerName || "Gestionnaire"}`,
-        sub: [p.date, p.meetingType].filter(Boolean).join(" \u2014 "),
-        right: /* @__PURE__ */ React.createElement("span", { style: {
-          fontFamily: "'DM Mono',monospace",
-          fontSize: 9,
-          color: C.blue,
-          letterSpacing: 1.5,
-          textTransform: "uppercase"
-        } }, "PREP")
-      }))
-    ].slice(0, 4).map((item, i) => /* @__PURE__ */ React.createElement(Row, { key: item.id || i, left: item.left, sub: item.sub, right: item.right }))), lastBrief?.topPriorities?.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SH, { icon: "\u{1F4CA}", label: "TOP PRIORIT\xC9S", color: C.em, sub: briefWeekOf || "" }), lastBrief.topPriorities.slice(0, 3).map((p, i) => /* @__PURE__ */ React.createElement(
-      Row,
-      {
-        key: i,
-        left: p.priority,
-        sub: p.why,
-        right: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, p.urgency && /* @__PURE__ */ React.createElement(Badge, { label: p.urgency, color: C.amber, size: 9 }), p.evolution && /* @__PURE__ */ React.createElement(Badge, { label: p.evolution, color: EVO_C2[p.evolution] || C.textD, size: 9 }), p.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 }))
-      }
-    )))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, (lwItems.length > 0 || rwItems.length > 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SH, { icon: "\u{1F441}", label: "LEADERSHIP & R\xC9TENTION", color: C.amber, sub: briefWeekOf || "" }), lwItems.map((l, i) => /* @__PURE__ */ React.createElement(
-      Row,
-      {
-        key: "lw" + i,
-        left: l.person,
-        sub: [l.signal, l.action].filter(Boolean).join(" \u2192 "),
-        right: l.evolution && /* @__PURE__ */ React.createElement(Badge, { label: l.evolution, color: EVO_C2[l.evolution] || C.textD, size: 9 })
-      }
-    )), rwItems.map((r, i) => /* @__PURE__ */ React.createElement(
-      Row,
-      {
-        key: "rw" + i,
-        left: r.profile,
-        sub: [r.lever, r.window && `Fen\xEAtre: ${r.window}`].filter(Boolean).join(" \xB7 "),
-        right: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: r.risk || "\u2014", color: r.risk === "Critique" ? C.red : r.risk === "\xC9lev\xE9" || r.risk === "Eleve" ? C.amber : C.textD, size: 9 }), r.window && /* @__PURE__ */ React.createElement("span", { style: {
-          fontFamily: "'DM Mono',monospace",
-          fontSize: 9,
-          color: C.textD,
-          letterSpacing: 1.5,
-          textTransform: "uppercase"
-        } }, r.window))
-      }
-    ))), lastBrief?.watchList?.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SH, { icon: "\u{1F4E1}", label: "WATCHLIST / LATENTS", color: C.blue, sub: briefWeekOf || "" }), lastBrief.watchList.slice(0, 4).map((w, i) => /* @__PURE__ */ React.createElement(
-      Row,
-      {
-        key: i,
-        left: w.subject,
-        sub: w.note,
-        right: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: w.classification, color: CLASSIF_C[w.classification] || C.textD, size: 9 }), w.evolution && /* @__PURE__ */ React.createElement(Badge, { label: w.evolution, color: EVO_C2[w.evolution] || C.textD, size: 9 }), w.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 }))
-      }
-    ))), pendingSignals.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(
+    }))), managers.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(
       SH,
       {
-        icon: "\u26A1",
-        label: "SIGNAUX NON TRAIT\xC9S",
-        color: C.amber,
-        sub: `${pendingSignals.length} en attente`
+        icon: "\u{1F465}",
+        label: "MANAGERS TO WATCH",
+        color: C.blue,
+        action: /* @__PURE__ */ React.createElement("button", { onClick: () => onNavigate("portfolio"), style: { background: "none", border: "none", color: C.blue, fontSize: 10, cursor: "pointer", fontFamily: "'DM Mono',monospace", letterSpacing: 1 } }, "PORTFOLIO \u2192")
       }
-    ), pendingSignals.slice(0, 3).map((s, i) => /* @__PURE__ */ React.createElement(
-      Row,
-      {
-        key: s.id || i,
-        left: s.analysis?.title || s.signal?.substring(0, 60) || "Signal",
-        sub: [s.analysis?.category, s.savedAt].filter(Boolean).join(" \xB7 "),
-        right: s.analysis?.severity ? /* @__PURE__ */ React.createElement(Badge, { label: s.analysis.severity, color: SEV_C[s.analysis.severity] || C.textD, size: 9 }) : null
-      }
-    ))), isEmpty && /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "32px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 30, marginBottom: 10 } }, "\u{1F680}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontWeight: 600 } }, "Bienvenue dans HRBP OS"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 6, lineHeight: 1.6 } }, "Commence par analyser une r\xE9union ou cr\xE9er un dossier.")))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 16, paddingBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: {
-      fontFamily: "'DM Mono',monospace",
-      fontSize: 9,
-      color: C.textD,
-      letterSpacing: 1.5,
-      textTransform: "uppercase",
-      display: "block",
-      marginBottom: 8
-    } }, "Actions rapides"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, quickActions.map((q) => /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 } }, managers.map((m, i) => {
+      const reason = m.highRisk > 0 ? `${m.highRisk} d\xE9cision${m.highRisk > 1 ? "s" : ""} \xE0 risque \xE9lev\xE9` : m.cases >= 2 ? `${m.cases} dossiers actifs` : m.signals >= 2 ? `${m.signals} signaux en attente` : `${m.total} items actifs`;
+      const accent = m.highRisk > 0 ? C.red : m.cases >= 2 ? C.amber : C.blue;
+      return /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => onNavigate("portfolio"), style: {
+        background: C.surfL,
+        border: `1px solid ${accent}28`,
+        borderLeft: `3px solid ${accent}`,
+        borderRadius: 8,
+        padding: "10px 12px",
+        cursor: "pointer",
+        textAlign: "left",
+        fontFamily: "'DM Sans',sans-serif"
+      } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 3 } }, m.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, marginBottom: 6 } }, reason), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, fontSize: 9, color: C.textM, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, /* @__PURE__ */ React.createElement("span", null, m.cases, "C"), /* @__PURE__ */ React.createElement("span", null, "\xB7"), /* @__PURE__ */ React.createElement("span", null, m.signals, "S"), /* @__PURE__ */ React.createElement("span", null, "\xB7"), /* @__PURE__ */ React.createElement("span", null, m.decisions, "D")));
+    }))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "RECOMMENDED ACTIONS")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, recommended.map((q, i) => /* @__PURE__ */ React.createElement(
       "button",
       {
-        key: q.id,
-        onClick: () => onNavigate(q.id),
+        key: i,
+        onClick: () => onNavigate(q.nav),
         style: {
           background: C.surf,
           border: `1px solid ${C.border}`,
           borderRadius: 7,
-          padding: "9px 15px",
+          padding: "9px 14px",
           cursor: "pointer",
           fontFamily: "'DM Sans',sans-serif",
           display: "flex",
@@ -10264,7 +10273,7 @@ ${recap.sentText}`,
           e.currentTarget.style.background = C.surf;
         }
       },
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, q.icon),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, q.icon),
       /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: C.text } }, q.label)
     )))));
   }
@@ -10319,7 +10328,7 @@ ${recap.sentText}`,
     investigation: "Enqu\xEAte"
   };
   var URGENCY_C3 = { "Immediat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
-  var EVO_C3 = {
+  var EVO_C2 = {
     "Nouveau": C.blue,
     "En cours": C.amber,
     "Aggrav\xE9": C.red,
@@ -11041,7 +11050,7 @@ ${recap.sentText}`,
           isOverdue ? `\u26A0 \xC9ch\xE9ance d\xE9pass\xE9e: ${c.dueDate}` : c.dueDate ? `\u{1F4C5} ${c.dueDate}` : null,
           c.hrPosture ? `Posture: ${c.hrPosture}` : null
         ].filter(Boolean).join(" \xB7 ")),
-        (c.evolution || c.owner) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, marginTop: 4, alignItems: "center" } }, c.evolution && /* @__PURE__ */ React.createElement(Badge, { label: c.evolution, color: EVO_C3[c.evolution] || C.textD, size: 9 }), c.owner && c.owner !== "HRBP" && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Owner: ", c.owner))
+        (c.evolution || c.owner) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, marginTop: 4, alignItems: "center" } }, c.evolution && /* @__PURE__ */ React.createElement(Badge, { label: c.evolution, color: EVO_C2[c.evolution] || C.textD, size: 9 }), c.owner && c.owner !== "HRBP" && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Owner: ", c.owner))
       );
     }), activeCases.length > 4 && /* @__PURE__ */ React.createElement(
       "button",
