@@ -286,7 +286,7 @@ function detectSituations(data) {
     const highImportance = c.riskLevel === "Critique" || c.riskLevel === "Élevé" || c.riskLevel === "Eleve";
     return updatedRecently || highImportance;
   });
-  const cases = [..._escalated, ..._active, ..._pending].slice(0, 3);
+  const cases = [..._escalated, ..._active, ..._pending];
   const meetings = (data.meetings||[]).slice().reverse().slice(0,10);
   const signals  = (data.signals||[]).slice().reverse().slice(0,8);
   const radar    = (data.radars||[])[0]?.radar;
@@ -680,7 +680,7 @@ function detectSituations(data) {
       context:{
         signals:signals.map(s=>`${s.analysis?.title} (${s.analysis?.severity})`).join("; ")||"Voir signaux",
         meetings:meetings.slice(0,5).map(m=>`${m.analysis?.meetingTitle}: ${m.analysis?.overallRisk}`).join("; ")||"",
-        cases:cases.map(c=>`${c.title} (${c.riskLevel})`).join("; ")||"Aucun",
+        cases:cases.slice(0,3).map(c=>`${c.title} (${c.riskLevel})`).join("; ")||"Aucun",
         patterns:rising.map(p=>`${p.pattern}: ${p.count} ${p.unit} ↑`).join("; "),
       },
       source:"Org Radar — Pattern Tracking", icon:"📊", color:C.purple,
@@ -715,7 +715,7 @@ function detectSituations(data) {
       context:{
         signals:misalignPort.map(m=>`${m.name}: ${m.topIssue||""}`).join("; ")||execMeetings.map(m=>m.analysis?.overallRiskRationale||"").join("; "),
         managerName:misalignPort[0]?.name||"",
-        cases:cases.map(c=>c.title).join("; ")||"",
+        cases:cases.slice(0,3).map(c=>c.title).join("; ")||"",
         history:misalignPort[0]?.notes||"",
         leaderContext:misalignLdrCtx,
       },
@@ -785,7 +785,7 @@ function detectSituations(data) {
       context:{
         signals:carryOverRisks.map(r=>r.risk||"").join("; "),
         meetings:meetings.slice(0,3).map(m=>`${m.analysis?.meetingTitle||""}: ${m.analysis?.overallRisk||""}`).join("; ")||"",
-        cases:cases.map(c=>`${c.title} (${c.riskLevel})`).join("; ")||"",
+        cases:cases.slice(0,3).map(c=>`${c.title} (${c.riskLevel})`).join("; ")||"",
         patterns:carryOverRisks.map(r=>`${r.risk} (${r.evolution})`).join("; "),
       },
       source:"Weekly Brief", icon:"📊", color:C.amber,

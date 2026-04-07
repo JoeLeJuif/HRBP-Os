@@ -5790,7 +5790,7 @@ Pr\xE9pare la conversation d'accueil:
       const highImportance = c.riskLevel === "Critique" || c.riskLevel === "\xC9lev\xE9" || c.riskLevel === "Eleve";
       return updatedRecently || highImportance;
     });
-    const cases = [..._escalated, ..._active, ..._pending].slice(0, 3);
+    const cases = [..._escalated, ..._active, ..._pending];
     const meetings = (data.meetings || []).slice().reverse().slice(0, 10);
     const signals = (data.signals || []).slice().reverse().slice(0, 8);
     const radar = (data.radars || [])[0]?.radar;
@@ -6122,7 +6122,7 @@ Pr\xE9pare la conversation d'accueil:
         context: {
           signals: signals.map((s) => `${s.analysis?.title} (${s.analysis?.severity})`).join("; ") || "Voir signaux",
           meetings: meetings.slice(0, 5).map((m) => `${m.analysis?.meetingTitle}: ${m.analysis?.overallRisk}`).join("; ") || "",
-          cases: cases.map((c) => `${c.title} (${c.riskLevel})`).join("; ") || "Aucun",
+          cases: cases.slice(0, 3).map((c) => `${c.title} (${c.riskLevel})`).join("; ") || "Aucun",
           patterns: rising.map((p) => `${p.pattern}: ${p.count} ${p.unit} \u2191`).join("; ")
         },
         source: "Org Radar \u2014 Pattern Tracking",
@@ -6156,7 +6156,7 @@ Pr\xE9pare la conversation d'accueil:
         context: {
           signals: misalignPort.map((m) => `${m.name}: ${m.topIssue || ""}`).join("; ") || execMeetings.map((m) => m.analysis?.overallRiskRationale || "").join("; "),
           managerName: misalignPort[0]?.name || "",
-          cases: cases.map((c) => c.title).join("; ") || "",
+          cases: cases.slice(0, 3).map((c) => c.title).join("; ") || "",
           history: misalignPort[0]?.notes || "",
           leaderContext: misalignLdrCtx
         },
@@ -6224,7 +6224,7 @@ Pr\xE9pare la conversation d'accueil:
         context: {
           signals: carryOverRisks.map((r) => r.risk || "").join("; "),
           meetings: meetings.slice(0, 3).map((m) => `${m.analysis?.meetingTitle || ""}: ${m.analysis?.overallRisk || ""}`).join("; ") || "",
-          cases: cases.map((c) => `${c.title} (${c.riskLevel})`).join("; ") || "",
+          cases: cases.slice(0, 3).map((c) => `${c.title} (${c.riskLevel})`).join("; ") || "",
           patterns: carryOverRisks.map((r) => `${r.risk} (${r.evolution})`).join("; ")
         },
         source: "Weekly Brief",
