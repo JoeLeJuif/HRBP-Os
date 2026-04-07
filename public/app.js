@@ -5781,7 +5781,16 @@ Pr\xE9pare la conversation d'accueil:
   };
   function detectSituations(data) {
     const situations = [];
-    const cases = (data.cases || []).filter((c) => c.status === "active" || c.status === "open");
+    const _allCases = data.cases || [];
+    const _escalated = _allCases.filter((c) => c.status === "escalated");
+    const _active = _allCases.filter((c) => c.status === "active" || c.status === "open");
+    const _pending = _allCases.filter((c) => {
+      if (c.status !== "pending") return false;
+      const updatedRecently = c.updatedAt && Date.now() - new Date(c.updatedAt).getTime() < 14 * 24 * 60 * 60 * 1e3;
+      const highImportance = c.riskLevel === "Critique" || c.riskLevel === "\xC9lev\xE9" || c.riskLevel === "Eleve";
+      return updatedRecently || highImportance;
+    });
+    const cases = [..._escalated, ..._active, ..._pending].slice(0, 3);
     const meetings = (data.meetings || []).slice().reverse().slice(0, 10);
     const signals = (data.signals || []).slice().reverse().slice(0, 8);
     const radar = (data.radars || [])[0]?.radar;
