@@ -11809,15 +11809,15 @@ ${situation.trim()}`;
     { id: "brief", icon: "\u{1F4CA}", label: "Weekly", color: C.amber }
   ];
   var NAV_MORE = [
-    { id: "radar", icon: "\u{1F52D}", label: "Org Radar", color: C.red },
-    { id: "decisions", icon: "\u2696\uFE0F", label: "D\xE9cisions", color: C.red },
+    { id: "plans306090", icon: "\u{1F4C5}", label: "30-60-90", color: C.em },
     { id: "coaching", icon: "\u{1F91D}", label: "Coaching", color: C.teal },
     { id: "investigation", icon: "\u{1F50D}", label: "Enqu\xEAtes", color: "#7a1e2e" },
+    { id: "decisions", icon: "\u2696\uFE0F", label: "D\xE9cisions", color: C.red },
     { id: "exit", icon: "\u{1F6AA}", label: "D\xE9parts", color: C.textM },
     { id: "workshop", icon: "\u{1F6E0}\uFE0F", label: "Workshop", color: C.blue },
     { id: "convkit", icon: "\u{1F4AC}", label: "Conv Kit", color: C.em },
-    { id: "plans306090", icon: "\u{1F4C5}", label: "30-60-90", color: C.em },
-    { id: "knowledge", icon: "\u{1F9E0}", label: "Knowledge", color: C.blue }
+    { id: "knowledge", icon: "\u{1F9E0}", label: "Knowledge", color: C.blue },
+    { id: "radar", icon: "\u{1F52D}", label: "Org Radar", color: C.red }
   ];
   var AUTH_KEY = "hrbpos_auth";
   function LoginScreen({ onAuth }) {

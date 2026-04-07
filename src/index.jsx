@@ -72,15 +72,15 @@ const NAV_MAIN = [
   { id:"brief",     icon:"📊",  label:"Weekly",     color:C.amber },
 ];
 const NAV_MORE = [
-  { id:"radar",        icon:"🔭",  label:"Org Radar",  color:C.red },
-  { id:"decisions",    icon:"⚖️", label:"Décisions",  color:C.red },
+  { id:"plans306090",  icon:"📅",  label:"30-60-90",   color:C.em },
   { id:"coaching",     icon:"🤝",  label:"Coaching",   color:C.teal },
   { id:"investigation",icon:"🔍",  label:"Enquêtes",   color:"#7a1e2e" },
+  { id:"decisions",    icon:"⚖️", label:"Décisions",  color:C.red },
   { id:"exit",         icon:"🚪",  label:"Départs",    color:C.textM },
   { id:"workshop",     icon:"🛠️", label:"Workshop",   color:C.blue },
   { id:"convkit",      icon:"💬",  label:"Conv Kit",   color:C.em },
-  { id:"plans306090",  icon:"📅",  label:"30-60-90",   color:C.em },
   { id:"knowledge",    icon:"🧠",  label:"Knowledge",  color:C.blue },
+  { id:"radar",        icon:"🔭",  label:"Org Radar",  color:C.red },
 ];
 
 // ── Auth (Source: HRBP_OS.jsx L.10684-10741) ──────────────────────────────────
