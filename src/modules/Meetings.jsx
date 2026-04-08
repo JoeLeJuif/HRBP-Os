@@ -1582,7 +1582,43 @@ function PreparationTab({ data, onSave }) {
   );
 }
 
-// ── SHELL: 3 tabs (Préparation / Transcripts / 1:1 Engine) ──────────────────
+// ── 1:1 ENGINE TAB — wraps Module1on1Prep with level selector ───────────────
+function EngineTab(props) {
+  const [level, setLevel] = useState("gestionnaire");
+  const LEVELS = [
+    { id:"gestionnaire", label:"Gestionnaire", icon:"👤" },
+    { id:"directeur",    label:"Directeur",    icon:"🏢" },
+    { id:"vp",           label:"VP",           icon:"📊" },
+    { id:"executif",     label:"Exécutif",     icon:"🏛" },
+  ];
+  return (
+    <div>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, padding:"10px 12px", background:C.surfL, borderRadius:8, border:`1px solid ${C.border}` }}>
+        <Mono size={10} color={C.textM}>NIVEAU</Mono>
+        <div style={{ display:"flex", gap:6 }}>
+          {LEVELS.map(l => {
+            const active = level === l.id;
+            return (
+              <button key={l.id} onClick={() => setLevel(l.id)} style={{
+                padding:"6px 12px", borderRadius:6, cursor:"pointer",
+                border:`1px solid ${active ? C.teal : C.border}`,
+                background: active ? C.teal+"18" : "transparent",
+                color: active ? C.teal : C.textM,
+                fontSize:11, fontFamily:"'DM Sans',sans-serif",
+                fontWeight: active ? 600 : 400,
+              }}>
+                <span style={{ marginRight:5 }}>{l.icon}</span>{l.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <Module1on1Prep data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} level={level} />
+    </div>
+  );
+}
+
+// ── SHELL: 3 tabs (Meetings / 1:1 Engine / Préparation) ─────────────────────
 export default function ModuleMeetings(props) {
   const [tab, setTab] = useState("transcripts");
   const tabs = [
@@ -1610,7 +1646,7 @@ export default function ModuleMeetings(props) {
       </div>
       {tab === "prep" && <PreparationTab data={props.data} onSave={props.onSave} />}
       {tab === "transcripts" && <MeetingsTranscripts {...props} />}
-      {tab === "engine" && <Module1on1Prep data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />}
+      {tab === "engine" && <EngineTab data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />}
     </div>
   );
 }

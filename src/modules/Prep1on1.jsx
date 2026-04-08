@@ -133,7 +133,14 @@ const FALLBACK_PREP = {
   overallPriority: "Modéré",
 };
 
-export default function Module1on1Prep({ data, onSave, onNavigate }) {
+const LEVEL_CONTEXT = {
+  gestionnaire: "Focus opérationnel : cas employés individuels, suivis concrets, actions de gestion quotidienne, coaching terrain.",
+  directeur:    "Focus équipe/système : dynamiques d'équipe, qualité de gestion des gestionnaires, patterns systémiques, arbitrages RH.",
+  vp:           "Focus risques stratégiques : talents critiques, tensions inter-équipes, structure organisationnelle, impact business des enjeux RH.",
+  executif:     "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement stratégique.",
+};
+
+export default function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
 
   // ── State ────────────────────────────────────────────────────────────────
   const [pTab, setPTab]           = useState("context");
@@ -196,7 +203,8 @@ Questions posées: ${questions}`;
 ${histCtx ? "Tu as l historique des rencontres précédentes — personnalise le plan et fais des liens explicites avec les enjeux non résolus." : "Aucun historique disponible — base-toi uniquement sur le contexte fourni."}
 Réponds UNIQUEMENT en JSON strict. Aucun texte avant ou après. Aucun backtick. Français professionnel. Max 3 items par liste.
 {"objective":{"purpose":"but principal de la rencontre en 1 phrase","expectedOutcome":"résultat concret attendu en 1 phrase"},"priorityIssues":[{"issue":"enjeu prioritaire spécifique","why":"pourquoi c est un enjeu maintenant — contexte ou signal précis","riskLevel":"Faible|Modéré|Élevé"}],"recommendedApproach":{"how":"comment aborder les sujets — concret et actionnable","tone":"ton à adopter avec ce gestionnaire spécifiquement","pitfalls":["piège concret à éviter"]},"suggestedPhrasing":[{"type":"Ouverture","text":"formulation d ouverture naturelle et professionnelle"},{"type":"Recadrage","text":"formulation de recadrage ou confrontation bienveillante"}],"context":{"summary":"résumé des éléments pertinents disponibles","relevantHistory":"synthèse historique utile ou Non disponible","keySignals":["signal important à garder en tête"]},"followUpFromLast1on1":{"evolutions":[],"stagnations":[],"newRisks":[]},"recommendedActions":[{"action":"action concrète à convenir avec le gestionnaire","priority":"Faible|Modéré|Élevé"}],"overallPriority":"Faible|Modéré|Élevé"}
-Règles : sois direct et spécifique, pas générique. Ne pas inventer d information absente du contexte. Utiliser UNIQUEMENT les valeurs exactes Faible, Modéré ou Élevé pour riskLevel, priority et overallPriority — aucune variante. Si historique disponible : remplir followUpFromLast1on1 avec évolutions, stagnations et nouveaux risques observés. Si aucun historique : laisser les trois listes vides. suggestedPhrasing doit contenir au moins 1 phrase d ouverture ET 1 phrase de recadrage ou confrontation.`;
+Règles : sois direct et spécifique, pas générique. Ne pas inventer d information absente du contexte. Utiliser UNIQUEMENT les valeurs exactes Faible, Modéré ou Élevé pour riskLevel, priority et overallPriority — aucune variante. Si historique disponible : remplir followUpFromLast1on1 avec évolutions, stagnations et nouveaux risques observés. Si aucun historique : laisser les trois listes vides. suggestedPhrasing doit contenir au moins 1 phrase d ouverture ET 1 phrase de recadrage ou confrontation.
+Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
     const up = [
       `Gestionnaire: ${ctx.managerName}`,
       `Equipe: ${ctx.team}`,
@@ -244,6 +252,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
       managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
       date: ctx.date, purpose: ctx.purpose, notes, output,
       province: ctx.province || data.profile?.defaultProvince || "QC",
+      level,
     };
     onSave("prep1on1", [...(data["prep1on1"]||[]), session]);
     setSaved1on1(true);
@@ -427,12 +436,6 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
           })}
         </nav>
 
-        <div style={{ padding:"10px 12px", borderTop:`1px solid ${C.border}` }}>
-          <button onClick={()=>onNavigate("meetings")}
-            style={{ ...css.btn(C.textM,true), width:"100%", padding:"7px", fontSize:11 }}>
-            ← Meetings
-          </button>
-        </div>
       </div>
 
       {/* ── MAIN CONTENT ── */}
@@ -464,12 +467,6 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   {prepLoading ? "Génération…"
                     : histCount > 0 ? `✦ Générer avec historique` : "✦ Générer"}
                 </button>
-                {prep && (
-                  <button onClick={()=>onNavigate("meetings")}
-                    style={{ ...css.btn(C.blue), padding:"6px 14px", fontSize:12 }}>
-                    ⚡ Aller analyser →
-                  </button>
-                )}
               </>
             )}
             {/* Output tab actions */}
@@ -653,10 +650,6 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       ? `Aucun transcript analysé pour "${ctx.managerName}". Chaque meeting analysé dans le module Meetings alimentera automatiquement cet historique.`
                       : "Remplis le nom du gestionnaire dans Contexte pour voir son historique."}
                   </div>
-                  <button onClick={()=>onNavigate("meetings")}
-                    style={{...css.btn(C.em)}}>
-                    ⚡ Aller analyser un transcript
-                  </button>
                 </div>
               ) : (
                 <div>
@@ -793,10 +786,6 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                     <button onClick={()=>setPTab("prep")}
                       style={{...css.btn(C.em),flex:1}}>
                       🎯 Générer les questions avec cet historique →
-                    </button>
-                    <button onClick={()=>onNavigate("meetings")}
-                      style={{...css.btn(C.blue,true),padding:"9px 16px",fontSize:13}}>
-                      ⚡ Analyser nouveau transcript
                     </button>
                   </div>
                 </div>
@@ -966,15 +955,10 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
               {prep && (
                 <div style={{marginTop:14,padding:"11px 14px",
                               background:C.em+"10",
-                              border:`1px solid ${C.em}33`,borderRadius:8,
-                              display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                              border:`1px solid ${C.em}33`,borderRadius:8}}>
                   <span style={{fontSize:12,color:C.em}}>
                     ✅ Plan d'intervention prêt. Fais ton meeting, puis reviens analyser le transcript.
                   </span>
-                  <button onClick={()=>onNavigate("meetings")}
-                    style={{...css.btn(C.em),padding:"7px 14px",fontSize:12}}>
-                    ⚡ Aller analyser →
-                  </button>
                 </div>
               )}
             </div>

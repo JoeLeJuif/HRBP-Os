@@ -6705,7 +6705,13 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     recommendedActions: [{ action: "Valider les priorit\xE9s et l'\xE9tat de l'\xE9quipe avec le gestionnaire", priority: "Mod\xE9r\xE9" }],
     overallPriority: "Mod\xE9r\xE9"
   };
-  function Module1on1Prep({ data, onSave, onNavigate }) {
+  var LEVEL_CONTEXT = {
+    gestionnaire: "Focus op\xE9rationnel : cas employ\xE9s individuels, suivis concrets, actions de gestion quotidienne, coaching terrain.",
+    directeur: "Focus \xE9quipe/syst\xE8me : dynamiques d'\xE9quipe, qualit\xE9 de gestion des gestionnaires, patterns syst\xE9miques, arbitrages RH.",
+    vp: "Focus risques strat\xE9giques : talents critiques, tensions inter-\xE9quipes, structure organisationnelle, impact business des enjeux RH.",
+    executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
+  };
+  function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
     const [pTab, setPTab] = (0, import_react13.useState)("context");
     const [ctx, setCtx] = (0, import_react13.useState)({
       managerName: "",
@@ -6763,7 +6769,8 @@ Questions pos\xE9es: ${questions2}`;
 ${histCtx ? "Tu as l historique des rencontres pr\xE9c\xE9dentes \u2014 personnalise le plan et fais des liens explicites avec les enjeux non r\xE9solus." : "Aucun historique disponible \u2014 base-toi uniquement sur le contexte fourni."}
 R\xE9ponds UNIQUEMENT en JSON strict. Aucun texte avant ou apr\xE8s. Aucun backtick. Fran\xE7ais professionnel. Max 3 items par liste.
 {"objective":{"purpose":"but principal de la rencontre en 1 phrase","expectedOutcome":"r\xE9sultat concret attendu en 1 phrase"},"priorityIssues":[{"issue":"enjeu prioritaire sp\xE9cifique","why":"pourquoi c est un enjeu maintenant \u2014 contexte ou signal pr\xE9cis","riskLevel":"Faible|Mod\xE9r\xE9|\xC9lev\xE9"}],"recommendedApproach":{"how":"comment aborder les sujets \u2014 concret et actionnable","tone":"ton \xE0 adopter avec ce gestionnaire sp\xE9cifiquement","pitfalls":["pi\xE8ge concret \xE0 \xE9viter"]},"suggestedPhrasing":[{"type":"Ouverture","text":"formulation d ouverture naturelle et professionnelle"},{"type":"Recadrage","text":"formulation de recadrage ou confrontation bienveillante"}],"context":{"summary":"r\xE9sum\xE9 des \xE9l\xE9ments pertinents disponibles","relevantHistory":"synth\xE8se historique utile ou Non disponible","keySignals":["signal important \xE0 garder en t\xEAte"]},"followUpFromLast1on1":{"evolutions":[],"stagnations":[],"newRisks":[]},"recommendedActions":[{"action":"action concr\xE8te \xE0 convenir avec le gestionnaire","priority":"Faible|Mod\xE9r\xE9|\xC9lev\xE9"}],"overallPriority":"Faible|Mod\xE9r\xE9|\xC9lev\xE9"}
-R\xE8gles : sois direct et sp\xE9cifique, pas g\xE9n\xE9rique. Ne pas inventer d information absente du contexte. Utiliser UNIQUEMENT les valeurs exactes Faible, Mod\xE9r\xE9 ou \xC9lev\xE9 pour riskLevel, priority et overallPriority \u2014 aucune variante. Si historique disponible : remplir followUpFromLast1on1 avec \xE9volutions, stagnations et nouveaux risques observ\xE9s. Si aucun historique : laisser les trois listes vides. suggestedPhrasing doit contenir au moins 1 phrase d ouverture ET 1 phrase de recadrage ou confrontation.`;
+R\xE8gles : sois direct et sp\xE9cifique, pas g\xE9n\xE9rique. Ne pas inventer d information absente du contexte. Utiliser UNIQUEMENT les valeurs exactes Faible, Mod\xE9r\xE9 ou \xC9lev\xE9 pour riskLevel, priority et overallPriority \u2014 aucune variante. Si historique disponible : remplir followUpFromLast1on1 avec \xE9volutions, stagnations et nouveaux risques observ\xE9s. Si aucun historique : laisser les trois listes vides. suggestedPhrasing doit contenir au moins 1 phrase d ouverture ET 1 phrase de recadrage ou confrontation.
+Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
       const up = [
         `Gestionnaire: ${ctx.managerName}`,
         `Equipe: ${ctx.team}`,
@@ -6836,7 +6843,8 @@ Notes \u2014 Suivis: ${notes.followups || "Aucune"}`;
         purpose: ctx.purpose,
         notes,
         output,
-        province: ctx.province || data.profile?.defaultProvince || "QC"
+        province: ctx.province || data.profile?.defaultProvince || "QC",
+        level
       };
       onSave("prep1on1", [...data["prep1on1"] || [], session]);
       setSaved1on1(true);
@@ -7050,14 +7058,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         fontSize: 9,
         fontFamily: "'DM Mono',monospace"
       } }, t.badge));
-    })), /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 12px", borderTop: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => onNavigate("meetings"),
-        style: { ...css.btn(C.textM, true), width: "100%", padding: "7px", fontSize: 11 }
-      },
-      "\u2190 Meetings"
-    ))), /* @__PURE__ */ React.createElement("div", { style: {
+    }))), /* @__PURE__ */ React.createElement("div", { style: {
       flex: 1,
       display: "flex",
       flexDirection: "column",
@@ -7085,13 +7086,6 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         }
       },
       prepLoading ? "G\xE9n\xE9ration\u2026" : histCount > 0 ? `\u2726 G\xE9n\xE9rer avec historique` : "\u2726 G\xE9n\xE9rer"
-    ), prep && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => onNavigate("meetings"),
-        style: { ...css.btn(C.blue), padding: "6px 14px", fontSize: 12 }
-      },
-      "\u26A1 Aller analyser \u2192"
     )), pTab === "output" && /* @__PURE__ */ React.createElement(React.Fragment, null, output && /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -7263,14 +7257,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       maxWidth: 360,
       margin: "0 auto",
       marginBottom: 16
-    } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans le module Meetings alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique."), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => onNavigate("meetings"),
-        style: { ...css.btn(C.em) }
-      },
-      "\u26A1 Aller analyser un transcript"
-    )) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration des questions.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: {
+    } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans le module Meetings alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique.")) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration des questions.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -7363,13 +7350,6 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         style: { ...css.btn(C.em), flex: 1 }
       },
       "\u{1F3AF} G\xE9n\xE9rer les questions avec cet historique \u2192"
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => onNavigate("meetings"),
-        style: { ...css.btn(C.blue, true), padding: "9px 16px", fontSize: 13 }
-      },
-      "\u26A1 Analyser nouveau transcript"
     )))), pTab === "prep" && /* @__PURE__ */ React.createElement("div", null, !prep && !prepLoading && /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surfL,
       border: `2px dashed ${C.border}`,
@@ -7402,18 +7382,8 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       padding: "11px 14px",
       background: C.em + "10",
       border: `1px solid ${C.em}33`,
-      borderRadius: 8,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.em } }, "\u2705 Plan d'intervention pr\xEAt. Fais ton meeting, puis reviens analyser le transcript."), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => onNavigate("meetings"),
-        style: { ...css.btn(C.em), padding: "7px 14px", fontSize: 12 }
-      },
-      "\u26A1 Aller analyser \u2192"
-    ))), pTab === "signals" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 } }, SIGNAL_CATS.map((cat) => /* @__PURE__ */ React.createElement(
+      borderRadius: 8
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.em } }, "\u2705 Plan d'intervention pr\xEAt. Fais ton meeting, puis reviens analyser le transcript."))), pTab === "signals" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 } }, SIGNAL_CATS.map((cat) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: cat.key,
@@ -8775,6 +8745,29 @@ Notes contextuelles: ${notes || "Aucune"}`;
     }
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("button", { onClick: reset, style: { ...css.btn, marginBottom: 14, background: "none", border: `1px solid ${C.border}`, color: C.textM } }, "\u2190 Retour aux types"), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${type.color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22 } }, type.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 600, color: C.text } }, type.label), type.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 Sensible", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, lineHeight: 1.6 } }, type.objective), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM }, "PROVINCE"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: province, onChange: (e) => setProvince(e.target.value) }))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2713", label: "CHECKLIST DE PR\xC9PARATION", color: type.color }), /* @__PURE__ */ React.createElement(BulletList2, { items: type.checklist, color: type.color })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F5FA}", label: "D\xC9ROULEMENT SUGG\xC9R\xC9", color: type.color }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, type.flow.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "6px 10px", background: C.surfL, borderRadius: 6, fontSize: 12, color: C.text, border: `1px solid ${type.color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { color: type.color, fontWeight: 600, marginRight: 6 } }, i + 1, "."), step)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F916}", label: "PR\xC9PARATION IA", color: C.blue }), /* @__PURE__ */ React.createElement("button", { onClick: generateAIPrep, disabled: aiLoading, style: { ...css.btn, background: C.blue, color: "#fff", marginBottom: 10 } }, aiLoading ? "G\xE9n\xE9ration\u2026" : "Pr\xE9parer avec l'IA"), aiPrep && /* @__PURE__ */ React.createElement("div", { style: { padding: 12, background: C.surfL, borderRadius: 8, fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, aiPrep)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4DD}", label: "OUTPUT POST-RENCONTRE", color: C.em }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "NOTES"), /* @__PURE__ */ React.createElement("textarea", { value: notes, onChange: (e) => setNotes(e.target.value), style: { ...css.textarea, minHeight: 70, marginBottom: 10 }, placeholder: "Notes prises pendant la rencontre\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "D\xC9CISION PRISE"), /* @__PURE__ */ React.createElement("textarea", { value: decision, onChange: (e) => setDecision(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "D\xE9cision retenue\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "SUIVI REQUIS"), /* @__PURE__ */ React.createElement("textarea", { value: followup, onChange: (e) => setFollowup(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "Actions \xE0 faire apr\xE8s la rencontre\u2026" }), /* @__PURE__ */ React.createElement("button", { onClick: savePreparation, style: { ...css.btn, background: C.em, color: "#fff" } }, "\u{1F4BE} Sauvegarder")));
   }
+  function EngineTab(props) {
+    const [level, setLevel] = (0, import_react14.useState)("gestionnaire");
+    const LEVELS = [
+      { id: "gestionnaire", label: "Gestionnaire", icon: "\u{1F464}" },
+      { id: "directeur", label: "Directeur", icon: "\u{1F3E2}" },
+      { id: "vp", label: "VP", icon: "\u{1F4CA}" },
+      { id: "executif", label: "Ex\xE9cutif", icon: "\u{1F3DB}" }
+    ];
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "10px 12px", background: C.surfL, borderRadius: 8, border: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM }, "NIVEAU"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, LEVELS.map((l) => {
+      const active = level === l.id;
+      return /* @__PURE__ */ React.createElement("button", { key: l.id, onClick: () => setLevel(l.id), style: {
+        padding: "6px 12px",
+        borderRadius: 6,
+        cursor: "pointer",
+        border: `1px solid ${active ? C.teal : C.border}`,
+        background: active ? C.teal + "18" : "transparent",
+        color: active ? C.teal : C.textM,
+        fontSize: 11,
+        fontFamily: "'DM Sans',sans-serif",
+        fontWeight: active ? 600 : 400
+      } }, /* @__PURE__ */ React.createElement("span", { style: { marginRight: 5 } }, l.icon), l.label);
+    }))), /* @__PURE__ */ React.createElement(Module1on1Prep, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, level }));
+  }
   function ModuleMeetings(props) {
     const [tab, setTab] = (0, import_react14.useState)("transcripts");
     const tabs = [
@@ -8796,7 +8789,7 @@ Notes contextuelles: ${notes || "Aucune"}`;
         color: active ? t.color : C.textM,
         fontWeight: active ? 600 : 400
       } }, /* @__PURE__ */ React.createElement("span", { style: { marginRight: 6 } }, t.icon), t.label.toUpperCase());
-    })), tab === "prep" && /* @__PURE__ */ React.createElement(PreparationTab, { data: props.data, onSave: props.onSave }), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props }), tab === "engine" && /* @__PURE__ */ React.createElement(Module1on1Prep, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate }));
+    })), tab === "prep" && /* @__PURE__ */ React.createElement(PreparationTab, { data: props.data, onSave: props.onSave }), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate }));
   }
 
   // src/modules/Brief.jsx
