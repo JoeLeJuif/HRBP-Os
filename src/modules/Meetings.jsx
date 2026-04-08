@@ -232,7 +232,6 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <div style={{ fontSize:12, color:C.textM }}>{meetings.length} meeting(s) enregistré(s)</div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          <button onClick={() => onNavigate("prep1on1")} style={{ ...css.btn(C.blue,true), padding:"8px 14px", fontSize:12 }}>🗂️ Préparation Meeting</button>
           <button onClick={() => setView("new")} style={{ ...css.btn(C.em) }}>⚡ Analyser un meeting</button>
         </div>
       </div>
