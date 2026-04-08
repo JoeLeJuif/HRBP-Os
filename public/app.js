@@ -6728,6 +6728,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     const [prepLoading, setPrepLoading] = (0, import_react13.useState)(false);
     const [prepAI, setPrepAI] = (0, import_react13.useState)(false);
     const [notes, setNotes] = (0, import_react13.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react13.useState)({ transcript: "", keyPoints: "" });
     const [output, setOutput] = (0, import_react13.useState)(null);
     const [outputLoading, setOutputLoading] = (0, import_react13.useState)(false);
     const [copied, setCopied] = (0, import_react13.useState)(false);
@@ -6811,10 +6812,14 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
       ) ? `
 ${buildLegalPromptContext(_prepProv)}
 ` : "";
+      const _meetingBlock = meetingAnalysis.transcript || meetingAnalysis.keyPoints ? `
+
+ANALYSE DU MEETING AVEC CE GESTIONNAIRE :
+${meetingAnalysis.transcript ? `Transcript/Notes : ${meetingAnalysis.transcript}` : ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}` : "";
       const up = `Gestionnaire: ${ctx.managerName || "N/A"}
 Equipe: ${ctx.team || "N/A"}
 Objectif: ${ctx.purpose || "N/A"}
-Contexte: ${ctx.background || "N/A"}${_prepLegalText}
+Contexte: ${ctx.background || "N/A"}${_prepLegalText}${_meetingBlock}
 Notes \u2014 Personnes: ${notes.people || "Aucune"}
 Notes \u2014 Performance: ${notes.performance || "Aucune"}
 Notes \u2014 Risques: ${notes.risks || "Aucune"}
@@ -6843,6 +6848,8 @@ Notes \u2014 Suivis: ${notes.followups || "Aucune"}`;
         purpose: ctx.purpose,
         notes,
         output,
+        meetingTranscript: meetingAnalysis.transcript || "",
+        meetingKeyPoints: meetingAnalysis.keyPoints || "",
         province: ctx.province || data.profile?.defaultProvince || "QC",
         level
       };
@@ -6866,6 +6873,7 @@ Notes \u2014 Suivis: ${notes.followups || "Aucune"}`;
       setPrep(null);
       setPrepAI(false);
       setNotes({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+      setMeetingAnalysis({ transcript: "", keyPoints: "" });
       setOutput(null);
       setSaved1on1(false);
       setPTab("context");
@@ -6901,11 +6909,12 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       });
     };
     const PTABS = [
+      { id: "guidance", icon: "\u{1F9ED}", label: "Guidance", color: C.teal },
       { id: "context", icon: "\u{1F4CB}", label: "Contexte", color: C.blue },
       { id: "history", icon: "\u{1F550}", label: "Historique", color: C.purple, badge: histCount || null },
       { id: "prep", icon: "\u{1F3AF}", label: "Pr\xE9paration", color: C.em, badge: prep ? "\u2713" : null },
+      { id: "analyse", icon: "\u{1F399}\uFE0F", label: "Analyse meeting", color: C.blue, badge: meetingAnalysis.transcript || meetingAnalysis.keyPoints ? "\u2713" : null },
       { id: "signals", icon: "\u{1F4E1}", label: "Signaux", color: C.amber },
-      { id: "guidance", icon: "\u{1F9ED}", label: "Guidance", color: C.teal },
       { id: "notes", icon: "\u{1F4DD}", label: "Notes", color: C.blue },
       { id: "output", icon: "\u{1F4CA}", label: "Output", color: C.red, badge: output ? "\u2713" : null }
     ];
@@ -6959,7 +6968,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       { n: "2", label: "Historique", done: histCount > 0, tab: "history" },
       { n: "3", label: "G\xE9n\xE8re questions", done: !!prep, tab: "prep" },
       { n: "4", label: "Fais le meeting", done: false, nav: "meetings" },
-      { n: "5", label: "Analyse transcript", done: false, nav: "meetings" },
+      { n: "5", label: "Analyse meeting", done: false, nav: "meetings" },
       { n: "6", label: "Output + Archiver", done: !!output && saved1on1, tab: "output" }
     ];
     return /* @__PURE__ */ React.createElement("div", { style: {
@@ -7462,7 +7471,34 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         } }, String(i + 1).padStart(2, "0")),
         /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, tip)
       )))
-    ))), pTab === "notes" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, NOTE_CATS.map((cat) => /* @__PURE__ */ React.createElement(
+    ))), pTab === "analyse" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "TRANSCRIPT / NOTES DU MEETING")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: meetingAnalysis.transcript,
+        onChange: (e) => setMeetingAnalysis((p) => ({ ...p, transcript: e.target.value })),
+        placeholder: "Colle ici le transcript ou les notes du meeting avec ce gestionnaire...",
+        rows: 8,
+        style: { ...css.textarea, fontSize: 12 },
+        onFocus: (e) => e.target.style.borderColor = C.blue,
+        onBlur: (e) => e.target.style.borderColor = C.border
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u2B50"), /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "POINTS CL\xC9S OBSERV\xC9S (optionnel)")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: meetingAnalysis.keyPoints,
+        onChange: (e) => setMeetingAnalysis((p) => ({ ...p, keyPoints: e.target.value })),
+        placeholder: "Points saillants, tensions, signaux observ\xE9s pendant la rencontre...",
+        rows: 4,
+        style: { ...css.textarea, fontSize: 12 },
+        onFocus: (e) => e.target.style.borderColor = C.amber,
+        onBlur: (e) => e.target.style.borderColor = C.border
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: {
+      padding: "10px 14px",
+      background: C.blue + "10",
+      border: `1px solid ${C.blue}33`,
+      borderRadius: 8
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.blue } }, "\u{1F4A1} Ces donn\xE9es seront inject\xE9es dans le prompt IA lors de la g\xE9n\xE9ration de l'Output."))), pTab === "notes" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, NOTE_CATS.map((cat) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: cat.key,

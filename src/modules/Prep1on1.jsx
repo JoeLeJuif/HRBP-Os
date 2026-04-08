@@ -152,6 +152,7 @@ export default function Module1on1Prep({ data, onSave, onNavigate, level = "gest
   const [prepLoading, setPrepLoading] = useState(false);
   const [prepAI, setPrepAI]       = useState(false);
   const [notes, setNotes]         = useState({ people:"", performance:"", risks:"", org:"", leadership:"", actions:"", followups:"" });
+  const [meetingAnalysis, setMeetingAnalysis] = useState({ transcript:"", keyPoints:"" });
   const [output, setOutput]       = useState(null);
   const [outputLoading, setOutputLoading] = useState(false);
   const [copied, setCopied]       = useState(false);
@@ -238,7 +239,8 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
     const _prepLegalText = isLegalSensitive(
       [ctx.purpose,ctx.background,notes.risks,notes.performance,notes.actions].join(" ")
     ) ? `\n${buildLegalPromptContext(_prepProv)}\n` : "";
-    const up = `Gestionnaire: ${ctx.managerName||"N/A"}\nEquipe: ${ctx.team||"N/A"}\nObjectif: ${ctx.purpose||"N/A"}\nContexte: ${ctx.background||"N/A"}${_prepLegalText}\nNotes — Personnes: ${notes.people||"Aucune"}\nNotes — Performance: ${notes.performance||"Aucune"}\nNotes — Risques: ${notes.risks||"Aucune"}\nNotes — Org: ${notes.org||"Aucune"}\nNotes — Leadership: ${notes.leadership||"Aucune"}\nNotes — Actions: ${notes.actions||"Aucune"}\nNotes — Suivis: ${notes.followups||"Aucune"}`;
+    const _meetingBlock = (meetingAnalysis.transcript || meetingAnalysis.keyPoints) ? `\n\nANALYSE DU MEETING AVEC CE GESTIONNAIRE :\n${meetingAnalysis.transcript ? `Transcript/Notes : ${meetingAnalysis.transcript}` : ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}` : "";
+    const up = `Gestionnaire: ${ctx.managerName||"N/A"}\nEquipe: ${ctx.team||"N/A"}\nObjectif: ${ctx.purpose||"N/A"}\nContexte: ${ctx.background||"N/A"}${_prepLegalText}${_meetingBlock}\nNotes — Personnes: ${notes.people||"Aucune"}\nNotes — Performance: ${notes.performance||"Aucune"}\nNotes — Risques: ${notes.risks||"Aucune"}\nNotes — Org: ${notes.org||"Aucune"}\nNotes — Leadership: ${notes.leadership||"Aucune"}\nNotes — Actions: ${notes.actions||"Aucune"}\nNotes — Suivis: ${notes.followups||"Aucune"}`;
     try { const p = await callAI(sp, up); setOutput(p); }
     catch { setOutput({ executiveSummary:"Rencontre completee. Voir les notes.", overallRisk:"Modere", keySignals:["A completer"], mainRisks:["A identifier"], hrbpFollowups:["Reviser les notes"], nextMeetingContext:"", nextMeetingQuestions:["A definir"], actionPlan:[{action:"Faire le suivi",owner:"HRBP",delay:"7 jours",priority:"Normale"}] }); }
     finally { setOutputLoading(false); }
@@ -251,6 +253,8 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
       id: Date.now().toString(), savedAt: new Date().toISOString().split("T")[0],
       managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
       date: ctx.date, purpose: ctx.purpose, notes, output,
+      meetingTranscript: meetingAnalysis.transcript || "",
+      meetingKeyPoints: meetingAnalysis.keyPoints || "",
       province: ctx.province || data.profile?.defaultProvince || "QC",
       level,
     };
@@ -277,6 +281,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
     }));
     setPrep(null); setPrepAI(false);
     setNotes({ people:"", performance:"", risks:"", org:"", leadership:"", actions:"", followups:"" });
+    setMeetingAnalysis({ transcript:"", keyPoints:"" });
     setOutput(null); setSaved1on1(false);
     setPTab("context");
   };
@@ -300,11 +305,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
   // ── Static data ───────────────────────────────────────────────────────────
   const PTABS = [
+    {id:"guidance", icon:"🧭", label:"Guidance",      color:C.teal},
     {id:"context",  icon:"📋", label:"Contexte",      color:C.blue},
     {id:"history",  icon:"🕐", label:"Historique",    color:C.purple, badge:histCount||null},
     {id:"prep",     icon:"🎯", label:"Préparation",   color:C.em,     badge:prep?"✓":null},
+    {id:"analyse",  icon:"🎙️", label:"Analyse meeting", color:C.blue, badge:(meetingAnalysis.transcript||meetingAnalysis.keyPoints)?"✓":null},
     {id:"signals",  icon:"📡", label:"Signaux",       color:C.amber},
-    {id:"guidance", icon:"🧭", label:"Guidance",      color:C.teal},
     {id:"notes",    icon:"📝", label:"Notes",         color:C.blue},
     {id:"output",   icon:"📊", label:"Output",        color:C.red,    badge:output?"✓":null},
   ];
@@ -353,7 +359,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
     { n:"2", label:"Historique",       done:histCount>0,             tab:"history"  },
     { n:"3", label:"Génère questions", done:!!prep,                  tab:"prep"     },
     { n:"4", label:"Fais le meeting",  done:false,                   nav:"meetings" },
-    { n:"5", label:"Analyse transcript",done:false,                  nav:"meetings" },
+    { n:"5", label:"Analyse meeting",done:false,                  nav:"meetings" },
     { n:"6", label:"Output + Archiver",done:!!output && saved1on1,   tab:"output"   },
   ];
 
@@ -1050,6 +1056,46 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* ════════════════ ANALYSE MEETING ════════════════ */}
+          {pTab==="analyse" && (
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                  <span style={{fontSize:13}}>🎙️</span>
+                  <Mono color={C.blue} size={9}>TRANSCRIPT / NOTES DU MEETING</Mono>
+                </div>
+                <textarea
+                  value={meetingAnalysis.transcript}
+                  onChange={e=>setMeetingAnalysis(p=>({...p,transcript:e.target.value}))}
+                  placeholder="Colle ici le transcript ou les notes du meeting avec ce gestionnaire..."
+                  rows={8}
+                  style={{...css.textarea,fontSize:12}}
+                  onFocus={e=>e.target.style.borderColor=C.blue}
+                  onBlur={e=>e.target.style.borderColor=C.border}/>
+              </div>
+              <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                  <span style={{fontSize:13}}>⭐</span>
+                  <Mono color={C.amber} size={9}>POINTS CLÉS OBSERVÉS (optionnel)</Mono>
+                </div>
+                <textarea
+                  value={meetingAnalysis.keyPoints}
+                  onChange={e=>setMeetingAnalysis(p=>({...p,keyPoints:e.target.value}))}
+                  placeholder="Points saillants, tensions, signaux observés pendant la rencontre..."
+                  rows={4}
+                  style={{...css.textarea,fontSize:12}}
+                  onFocus={e=>e.target.style.borderColor=C.amber}
+                  onBlur={e=>e.target.style.borderColor=C.border}/>
+              </div>
+              <div style={{padding:"10px 14px",background:C.blue+"10",
+                            border:`1px solid ${C.blue}33`,borderRadius:8}}>
+                <span style={{fontSize:11,color:C.blue}}>
+                  💡 Ces données seront injectées dans le prompt IA lors de la génération de l'Output.
+                </span>
+              </div>
             </div>
           )}
 
