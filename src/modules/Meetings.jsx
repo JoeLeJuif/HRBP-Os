@@ -1584,11 +1584,11 @@ function PreparationTab({ data, onSave }) {
 
 // ── SHELL: 3 tabs (Préparation / Transcripts / 1:1 Engine) ──────────────────
 export default function ModuleMeetings(props) {
-  const [tab, setTab] = useState("prep");
+  const [tab, setTab] = useState("transcripts");
   const tabs = [
-    { id:"prep",        label:"Préparation",  icon:"📋", color:C.purple },
-    { id:"transcripts", label:"Transcripts",  icon:"🎙️", color:C.blue },
+    { id:"transcripts", label:"Meetings",     icon:"🎙️", color:C.blue },
     { id:"engine",      label:"1:1 Engine",   color:C.teal, icon:"⚡" },
+    { id:"prep",        label:"Préparation",  icon:"📋", color:C.purple },
   ];
   return (
     <div>
