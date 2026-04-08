@@ -216,7 +216,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       executif:      { label:"Exécutif",            icon:"🏛", color:C.purple },
       vp:            { label:"VP",                  icon:"📊", color:C.blue },
       director:      { label:"Directeur",          icon:"🏢", color:C.blue },
-      manager:       { label:"Manager",             icon:"👤", color:C.blue },
+      manager:       { label:"Gestionnaire",        icon:"👤", color:C.blue },
       talent:        { label:"Talent / Perf",       icon:"⭐", color:C.amber },
       org:           { label:"Org & Changement",    icon:"🔄", color:C.purple },
       ta:            { label:"Talent Acquisition",  icon:"🎯", color:C.teal },
@@ -228,7 +228,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     <div style={{ maxWidth:860, margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Meetings</div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Meetings Hub</div>
           <div style={{ fontSize:12, color:C.textM }}>{meetings.length} meeting(s) enregistré(s)</div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
@@ -405,7 +405,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     <div style={{ maxWidth:720, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
         <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
-        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Analyser un transcript</div>
+        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Analyser un meeting</div>
       </div>
 
       <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -413,14 +413,14 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <Mono color={C.textD}>Type de meeting</Mono>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
             {[
-              {id:"director",    label:"🏢 Directeur"},
               {id:"executif",    label:"🏛 Exécutif"},
               {id:"vp",          label:"📊 VP"},
-              {id:"manager",     label:"👤 Manager"},
+              {id:"director",    label:"🏢 Directeur"},
+              {id:"manager",     label:"👤 Gestionnaire"},
+              {id:"hrbpteam",    label:"🤝 HRBP Team"},
+              {id:"ta",          label:"🎯 Talent Acquisition"},
               {id:"talent",      label:"⭐ Talent/Perf"},
               {id:"org",         label:"🔄 Org & Changement"},
-              {id:"ta",          label:"🎯 Talent Acquisition"},
-              {id:"hrbpteam",    label:"🤝 HRBP Team"},
               {id:"disciplinaire",label:"⚖ Disciplinaire"},
               {id:"initiatives", label:"🚀 Initiatives"},
             ].map(t => (
@@ -526,11 +526,11 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     {id:"executif",    label:"🏛 Exécutif"},
     {id:"vp",          label:"📊 VP"},
     {id:"director",    label:"🏢 Directeur"},
-    {id:"manager",     label:"👤 Manager"},
+    {id:"manager",     label:"👤 Gestionnaire"},
+    {id:"hrbpteam",    label:"🤝 HRBP Team"},
+    {id:"ta",          label:"🎯 Talent Acquisition"},
     {id:"talent",      label:"⭐ Talent/Perf"},
     {id:"org",         label:"🔄 Org & Changement"},
-    {id:"ta",          label:"🎯 Talent Acquisition"},
-    {id:"hrbpteam",    label:"🤝 HRBP Team"},
     {id:"disciplinaire",label:"⚖ Disciplinaire"},
     {id:"initiatives", label:"🚀 Initiatives"},
   ];

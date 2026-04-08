@@ -7887,7 +7887,7 @@ ${t}`;
         executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
         vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
         director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
-        manager: { label: "Manager", icon: "\u{1F464}", color: C.blue },
+        manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.blue },
         talent: { label: "Talent / Perf", icon: "\u2B50", color: C.amber },
         org: { label: "Org & Changement", icon: "\u{1F504}", color: C.purple },
         ta: { label: "Talent Acquisition", icon: "\u{1F3AF}", color: C.teal },
@@ -7895,7 +7895,7 @@ ${t}`;
         disciplinaire: { label: "Disciplinaire", icon: "\u2696", color: C.red },
         initiatives: { label: "Initiatives", icon: "\u{1F680}", color: C.em }
       };
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Meetings"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, meetings.length, " meeting(s) enregistr\xE9(s)")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("new"), style: { ...css.btn(C.em) } }, "\u26A1 Analyser un meeting"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, marginBottom: 20, background: C.surfL, borderRadius: 8, padding: 4, width: "fit-content" } }, [{ id: "director", label: "Par directeur" }, { id: "type", label: "Par type" }].map((g) => /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Meetings Hub"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, meetings.length, " meeting(s) enregistr\xE9(s)")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("new"), style: { ...css.btn(C.em) } }, "\u26A1 Analyser un meeting"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, marginBottom: 20, background: C.surfL, borderRadius: 8, padding: 4, width: "fit-content" } }, [{ id: "director", label: "Par directeur" }, { id: "type", label: "Par type" }].map((g) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: g.id,
@@ -8043,15 +8043,15 @@ ${t}`;
         /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, m.director && /* @__PURE__ */ React.createElement(Badge, { label: m.director, color: C.blue, size: 10 }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(m, data.profile) }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, fmtDate(m.savedAt)))
       )))));
     }
-    if (view === "new") return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 720, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.text } }, "Analyser un transcript")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Type de meeting"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 } }, [
-      { id: "director", label: "\u{1F3E2} Directeur" },
+    if (view === "new") return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 720, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.text } }, "Analyser un meeting")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Type de meeting"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 } }, [
       { id: "executif", label: "\u{1F3DB} Ex\xE9cutif" },
       { id: "vp", label: "\u{1F4CA} VP" },
-      { id: "manager", label: "\u{1F464} Manager" },
+      { id: "director", label: "\u{1F3E2} Directeur" },
+      { id: "manager", label: "\u{1F464} Gestionnaire" },
+      { id: "hrbpteam", label: "\u{1F91D} HRBP Team" },
+      { id: "ta", label: "\u{1F3AF} Talent Acquisition" },
       { id: "talent", label: "\u2B50 Talent/Perf" },
       { id: "org", label: "\u{1F504} Org & Changement" },
-      { id: "ta", label: "\u{1F3AF} Talent Acquisition" },
-      { id: "hrbpteam", label: "\u{1F91D} HRBP Team" },
       { id: "disciplinaire", label: "\u2696 Disciplinaire" },
       { id: "initiatives", label: "\u{1F680} Initiatives" }
     ].map((t) => /* @__PURE__ */ React.createElement(
@@ -8166,11 +8166,11 @@ ${t}`;
       { id: "executif", label: "\u{1F3DB} Ex\xE9cutif" },
       { id: "vp", label: "\u{1F4CA} VP" },
       { id: "director", label: "\u{1F3E2} Directeur" },
-      { id: "manager", label: "\u{1F464} Manager" },
+      { id: "manager", label: "\u{1F464} Gestionnaire" },
+      { id: "hrbpteam", label: "\u{1F91D} HRBP Team" },
+      { id: "ta", label: "\u{1F3AF} Talent Acquisition" },
       { id: "talent", label: "\u2B50 Talent/Perf" },
       { id: "org", label: "\u{1F504} Org & Changement" },
-      { id: "ta", label: "\u{1F3AF} Talent Acquisition" },
-      { id: "hrbpteam", label: "\u{1F91D} HRBP Team" },
       { id: "disciplinaire", label: "\u2696 Disciplinaire" },
       { id: "initiatives", label: "\u{1F680} Initiatives" }
     ];
@@ -12026,7 +12026,7 @@ ${situation.trim()}`;
     { id: "home", icon: "\u{1F3E0}", label: "Home", color: C.em },
     { id: "copilot", icon: "\u26A1", label: "Copilot", color: C.em },
     { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple },
-    { id: "meetings", icon: "\u{1F399}\uFE0F", label: "Meetings", color: C.blue },
+    { id: "meetings", icon: "\u{1F399}\uFE0F", label: "Meetings Hub", color: C.blue },
     { id: "leaders", icon: "\u{1F464}", label: "Portfolio", color: C.purple },
     { id: "cases", icon: "\u{1F4C2}", label: "Case Log", color: C.blue },
     { id: "signals", icon: "\u{1F4E1}", label: "Signaux", color: C.purple },

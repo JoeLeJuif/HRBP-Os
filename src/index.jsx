@@ -65,7 +65,7 @@ const NAV_MAIN = [
   { id:"home",      icon:"🏠",  label:"Home",      color:C.em },
   { id:"copilot",   icon:"⚡",  label:"Copilot",   color:C.em },
   { id:"autoprompt",icon:"🧩",  label:"Prompt AI",  color:C.purple },
-  { id:"meetings",  icon:"🎙️", label:"Meetings",   color:C.blue },
+  { id:"meetings",  icon:"🎙️", label:"Meetings Hub",   color:C.blue },
   { id:"leaders",   icon:"👤",  label:"Portfolio",  color:C.purple },
   { id:"cases",     icon:"📂",  label:"Case Log",   color:C.blue },
   { id:"signals",   icon:"📡",  label:"Signaux",    color:C.purple },
