@@ -6495,7 +6495,7 @@ Pr\xE9pare la conversation d'accueil:
   }
 
   // src/modules/Meetings.jsx
-  var import_react14 = __require("react");
+  var import_react15 = __require("react");
 
   // src/prompts/meetings.js
   var MEETING_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Analyse le transcript de reunion et reponds UNIQUEMENT en JSON valide.
@@ -7747,922 +7747,25 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
     ))))))));
   }
 
-  // src/modules/Meetings.jsx
-  function RiskBadge4({ level }) {
-    const norm = level;
-    const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
-    return /* @__PURE__ */ React.createElement(Badge, { label: norm, color: r.color });
-  }
-  function SecHead6({ icon, label, color = C.em }) {
-    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
-  }
-  function BulletList2({ items, color = C.em }) {
-    if (!items?.length) return null;
-    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item === "string" ? item : item.text || JSON.stringify(item)))));
-  }
-  function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus }) {
-    const [view, setView] = (0, import_react14.useState)("list");
-    const [transcript, setTranscript] = (0, import_react14.useState)("");
-    const [meetingType, setMeetingType] = (0, import_react14.useState)("director");
-    const [meetingProvince, setMeetingProvince] = (0, import_react14.useState)("QC");
-    const [dirName, setDirName] = (0, import_react14.useState)("");
-    const [context, setContext] = (0, import_react14.useState)("");
-    const [loading, setLoading] = (0, import_react14.useState)(false);
-    const [error, setError] = (0, import_react14.useState)("");
-    const [result, setResult] = (0, import_react14.useState)(null);
-    const [saved, setSaved] = (0, import_react14.useState)(false);
-    const [briefPrompt, setBriefPrompt] = (0, import_react14.useState)("");
-    const [meetingPrompt, setMeetingPrompt] = (0, import_react14.useState)("");
-    const [activeDir, setActiveDir] = (0, import_react14.useState)(null);
-    const [activeSession, setActiveSession] = (0, import_react14.useState)(null);
-    const [meetingDate, setMeetingDate] = (0, import_react14.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [meetingScope, setMeetingScope] = (0, import_react14.useState)("leader");
-    (0, import_react14.useEffect)(() => {
-      if (!focusMeetingId) return;
-      const target = (data.meetings || []).find((m) => m.id === focusMeetingId);
-      if (target) {
-        setActiveSession(target);
-        setResult(target.analysis);
-        setTab("summary");
-        setView("session");
-      }
-      if (onClearFocus) onClearFocus();
-    }, [focusMeetingId]);
-    const meetings = data.meetings || [];
-    const directors = [...new Set(meetings.map((m) => m.director).filter(Boolean))];
-    const compressTranscript = (t) => {
-      return t.replace(/\[?\d{1,2}:\d{2}(?::\d{2})?\]?/g, "").replace(/^(SPEAKER_\d+|Intervenant\s*\d*|Participant\s*\d*)\s*:/gim, "").replace(/\b(euh|heu|umm|uhh|uh|hmm|genre|tu sais|you know|like|ok ok|right right|yeah yeah)\b/gi, "").replace(/\n{3,}/g, "\n\n").replace(/ {2,}/g, " ").replace(/^[-\s]*$/gm, "").trim();
-    };
-    const analyze = async () => {
-      if (transcript.trim().length < 80) return;
-      setLoading(true);
-      setError("");
-      setResult(null);
-      setSaved(false);
-      try {
-        const raw = transcript.trim();
-        const t = raw.length > 2e4 ? compressTranscript(raw) : raw;
-        const _mProv = meetingProvince || data.profile?.defaultProvince || "QC";
-        const _legalInject = meetingType === "disciplinaire" ? `
-${buildLegalPromptContext(_mProv)}
-` : "";
-        const sp = meetingType === "ta" ? TA_SP : meetingType === "disciplinaire" ? DISC_SP : meetingType === "initiatives" ? INIT_SP : MEETING_SP;
-        const isVeryLong = t.length > 25e3;
-        const focusNote = isVeryLong ? "\n\nNOTE: Transcript tr\xE8s long. Priorise les signaux RH, risques et actions. Max 3 items par liste. Sois concis." : "";
-        const prompt = `TYPE: ${meetingType}
-DIRECTEUR: ${dirName || "Non sp\xE9cifi\xE9"}
-${context ? `CONTEXTE: ${context}
-` : ""}${_legalInject}${focusNote}
-TRANSCRIPT:
-${t}`;
-        const parsed = await callAI(sp, prompt, t.length);
-        if (dirName) parsed.director = dirName;
-        setResult(parsed);
-        setView("result");
-      } catch (e) {
-        setError("Erreur: " + e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    const handleCompress = () => {
-      const compressed = compressTranscript(transcript);
-      setTranscript(compressed);
-    };
-    const saveResult = () => {
-      if (!result || saved) return;
-      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-      const session = {
-        id: Date.now().toString(),
-        director: result.director || dirName || "Non assign\xE9",
-        savedAt: meetingDate || today,
-        dateCreated: today,
-        meetingType,
-        scope: meetingScope,
-        province: meetingProvince,
-        analysis: result
-      };
-      onSaveSession(session, result.caseEntry);
-      setSaved(true);
-    };
-    const isTAMeeting = meetingType === "ta" || activeSession?.meetingType === "ta";
-    const isDiscMeeting = meetingType === "disciplinaire" || activeSession?.meetingType === "disciplinaire";
-    const isInitMeeting = meetingType === "initiatives" || activeSession?.meetingType === "initiatives";
-    const TABS = isDiscMeeting ? [
-      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
-      { id: "faits", icon: "\u{1F4C4}", label: "Faits" },
-      { id: "juridique", icon: "\u2696", label: "Cadre juridique" },
-      { id: "sanction", icon: "\u{1F534}", label: "Sanction" },
-      { id: "actions", icon: "\u2705", label: "Actions & Docs" }
-    ] : isInitMeeting ? [
-      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
-      { id: "initiatives", icon: "\u{1F680}", label: "Initiatives", badge: result?.initiatives?.length > 0 ? result.initiatives.length : null },
-      { id: "blocages", icon: "\u{1F6A7}", label: "Blocages", badge: result?.blocagesGlobaux?.length > 0 ? result.blocagesGlobaux.length : null },
-      { id: "decisions", icon: "\u2705", label: "D\xE9cisions" },
-      { id: "actions", icon: "\u{1F3AF}", label: "Actions" },
-      { id: "questions", icon: "\u{1F4AC}", label: "Prochain meeting" }
-    ] : isTAMeeting ? [
-      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
-      { id: "postes", icon: "\u{1F3AF}", label: "Postes", badge: result?.postes?.length > 0 ? result.postes.length : null },
-      { id: "blocages", icon: "\u{1F6A7}", label: "Blocages", badge: result?.blocages?.length > 0 ? result.blocages.length : null },
-      { id: "actions", icon: "\u2705", label: "Actions" },
-      { id: "questions", icon: "\u{1F4AC}", label: "Prochain meeting" }
-    ] : [
-      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
-      { id: "people", icon: "\u{1F465}", label: "People" },
-      { id: "signals", icon: "\u{1F4E1}", label: "Signaux" },
-      { id: "risks", icon: "\u26A0", label: "Risques" },
-      { id: "actions", icon: "\u{1F3AF}", label: "Actions" },
-      { id: "questions", icon: "\u{1F4AC}", label: "Questions", badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
-      { id: "case", icon: "\u{1F4C2}", label: "Case Log" }
-    ];
-    const [tab, setTab] = (0, import_react14.useState)("summary");
-    const [qsub, setQsub] = (0, import_react14.useState)("meeting");
-    const [groupBy, setGroupBy] = (0, import_react14.useState)("director");
-    const [editingMeta, setEditingMeta] = (0, import_react14.useState)(false);
-    const [metaDraft, setMetaDraft] = (0, import_react14.useState)({});
-    if (view === "list") {
-      const TYPE_META = {
-        executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
-        vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
-        director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
-        manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.blue },
-        talent: { label: "Talent / Perf", icon: "\u2B50", color: C.amber },
-        org: { label: "Org & Changement", icon: "\u{1F504}", color: C.purple },
-        ta: { label: "Talent Acquisition", icon: "\u{1F3AF}", color: C.teal },
-        hrbpteam: { label: "HRBP Team", icon: "\u{1F91D}", color: C.em },
-        disciplinaire: { label: "Disciplinaire", icon: "\u2696", color: C.red },
-        initiatives: { label: "Initiatives", icon: "\u{1F680}", color: C.em }
-      };
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Meetings Hub"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, meetings.length, " meeting(s) enregistr\xE9(s)")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => props.onNavigate("meetingengine"), style: { ...css.btn(C.em) } }, "\u26A1 Meeting Engine"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, marginBottom: 20, background: C.surfL, borderRadius: 8, padding: 4, width: "fit-content" } }, [{ id: "director", label: "Par directeur" }, { id: "type", label: "Par type" }].map((g) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: g.id,
-          onClick: () => setGroupBy(g.id),
-          style: {
-            padding: "6px 16px",
-            borderRadius: 6,
-            fontSize: 12,
-            cursor: "pointer",
-            fontFamily: "'DM Sans',sans-serif",
-            border: "none",
-            background: groupBy === g.id ? C.em : "none",
-            color: groupBy === g.id ? "#fff" : C.textM,
-            fontWeight: groupBy === g.id ? 600 : 400
-          }
-        },
-        g.label
-      ))), groupBy === "director" && (() => {
-        const LEVEL_MAP = {
-          executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple, order: 0 },
-          vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue, order: 1 },
-          director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue, order: 2 },
-          manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal, order: 3 }
-        };
-        const OTHER_LVL = { label: "Autre", icon: "\u{1F4CB}", color: C.textD, order: 4 };
-        const dirLevel = {};
-        meetings.forEach((m) => {
-          if (!m.director) return;
-          const lvl = LEVEL_MAP[m.meetingType];
-          if (!lvl) return;
-          const prev = dirLevel[m.director];
-          if (!prev || lvl.order < prev.order) dirLevel[m.director] = lvl;
-        });
-        const groups = {};
-        directors.forEach((d) => {
-          const lvl = dirLevel[d] || OTHER_LVL;
-          if (!groups[lvl.label]) groups[lvl.label] = { ...lvl, dirs: [] };
-          groups[lvl.label].dirs.push(d);
-        });
-        const orderedGroups = Object.values(groups).sort((a, b) => a.order - b.order);
-        return /* @__PURE__ */ React.createElement(React.Fragment, null, orderedGroups.map((group) => /* @__PURE__ */ React.createElement("div", { key: group.label, style: { marginBottom: 22 } }, /* @__PURE__ */ React.createElement("div", { style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 10,
-          paddingBottom: 6,
-          borderBottom: `2px solid ${group.color}33`
-        } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, group.icon), /* @__PURE__ */ React.createElement(Mono, { color: group.color, size: 9 }, group.label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", letterSpacing: 1 } }, "\u2014 ", group.dirs.length, " personne", group.dirs.length > 1 ? "s" : "")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))", gap: 10 } }, group.dirs.map((d) => {
-          const dm = meetings.filter((m) => m.director === d);
-          const last = dm[dm.length - 1];
-          const r = RISK[last?.analysis?.overallRisk] || RISK["Faible"];
-          return /* @__PURE__ */ React.createElement(
-            "button",
-            {
-              key: d,
-              onClick: () => {
-                setActiveDir(d);
-                setView("director");
-              },
-              style: {
-                background: C.surfL,
-                border: `1px solid ${r.color}28`,
-                borderLeft: `3px solid ${group.color}`,
-                borderRadius: 10,
-                padding: "13px 14px",
-                cursor: "pointer",
-                textAlign: "left",
-                fontFamily: "'DM Sans',sans-serif"
-              }
-            },
-            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, group.icon), /* @__PURE__ */ React.createElement(RiskBadge4, { level: last?.analysis?.overallRisk || "Faible" })),
-            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 } }, d),
-            /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, dm.length, " meeting", dm.length > 1 ? "s" : ""),
-            last?.savedAt && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Dernier: ", fmtDate(last.savedAt))
-          );
-        })))), directors.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun meeting enregistr\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, "Analyse ton premier transcript pour commencer.")));
-      })(), groupBy === "type" && (() => {
-        const groups = {};
-        meetings.forEach((m) => {
-          const t = m.meetingType || "director";
-          if (!groups[t]) groups[t] = [];
-          groups[t].push(m);
-        });
-        return /* @__PURE__ */ React.createElement(React.Fragment, null, Object.entries(groups).map(([type, group]) => {
-          const meta = TYPE_META[type] || { label: type, icon: "\u{1F4CB}", color: C.textD };
-          return /* @__PURE__ */ React.createElement("div", { key: type, style: { marginBottom: 22 } }, /* @__PURE__ */ React.createElement("div", { style: {
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 10,
-            paddingBottom: 6,
-            borderBottom: `2px solid ${meta.color}33`
-          } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, meta.icon), /* @__PURE__ */ React.createElement(Mono, { color: meta.color, size: 9 }, meta.label), /* @__PURE__ */ React.createElement(Badge, { label: `${group.length}`, color: meta.color, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, group.slice().reverse().map((m, i) => /* @__PURE__ */ React.createElement(
-            "button",
-            {
-              key: i,
-              onClick: () => {
-                setActiveSession(m);
-                setResult(m.analysis);
-                setTab("summary");
-                setView("session");
-              },
-              style: {
-                ...css.card,
-                cursor: "pointer",
-                textAlign: "left",
-                fontFamily: "'DM Sans',sans-serif",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-              }
-            },
-            /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 4 } }, m.analysis?.meetingTitle), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, m.director && /* @__PURE__ */ React.createElement(Badge, { label: m.director, color: C.blue, size: 10 }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(m, data.profile) }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt), /* @__PURE__ */ React.createElement(RiskBadge4, { level: m.analysis?.overallRisk || "Faible" }), m.scope && m.scope !== "leader" && /* @__PURE__ */ React.createElement(
-              Badge,
-              {
-                label: { team: "\xC9quipe", individual: "Individuel", org: "Org" }[m.scope] || m.scope,
-                color: { team: C.teal, individual: C.blue, org: C.textD }[m.scope] || C.textD,
-                size: 9
-              }
-            )))
-          ))));
-        }), meetings.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun meeting enregistr\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, "Analyse ton premier transcript pour commencer.")));
-      })(), meetings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 20 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Sessions r\xE9centes"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, marginTop: 8 } }, meetings.slice().reverse().slice(0, 5).map((m, i) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: i,
-          onClick: () => {
-            setActiveSession(m);
-            setResult(m.analysis);
-            setTab("summary");
-            setView("session");
-          },
-          style: {
-            ...css.card,
-            cursor: "pointer",
-            textAlign: "left",
-            fontFamily: "'DM Sans',sans-serif",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "9px 12px"
-          }
-        },
-        /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, m.analysis?.meetingTitle),
-        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, m.director && /* @__PURE__ */ React.createElement(Badge, { label: m.director, color: C.blue, size: 10 }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(m, data.profile) }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, fmtDate(m.savedAt)))
-      )))));
-    }
-    if (view === "new") {
-      props.onNavigate("meetingengine");
-      return null;
-    }
-    const MEETING_TYPES2 = [
-      { id: "executif", label: "\u{1F3DB} Ex\xE9cutif" },
-      { id: "vp", label: "\u{1F4CA} VP" },
-      { id: "director", label: "\u{1F3E2} Directeur" },
-      { id: "manager", label: "\u{1F464} Gestionnaire" },
-      { id: "hrbpteam", label: "\u{1F91D} HRBP Team" },
-      { id: "ta", label: "\u{1F3AF} Talent Acquisition" },
-      { id: "talent", label: "\u2B50 Talent/Perf" },
-      { id: "org", label: "\u{1F504} Org & Changement" },
-      { id: "disciplinaire", label: "\u2696 Disciplinaire" },
-      { id: "initiatives", label: "\u{1F680} Initiatives" }
-    ];
-    const saveMeta = () => {
-      if (!activeSession) return;
-      const updated = {
-        ...activeSession,
-        meetingType: metaDraft.meetingType || activeSession.meetingType,
-        scope: metaDraft.scope || activeSession.scope || "leader",
-        director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.director,
-        analysis: {
-          ...activeSession.analysis,
-          meetingTitle: metaDraft.meetingTitle || activeSession.analysis?.meetingTitle,
-          director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.analysis?.director
-        }
-      };
-      onUpdateMeeting(updated);
-      setActiveSession(updated);
-      setResult(updated.analysis);
-      setEditingMeta(false);
-    };
-    if ((view === "result" || view === "session") && result) return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          setView("list");
-          setResult(null);
-          setTranscript("");
-          setContext("");
-          setEditingMeta(false);
-        },
-        style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 }
-      },
-      "\u2190 Retour"
-    ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.meetingTitle), view === "session" && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          setEditingMeta((v) => !v);
-          setMetaDraft({
-            meetingType: activeSession?.meetingType || meetingType,
-            scope: activeSession?.scope || "leader",
-            director: activeSession?.director || result.director || dirName,
-            meetingTitle: result.meetingTitle || ""
-          });
-        },
-        style: { ...css.btn(editingMeta ? C.amber : C.textM, true), padding: "6px 12px", fontSize: 11 }
-      },
-      editingMeta ? "\u2715 Annuler" : "\u270F Modifier"
-    ), view === "result" && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: saveResult,
-        disabled: saved,
-        style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 }
-      },
-      saved ? "\u2713 Sauvegard\xE9" : "\u{1F4BE} Sauvegarder"
-    )), editingMeta && view === "session" && /* @__PURE__ */ React.createElement("div", { style: {
-      background: C.amber + "10",
-      border: `1px solid ${C.amber}40`,
-      borderRadius: 10,
-      padding: "14px 16px",
-      marginBottom: 14
-    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "MODIFIER LES M\xC9TADONN\xC9ES"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Titre du meeting"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: metaDraft.meetingTitle || "",
-        onChange: (e) => setMetaDraft((p) => ({ ...p, meetingTitle: e.target.value })),
-        style: { ...css.input, marginTop: 5, fontSize: 12 },
-        onFocus: (e) => e.target.style.borderColor = C.amber + "60",
-        onBlur: (e) => e.target.style.borderColor = C.border
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 140px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Nom"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: metaDraft.director || "",
-        onChange: (e) => setMetaDraft((p) => ({ ...p, director: e.target.value })),
-        style: { ...css.input, marginTop: 5, fontSize: 12 },
-        onFocus: (e) => e.target.style.borderColor = C.amber + "60",
-        onBlur: (e) => e.target.style.borderColor = C.border
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Type de meeting"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: metaDraft.meetingType || "",
-        onChange: (e) => setMetaDraft((p) => ({ ...p, meetingType: e.target.value })),
-        style: { ...css.input, marginTop: 5, fontSize: 12 }
-      },
-      MEETING_TYPES2.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.id, value: t.id }, t.label))
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 130px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Port\xE9e"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: metaDraft.scope || "leader",
-        onChange: (e) => setMetaDraft((p) => ({ ...p, scope: e.target.value })),
-        style: { ...css.input, marginTop: 5, fontSize: 12 }
-      },
-      /* @__PURE__ */ React.createElement("option", { value: "leader" }, "Leader / Gestionnaire"),
-      /* @__PURE__ */ React.createElement("option", { value: "team" }, "\xC9quipe"),
-      /* @__PURE__ */ React.createElement("option", { value: "individual" }, "Employ\xE9 / Individuel"),
-      /* @__PURE__ */ React.createElement("option", { value: "org" }, "Organisation / Projet")
-    )), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: saveMeta,
-        style: { ...css.btn(C.amber), padding: "9px 18px", fontSize: 12 }
-      },
-      "\u2713 Sauvegarder"
-    ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(RiskBadge4, { level: result.overallRisk }), result.director && /* @__PURE__ */ React.createElement(Badge, { label: result.director, color: C.blue }), result.director && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          sessionStorage.setItem("hrbpos:pendingLeader", result.director.trim());
-          onNavigate("leaders");
-        },
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          background: C.purple + "18",
-          border: `1px solid ${C.purple}44`,
-          borderRadius: 5,
-          padding: "3px 9px",
-          fontSize: 10,
-          color: C.purple,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          fontWeight: 600
-        }
-      },
-      "\u{1F464} Fiche"
-    ), result.meetingDate && /* @__PURE__ */ React.createElement(Badge, { label: result.meetingDate, color: C.textD }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(activeSession, data.profile) }), result.overallRiskRationale && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, fontStyle: "italic" } }, result.overallRiskRationale)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" } }, TABS.map((t) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: t.id,
-        onClick: () => setTab(t.id),
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          padding: "7px 14px",
-          borderRadius: 7,
-          fontSize: 12,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          background: tab === t.id ? C.em + "22" : "none",
-          border: `1px solid ${tab === t.id ? C.em + "66" : C.border}`,
-          color: tab === t.id ? C.em : C.textM,
-          fontWeight: tab === t.id ? 600 : 400
-        }
-      },
-      /* @__PURE__ */ React.createElement("span", null, t.icon),
-      /* @__PURE__ */ React.createElement("span", null, t.label),
-      t.badge != null && /* @__PURE__ */ React.createElement("span", { style: {
-        background: C.em + "33",
-        color: C.em,
-        borderRadius: 10,
-        padding: "1px 6px",
-        fontSize: 9,
-        fontWeight: 700
-      } }, t.badge)
-    ))), isInitMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 portefeuille", color: C.em }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.em })), result.metriques && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 } }, [
-      { label: "Total", val: result.metriques.total, color: C.blue },
-      { label: "En cours", val: result.metriques.enCours, color: C.em },
-      { label: "Bloqu\xE9es", val: result.metriques.bloquees, color: C.red },
-      { label: "Compl\xE9t\xE9es", val: result.metriques.completees, color: C.teal },
-      { label: "\xC0 risque", val: result.metriques.aRisque, color: C.amber }
-    ].map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
-      background: m.color + "12",
-      border: `1px solid ${m.color}30`,
-      borderRadius: 9,
-      padding: "12px 14px",
-      textAlign: "center"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: m.color } }, m.val ?? "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, marginTop: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, m.label.toUpperCase()))))), isInitMeeting && tab === "initiatives" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.initiatives || result.initiatives.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucune initiative identifi\xE9e.")), (result.initiatives || []).map((p, i) => {
-      const AVANC_STEPS = ["0-25%", "25-50%", "50-75%", "75-100%", "Compl\xE8te"];
-      const STATUT_C = {
-        "En cours": C.em,
-        "Planifi\xE9e": C.blue,
-        "En attente": C.amber,
-        "Bloqu\xE9e": C.red,
-        "Complet\xE9e": C.teal,
-        "Compl\xE9t\xE9e": C.teal,
-        "Annul\xE9e": C.textD
-      };
-      const statutColor = STATUT_C[p.statut] || C.blue;
-      const avancIdx = AVANC_STEPS.indexOf(p.avancement);
-      const isBlocked = p.statut === "Bloqu\xE9e";
-      const riskBorder = p.risque === "Eleve" || p.risque === "\xC9lev\xE9" ? C.red : p.risque === "Modere" || p.risque === "Mod\xE9r\xE9" ? C.amber : C.border;
-      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${statutColor}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, p.nom), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, p.categorie && /* @__PURE__ */ React.createElement(Badge, { label: p.categorie, color: C.blue, size: 10 }), p.responsable && /* @__PURE__ */ React.createElement(Badge, { label: p.responsable, color: C.purple, size: 10 }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { background: statutColor + "22", border: `1px solid ${statutColor}55`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: statutColor, fontWeight: 700 } }, p.statut), p.risque && /* @__PURE__ */ React.createElement(Badge, { label: `\u26A0 ${p.risque}`, color: riskBorder, size: 10 }))), !isBlocked && avancIdx >= 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, marginBottom: 10 } }, AVANC_STEPS.slice(0, 4).map((e, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: {
-        flex: 1,
-        height: 4,
-        borderRadius: 2,
-        background: j <= avancIdx ? statutColor : C.surfLL
-      } }))), isBlocked && /* @__PURE__ */ React.createElement("div", { style: {
-        height: 4,
-        borderRadius: 2,
-        background: C.red + "40",
-        marginBottom: 10,
-        backgroundImage: `repeating-linear-gradient(45deg,${C.red}40 0,${C.red}40 4px,transparent 4px,transparent 8px)`
-      } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, marginBottom: p.changementSemaine || p.risqueDetail || p.blocages?.length ? 10 : 0 } }, p.statutDetail), p.changementSemaine && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, padding: "7px 10px", background: C.em + "10", borderRadius: 7, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 11, flexShrink: 0 } }, "\u21BA"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em } }, /* @__PURE__ */ React.createElement("strong", null, "Cette semaine :"), " ", p.changementSemaine)), p.blocages?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, p.blocages.map((b, bi) => /* @__PURE__ */ React.createElement("div", { key: bi, style: { display: "flex", gap: 8, padding: "6px 10px", background: C.red + "10", border: `1px solid ${C.red}25`, borderRadius: 7, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontSize: 11, flexShrink: 0 } }, "\u{1F6A7}"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, b)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } }, p.dateCible && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Cible: ", p.dateCible), p.dateDebut && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "D\xE9but: ", p.dateDebut), p.avancement && /* @__PURE__ */ React.createElement(Mono, { color: statutColor, size: 9 }, p.avancement)), p.prochainePriorite && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "6px 10px", background: C.surfLL, borderRadius: 7, display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.em, flexShrink: 0 } }, "\u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, p.prochainePriorite)));
-    })), isInitMeeting && tab === "blocages" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.blocagesGlobaux || result.blocagesGlobaux.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucun blocage global identifi\xE9.")), (result.blocagesGlobaux || []).map((b, i) => /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, b.blocage), /* @__PURE__ */ React.createElement(Badge, { label: b.owner, color: C.blue, size: 10 })), b.initiativesConcernees?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 } }, b.initiativesConcernees.map((n, j) => /* @__PURE__ */ React.createElement(Badge, { key: j, label: n, color: C.purple, size: 9 }))), b.actionRequise && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em } }, "\u2192 ", b.actionRequise)))), isInitMeeting && tab === "decisions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.decisions || result.decisions.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucune d\xE9cision enregistr\xE9e.")), (result.decisions || []).map((d, i) => /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 16, flexShrink: 0 } }, "\u2713"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, d.decision), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, d.initiative && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "INITIATIVE \xB7 ", d.initiative), d.echeance && /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "\xC9CH\xC9ANCE \xB7 ", d.echeance)))))), isInitMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.actions || []).map((a, i) => {
-      const dc = DELAY_C[a.delay] || C.blue;
-      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner), a.initiative && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "INITIATIVE \xB7 ", a.initiative))));
-    })), isInitMeeting && tab === "questions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.questions || []).map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why), q.initiative && /* @__PURE__ */ React.createElement(Badge, { label: q.initiative, color: C.purple, size: 9 }))))), isDiscMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", marginBottom: 12 } }, result.typeRencontre && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "22", border: `1px solid ${C.red}55`, borderRadius: 6, padding: "4px 12px", fontSize: 12, color: C.red, fontWeight: 700 } }, result.typeRencontre), /* @__PURE__ */ React.createElement(RiskBadge4, { level: result.overallRisk })), /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue }), result.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red } }, "Risque \u2192 "), result.overallRiskRationale)), result.pointsVigilance?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F441}", label: "Points de vigilance", color: C.amber }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.pointsVigilance, color: C.amber })), result.prochaineSanction && /* @__PURE__ */ React.createElement(Card, { style: { background: C.red + "08" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "SI R\xC9CIDIVE \u2014 PROCHAINE \xC9TAPE"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginTop: 8, lineHeight: 1.65 } }, result.prochaineSanction)), result.notes && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "NOTES HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginTop: 8, fontStyle: "italic", lineHeight: 1.65 } }, result.notes))), isDiscMeeting && tab === "faits" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, [
-      { key: "reproches", label: "Reproches / Manquements", color: C.red, icon: "\u{1F534}" },
-      { key: "positionEE", label: "Position de l'employ\xE9(e)", color: C.blue, icon: "\u{1F4AC}" },
-      { key: "reconnaissances", label: "\xC9l\xE9ments reconnus", color: C.em, icon: "\u2713" },
-      { key: "contestations", label: "\xC9l\xE9ments contest\xE9s", color: C.amber, icon: "\u26A0" }
-    ].map(({ key, label, color, icon }) => result.faits?.[key]?.length > 0 && /* @__PURE__ */ React.createElement(Card, { key, style: { borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon, label, color }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.faits[key], color })))), isDiscMeeting && tab === "juridique" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4DC}", label: "Politiques vis\xE9es", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.cadreJuridique?.politiquesVisees, color: C.blue })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2696", label: "Lois applicables", color: C.purple }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.cadreJuridique?.loisApplicables, color: C.purple })), result.cadreJuridique?.progressiviteSanction && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "PROGRESSIVIT\xC9 DES SANCTIONS"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { background: (result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber) + "22", border: `1px solid ${result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber}55`, borderRadius: 6, padding: "3px 10px", fontSize: 11, color: result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber, fontWeight: 700, textTransform: "uppercase" } }, result.cadreJuridique.progressiviteSanction)), result.cadreJuridique.progressiviteNote && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: 8 } }, result.cadreJuridique.progressiviteNote)), result.risquesLegaux?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F6A8}", label: "Risques l\xE9gaux", color: C.red }), result.risquesLegaux.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(RiskBadge4, { level: r.niveau })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginBottom: 4 } }, r.risque), r.mitigation && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em } }, "\u2192 ", r.mitigation))))), isDiscMeeting && tab === "sanction" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, result.sanctionImposee?.type ? /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F534}", label: "Sanction impos\xE9e", color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "18", border: `1px solid ${C.red}40`, borderRadius: 7, padding: "6px 14px", fontSize: 13, color: C.red, fontWeight: 700 } }, result.sanctionImposee.type), result.sanctionImposee.duree && /* @__PURE__ */ React.createElement(Badge, { label: result.sanctionImposee.duree, color: C.amber }), result.sanctionImposee.periodeSuivi && /* @__PURE__ */ React.createElement(Badge, { label: `Suivi : ${result.sanctionImposee.periodeSuivi}`, color: C.purple })), result.sanctionImposee.conditionsRetour?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "CONDITIONS / ATTENTES"), /* @__PURE__ */ React.createElement(BulletList2, { items: result.sanctionImposee.conditionsRetour, color: C.amber }))) : /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucune sanction formelle \u2014 rencontre pr\xE9liminaire ou investigatoire."))), isDiscMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, result.documentationRequise?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4C4}", label: "Documents \xE0 produire", color: C.blue }), result.documentationRequise.map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 12, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement(Badge, { label: d.delai, color: C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, d.document), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "RESPONSABLE \xB7 ", d.responsable))))), result.actions?.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2705", label: "Actions", color: C.em }), result.actions.map((a, i) => {
-      const dc = DELAY_C[a.delay] || C.blue;
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 12, marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner)));
-    }))), isTAMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 pipeline", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue })), result.metriques && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 } }, [
-      { label: "Postes actifs", val: result.metriques.postesActifs, color: C.em },
-      { label: "En offre", val: result.metriques.enOffre, color: C.amber },
-      { label: "Ferm\xE9s / Combl\xE9s", val: result.metriques.fermes, color: C.teal },
-      { label: "D\xE9lai moyen", val: result.metriques.joursOuvertureMoyen ? result.metriques.joursOuvertureMoyen + "j" : "N/D", color: C.blue }
-    ].map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: m.color + "12", border: `1px solid ${m.color}30`, borderRadius: 9, padding: "12px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: m.color } }, m.val ?? "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, m.label.toUpperCase())))), result.metriques?.risquesPipeline?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u26A0", label: "Risques pipeline globaux", color: C.red }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.metriques.risquesPipeline, color: C.red }))), isTAMeeting && tab === "postes" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.postes || result.postes.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucun poste identifi\xE9 dans le transcript.")), (result.postes || []).map((p, i) => {
-      const ETAPE_C = {
-        "Sourcing": C.textD,
-        "Entrevues RH": C.blue,
-        "Entrevues techniques": C.purple,
-        "Debrief": C.amber,
-        "Offre": C.teal,
-        "Acceptee": C.em,
-        "Accept\xE9e": C.em,
-        "En attente": C.amber,
-        "Fermee": C.textD,
-        "Ferm\xE9e": C.textD,
-        "Annulee": C.textD,
-        "Annul\xE9e": C.textD
-      };
-      const ETAPE_STEPS = ["Sourcing", "Entrevues RH", "Entrevues techniques", "Debrief", "Offre", "Accept\xE9e"];
-      const etapeColor = ETAPE_C[p.etape] || C.blue;
-      const riskBorder = p.risque === "Eleve" || p.risque === "\xC9lev\xE9" ? C.red : p.risque === "Modere" || p.risque === "Mod\xE9r\xE9" ? C.amber : C.border;
-      const currentStep = ETAPE_STEPS.indexOf(p.etape) >= 0 ? ETAPE_STEPS.indexOf(p.etape) : -1;
-      const isClosed = ["Fermee", "Ferm\xE9e", "Annulee", "Annul\xE9e"].includes(p.etape);
-      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${etapeColor}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, p.titre), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, p.equipe && /* @__PURE__ */ React.createElement(Badge, { label: p.equipe, color: C.blue, size: 10 }), p.responsable && /* @__PURE__ */ React.createElement(Badge, { label: p.responsable, color: C.purple, size: 10 }), p.candidats && /* @__PURE__ */ React.createElement(Badge, { label: `${p.candidats} candidat(s)`, color: C.textD, size: 10 }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { background: etapeColor + "22", border: `1px solid ${etapeColor}55`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: etapeColor, fontWeight: 700 } }, p.etape), p.priorite && /* @__PURE__ */ React.createElement(Badge, { label: "\u2691 " + p.priorite, color: p.priorite === "Critique" ? C.red : p.priorite === "Elevee" || p.priorite === "\xC9lev\xE9e" ? C.amber : C.textD, size: 10 }))), !isClosed && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, marginBottom: 10 } }, ETAPE_STEPS.map((e, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: {
-        flex: 1,
-        height: 4,
-        borderRadius: 2,
-        background: j < currentStep ? etapeColor + "55" : j === currentStep ? etapeColor : C.surfLL
-      } }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, marginBottom: p.changementSemaine || p.risqueDetail ? 10 : 0 } }, p.statutDetail), p.changementSemaine && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, padding: "7px 10px", background: C.em + "10", borderRadius: 7, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 11, flexShrink: 0 } }, "\u21BA"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em } }, /* @__PURE__ */ React.createElement("strong", null, "Cette semaine :"), " ", p.changementSemaine)), p.risqueDetail && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, padding: "7px 10px", background: riskBorder + "10", border: `1px solid ${riskBorder}25`, borderRadius: 7, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { color: riskBorder, fontSize: 11, flexShrink: 0 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, p.risqueDetail)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" } }, p.dateCible && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Cible: ", p.dateCible), p.dateOuverture && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Ouvert: ", p.dateOuverture)), p.prochainePriorite && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "6px 10px", background: C.surfLL, borderRadius: 7, display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.em, flexShrink: 0 } }, "\u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, p.prochainePriorite)));
-    })), isTAMeeting && tab === "blocages" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.blocages || result.blocages.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucun blocage identifi\xE9.")), (result.blocages || []).map((b, i) => /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, b.blocage), /* @__PURE__ */ React.createElement(Badge, { label: b.owner, color: C.blue, size: 10 })), b.postesConcernes?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 } }, b.postesConcernes.map((pc, j) => /* @__PURE__ */ React.createElement(Badge, { key: j, label: pc, color: C.purple, size: 9 }))), b.actionRequise && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em } }, "\u2192 ", b.actionRequise)))), isTAMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.actions || []).map((a, i) => {
-      const dc = DELAY_C[a.delay] || C.blue;
-      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner), a.poste && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "POSTE \xB7 ", a.poste))));
-    })), isTAMeeting && tab === "questions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.questions || []).map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why), q.poste && /* @__PURE__ */ React.createElement(Badge, { label: q.poste, color: C.purple, size: 9 }))))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, (result.hrbpKeyMessage || result.overallRiskRationale) && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, result.hrbpKeyMessage && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "MESSAGE CL\xC9 HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.text, fontWeight: 600, marginTop: 8, lineHeight: 1.6 } }, result.hrbpKeyMessage)), result.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: result.hrbpKeyMessage ? 8 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { color: (RISK[result.overallRisk] || RISK["Mod\xE9r\xE9"]).color } }, "Risque \u2192 "), result.overallRiskRationale)), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 ex\xE9cutif", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue }))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "people" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4C8}", label: "Performance", color: C.amber }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.people?.performance, color: C.amber })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F399}\uFE0F", label: "Leadership", color: C.purple }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.people?.leadership, color: C.purple })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4A1}", label: "Engagement", color: C.em }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.people?.engagement, color: C.em }))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "signals" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.signals?.map((s, i) => {
-      const BREADTH_C = { "Isol\xE9": C.teal, "Isole": C.teal, "R\xE9current": C.amber, "Recurrent": C.amber, "Syst\xE9mique": C.red, "Systemique": C.red };
-      const bc = BREADTH_C[s.breadth] || C.textD;
-      return /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: s.category, color: C.purple, size: 10 }), s.breadth && /* @__PURE__ */ React.createElement(Badge, { label: s.breadth, color: bc, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 6 } }, s.signal), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: s.ifUnaddressed ? 6 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u2192 "), s.interpretation), s.ifUnaddressed && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", padding: "5px 10px", background: C.surfLL, borderRadius: 6 } }, "\u26A0 Si non adress\xE9 : ", s.ifUnaddressed));
-    })), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "risks" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.risks?.map((r, i) => {
-      const rm = RISK[r.level] || RISK["Mod\xE9r\xE9"];
-      const TREND_C = { "Nouveau": C.blue, "Persistant": C.amber, "Aggrav\xE9": C.red, "Aggrave": C.red, "En am\xE9lioration": C.teal, "En amelioration": C.teal };
-      const tc = TREND_C[r.trend] || C.textD;
-      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${rm.color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge4, { level: r.level }), r.trend && /* @__PURE__ */ React.createElement(Badge, { label: r.trend, color: tc, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 6 } }, r.risk), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: rm.color } }, "\u2192 "), r.rationale));
-    })), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.actions?.map((a, i) => {
-      const dc = DELAY_C[a.delay] || C.blue;
-      const IMPACT_C = { "\xC9lev\xE9": C.red, "Eleve": C.red, "Mod\xE9r\xE9": C.amber, "Modere": C.amber, "Faible": C.teal };
-      const ic = a.impact ? IMPACT_C[a.impact] || C.textD : null;
-      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), ic && /* @__PURE__ */ React.createElement(Badge, { label: a.impact, color: ic, size: 9 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner)));
-    })), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "questions" && (() => {
-      const hasCross = result.crossQuestions?.length > 0;
-      return /* @__PURE__ */ React.createElement("div", null, hasCross && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 12 } }, [
-        ["meeting", "\u{1F4AC} Ce meeting", "Questions pour le prochain meeting avec ce directeur"],
-        ["cross", "\u{1F500} Cross-questions", `Questions pour ${result.crossQuestions?.length} autre(s) personne(s) mentionn\xE9e(s)`]
-      ].map(([id, label, hint]) => /* @__PURE__ */ React.createElement("button", { key: id, onClick: () => setQsub(id), style: {
-        padding: "7px 14px",
-        borderRadius: 7,
-        fontSize: 12,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        background: qsub === id ? C.purple + "22" : "none",
-        border: `1px solid ${qsub === id ? C.purple + "66" : C.border}`,
-        color: qsub === id ? C.purple : C.textM,
-        fontWeight: qsub === id ? 600 : 400
-      } }, label, id === "cross" && hasCross && /* @__PURE__ */ React.createElement("span", { style: {
-        marginLeft: 6,
-        background: C.purple + "33",
-        color: C.purple,
-        borderRadius: 10,
-        padding: "1px 6px",
-        fontSize: 10
-      } }, result.crossQuestions.reduce((n, p) => n + (p.questions?.length || 0), 0))))), (!hasCross || qsub === "meeting") && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.questions?.map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: `\u2192 ${q.target}`, color: C.purple, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why)))), qsub === "cross" && hasCross && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, result.crossQuestions.map((person, pi) => /* @__PURE__ */ React.createElement(Card, { key: pi, style: { borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, person.person), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.purple, marginTop: 2 } }, person.role)), /* @__PURE__ */ React.createElement(Badge, { label: person.relationship, color: C.blue, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: {
-        fontSize: 11,
-        color: C.textM,
-        background: C.surfLL,
-        borderRadius: 6,
-        padding: "7px 10px",
-        marginBottom: 10,
-        lineHeight: 1.6
-      } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber } }, "Contexte \u2192 "), person.context), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, person.questions?.map((q, qi) => /* @__PURE__ */ React.createElement("div", { key: qi, style: { paddingLeft: 10, borderLeft: `2px solid ${C.purple}33` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontStyle: "italic", lineHeight: 1.65, marginBottom: 4 } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Badge, { label: q.angle, color: C.purple, size: 9 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, q.objective)))))))));
-    })(), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "case" && result.caseEntry && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4C2}", label: "Entr\xE9e Case Log", color: C.em }), [
-      ["Titre", result.caseEntry.title],
-      ["Type", result.caseEntry.type],
-      ["Risque", result.caseEntry.riskLevel],
-      ["Situation", result.caseEntry.situation],
-      ["Interventions", result.caseEntry.interventionsDone],
-      ["Position RH", result.caseEntry.hrPosition],
-      ["Prochain suivi", result.caseEntry.nextFollowUp],
-      ["Notes", result.caseEntry.notes]
-    ].map(([l, v], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginTop: 4 } }, v), i < 7 && /* @__PURE__ */ React.createElement(Divider, { my: 8 })) : null), view === "result" && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: saveResult,
-        disabled: saved,
-        style: { ...css.btn(C.em), width: "100%", marginTop: 8 }
-      },
-      saved ? "\u2713 Sauvegard\xE9" : "\u{1F4BE} Sauvegarder au Case Log"
-    )), view === "result" && !saved && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginTop: 16 } }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          setView("new");
-          setResult(null);
-          setTranscript("");
-          setContext("");
-        },
-        style: {
-          background: "none",
-          border: `1px solid ${C.border}`,
-          borderRadius: 7,
-          padding: "8px 20px",
-          fontSize: 12,
-          color: C.textD,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif"
-        }
-      },
-      "\u21BA Nouvelle analyse"
-    )));
-    if (view === "director") {
-      const dm = meetings.filter((m) => m.director === activeDir).reverse();
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 700, color: C.text } }, activeDir), /* @__PURE__ */ React.createElement(Badge, { label: `${dm.length} meetings`, color: C.blue }), activeDir && /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            sessionStorage.setItem("hrbpos:pendingLeader", activeDir.trim());
-            onNavigate("leaders");
-          },
-          style: {
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: C.purple + "18",
-            border: `1px solid ${C.purple}44`,
-            borderRadius: 7,
-            padding: "6px 13px",
-            fontSize: 11,
-            color: C.purple,
-            cursor: "pointer",
-            fontFamily: "'DM Sans',sans-serif",
-            fontWeight: 600
-          }
-        },
-        "\u{1F464} Fiche leader"
-      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, dm.map((m, i) => {
-        const r = RISK[m.analysis?.overallRisk] || RISK["Faible"];
-        return /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            key: i,
-            onClick: () => {
-              setActiveSession(m);
-              setResult(m.analysis);
-              setTab("summary");
-              setView("session");
-            },
-            style: { ...css.card, cursor: "pointer", textAlign: "left", fontFamily: "'DM Sans',sans-serif" }
-          },
-          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 500, color: C.text } }, m.analysis?.meetingTitle), /* @__PURE__ */ React.createElement(RiskBadge4, { level: m.analysis?.overallRisk })),
-          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", m.analysis?.actions?.length || 0, " actions \xB7 ", m.analysis?.questions?.length || 0, " questions"))
-        );
-      })));
-    }
-    return null;
-  }
-  var MEETING_TYPES = [
-    {
-      id: "disciplinary",
-      label: "Disciplinaire",
-      icon: "\u2696\uFE0F",
-      color: C.red,
-      sensitive: true,
-      objective: "Notifier formellement un manquement, documenter les faits et signifier les cons\xE9quences applicables.",
-      checklist: [
-        "Faits document\xE9s (dates, lieux, t\xE9moins)",
-        "Politique applicable identifi\xE9e et cit\xE9e",
-        "Historique disciplinaire de l'employ\xE9 revu",
-        "Mesure envisag\xE9e (avis \xE9crit / suspension / etc.)",
-        "Avis l\xE9gal obtenu si requis selon la province",
-        "Repr\xE9sentant syndical avis\xE9 si applicable"
-      ],
-      flow: ["Ouverture neutre", "Faits reproch\xE9s", "Politique enfreinte", "R\xE9ponse de l'employ\xE9", "Mesure appliqu\xE9e", "Prochaines \xE9tapes et droit d'appel"]
-    },
-    {
-      id: "performance",
-      label: "Performance",
-      icon: "\u{1F4C8}",
-      color: C.amber,
-      sensitive: true,
-      objective: "Discuter d'\xE9carts de performance objectifs et convenir d'un plan de soutien mesurable.",
-      checklist: [
-        "Donn\xE9es objectives (KPIs, exemples concrets)",
-        "Attentes communiqu\xE9es ant\xE9rieurement",
-        "Historique des feedbacks donn\xE9s",
-        "Plan de soutien propos\xE9 (PIP si requis)",
-        "\xC9ch\xE9ancier r\xE9aliste des mesures"
-      ],
-      flow: ["Ouverture", "Constat objectif", "\xC9cart vs attentes", "Discussion ouverte", "Plan de soutien", "Suivi convenu"]
-    },
-    {
-      id: "coaching",
-      label: "Coaching / D\xE9veloppement",
-      icon: "\u{1F331}",
-      color: C.teal,
-      sensitive: false,
-      objective: "Renforcer les forces, identifier les zones de croissance et co-construire un plan de d\xE9veloppement.",
-      checklist: [
-        "Forces observ\xE9es r\xE9cemment",
-        "Zones de d\xE9veloppement prioritaires",
-        "Aspirations de carri\xE8re de l'employ\xE9",
-        "Objectifs SMART \xE0 proposer",
-        "Engagement du gestionnaire (temps, ressources)"
-      ],
-      flow: ["Ouverture positive", "Forces reconnues", "Zones de croissance", "Aspirations", "Objectifs co-construits", "Engagement mutuel"]
-    },
-    {
-      id: "reframing",
-      label: "Recadrage / Clarification",
-      icon: "\u{1F3AF}",
-      color: C.purple,
-      sensitive: false,
-      objective: "Recadrer un comportement pr\xE9cis sans escalade disciplinaire \u2014 clarifier l'attente et les cons\xE9quences.",
-      checklist: [
-        "Comportement pr\xE9cis et observable",
-        "Impact concret sur l'\xE9quipe / le travail",
-        "Attentes claires pour l'avenir",
-        "Cons\xE9quences si r\xE9cidive",
-        "Soutien offert pour r\xE9ussir"
-      ],
-      flow: ["Ouverture", "Comportement observ\xE9", "Impact", "Attente claire", "Engagement", "Cons\xE9quence si r\xE9cidive"]
-    },
-    {
-      id: "mediation",
-      label: "M\xE9diation / Conflit",
-      icon: "\u{1F91D}",
-      color: C.blue,
-      sensitive: false,
-      objective: "Faciliter une conversation entre deux parties en conflit pour trouver un terrain commun.",
-      checklist: [
-        "Position de chaque partie \xE9cout\xE9e s\xE9par\xE9ment",
-        "Faits neutres document\xE9s",
-        "\xC9motions reconnues sans jugement",
-        "Terrain commun identifi\xE9",
-        "Objectif de r\xE9solution mutuellement accept\xE9"
-      ],
-      flow: ["Cadre et r\xE8gles", "Position partie A", "Position partie B", "Faits neutres", "Terrain commun", "Engagements mutuels"]
-    },
-    {
-      id: "investigation",
-      label: "Enqu\xEAte / Investigation",
-      icon: "\u{1F50D}",
-      color: "#7a1e2e",
-      sensitive: true,
-      objective: "Recueillir des faits dans le cadre d'une enqu\xEAte formelle \u2014 confidentialit\xE9 stricte.",
-      checklist: [
-        "All\xE9gations document\xE9es par \xE9crit",
-        "Parties impliqu\xE9es identifi\xE9es",
-        "Confidentialit\xE9 expliqu\xE9e et garantie",
-        "Questions ouvertes pr\xE9par\xE9es",
-        "Avis l\xE9gal obtenu sur le processus",
-        "Prochaines \xE9tapes d\xE9finies"
-      ],
-      flow: ["Cadre et confidentialit\xE9", "R\xE9cit du t\xE9moin", "Questions de pr\xE9cision", "Documents cit\xE9s", "Engagements de confidentialit\xE9", "Prochaines \xE9tapes"]
-    },
-    {
-      id: "followup",
-      label: "Suivi",
-      icon: "\u{1F504}",
-      color: C.em,
-      sensitive: false,
-      objective: "Faire le suivi d'une d\xE9cision ou d'un engagement pris lors d'une rencontre ant\xE9rieure.",
-      checklist: [
-        "D\xE9cisions et engagements pr\xE9c\xE9dents revus",
-        "\xC9carts observ\xE9s depuis la derni\xE8re rencontre",
-        "Obstacles rencontr\xE9s",
-        "Ajustements requis au plan initial",
-        "Prochaine \xE9tape claire"
-      ],
-      flow: ["Rappel du contexte", "Engagements pris", "\xC9carts observ\xE9s", "Obstacles", "Ajustements", "Prochaine \xE9tape"]
-    },
-    {
-      id: "transition",
-      label: "Transition",
-      icon: "\u{1F6AA}",
-      color: C.textM,
-      sensitive: false,
-      objective: "Annoncer ou accompagner un changement (r\xF4le, \xE9quipe, structure) avec clart\xE9 et soutien.",
-      checklist: [
-        "Contexte du changement clair",
-        "Impacts concrets sur l'employ\xE9",
-        "Calendrier et \xE9tapes document\xE9s",
-        "Soutien disponible (formation, mentorat)",
-        "Questions anticip\xE9es pr\xE9par\xE9es"
-      ],
-      flow: ["Contexte", "Annonce claire", "Impacts", "Calendrier", "Soutien offert", "Questions et engagement"]
-    }
-  ];
-  function PreparationTab({ data, onSave }) {
-    const [selectedId, setSelectedId] = (0, import_react14.useState)(null);
-    const [province, setProvince] = (0, import_react14.useState)(data.profile?.defaultProvince || "QC");
-    const [notes, setNotes] = (0, import_react14.useState)("");
-    const [decision, setDecision] = (0, import_react14.useState)("");
-    const [followup, setFollowup] = (0, import_react14.useState)("");
-    const [aiPrep, setAiPrep] = (0, import_react14.useState)("");
-    const [aiLoading, setAiLoading] = (0, import_react14.useState)(false);
-    const type = MEETING_TYPES.find((t) => t.id === selectedId);
-    const reset = () => {
-      setSelectedId(null);
-      setNotes("");
-      setDecision("");
-      setFollowup("");
-      setAiPrep("");
-    };
-    const generateAIPrep = async () => {
-      if (!type) return;
-      setAiLoading(true);
-      const legal = type.sensitive ? `
-${buildLegalPromptContext(province)}
-` : "";
-      const sp = `Tu es un HRBP senior. Pr\xE9pare une rencontre de type "${type.label}" pour un gestionnaire. R\xE9ponds en fran\xE7ais professionnel, structur\xE9 en sections courtes : Objectif sp\xE9cifique, Points cl\xE9s \xE0 aborder, Phrases d'ouverture sugg\xE9r\xE9es, Pi\xE8ges \xE0 \xE9viter. Sois concret et actionnable. Maximum 250 mots.`;
-      const up = `Type de rencontre: ${type.label}
-Objectif g\xE9n\xE9rique: ${type.objective}
-Province: ${province}${legal}
-Notes contextuelles: ${notes || "Aucune"}`;
-      try {
-        const txt = await callAI(sp, up);
-        setAiPrep(typeof txt === "string" ? txt : JSON.stringify(txt, null, 2));
-      } catch {
-        setAiPrep("\u26A0 G\xE9n\xE9ration IA indisponible \u2014 utilise la checklist ci-dessus.");
-      } finally {
-        setAiLoading(false);
-      }
-    };
-    const savePreparation = () => {
-      if (!type) return;
-      const session = {
-        id: Date.now().toString(),
-        savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-        kind: "preparation",
-        meetingType: type.id,
-        meetingTypeLabel: type.label,
-        province,
-        notes,
-        decision,
-        followup,
-        aiPrep
-      };
-      const next = [...data.meetings || [], session];
-      onSave("meetings", next);
-      reset();
-    };
-    if (!type) {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 11, color: C.textM, style: { marginBottom: 12, display: "block" } }, "S\xC9LECTIONNE UN TYPE DE RENCONTRE"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 } }, MEETING_TYPES.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => setSelectedId(t.id), style: {
-        ...css.card,
-        cursor: "pointer",
-        textAlign: "left",
-        borderLeft: `3px solid ${t.color}`,
-        padding: "14px 14px",
-        background: C.surfL,
-        transition: "transform .15s"
-      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, t.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t.label), t.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 L\xE9gal", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5 } }, t.objective)))));
-    }
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("button", { onClick: reset, style: { ...css.btn, marginBottom: 14, background: "none", border: `1px solid ${C.border}`, color: C.textM } }, "\u2190 Retour aux types"), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${type.color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22 } }, type.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 600, color: C.text } }, type.label), type.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 Sensible", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, lineHeight: 1.6 } }, type.objective), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM }, "PROVINCE"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: province, onChange: (e) => setProvince(e.target.value) }))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2713", label: "CHECKLIST DE PR\xC9PARATION", color: type.color }), /* @__PURE__ */ React.createElement(BulletList2, { items: type.checklist, color: type.color })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F5FA}", label: "D\xC9ROULEMENT SUGG\xC9R\xC9", color: type.color }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, type.flow.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "6px 10px", background: C.surfL, borderRadius: 6, fontSize: 12, color: C.text, border: `1px solid ${type.color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { color: type.color, fontWeight: 600, marginRight: 6 } }, i + 1, "."), step)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F916}", label: "PR\xC9PARATION IA", color: C.blue }), /* @__PURE__ */ React.createElement("button", { onClick: generateAIPrep, disabled: aiLoading, style: { ...css.btn, background: C.blue, color: "#fff", marginBottom: 10 } }, aiLoading ? "G\xE9n\xE9ration\u2026" : "Pr\xE9parer avec l'IA"), aiPrep && /* @__PURE__ */ React.createElement("div", { style: { padding: 12, background: C.surfL, borderRadius: 8, fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, aiPrep)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4DD}", label: "OUTPUT POST-RENCONTRE", color: C.em }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "NOTES"), /* @__PURE__ */ React.createElement("textarea", { value: notes, onChange: (e) => setNotes(e.target.value), style: { ...css.textarea, minHeight: 70, marginBottom: 10 }, placeholder: "Notes prises pendant la rencontre\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "D\xC9CISION PRISE"), /* @__PURE__ */ React.createElement("textarea", { value: decision, onChange: (e) => setDecision(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "D\xE9cision retenue\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "SUIVI REQUIS"), /* @__PURE__ */ React.createElement("textarea", { value: followup, onChange: (e) => setFollowup(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "Actions \xE0 faire apr\xE8s la rencontre\u2026" }), /* @__PURE__ */ React.createElement("button", { onClick: savePreparation, style: { ...css.btn, background: C.em, color: "#fff" } }, "\u{1F4BE} Sauvegarder")));
-  }
-  function EngineTab(props2) {
-    return /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.textM, marginBottom: 16 } }, "Le 1:1 Engine a \xE9t\xE9 fusionn\xE9 dans le ", /* @__PURE__ */ React.createElement("b", { style: { color: C.em } }, "Meeting Engine"), "."), /* @__PURE__ */ React.createElement("button", { onClick: () => props2.onNavigate("meetingengine"), style: { ...css.btn(C.em), padding: "12px 28px", fontSize: 13 } }, "\u26A1 Ouvrir le Meeting Engine"));
-  }
-  function ModuleMeetings(props2) {
-    const [tab, setTab] = (0, import_react14.useState)("transcripts");
-    const tabs = [
-      { id: "transcripts", label: "Meetings", icon: "\u{1F399}\uFE0F", color: C.blue },
-      { id: "engine", label: "1:1 Engine", color: C.teal, icon: "\u26A1" },
-      { id: "prep", label: "Pr\xE9paration", icon: "\u{1F4CB}", color: C.purple }
-    ];
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, borderBottom: `1px solid ${C.border}` } }, tabs.map((t) => {
-      const active = tab === t.id;
-      return /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => setTab(t.id), style: {
-        padding: "10px 16px",
-        background: "none",
-        border: "none",
-        borderBottom: `2px solid ${active ? t.color : "transparent"}`,
-        cursor: "pointer",
-        fontFamily: "'DM Mono',monospace",
-        fontSize: 11,
-        letterSpacing: 1,
-        color: active ? t.color : C.textM,
-        fontWeight: active ? 600 : 400
-      } }, /* @__PURE__ */ React.createElement("span", { style: { marginRight: 6 } }, t.icon), t.label.toUpperCase());
-    })), tab === "prep" && /* @__PURE__ */ React.createElement(PreparationTab, { data: props2.data, onSave: props2.onSave }), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props2 }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props2.data, onSave: props2.onSave, onNavigate: props2.onNavigate }));
-  }
-
   // src/modules/MeetingEngine.jsx
-  var import_react15 = __require("react");
+  var import_react14 = __require("react");
 
   // src/prompts/meetingEngine.js
   var MEETING_ENGINE_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
 Analyse les informations fournies (transcript, notes, contexte) et genere un rapport complet couvrant 3 phases : extraction factuelle, intelligence HRBP, et continuite.
 Reponds UNIQUEMENT en JSON valide. Aucun texte avant ou apres. Aucun backtick. Aucune apostrophe dans les valeurs JSON. Francais professionnel. Max 3 items par liste sauf indication contraire. Sois direct et specifique, pas generique.
+
+ADAPTATION PAR NIVEAU :
+Le user prompt contiendra un champ NIVEAU parmi : gestionnaire, directeur, vp, executif.
+Adapter l analyse selon le niveau :
+- gestionnaire : posture Coach, focus equipe terrain, signaux quotidiens, recommandations operationnelles concretes
+- directeur : posture strategique, signaux organisationnels, impact sur la performance de l unite, recommandations a moyen terme
+- vp : lecture politique et d influence, impact business, risques de gouvernance, ton oriente resultats et alignement strategique
+- executif : vision systemique, risques organisationnels majeurs, enjeux de culture et de gouvernance, recommandations a portee transformationnelle
+Adapter egalement :
+- La postureHRBP recommandee selon le niveau (un Executif = moins de Coach, plus de Challenge/Influence)
+- La strategieInfluence (angle different selon le niveau hierarchique)
+- Le ton du hrbpKeyMessage (plus direct et concis pour VP/Executif)
 
 SCHEMA JSON OBLIGATOIRE :
 {
@@ -8751,22 +7854,27 @@ SCHEMA JSON OBLIGATOIRE :
 }
 
 REGLES PAR TYPE :
-- TYPE regular : remplir toutes les sections. crossQuestions requis si d autres personnes sont mentionnees. caseEntry requis si un risque RH est detecte, sinon mettre null.
-- TYPE disciplinaire : ajouter au JSON les champs suivants :
+- TYPE 1on1 : analyse relationnelle et de continuite, focus signaux interpersonnels. Remplir toutes les sections. crossQuestions requis si d autres personnes sont mentionnees. caseEntry requis si un risque RH est detecte, sinon mettre null.
+- TYPE disciplinaire : focus cadre juridique et documentation formelle. Ajouter au JSON :
   "cadreJuridique": { "politiquesVisees": ["politique enfreinte"], "loisApplicables": ["reference legale"], "progressivite": "respectee|a justifier|non applicable", "progressiviteNote": "explication" },
   "sanctions": [{ "type": "type de sanction", "duree": "duree ou null", "conditions": ["condition de retour"] }],
   "risquesLegaux": [{ "risque": "description", "niveau": "Eleve|Modere|Faible", "mitigation": "action recommandee" }]
   Utiliser le contexte legal injecte. caseEntry toujours requis.
-- TYPE ta : ajouter au JSON les champs suivants :
-  "postes": [{ "titre": "titre du poste", "etape": "Sourcing|Entrevues RH|Entrevues techniques|Offre|Acceptee|Fermee", "risque": "Eleve|Modere|Faible", "prochainePriorite": "prochaine action" }],
-  "pipeline": { "postesActifs": 0, "enOffre": 0, "fermes": 0, "risquesPipeline": ["risque global"] }
-- TYPE initiatives : ajouter au JSON les champs suivants :
-  "initiatives": [{ "nom": "nom de l initiative", "statut": "En cours|Planifiee|Bloquee|Completee", "avancement": "0-25%|25-50%|50-75%|75-100%", "prochainePas": "prochaine etape concrete" }]
+- TYPE performance : focus ecarts mesurables, plan d amelioration, jalons. Identifier les KPIs en ecart, les attentes clarifiees, le plan d action avec jalons a 30-60-90 jours.
+- TYPE coaching : focus forces, zones de croissance, plan de developpement. Identifier le style du gestionnaire, les leviers de developpement et les objectifs de croissance.
+- TYPE recadrage : focus comportement cible, attentes clarifiees, consequences. Nommer le comportement precis, l ecart par rapport aux attentes, les consequences si non corrige.
+- TYPE mediation : focus parties, points d accord et de desaccord, terrain commun. Identifier les positions de chaque partie, les emotions en jeu, les pistes de resolution.
+- TYPE enquete : focus faits, temoins, chronologie, cadre legal. Ajouter au JSON :
+  "cadreJuridique": { "politiquesVisees": ["politique concernee"], "loisApplicables": ["reference legale"], "progressivite": "non applicable", "progressiviteNote": "contexte d enquete" },
+  "risquesLegaux": [{ "risque": "description", "niveau": "Eleve|Modere|Faible", "mitigation": "action recommandee" }]
+  Utiliser le contexte legal injecte. caseEntry toujours requis.
+- TYPE suivi : focus engagement anterieur, ecart observe, prochaine etape. Comparer les engagements pris avec la situation actuelle, identifier les ecarts et les ajustements necessaires.
+- TYPE transition : focus changement annonce, reactions, plan de communication. Identifier l impact sur les personnes, les risques de destabilisation et le plan d accompagnement.
 
 Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. Ne jamais inventer d information absente du contexte fourni.`;
 
   // src/modules/MeetingEngine.jsx
-  function RiskBadge5({ level }) {
+  function RiskBadge4({ level }) {
     const r = RISK[level] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: level, color: r.color });
   }
@@ -8869,13 +7977,18 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     { value: "other", label: "Autre" }
   ];
   var ENGINE_TYPES = [
-    { id: "regular", label: "R\xE9gulier", icon: "\u{1F399}\uFE0F", color: C.blue },
-    { id: "disciplinaire", label: "Disciplinaire", icon: "\u2696", color: C.red },
-    { id: "ta", label: "Talent Acquisition", icon: "\u{1F3AF}", color: C.teal },
-    { id: "initiatives", label: "Initiatives", icon: "\u{1F680}", color: C.em }
+    { id: "1on1", label: "1:1", icon: "\u{1F464}", color: C.blue, legal: false, desc: "Rencontre r\xE9guli\xE8re de suivi avec un gestionnaire" },
+    { id: "disciplinaire", label: "Disciplinaire", icon: "\u2696\uFE0F", color: C.red, legal: true, desc: "Notifier formellement un manquement, documenter les faits" },
+    { id: "performance", label: "Performance", icon: "\u{1F4CA}", color: C.amber, legal: false, desc: "Discuter d'\xE9carts de performance et convenir d'un plan" },
+    { id: "coaching", label: "Coaching / D\xE9veloppement", icon: "\u{1F3AF}", color: C.teal, legal: false, desc: "Renforcer les forces, identifier les zones de croissance" },
+    { id: "recadrage", label: "Recadrage / Clarification", icon: "\u{1F504}", color: C.amber, legal: false, desc: "Recadrer un comportement pr\xE9cis sans escalade" },
+    { id: "mediation", label: "M\xE9diation / Conflit", icon: "\u{1F91D}", color: C.purple, legal: false, desc: "Faciliter une conversation entre deux parties en conflit" },
+    { id: "enquete", label: "Enqu\xEAte / Investigation", icon: "\u{1F50D}", color: C.red, legal: true, desc: "Recueillir des faits dans le cadre d'une enqu\xEAte formelle" },
+    { id: "suivi", label: "Suivi", icon: "\u{1F4CB}", color: C.blue, legal: false, desc: "Faire le suivi d'un engagement pris lors d'une rencontre ant\xE9rieure" },
+    { id: "transition", label: "Transition", icon: "\u{1F680}", color: C.em, legal: false, desc: "Annoncer ou accompagner un changement de r\xF4le, \xE9quipe ou structure" }
   ];
   function PrepObsSelector2({ label, values }) {
-    const [selected, setSelected] = (0, import_react15.useState)(null);
+    const [selected, setSelected] = (0, import_react14.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
@@ -8912,9 +8025,10 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     caseEntry: null
   };
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    const [pTab, setPTab] = (0, import_react15.useState)("context");
-    const [engineType, setEngineType] = (0, import_react15.useState)("regular");
-    const [ctx, setCtx] = (0, import_react15.useState)({
+    const [pTab, setPTab] = (0, import_react14.useState)("context");
+    const [engineType, setEngineType] = (0, import_react14.useState)("1on1");
+    const [niveau, setNiveau] = (0, import_react14.useState)("gestionnaire");
+    const [ctx, setCtx] = (0, import_react14.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -8925,19 +8039,19 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
       recentData: "",
       alerts: ""
     });
-    const [prep, setPrep] = (0, import_react15.useState)(null);
-    const [prepLoading, setPrepLoading] = (0, import_react15.useState)(false);
-    const [prepAI, setPrepAI] = (0, import_react15.useState)(false);
-    const [notes, setNotes] = (0, import_react15.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
-    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react15.useState)({ transcript: "", keyPoints: "" });
-    const [output, setOutput] = (0, import_react15.useState)(null);
-    const [outputLoading, setOutputLoading] = (0, import_react15.useState)(false);
-    const [copied, setCopied] = (0, import_react15.useState)(false);
-    const [saved1on1, setSaved1on1] = (0, import_react15.useState)(false);
-    const [prepPrompt, setPrepPrompt] = (0, import_react15.useState)("");
-    const [outputPrompt, setOutputPrompt] = (0, import_react15.useState)("");
-    const [sigExp, setSigExp] = (0, import_react15.useState)({});
-    const [histExp, setHistExp] = (0, import_react15.useState)({});
+    const [prep, setPrep] = (0, import_react14.useState)(null);
+    const [prepLoading, setPrepLoading] = (0, import_react14.useState)(false);
+    const [prepAI, setPrepAI] = (0, import_react14.useState)(false);
+    const [notes, setNotes] = (0, import_react14.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react14.useState)({ transcript: "", keyPoints: "" });
+    const [output, setOutput] = (0, import_react14.useState)(null);
+    const [outputLoading, setOutputLoading] = (0, import_react14.useState)(false);
+    const [copied, setCopied] = (0, import_react14.useState)(false);
+    const [saved1on1, setSaved1on1] = (0, import_react14.useState)(false);
+    const [prepPrompt, setPrepPrompt] = (0, import_react14.useState)("");
+    const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
+    const [sigExp, setSigExp] = (0, import_react14.useState)({});
+    const [histExp, setHistExp] = (0, import_react14.useState)({});
     const managerHistory = (data.meetings || []).filter((m) => {
       if (!m.director || !ctx.managerName) return false;
       return normKey(m.director) === normKey(ctx.managerName);
@@ -9005,7 +8119,8 @@ Niveau de leadership : ${LEVEL_CONTEXT2[level] || LEVEL_CONTEXT2.gestionnaire}`;
     const generateOutput = async () => {
       setOutputLoading(true);
       const _prov = ctx.province || data.profile?.defaultProvince || "QC";
-      const _legalText = engineType === "disciplinaire" || isLegalSensitive(
+      const _engineMeta = ENGINE_TYPES.find((t) => t.id === engineType);
+      const _legalText = _engineMeta?.legal || isLegalSensitive(
         [ctx.purpose, ctx.background, notes.risks, notes.performance, notes.actions].join(" ")
       ) ? `
 ${buildLegalPromptContext(_prov)}
@@ -9017,6 +8132,7 @@ TRANSCRIPT / NOTES DU MEETING :
 ${meetingAnalysis.transcript || ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}` : "";
       const up = [
         `TYPE: ${engineType}`,
+        `NIVEAU: ${niveau}`,
         `Gestionnaire: ${ctx.managerName || "N/A"}`,
         `Equipe: ${ctx.team || "N/A"}`,
         `Objectif: ${ctx.purpose || "N/A"}`,
@@ -9053,6 +8169,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         team: ctx.team,
         meetingType: ctx.meetingType,
         engineType,
+        niveau,
         date: ctx.date,
         purpose: ctx.purpose,
         notes,
@@ -9336,26 +8453,28 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         style: { ...css.btn(C.em), padding: "6px 14px", fontSize: 12 }
       },
       outputLoading ? "G\xE9n\xE9ration\u2026" : "\u2726 G\xE9n\xE9rer l'output"
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "20px 22px" } }, pTab === "context" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${activeEngine?.color || C.blue}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "TYPE D'ANALYSE"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 } }, ENGINE_TYPES.map((t) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: t.id,
-        onClick: () => setEngineType(t.id),
-        style: {
-          padding: "7px 14px",
-          borderRadius: 7,
-          fontSize: 12,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          background: engineType === t.id ? t.color + "22" : C.surfL,
-          border: `1px solid ${engineType === t.id ? t.color + "66" : C.border}`,
-          color: engineType === t.id ? t.color : C.textM,
-          fontWeight: engineType === t.id ? 600 : 400
-        }
-      },
-      /* @__PURE__ */ React.createElement("span", { style: { marginRight: 6 } }, t.icon),
-      t.label
-    ))), engineType === "disciplinaire" && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 11, color: C.red, fontStyle: "italic" } }, "\u2696 Le cadre juridique provincial sera inject\xE9 automatiquement dans l'analyse.")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "20px 22px" } }, pTab === "context" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${activeEngine?.color || C.blue}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "TYPE D'ANALYSE"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10 } }, ENGINE_TYPES.map((t) => {
+      const active = engineType === t.id;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.id,
+          onClick: () => setEngineType(t.id),
+          style: {
+            padding: "12px 14px",
+            borderRadius: 9,
+            cursor: "pointer",
+            fontFamily: "'DM Sans',sans-serif",
+            textAlign: "left",
+            background: active ? t.color + "18" : C.surfL,
+            border: `1px solid ${active ? t.color + "66" : C.border}`,
+            transition: "all .15s"
+          }
+        },
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, t.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: active ? 700 : 500, color: active ? t.color : C.text } }, t.label)),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: active ? t.color : C.textD, lineHeight: 1.4 } }, t.desc)
+      );
+    })), activeEngine?.legal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.red, fontStyle: "italic" } }, "\u2696 Le cadre juridique provincial sera inject\xE9 automatiquement dans l'analyse.")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
       ["Nom du gestionnaire", "managerName", "ex. Marie Tremblay"],
       ["Date de la rencontre", "date", (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")]
     ].map(([label, key, ph]) => /* @__PURE__ */ React.createElement("div", { key, style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement(
@@ -9368,7 +8487,18 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         onFocus: (e) => e.target.style.borderColor = C.em,
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "\xC9quipe / Fonction"), /* @__PURE__ */ React.createElement(
+    ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Niveau"), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: niveau,
+        onChange: (e) => setNiveau(e.target.value),
+        style: { ...css.select }
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "gestionnaire", style: { background: C.surfL } }, "Gestionnaire"),
+      /* @__PURE__ */ React.createElement("option", { value: "directeur", style: { background: C.surfL } }, "Directeur"),
+      /* @__PURE__ */ React.createElement("option", { value: "vp", style: { background: C.surfL } }, "VP"),
+      /* @__PURE__ */ React.createElement("option", { value: "executif", style: { background: C.surfL } }, "Ex\xE9cutif")
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "\xC9quipe / Fonction"), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: ctx.team,
@@ -9478,7 +8608,7 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       borderRadius: 12,
       padding: "48px 24px",
       textAlign: "center"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F550}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun historique"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 360, margin: "0 auto", marginBottom: 16 } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans Meetings Hub alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique.")) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge5, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), (lastAnalysis.risks || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), lastAnalysis.risks.slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 7, padding: "7px 10px", background: C.red + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r.risque || r)))), (lastAnalysis.actions || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER"), lastAnalysis.actions.slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "7px 10px", background: C.amber + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), (a.delay || a.delai) && /* @__PURE__ */ React.createElement(Badge, { label: a.delay || a.delai, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), (lastAnalysis.questions || []).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING"), lastAnalysis.questions.slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, "Q", i + 1), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, q.question || q))))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "TOUS LES MEETINGS (", histCount, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 7 } }, managerHistory.map((m, i) => {
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F550}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun historique"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 360, margin: "0 auto", marginBottom: 16 } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans Meetings Hub alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique.")) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge4, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), (lastAnalysis.risks || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), lastAnalysis.risks.slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 7, padding: "7px 10px", background: C.red + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r.risque || r)))), (lastAnalysis.actions || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER"), lastAnalysis.actions.slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "7px 10px", background: C.amber + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), (a.delay || a.delai) && /* @__PURE__ */ React.createElement(Badge, { label: a.delay || a.delai, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), (lastAnalysis.questions || []).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING"), lastAnalysis.questions.slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, "Q", i + 1), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, q.question || q))))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "TOUS LES MEETINGS (", histCount, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 7 } }, managerHistory.map((m, i) => {
       const a = m.analysis || {};
       const r = RISK[a.overallRisk] || RISK["Faible"];
       const open = histExp[i];
@@ -9490,7 +8620,7 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         },
         /* @__PURE__ */ React.createElement("div", { style: { width: 7, height: 7, borderRadius: "50%", background: r.color, flexShrink: 0 } }),
         /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, flex: 1, textAlign: "left", fontWeight: 500 } }, a.meetingTitle || "Meeting"),
-        /* @__PURE__ */ React.createElement(RiskBadge5, { level: a.overallRisk || "Faible" }),
+        /* @__PURE__ */ React.createElement(RiskBadge4, { level: a.overallRisk || "Faible" }),
         /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt),
         /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontSize: 12, marginLeft: 4 } }, open ? "\u25B2" : "\u25BC")
       ), open && /* @__PURE__ */ React.createElement("div", { style: { padding: "0 13px 12px", borderTop: `1px solid ${C.border}` } }, (a.summary || []).map((s, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.em, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))));
@@ -9592,6 +8722,916 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       },
       "\u{1F504} Nouveau cycle \u2192"
     ))))))));
+  }
+
+  // src/modules/Meetings.jsx
+  function RiskBadge5({ level }) {
+    const norm = level;
+    const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
+    return /* @__PURE__ */ React.createElement(Badge, { label: norm, color: r.color });
+  }
+  function SecHead6({ icon, label, color = C.em }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
+  }
+  function BulletList2({ items, color = C.em }) {
+    if (!items?.length) return null;
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item === "string" ? item : item.text || JSON.stringify(item)))));
+  }
+  function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
+    const [view, setView] = (0, import_react15.useState)("list");
+    const [transcript, setTranscript] = (0, import_react15.useState)("");
+    const [meetingType, setMeetingType] = (0, import_react15.useState)("director");
+    const [meetingProvince, setMeetingProvince] = (0, import_react15.useState)("QC");
+    const [dirName, setDirName] = (0, import_react15.useState)("");
+    const [context, setContext] = (0, import_react15.useState)("");
+    const [loading, setLoading] = (0, import_react15.useState)(false);
+    const [error, setError] = (0, import_react15.useState)("");
+    const [result, setResult] = (0, import_react15.useState)(null);
+    const [saved, setSaved] = (0, import_react15.useState)(false);
+    const [briefPrompt, setBriefPrompt] = (0, import_react15.useState)("");
+    const [meetingPrompt, setMeetingPrompt] = (0, import_react15.useState)("");
+    const [activeDir, setActiveDir] = (0, import_react15.useState)(null);
+    const [activeSession, setActiveSession] = (0, import_react15.useState)(null);
+    const [meetingDate, setMeetingDate] = (0, import_react15.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [meetingScope, setMeetingScope] = (0, import_react15.useState)("leader");
+    (0, import_react15.useEffect)(() => {
+      if (!focusMeetingId) return;
+      const target = (data.meetings || []).find((m) => m.id === focusMeetingId);
+      if (target) {
+        setActiveSession(target);
+        setResult(target.analysis);
+        setTab("summary");
+        setView("session");
+      }
+      if (onClearFocus) onClearFocus();
+    }, [focusMeetingId]);
+    const meetings = data.meetings || [];
+    const directors = [...new Set(meetings.map((m) => m.director).filter(Boolean))];
+    const compressTranscript = (t) => {
+      return t.replace(/\[?\d{1,2}:\d{2}(?::\d{2})?\]?/g, "").replace(/^(SPEAKER_\d+|Intervenant\s*\d*|Participant\s*\d*)\s*:/gim, "").replace(/\b(euh|heu|umm|uhh|uh|hmm|genre|tu sais|you know|like|ok ok|right right|yeah yeah)\b/gi, "").replace(/\n{3,}/g, "\n\n").replace(/ {2,}/g, " ").replace(/^[-\s]*$/gm, "").trim();
+    };
+    const analyze = async () => {
+      if (transcript.trim().length < 80) return;
+      setLoading(true);
+      setError("");
+      setResult(null);
+      setSaved(false);
+      try {
+        const raw = transcript.trim();
+        const t = raw.length > 2e4 ? compressTranscript(raw) : raw;
+        const _mProv = meetingProvince || data.profile?.defaultProvince || "QC";
+        const _legalInject = meetingType === "disciplinaire" ? `
+${buildLegalPromptContext(_mProv)}
+` : "";
+        const sp = meetingType === "ta" ? TA_SP : meetingType === "disciplinaire" ? DISC_SP : meetingType === "initiatives" ? INIT_SP : MEETING_SP;
+        const isVeryLong = t.length > 25e3;
+        const focusNote = isVeryLong ? "\n\nNOTE: Transcript tr\xE8s long. Priorise les signaux RH, risques et actions. Max 3 items par liste. Sois concis." : "";
+        const prompt = `TYPE: ${meetingType}
+DIRECTEUR: ${dirName || "Non sp\xE9cifi\xE9"}
+${context ? `CONTEXTE: ${context}
+` : ""}${_legalInject}${focusNote}
+TRANSCRIPT:
+${t}`;
+        const parsed = await callAI(sp, prompt, t.length);
+        if (dirName) parsed.director = dirName;
+        setResult(parsed);
+        setView("result");
+      } catch (e) {
+        setError("Erreur: " + e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    const handleCompress = () => {
+      const compressed = compressTranscript(transcript);
+      setTranscript(compressed);
+    };
+    const saveResult = () => {
+      if (!result || saved) return;
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      const session = {
+        id: Date.now().toString(),
+        director: result.director || dirName || "Non assign\xE9",
+        savedAt: meetingDate || today,
+        dateCreated: today,
+        meetingType,
+        scope: meetingScope,
+        province: meetingProvince,
+        analysis: result
+      };
+      onSaveSession(session, result.caseEntry);
+      setSaved(true);
+    };
+    const isTAMeeting = meetingType === "ta" || activeSession?.meetingType === "ta";
+    const isDiscMeeting = meetingType === "disciplinaire" || activeSession?.meetingType === "disciplinaire";
+    const isInitMeeting = meetingType === "initiatives" || activeSession?.meetingType === "initiatives";
+    const TABS = isDiscMeeting ? [
+      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
+      { id: "faits", icon: "\u{1F4C4}", label: "Faits" },
+      { id: "juridique", icon: "\u2696", label: "Cadre juridique" },
+      { id: "sanction", icon: "\u{1F534}", label: "Sanction" },
+      { id: "actions", icon: "\u2705", label: "Actions & Docs" }
+    ] : isInitMeeting ? [
+      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
+      { id: "initiatives", icon: "\u{1F680}", label: "Initiatives", badge: result?.initiatives?.length > 0 ? result.initiatives.length : null },
+      { id: "blocages", icon: "\u{1F6A7}", label: "Blocages", badge: result?.blocagesGlobaux?.length > 0 ? result.blocagesGlobaux.length : null },
+      { id: "decisions", icon: "\u2705", label: "D\xE9cisions" },
+      { id: "actions", icon: "\u{1F3AF}", label: "Actions" },
+      { id: "questions", icon: "\u{1F4AC}", label: "Prochain meeting" }
+    ] : isTAMeeting ? [
+      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
+      { id: "postes", icon: "\u{1F3AF}", label: "Postes", badge: result?.postes?.length > 0 ? result.postes.length : null },
+      { id: "blocages", icon: "\u{1F6A7}", label: "Blocages", badge: result?.blocages?.length > 0 ? result.blocages.length : null },
+      { id: "actions", icon: "\u2705", label: "Actions" },
+      { id: "questions", icon: "\u{1F4AC}", label: "Prochain meeting" }
+    ] : [
+      { id: "summary", icon: "\u{1F4CB}", label: "R\xE9sum\xE9" },
+      { id: "people", icon: "\u{1F465}", label: "People" },
+      { id: "signals", icon: "\u{1F4E1}", label: "Signaux" },
+      { id: "risks", icon: "\u26A0", label: "Risques" },
+      { id: "actions", icon: "\u{1F3AF}", label: "Actions" },
+      { id: "questions", icon: "\u{1F4AC}", label: "Questions", badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
+      { id: "case", icon: "\u{1F4C2}", label: "Case Log" }
+    ];
+    const [tab, setTab] = (0, import_react15.useState)("summary");
+    const [qsub, setQsub] = (0, import_react15.useState)("meeting");
+    const [groupBy, setGroupBy] = (0, import_react15.useState)("director");
+    const [editingMeta, setEditingMeta] = (0, import_react15.useState)(false);
+    const [metaDraft, setMetaDraft] = (0, import_react15.useState)({});
+    if (view === "list") {
+      const TYPE_META = {
+        executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
+        vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
+        director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
+        manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.blue },
+        talent: { label: "Talent / Perf", icon: "\u2B50", color: C.amber },
+        org: { label: "Org & Changement", icon: "\u{1F504}", color: C.purple },
+        ta: { label: "Talent Acquisition", icon: "\u{1F3AF}", color: C.teal },
+        hrbpteam: { label: "HRBP Team", icon: "\u{1F91D}", color: C.em },
+        disciplinaire: { label: "Disciplinaire", icon: "\u2696", color: C.red },
+        initiatives: { label: "Initiatives", icon: "\u{1F680}", color: C.em }
+      };
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Meetings Hub"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, meetings.length, " meeting(s) enregistr\xE9(s)")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => onSwitchTab && onSwitchTab("engine"), style: { ...css.btn(C.em) } }, "\u26A1 Meeting Engine"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, marginBottom: 20, background: C.surfL, borderRadius: 8, padding: 4, width: "fit-content" } }, [{ id: "director", label: "Par directeur" }, { id: "type", label: "Par type" }].map((g) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: g.id,
+          onClick: () => setGroupBy(g.id),
+          style: {
+            padding: "6px 16px",
+            borderRadius: 6,
+            fontSize: 12,
+            cursor: "pointer",
+            fontFamily: "'DM Sans',sans-serif",
+            border: "none",
+            background: groupBy === g.id ? C.em : "none",
+            color: groupBy === g.id ? "#fff" : C.textM,
+            fontWeight: groupBy === g.id ? 600 : 400
+          }
+        },
+        g.label
+      ))), groupBy === "director" && (() => {
+        const LEVEL_MAP = {
+          executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple, order: 0 },
+          vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue, order: 1 },
+          director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue, order: 2 },
+          manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal, order: 3 }
+        };
+        const OTHER_LVL = { label: "Autre", icon: "\u{1F4CB}", color: C.textD, order: 4 };
+        const dirLevel = {};
+        meetings.forEach((m) => {
+          if (!m.director) return;
+          const lvl = LEVEL_MAP[m.meetingType];
+          if (!lvl) return;
+          const prev = dirLevel[m.director];
+          if (!prev || lvl.order < prev.order) dirLevel[m.director] = lvl;
+        });
+        const groups = {};
+        directors.forEach((d) => {
+          const lvl = dirLevel[d] || OTHER_LVL;
+          if (!groups[lvl.label]) groups[lvl.label] = { ...lvl, dirs: [] };
+          groups[lvl.label].dirs.push(d);
+        });
+        const orderedGroups = Object.values(groups).sort((a, b) => a.order - b.order);
+        return /* @__PURE__ */ React.createElement(React.Fragment, null, orderedGroups.map((group) => /* @__PURE__ */ React.createElement("div", { key: group.label, style: { marginBottom: 22 } }, /* @__PURE__ */ React.createElement("div", { style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 10,
+          paddingBottom: 6,
+          borderBottom: `2px solid ${group.color}33`
+        } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, group.icon), /* @__PURE__ */ React.createElement(Mono, { color: group.color, size: 9 }, group.label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", letterSpacing: 1 } }, "\u2014 ", group.dirs.length, " personne", group.dirs.length > 1 ? "s" : "")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))", gap: 10 } }, group.dirs.map((d) => {
+          const dm = meetings.filter((m) => m.director === d);
+          const last = dm[dm.length - 1];
+          const r = RISK[last?.analysis?.overallRisk] || RISK["Faible"];
+          return /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              key: d,
+              onClick: () => {
+                setActiveDir(d);
+                setView("director");
+              },
+              style: {
+                background: C.surfL,
+                border: `1px solid ${r.color}28`,
+                borderLeft: `3px solid ${group.color}`,
+                borderRadius: 10,
+                padding: "13px 14px",
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "'DM Sans',sans-serif"
+              }
+            },
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, group.icon), /* @__PURE__ */ React.createElement(RiskBadge5, { level: last?.analysis?.overallRisk || "Faible" })),
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 } }, d),
+            /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, dm.length, " meeting", dm.length > 1 ? "s" : ""),
+            last?.savedAt && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Dernier: ", fmtDate(last.savedAt))
+          );
+        })))), directors.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun meeting enregistr\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, "Analyse ton premier transcript pour commencer.")));
+      })(), groupBy === "type" && (() => {
+        const groups = {};
+        meetings.forEach((m) => {
+          const t = m.meetingType || "director";
+          if (!groups[t]) groups[t] = [];
+          groups[t].push(m);
+        });
+        return /* @__PURE__ */ React.createElement(React.Fragment, null, Object.entries(groups).map(([type, group]) => {
+          const meta = TYPE_META[type] || { label: type, icon: "\u{1F4CB}", color: C.textD };
+          return /* @__PURE__ */ React.createElement("div", { key: type, style: { marginBottom: 22 } }, /* @__PURE__ */ React.createElement("div", { style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 10,
+            paddingBottom: 6,
+            borderBottom: `2px solid ${meta.color}33`
+          } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, meta.icon), /* @__PURE__ */ React.createElement(Mono, { color: meta.color, size: 9 }, meta.label), /* @__PURE__ */ React.createElement(Badge, { label: `${group.length}`, color: meta.color, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, group.slice().reverse().map((m, i) => /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              key: i,
+              onClick: () => {
+                setActiveSession(m);
+                setResult(m.analysis);
+                setTab("summary");
+                setView("session");
+              },
+              style: {
+                ...css.card,
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "'DM Sans',sans-serif",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }
+            },
+            /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 4 } }, m.analysis?.meetingTitle), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, m.director && /* @__PURE__ */ React.createElement(Badge, { label: m.director, color: C.blue, size: 10 }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(m, data.profile) }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt), /* @__PURE__ */ React.createElement(RiskBadge5, { level: m.analysis?.overallRisk || "Faible" }), m.scope && m.scope !== "leader" && /* @__PURE__ */ React.createElement(
+              Badge,
+              {
+                label: { team: "\xC9quipe", individual: "Individuel", org: "Org" }[m.scope] || m.scope,
+                color: { team: C.teal, individual: C.blue, org: C.textD }[m.scope] || C.textD,
+                size: 9
+              }
+            )))
+          ))));
+        }), meetings.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun meeting enregistr\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, "Analyse ton premier transcript pour commencer.")));
+      })(), meetings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 20 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Sessions r\xE9centes"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, marginTop: 8 } }, meetings.slice().reverse().slice(0, 5).map((m, i) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: i,
+          onClick: () => {
+            setActiveSession(m);
+            setResult(m.analysis);
+            setTab("summary");
+            setView("session");
+          },
+          style: {
+            ...css.card,
+            cursor: "pointer",
+            textAlign: "left",
+            fontFamily: "'DM Sans',sans-serif",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "9px 12px"
+          }
+        },
+        /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, m.analysis?.meetingTitle),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, m.director && /* @__PURE__ */ React.createElement(Badge, { label: m.director, color: C.blue, size: 10 }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(m, data.profile) }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, fmtDate(m.savedAt)))
+      )))));
+    }
+    if (view === "new") {
+      if (onSwitchTab) onSwitchTab("engine");
+      setView("list");
+      return null;
+    }
+    const MEETING_TYPES2 = [
+      { id: "executif", label: "\u{1F3DB} Ex\xE9cutif" },
+      { id: "vp", label: "\u{1F4CA} VP" },
+      { id: "director", label: "\u{1F3E2} Directeur" },
+      { id: "manager", label: "\u{1F464} Gestionnaire" },
+      { id: "hrbpteam", label: "\u{1F91D} HRBP Team" },
+      { id: "ta", label: "\u{1F3AF} Talent Acquisition" },
+      { id: "talent", label: "\u2B50 Talent/Perf" },
+      { id: "org", label: "\u{1F504} Org & Changement" },
+      { id: "disciplinaire", label: "\u2696 Disciplinaire" },
+      { id: "initiatives", label: "\u{1F680} Initiatives" }
+    ];
+    const saveMeta = () => {
+      if (!activeSession) return;
+      const updated = {
+        ...activeSession,
+        meetingType: metaDraft.meetingType || activeSession.meetingType,
+        scope: metaDraft.scope || activeSession.scope || "leader",
+        director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.director,
+        analysis: {
+          ...activeSession.analysis,
+          meetingTitle: metaDraft.meetingTitle || activeSession.analysis?.meetingTitle,
+          director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.analysis?.director
+        }
+      };
+      onUpdateMeeting(updated);
+      setActiveSession(updated);
+      setResult(updated.analysis);
+      setEditingMeta(false);
+    };
+    if ((view === "result" || view === "session") && result) return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          setView("list");
+          setResult(null);
+          setTranscript("");
+          setContext("");
+          setEditingMeta(false);
+        },
+        style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 }
+      },
+      "\u2190 Retour"
+    ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.meetingTitle), view === "session" && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          setEditingMeta((v) => !v);
+          setMetaDraft({
+            meetingType: activeSession?.meetingType || meetingType,
+            scope: activeSession?.scope || "leader",
+            director: activeSession?.director || result.director || dirName,
+            meetingTitle: result.meetingTitle || ""
+          });
+        },
+        style: { ...css.btn(editingMeta ? C.amber : C.textM, true), padding: "6px 12px", fontSize: 11 }
+      },
+      editingMeta ? "\u2715 Annuler" : "\u270F Modifier"
+    ), view === "result" && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: saveResult,
+        disabled: saved,
+        style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 }
+      },
+      saved ? "\u2713 Sauvegard\xE9" : "\u{1F4BE} Sauvegarder"
+    )), editingMeta && view === "session" && /* @__PURE__ */ React.createElement("div", { style: {
+      background: C.amber + "10",
+      border: `1px solid ${C.amber}40`,
+      borderRadius: 10,
+      padding: "14px 16px",
+      marginBottom: 14
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "MODIFIER LES M\xC9TADONN\xC9ES"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Titre du meeting"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: metaDraft.meetingTitle || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, meetingTitle: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 },
+        onFocus: (e) => e.target.style.borderColor = C.amber + "60",
+        onBlur: (e) => e.target.style.borderColor = C.border
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 140px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Nom"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: metaDraft.director || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, director: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 },
+        onFocus: (e) => e.target.style.borderColor = C.amber + "60",
+        onBlur: (e) => e.target.style.borderColor = C.border
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Type de meeting"), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: metaDraft.meetingType || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, meetingType: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      },
+      MEETING_TYPES2.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.id, value: t.id }, t.label))
+    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 130px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Port\xE9e"), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: metaDraft.scope || "leader",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, scope: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "leader" }, "Leader / Gestionnaire"),
+      /* @__PURE__ */ React.createElement("option", { value: "team" }, "\xC9quipe"),
+      /* @__PURE__ */ React.createElement("option", { value: "individual" }, "Employ\xE9 / Individuel"),
+      /* @__PURE__ */ React.createElement("option", { value: "org" }, "Organisation / Projet")
+    )), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: saveMeta,
+        style: { ...css.btn(C.amber), padding: "9px 18px", fontSize: 12 }
+      },
+      "\u2713 Sauvegarder"
+    ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(RiskBadge5, { level: result.overallRisk }), result.director && /* @__PURE__ */ React.createElement(Badge, { label: result.director, color: C.blue }), result.director && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          sessionStorage.setItem("hrbpos:pendingLeader", result.director.trim());
+          onNavigate("leaders");
+        },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          background: C.purple + "18",
+          border: `1px solid ${C.purple}44`,
+          borderRadius: 5,
+          padding: "3px 9px",
+          fontSize: 10,
+          color: C.purple,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          fontWeight: 600
+        }
+      },
+      "\u{1F464} Fiche"
+    ), result.meetingDate && /* @__PURE__ */ React.createElement(Badge, { label: result.meetingDate, color: C.textD }), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(activeSession, data.profile) }), result.overallRiskRationale && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, fontStyle: "italic" } }, result.overallRiskRationale)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" } }, TABS.map((t) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: t.id,
+        onClick: () => setTab(t.id),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          padding: "7px 14px",
+          borderRadius: 7,
+          fontSize: 12,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          background: tab === t.id ? C.em + "22" : "none",
+          border: `1px solid ${tab === t.id ? C.em + "66" : C.border}`,
+          color: tab === t.id ? C.em : C.textM,
+          fontWeight: tab === t.id ? 600 : 400
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", null, t.icon),
+      /* @__PURE__ */ React.createElement("span", null, t.label),
+      t.badge != null && /* @__PURE__ */ React.createElement("span", { style: {
+        background: C.em + "33",
+        color: C.em,
+        borderRadius: 10,
+        padding: "1px 6px",
+        fontSize: 9,
+        fontWeight: 700
+      } }, t.badge)
+    ))), isInitMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 portefeuille", color: C.em }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.em })), result.metriques && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 } }, [
+      { label: "Total", val: result.metriques.total, color: C.blue },
+      { label: "En cours", val: result.metriques.enCours, color: C.em },
+      { label: "Bloqu\xE9es", val: result.metriques.bloquees, color: C.red },
+      { label: "Compl\xE9t\xE9es", val: result.metriques.completees, color: C.teal },
+      { label: "\xC0 risque", val: result.metriques.aRisque, color: C.amber }
+    ].map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
+      background: m.color + "12",
+      border: `1px solid ${m.color}30`,
+      borderRadius: 9,
+      padding: "12px 14px",
+      textAlign: "center"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: m.color } }, m.val ?? "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, marginTop: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, m.label.toUpperCase()))))), isInitMeeting && tab === "initiatives" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.initiatives || result.initiatives.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucune initiative identifi\xE9e.")), (result.initiatives || []).map((p, i) => {
+      const AVANC_STEPS = ["0-25%", "25-50%", "50-75%", "75-100%", "Compl\xE8te"];
+      const STATUT_C = {
+        "En cours": C.em,
+        "Planifi\xE9e": C.blue,
+        "En attente": C.amber,
+        "Bloqu\xE9e": C.red,
+        "Complet\xE9e": C.teal,
+        "Compl\xE9t\xE9e": C.teal,
+        "Annul\xE9e": C.textD
+      };
+      const statutColor = STATUT_C[p.statut] || C.blue;
+      const avancIdx = AVANC_STEPS.indexOf(p.avancement);
+      const isBlocked = p.statut === "Bloqu\xE9e";
+      const riskBorder = p.risque === "Eleve" || p.risque === "\xC9lev\xE9" ? C.red : p.risque === "Modere" || p.risque === "Mod\xE9r\xE9" ? C.amber : C.border;
+      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${statutColor}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, p.nom), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, p.categorie && /* @__PURE__ */ React.createElement(Badge, { label: p.categorie, color: C.blue, size: 10 }), p.responsable && /* @__PURE__ */ React.createElement(Badge, { label: p.responsable, color: C.purple, size: 10 }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { background: statutColor + "22", border: `1px solid ${statutColor}55`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: statutColor, fontWeight: 700 } }, p.statut), p.risque && /* @__PURE__ */ React.createElement(Badge, { label: `\u26A0 ${p.risque}`, color: riskBorder, size: 10 }))), !isBlocked && avancIdx >= 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, marginBottom: 10 } }, AVANC_STEPS.slice(0, 4).map((e, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: {
+        flex: 1,
+        height: 4,
+        borderRadius: 2,
+        background: j <= avancIdx ? statutColor : C.surfLL
+      } }))), isBlocked && /* @__PURE__ */ React.createElement("div", { style: {
+        height: 4,
+        borderRadius: 2,
+        background: C.red + "40",
+        marginBottom: 10,
+        backgroundImage: `repeating-linear-gradient(45deg,${C.red}40 0,${C.red}40 4px,transparent 4px,transparent 8px)`
+      } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, marginBottom: p.changementSemaine || p.risqueDetail || p.blocages?.length ? 10 : 0 } }, p.statutDetail), p.changementSemaine && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, padding: "7px 10px", background: C.em + "10", borderRadius: 7, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 11, flexShrink: 0 } }, "\u21BA"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em } }, /* @__PURE__ */ React.createElement("strong", null, "Cette semaine :"), " ", p.changementSemaine)), p.blocages?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, p.blocages.map((b, bi) => /* @__PURE__ */ React.createElement("div", { key: bi, style: { display: "flex", gap: 8, padding: "6px 10px", background: C.red + "10", border: `1px solid ${C.red}25`, borderRadius: 7, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontSize: 11, flexShrink: 0 } }, "\u{1F6A7}"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, b)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap" } }, p.dateCible && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Cible: ", p.dateCible), p.dateDebut && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "D\xE9but: ", p.dateDebut), p.avancement && /* @__PURE__ */ React.createElement(Mono, { color: statutColor, size: 9 }, p.avancement)), p.prochainePriorite && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "6px 10px", background: C.surfLL, borderRadius: 7, display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.em, flexShrink: 0 } }, "\u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, p.prochainePriorite)));
+    })), isInitMeeting && tab === "blocages" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.blocagesGlobaux || result.blocagesGlobaux.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucun blocage global identifi\xE9.")), (result.blocagesGlobaux || []).map((b, i) => /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, b.blocage), /* @__PURE__ */ React.createElement(Badge, { label: b.owner, color: C.blue, size: 10 })), b.initiativesConcernees?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 } }, b.initiativesConcernees.map((n, j) => /* @__PURE__ */ React.createElement(Badge, { key: j, label: n, color: C.purple, size: 9 }))), b.actionRequise && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em } }, "\u2192 ", b.actionRequise)))), isInitMeeting && tab === "decisions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.decisions || result.decisions.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucune d\xE9cision enregistr\xE9e.")), (result.decisions || []).map((d, i) => /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 16, flexShrink: 0 } }, "\u2713"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, d.decision), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, d.initiative && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "INITIATIVE \xB7 ", d.initiative), d.echeance && /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "\xC9CH\xC9ANCE \xB7 ", d.echeance)))))), isInitMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.actions || []).map((a, i) => {
+      const dc = DELAY_C[a.delay] || C.blue;
+      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner), a.initiative && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "INITIATIVE \xB7 ", a.initiative))));
+    })), isInitMeeting && tab === "questions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.questions || []).map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why), q.initiative && /* @__PURE__ */ React.createElement(Badge, { label: q.initiative, color: C.purple, size: 9 }))))), isDiscMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", marginBottom: 12 } }, result.typeRencontre && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "22", border: `1px solid ${C.red}55`, borderRadius: 6, padding: "4px 12px", fontSize: 12, color: C.red, fontWeight: 700 } }, result.typeRencontre), /* @__PURE__ */ React.createElement(RiskBadge5, { level: result.overallRisk })), /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue }), result.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red } }, "Risque \u2192 "), result.overallRiskRationale)), result.pointsVigilance?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F441}", label: "Points de vigilance", color: C.amber }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.pointsVigilance, color: C.amber })), result.prochaineSanction && /* @__PURE__ */ React.createElement(Card, { style: { background: C.red + "08" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "SI R\xC9CIDIVE \u2014 PROCHAINE \xC9TAPE"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginTop: 8, lineHeight: 1.65 } }, result.prochaineSanction)), result.notes && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "NOTES HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginTop: 8, fontStyle: "italic", lineHeight: 1.65 } }, result.notes))), isDiscMeeting && tab === "faits" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, [
+      { key: "reproches", label: "Reproches / Manquements", color: C.red, icon: "\u{1F534}" },
+      { key: "positionEE", label: "Position de l'employ\xE9(e)", color: C.blue, icon: "\u{1F4AC}" },
+      { key: "reconnaissances", label: "\xC9l\xE9ments reconnus", color: C.em, icon: "\u2713" },
+      { key: "contestations", label: "\xC9l\xE9ments contest\xE9s", color: C.amber, icon: "\u26A0" }
+    ].map(({ key, label, color, icon }) => result.faits?.[key]?.length > 0 && /* @__PURE__ */ React.createElement(Card, { key, style: { borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon, label, color }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.faits[key], color })))), isDiscMeeting && tab === "juridique" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4DC}", label: "Politiques vis\xE9es", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.cadreJuridique?.politiquesVisees, color: C.blue })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2696", label: "Lois applicables", color: C.purple }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.cadreJuridique?.loisApplicables, color: C.purple })), result.cadreJuridique?.progressiviteSanction && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "PROGRESSIVIT\xC9 DES SANCTIONS"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { background: (result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber) + "22", border: `1px solid ${result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber}55`, borderRadius: 6, padding: "3px 10px", fontSize: 11, color: result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber, fontWeight: 700, textTransform: "uppercase" } }, result.cadreJuridique.progressiviteSanction)), result.cadreJuridique.progressiviteNote && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: 8 } }, result.cadreJuridique.progressiviteNote)), result.risquesLegaux?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F6A8}", label: "Risques l\xE9gaux", color: C.red }), result.risquesLegaux.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(RiskBadge5, { level: r.niveau })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginBottom: 4 } }, r.risque), r.mitigation && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em } }, "\u2192 ", r.mitigation))))), isDiscMeeting && tab === "sanction" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, result.sanctionImposee?.type ? /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F534}", label: "Sanction impos\xE9e", color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "18", border: `1px solid ${C.red}40`, borderRadius: 7, padding: "6px 14px", fontSize: 13, color: C.red, fontWeight: 700 } }, result.sanctionImposee.type), result.sanctionImposee.duree && /* @__PURE__ */ React.createElement(Badge, { label: result.sanctionImposee.duree, color: C.amber }), result.sanctionImposee.periodeSuivi && /* @__PURE__ */ React.createElement(Badge, { label: `Suivi : ${result.sanctionImposee.periodeSuivi}`, color: C.purple })), result.sanctionImposee.conditionsRetour?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "CONDITIONS / ATTENTES"), /* @__PURE__ */ React.createElement(BulletList2, { items: result.sanctionImposee.conditionsRetour, color: C.amber }))) : /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucune sanction formelle \u2014 rencontre pr\xE9liminaire ou investigatoire."))), isDiscMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, result.documentationRequise?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4C4}", label: "Documents \xE0 produire", color: C.blue }), result.documentationRequise.map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 12, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement(Badge, { label: d.delai, color: C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, d.document), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "RESPONSABLE \xB7 ", d.responsable))))), result.actions?.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2705", label: "Actions", color: C.em }), result.actions.map((a, i) => {
+      const dc = DELAY_C[a.delay] || C.blue;
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 12, marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner)));
+    }))), isTAMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 pipeline", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue })), result.metriques && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 } }, [
+      { label: "Postes actifs", val: result.metriques.postesActifs, color: C.em },
+      { label: "En offre", val: result.metriques.enOffre, color: C.amber },
+      { label: "Ferm\xE9s / Combl\xE9s", val: result.metriques.fermes, color: C.teal },
+      { label: "D\xE9lai moyen", val: result.metriques.joursOuvertureMoyen ? result.metriques.joursOuvertureMoyen + "j" : "N/D", color: C.blue }
+    ].map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: m.color + "12", border: `1px solid ${m.color}30`, borderRadius: 9, padding: "12px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 800, color: m.color } }, m.val ?? "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 4, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, m.label.toUpperCase())))), result.metriques?.risquesPipeline?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u26A0", label: "Risques pipeline globaux", color: C.red }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.metriques.risquesPipeline, color: C.red }))), isTAMeeting && tab === "postes" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.postes || result.postes.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucun poste identifi\xE9 dans le transcript.")), (result.postes || []).map((p, i) => {
+      const ETAPE_C = {
+        "Sourcing": C.textD,
+        "Entrevues RH": C.blue,
+        "Entrevues techniques": C.purple,
+        "Debrief": C.amber,
+        "Offre": C.teal,
+        "Acceptee": C.em,
+        "Accept\xE9e": C.em,
+        "En attente": C.amber,
+        "Fermee": C.textD,
+        "Ferm\xE9e": C.textD,
+        "Annulee": C.textD,
+        "Annul\xE9e": C.textD
+      };
+      const ETAPE_STEPS = ["Sourcing", "Entrevues RH", "Entrevues techniques", "Debrief", "Offre", "Accept\xE9e"];
+      const etapeColor = ETAPE_C[p.etape] || C.blue;
+      const riskBorder = p.risque === "Eleve" || p.risque === "\xC9lev\xE9" ? C.red : p.risque === "Modere" || p.risque === "Mod\xE9r\xE9" ? C.amber : C.border;
+      const currentStep = ETAPE_STEPS.indexOf(p.etape) >= 0 ? ETAPE_STEPS.indexOf(p.etape) : -1;
+      const isClosed = ["Fermee", "Ferm\xE9e", "Annulee", "Annul\xE9e"].includes(p.etape);
+      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${etapeColor}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, p.titre), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, p.equipe && /* @__PURE__ */ React.createElement(Badge, { label: p.equipe, color: C.blue, size: 10 }), p.responsable && /* @__PURE__ */ React.createElement(Badge, { label: p.responsable, color: C.purple, size: 10 }), p.candidats && /* @__PURE__ */ React.createElement(Badge, { label: `${p.candidats} candidat(s)`, color: C.textD, size: 10 }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { background: etapeColor + "22", border: `1px solid ${etapeColor}55`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: etapeColor, fontWeight: 700 } }, p.etape), p.priorite && /* @__PURE__ */ React.createElement(Badge, { label: "\u2691 " + p.priorite, color: p.priorite === "Critique" ? C.red : p.priorite === "Elevee" || p.priorite === "\xC9lev\xE9e" ? C.amber : C.textD, size: 10 }))), !isClosed && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, marginBottom: 10 } }, ETAPE_STEPS.map((e, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: {
+        flex: 1,
+        height: 4,
+        borderRadius: 2,
+        background: j < currentStep ? etapeColor + "55" : j === currentStep ? etapeColor : C.surfLL
+      } }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, marginBottom: p.changementSemaine || p.risqueDetail ? 10 : 0 } }, p.statutDetail), p.changementSemaine && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, padding: "7px 10px", background: C.em + "10", borderRadius: 7, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 11, flexShrink: 0 } }, "\u21BA"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em } }, /* @__PURE__ */ React.createElement("strong", null, "Cette semaine :"), " ", p.changementSemaine)), p.risqueDetail && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, padding: "7px 10px", background: riskBorder + "10", border: `1px solid ${riskBorder}25`, borderRadius: 7, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { color: riskBorder, fontSize: 11, flexShrink: 0 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, p.risqueDetail)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" } }, p.dateCible && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Cible: ", p.dateCible), p.dateOuverture && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Ouvert: ", p.dateOuverture)), p.prochainePriorite && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "6px 10px", background: C.surfLL, borderRadius: 7, display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.em, flexShrink: 0 } }, "\u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, p.prochainePriorite)));
+    })), isTAMeeting && tab === "blocages" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (!result.blocages || result.blocages.length === 0) && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontSize: 13 } }, "Aucun blocage identifi\xE9.")), (result.blocages || []).map((b, i) => /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, b.blocage), /* @__PURE__ */ React.createElement(Badge, { label: b.owner, color: C.blue, size: 10 })), b.postesConcernes?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 } }, b.postesConcernes.map((pc, j) => /* @__PURE__ */ React.createElement(Badge, { key: j, label: pc, color: C.purple, size: 9 }))), b.actionRequise && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em } }, "\u2192 ", b.actionRequise)))), isTAMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.actions || []).map((a, i) => {
+      const dc = DELAY_C[a.delay] || C.blue;
+      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner), a.poste && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "POSTE \xB7 ", a.poste))));
+    })), isTAMeeting && tab === "questions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.questions || []).map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why), q.poste && /* @__PURE__ */ React.createElement(Badge, { label: q.poste, color: C.purple, size: 9 }))))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, (result.hrbpKeyMessage || result.overallRiskRationale) && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, result.hrbpKeyMessage && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "MESSAGE CL\xC9 HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.text, fontWeight: 600, marginTop: 8, lineHeight: 1.6 } }, result.hrbpKeyMessage)), result.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: result.hrbpKeyMessage ? 8 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { color: (RISK[result.overallRisk] || RISK["Mod\xE9r\xE9"]).color } }, "Risque \u2192 "), result.overallRiskRationale)), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 ex\xE9cutif", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue }))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "people" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4C8}", label: "Performance", color: C.amber }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.people?.performance, color: C.amber })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F399}\uFE0F", label: "Leadership", color: C.purple }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.people?.leadership, color: C.purple })), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4A1}", label: "Engagement", color: C.em }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.people?.engagement, color: C.em }))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "signals" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.signals?.map((s, i) => {
+      const BREADTH_C = { "Isol\xE9": C.teal, "Isole": C.teal, "R\xE9current": C.amber, "Recurrent": C.amber, "Syst\xE9mique": C.red, "Systemique": C.red };
+      const bc = BREADTH_C[s.breadth] || C.textD;
+      return /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: s.category, color: C.purple, size: 10 }), s.breadth && /* @__PURE__ */ React.createElement(Badge, { label: s.breadth, color: bc, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 6 } }, s.signal), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: s.ifUnaddressed ? 6 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u2192 "), s.interpretation), s.ifUnaddressed && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", padding: "5px 10px", background: C.surfLL, borderRadius: 6 } }, "\u26A0 Si non adress\xE9 : ", s.ifUnaddressed));
+    })), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "risks" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.risks?.map((r, i) => {
+      const rm = RISK[r.level] || RISK["Mod\xE9r\xE9"];
+      const TREND_C = { "Nouveau": C.blue, "Persistant": C.amber, "Aggrav\xE9": C.red, "Aggrave": C.red, "En am\xE9lioration": C.teal, "En amelioration": C.teal };
+      const tc = TREND_C[r.trend] || C.textD;
+      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { borderLeft: `3px solid ${rm.color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge5, { level: r.level }), r.trend && /* @__PURE__ */ React.createElement(Badge, { label: r.trend, color: tc, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 6 } }, r.risk), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: rm.color } }, "\u2192 "), r.rationale));
+    })), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "actions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.actions?.map((a, i) => {
+      const dc = DELAY_C[a.delay] || C.blue;
+      const IMPACT_C = { "\xC9lev\xE9": C.red, "Eleve": C.red, "Mod\xE9r\xE9": C.amber, "Modere": C.amber, "Faible": C.teal };
+      const ic = a.impact ? IMPACT_C[a.impact] || C.textD : null;
+      return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), ic && /* @__PURE__ */ React.createElement(Badge, { label: a.impact, color: ic, size: 9 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner)));
+    })), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "questions" && (() => {
+      const hasCross = result.crossQuestions?.length > 0;
+      return /* @__PURE__ */ React.createElement("div", null, hasCross && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 12 } }, [
+        ["meeting", "\u{1F4AC} Ce meeting", "Questions pour le prochain meeting avec ce directeur"],
+        ["cross", "\u{1F500} Cross-questions", `Questions pour ${result.crossQuestions?.length} autre(s) personne(s) mentionn\xE9e(s)`]
+      ].map(([id, label, hint]) => /* @__PURE__ */ React.createElement("button", { key: id, onClick: () => setQsub(id), style: {
+        padding: "7px 14px",
+        borderRadius: 7,
+        fontSize: 12,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        background: qsub === id ? C.purple + "22" : "none",
+        border: `1px solid ${qsub === id ? C.purple + "66" : C.border}`,
+        color: qsub === id ? C.purple : C.textM,
+        fontWeight: qsub === id ? 600 : 400
+      } }, label, id === "cross" && hasCross && /* @__PURE__ */ React.createElement("span", { style: {
+        marginLeft: 6,
+        background: C.purple + "33",
+        color: C.purple,
+        borderRadius: 10,
+        padding: "1px 6px",
+        fontSize: 10
+      } }, result.crossQuestions.reduce((n, p) => n + (p.questions?.length || 0), 0))))), (!hasCross || qsub === "meeting") && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, result.questions?.map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: `\u2192 ${q.target}`, color: C.purple, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why)))), qsub === "cross" && hasCross && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, result.crossQuestions.map((person, pi) => /* @__PURE__ */ React.createElement(Card, { key: pi, style: { borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, person.person), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.purple, marginTop: 2 } }, person.role)), /* @__PURE__ */ React.createElement(Badge, { label: person.relationship, color: C.blue, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: {
+        fontSize: 11,
+        color: C.textM,
+        background: C.surfLL,
+        borderRadius: 6,
+        padding: "7px 10px",
+        marginBottom: 10,
+        lineHeight: 1.6
+      } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber } }, "Contexte \u2192 "), person.context), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, person.questions?.map((q, qi) => /* @__PURE__ */ React.createElement("div", { key: qi, style: { paddingLeft: 10, borderLeft: `2px solid ${C.purple}33` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontStyle: "italic", lineHeight: 1.65, marginBottom: 4 } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Badge, { label: q.angle, color: C.purple, size: 9 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, q.objective)))))))));
+    })(), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "case" && result.caseEntry && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4C2}", label: "Entr\xE9e Case Log", color: C.em }), [
+      ["Titre", result.caseEntry.title],
+      ["Type", result.caseEntry.type],
+      ["Risque", result.caseEntry.riskLevel],
+      ["Situation", result.caseEntry.situation],
+      ["Interventions", result.caseEntry.interventionsDone],
+      ["Position RH", result.caseEntry.hrPosition],
+      ["Prochain suivi", result.caseEntry.nextFollowUp],
+      ["Notes", result.caseEntry.notes]
+    ].map(([l, v], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginTop: 4 } }, v), i < 7 && /* @__PURE__ */ React.createElement(Divider, { my: 8 })) : null), view === "result" && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: saveResult,
+        disabled: saved,
+        style: { ...css.btn(C.em), width: "100%", marginTop: 8 }
+      },
+      saved ? "\u2713 Sauvegard\xE9" : "\u{1F4BE} Sauvegarder au Case Log"
+    )), view === "result" && !saved && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginTop: 16 } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          setView("new");
+          setResult(null);
+          setTranscript("");
+          setContext("");
+        },
+        style: {
+          background: "none",
+          border: `1px solid ${C.border}`,
+          borderRadius: 7,
+          padding: "8px 20px",
+          fontSize: 12,
+          color: C.textD,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif"
+        }
+      },
+      "\u21BA Nouvelle analyse"
+    )));
+    if (view === "director") {
+      const dm = meetings.filter((m) => m.director === activeDir).reverse();
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 700, color: C.text } }, activeDir), /* @__PURE__ */ React.createElement(Badge, { label: `${dm.length} meetings`, color: C.blue }), activeDir && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
+            sessionStorage.setItem("hrbpos:pendingLeader", activeDir.trim());
+            onNavigate("leaders");
+          },
+          style: {
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: C.purple + "18",
+            border: `1px solid ${C.purple}44`,
+            borderRadius: 7,
+            padding: "6px 13px",
+            fontSize: 11,
+            color: C.purple,
+            cursor: "pointer",
+            fontFamily: "'DM Sans',sans-serif",
+            fontWeight: 600
+          }
+        },
+        "\u{1F464} Fiche leader"
+      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, dm.map((m, i) => {
+        const r = RISK[m.analysis?.overallRisk] || RISK["Faible"];
+        return /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: i,
+            onClick: () => {
+              setActiveSession(m);
+              setResult(m.analysis);
+              setTab("summary");
+              setView("session");
+            },
+            style: { ...css.card, cursor: "pointer", textAlign: "left", fontFamily: "'DM Sans',sans-serif" }
+          },
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 500, color: C.text } }, m.analysis?.meetingTitle), /* @__PURE__ */ React.createElement(RiskBadge5, { level: m.analysis?.overallRisk })),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", m.analysis?.actions?.length || 0, " actions \xB7 ", m.analysis?.questions?.length || 0, " questions"))
+        );
+      })));
+    }
+    return null;
+  }
+  var MEETING_TYPES = [
+    {
+      id: "disciplinary",
+      label: "Disciplinaire",
+      icon: "\u2696\uFE0F",
+      color: C.red,
+      sensitive: true,
+      objective: "Notifier formellement un manquement, documenter les faits et signifier les cons\xE9quences applicables.",
+      checklist: [
+        "Faits document\xE9s (dates, lieux, t\xE9moins)",
+        "Politique applicable identifi\xE9e et cit\xE9e",
+        "Historique disciplinaire de l'employ\xE9 revu",
+        "Mesure envisag\xE9e (avis \xE9crit / suspension / etc.)",
+        "Avis l\xE9gal obtenu si requis selon la province",
+        "Repr\xE9sentant syndical avis\xE9 si applicable"
+      ],
+      flow: ["Ouverture neutre", "Faits reproch\xE9s", "Politique enfreinte", "R\xE9ponse de l'employ\xE9", "Mesure appliqu\xE9e", "Prochaines \xE9tapes et droit d'appel"]
+    },
+    {
+      id: "performance",
+      label: "Performance",
+      icon: "\u{1F4C8}",
+      color: C.amber,
+      sensitive: true,
+      objective: "Discuter d'\xE9carts de performance objectifs et convenir d'un plan de soutien mesurable.",
+      checklist: [
+        "Donn\xE9es objectives (KPIs, exemples concrets)",
+        "Attentes communiqu\xE9es ant\xE9rieurement",
+        "Historique des feedbacks donn\xE9s",
+        "Plan de soutien propos\xE9 (PIP si requis)",
+        "\xC9ch\xE9ancier r\xE9aliste des mesures"
+      ],
+      flow: ["Ouverture", "Constat objectif", "\xC9cart vs attentes", "Discussion ouverte", "Plan de soutien", "Suivi convenu"]
+    },
+    {
+      id: "coaching",
+      label: "Coaching / D\xE9veloppement",
+      icon: "\u{1F331}",
+      color: C.teal,
+      sensitive: false,
+      objective: "Renforcer les forces, identifier les zones de croissance et co-construire un plan de d\xE9veloppement.",
+      checklist: [
+        "Forces observ\xE9es r\xE9cemment",
+        "Zones de d\xE9veloppement prioritaires",
+        "Aspirations de carri\xE8re de l'employ\xE9",
+        "Objectifs SMART \xE0 proposer",
+        "Engagement du gestionnaire (temps, ressources)"
+      ],
+      flow: ["Ouverture positive", "Forces reconnues", "Zones de croissance", "Aspirations", "Objectifs co-construits", "Engagement mutuel"]
+    },
+    {
+      id: "reframing",
+      label: "Recadrage / Clarification",
+      icon: "\u{1F3AF}",
+      color: C.purple,
+      sensitive: false,
+      objective: "Recadrer un comportement pr\xE9cis sans escalade disciplinaire \u2014 clarifier l'attente et les cons\xE9quences.",
+      checklist: [
+        "Comportement pr\xE9cis et observable",
+        "Impact concret sur l'\xE9quipe / le travail",
+        "Attentes claires pour l'avenir",
+        "Cons\xE9quences si r\xE9cidive",
+        "Soutien offert pour r\xE9ussir"
+      ],
+      flow: ["Ouverture", "Comportement observ\xE9", "Impact", "Attente claire", "Engagement", "Cons\xE9quence si r\xE9cidive"]
+    },
+    {
+      id: "mediation",
+      label: "M\xE9diation / Conflit",
+      icon: "\u{1F91D}",
+      color: C.blue,
+      sensitive: false,
+      objective: "Faciliter une conversation entre deux parties en conflit pour trouver un terrain commun.",
+      checklist: [
+        "Position de chaque partie \xE9cout\xE9e s\xE9par\xE9ment",
+        "Faits neutres document\xE9s",
+        "\xC9motions reconnues sans jugement",
+        "Terrain commun identifi\xE9",
+        "Objectif de r\xE9solution mutuellement accept\xE9"
+      ],
+      flow: ["Cadre et r\xE8gles", "Position partie A", "Position partie B", "Faits neutres", "Terrain commun", "Engagements mutuels"]
+    },
+    {
+      id: "investigation",
+      label: "Enqu\xEAte / Investigation",
+      icon: "\u{1F50D}",
+      color: "#7a1e2e",
+      sensitive: true,
+      objective: "Recueillir des faits dans le cadre d'une enqu\xEAte formelle \u2014 confidentialit\xE9 stricte.",
+      checklist: [
+        "All\xE9gations document\xE9es par \xE9crit",
+        "Parties impliqu\xE9es identifi\xE9es",
+        "Confidentialit\xE9 expliqu\xE9e et garantie",
+        "Questions ouvertes pr\xE9par\xE9es",
+        "Avis l\xE9gal obtenu sur le processus",
+        "Prochaines \xE9tapes d\xE9finies"
+      ],
+      flow: ["Cadre et confidentialit\xE9", "R\xE9cit du t\xE9moin", "Questions de pr\xE9cision", "Documents cit\xE9s", "Engagements de confidentialit\xE9", "Prochaines \xE9tapes"]
+    },
+    {
+      id: "followup",
+      label: "Suivi",
+      icon: "\u{1F504}",
+      color: C.em,
+      sensitive: false,
+      objective: "Faire le suivi d'une d\xE9cision ou d'un engagement pris lors d'une rencontre ant\xE9rieure.",
+      checklist: [
+        "D\xE9cisions et engagements pr\xE9c\xE9dents revus",
+        "\xC9carts observ\xE9s depuis la derni\xE8re rencontre",
+        "Obstacles rencontr\xE9s",
+        "Ajustements requis au plan initial",
+        "Prochaine \xE9tape claire"
+      ],
+      flow: ["Rappel du contexte", "Engagements pris", "\xC9carts observ\xE9s", "Obstacles", "Ajustements", "Prochaine \xE9tape"]
+    },
+    {
+      id: "transition",
+      label: "Transition",
+      icon: "\u{1F6AA}",
+      color: C.textM,
+      sensitive: false,
+      objective: "Annoncer ou accompagner un changement (r\xF4le, \xE9quipe, structure) avec clart\xE9 et soutien.",
+      checklist: [
+        "Contexte du changement clair",
+        "Impacts concrets sur l'employ\xE9",
+        "Calendrier et \xE9tapes document\xE9s",
+        "Soutien disponible (formation, mentorat)",
+        "Questions anticip\xE9es pr\xE9par\xE9es"
+      ],
+      flow: ["Contexte", "Annonce claire", "Impacts", "Calendrier", "Soutien offert", "Questions et engagement"]
+    }
+  ];
+  function PreparationTab({ data, onSave }) {
+    const [selectedId, setSelectedId] = (0, import_react15.useState)(null);
+    const [province, setProvince] = (0, import_react15.useState)(data.profile?.defaultProvince || "QC");
+    const [notes, setNotes] = (0, import_react15.useState)("");
+    const [decision, setDecision] = (0, import_react15.useState)("");
+    const [followup, setFollowup] = (0, import_react15.useState)("");
+    const [aiPrep, setAiPrep] = (0, import_react15.useState)("");
+    const [aiLoading, setAiLoading] = (0, import_react15.useState)(false);
+    const type = MEETING_TYPES.find((t) => t.id === selectedId);
+    const reset = () => {
+      setSelectedId(null);
+      setNotes("");
+      setDecision("");
+      setFollowup("");
+      setAiPrep("");
+    };
+    const generateAIPrep = async () => {
+      if (!type) return;
+      setAiLoading(true);
+      const legal = type.sensitive ? `
+${buildLegalPromptContext(province)}
+` : "";
+      const sp = `Tu es un HRBP senior. Pr\xE9pare une rencontre de type "${type.label}" pour un gestionnaire. R\xE9ponds en fran\xE7ais professionnel, structur\xE9 en sections courtes : Objectif sp\xE9cifique, Points cl\xE9s \xE0 aborder, Phrases d'ouverture sugg\xE9r\xE9es, Pi\xE8ges \xE0 \xE9viter. Sois concret et actionnable. Maximum 250 mots.`;
+      const up = `Type de rencontre: ${type.label}
+Objectif g\xE9n\xE9rique: ${type.objective}
+Province: ${province}${legal}
+Notes contextuelles: ${notes || "Aucune"}`;
+      try {
+        const txt = await callAI(sp, up);
+        setAiPrep(typeof txt === "string" ? txt : JSON.stringify(txt, null, 2));
+      } catch {
+        setAiPrep("\u26A0 G\xE9n\xE9ration IA indisponible \u2014 utilise la checklist ci-dessus.");
+      } finally {
+        setAiLoading(false);
+      }
+    };
+    const savePreparation = () => {
+      if (!type) return;
+      const session = {
+        id: Date.now().toString(),
+        savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        kind: "preparation",
+        meetingType: type.id,
+        meetingTypeLabel: type.label,
+        province,
+        notes,
+        decision,
+        followup,
+        aiPrep
+      };
+      const next = [...data.meetings || [], session];
+      onSave("meetings", next);
+      reset();
+    };
+    if (!type) {
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 11, color: C.textM, style: { marginBottom: 12, display: "block" } }, "S\xC9LECTIONNE UN TYPE DE RENCONTRE"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 } }, MEETING_TYPES.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => setSelectedId(t.id), style: {
+        ...css.card,
+        cursor: "pointer",
+        textAlign: "left",
+        borderLeft: `3px solid ${t.color}`,
+        padding: "14px 14px",
+        background: C.surfL,
+        transition: "transform .15s"
+      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, t.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t.label), t.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 L\xE9gal", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5 } }, t.objective)))));
+    }
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("button", { onClick: reset, style: { ...css.btn, marginBottom: 14, background: "none", border: `1px solid ${C.border}`, color: C.textM } }, "\u2190 Retour aux types"), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${type.color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22 } }, type.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 600, color: C.text } }, type.label), type.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 Sensible", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, lineHeight: 1.6 } }, type.objective), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM }, "PROVINCE"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: province, onChange: (e) => setProvince(e.target.value) }))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2713", label: "CHECKLIST DE PR\xC9PARATION", color: type.color }), /* @__PURE__ */ React.createElement(BulletList2, { items: type.checklist, color: type.color })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F5FA}", label: "D\xC9ROULEMENT SUGG\xC9R\xC9", color: type.color }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, type.flow.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "6px 10px", background: C.surfL, borderRadius: 6, fontSize: 12, color: C.text, border: `1px solid ${type.color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { color: type.color, fontWeight: 600, marginRight: 6 } }, i + 1, "."), step)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F916}", label: "PR\xC9PARATION IA", color: C.blue }), /* @__PURE__ */ React.createElement("button", { onClick: generateAIPrep, disabled: aiLoading, style: { ...css.btn, background: C.blue, color: "#fff", marginBottom: 10 } }, aiLoading ? "G\xE9n\xE9ration\u2026" : "Pr\xE9parer avec l'IA"), aiPrep && /* @__PURE__ */ React.createElement("div", { style: { padding: 12, background: C.surfL, borderRadius: 8, fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, aiPrep)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4DD}", label: "OUTPUT POST-RENCONTRE", color: C.em }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "NOTES"), /* @__PURE__ */ React.createElement("textarea", { value: notes, onChange: (e) => setNotes(e.target.value), style: { ...css.textarea, minHeight: 70, marginBottom: 10 }, placeholder: "Notes prises pendant la rencontre\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "D\xC9CISION PRISE"), /* @__PURE__ */ React.createElement("textarea", { value: decision, onChange: (e) => setDecision(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "D\xE9cision retenue\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "SUIVI REQUIS"), /* @__PURE__ */ React.createElement("textarea", { value: followup, onChange: (e) => setFollowup(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "Actions \xE0 faire apr\xE8s la rencontre\u2026" }), /* @__PURE__ */ React.createElement("button", { onClick: savePreparation, style: { ...css.btn, background: C.em, color: "#fff" } }, "\u{1F4BE} Sauvegarder")));
+  }
+  function EngineTab(props) {
+    return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate });
+  }
+  function ModuleMeetings(props) {
+    const [tab, setTab] = (0, import_react15.useState)("transcripts");
+    const tabs = [
+      { id: "transcripts", label: "Meetings", icon: "\u{1F399}\uFE0F", color: C.blue },
+      { id: "engine", label: "Meeting Engine", color: C.em, icon: "\u26A1" },
+      { id: "prep", label: "Pr\xE9paration", icon: "\u{1F4CB}", color: C.purple }
+    ];
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, borderBottom: `1px solid ${C.border}` } }, tabs.map((t) => {
+      const active = tab === t.id;
+      return /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => setTab(t.id), style: {
+        padding: "10px 16px",
+        background: "none",
+        border: "none",
+        borderBottom: `2px solid ${active ? t.color : "transparent"}`,
+        cursor: "pointer",
+        fontFamily: "'DM Mono',monospace",
+        fontSize: 11,
+        letterSpacing: 1,
+        color: active ? t.color : C.textM,
+        fontWeight: active ? 600 : 400
+      } }, /* @__PURE__ */ React.createElement("span", { style: { marginRight: 6 } }, t.icon), t.label.toUpperCase());
+    })), tab === "prep" && /* @__PURE__ */ React.createElement(PreparationTab, { data: props.data, onSave: props.onSave }), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props, onSwitchTab: setTab }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate }));
   }
 
   // src/modules/Brief.jsx
@@ -12829,7 +12869,6 @@ ${situation.trim()}`;
     { id: "copilot", icon: "\u26A1", label: "Copilot", color: C.em },
     { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple },
     { id: "meetings", icon: "\u{1F399}\uFE0F", label: "Meetings Hub", color: C.blue },
-    { id: "meetingengine", icon: "\u26A1", label: "Meeting Engine", color: C.em },
     { id: "leaders", icon: "\u{1F464}", label: "Portfolio", color: C.purple },
     { id: "cases", icon: "\u{1F4C2}", label: "Case Log", color: C.blue },
     { id: "signals", icon: "\u{1F4E1}", label: "Signaux", color: C.purple },
@@ -13302,7 +13341,7 @@ ${situation.trim()}`;
       "\u26A0 ",
       c.title?.substring(0, 20),
       c.title?.length > 20 ? "\u2026" : ""
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "meetingengine" ? /* @__PURE__ */ React.createElement(MeetingEngine, { data, onSave: handleSave, onNavigate: setModule }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);

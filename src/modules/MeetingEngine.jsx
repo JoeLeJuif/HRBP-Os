@@ -118,10 +118,15 @@ const PREP_FUNCTIONS = [
 ];
 
 const ENGINE_TYPES = [
-  { id:"regular",       label:"Régulier",          icon:"🎙️", color:C.blue },
-  { id:"disciplinaire", label:"Disciplinaire",     icon:"⚖",  color:C.red },
-  { id:"ta",            label:"Talent Acquisition", icon:"🎯", color:C.teal },
-  { id:"initiatives",   label:"Initiatives",       icon:"🚀", color:C.em },
+  { id:"1on1",          label:"1:1",                        icon:"👤", color:C.blue,   legal:false, desc:"Rencontre régulière de suivi avec un gestionnaire" },
+  { id:"disciplinaire", label:"Disciplinaire",              icon:"⚖️", color:C.red,    legal:true,  desc:"Notifier formellement un manquement, documenter les faits" },
+  { id:"performance",   label:"Performance",                icon:"📊", color:C.amber,  legal:false, desc:"Discuter d'écarts de performance et convenir d'un plan" },
+  { id:"coaching",      label:"Coaching / Développement",   icon:"🎯", color:C.teal,   legal:false, desc:"Renforcer les forces, identifier les zones de croissance" },
+  { id:"recadrage",     label:"Recadrage / Clarification",  icon:"🔄", color:C.amber,  legal:false, desc:"Recadrer un comportement précis sans escalade" },
+  { id:"mediation",     label:"Médiation / Conflit",        icon:"🤝", color:C.purple, legal:false, desc:"Faciliter une conversation entre deux parties en conflit" },
+  { id:"enquete",       label:"Enquête / Investigation",    icon:"🔍", color:C.red,    legal:true,  desc:"Recueillir des faits dans le cadre d'une enquête formelle" },
+  { id:"suivi",         label:"Suivi",                      icon:"📋", color:C.blue,   legal:false, desc:"Faire le suivi d'un engagement pris lors d'une rencontre antérieure" },
+  { id:"transition",    label:"Transition",                 icon:"🚀", color:C.em,     legal:false, desc:"Annoncer ou accompagner un changement de rôle, équipe ou structure" },
 ];
 
 function PrepObsSelector({ label, values }) {
@@ -160,7 +165,8 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
 
   // ── State ────────────────────────────────────────────────────────────────
   const [pTab, setPTab]           = useState("context");
-  const [engineType, setEngineType] = useState("regular");
+  const [engineType, setEngineType] = useState("1on1");
+  const [niveau, setNiveau]         = useState("gestionnaire");
   const [ctx, setCtx]             = useState({
     managerName:"", team:"", date:"", meetingType:"regular",
     purpose:"", background:"", activeCases:"", recentData:"", alerts:"",
@@ -250,7 +256,8 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
   const generateOutput = async () => {
     setOutputLoading(true);
     const _prov = ctx.province || data.profile?.defaultProvince || "QC";
-    const _legalText = (engineType === "disciplinaire" || isLegalSensitive(
+    const _engineMeta = ENGINE_TYPES.find(t => t.id === engineType);
+    const _legalText = (_engineMeta?.legal || isLegalSensitive(
       [ctx.purpose,ctx.background,notes.risks,notes.performance,notes.actions].join(" ")
     )) ? `\n${buildLegalPromptContext(_prov)}\n` : "";
     const histCtx = buildHistCtx();
@@ -259,6 +266,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
       : "";
     const up = [
       `TYPE: ${engineType}`,
+      `NIVEAU: ${niveau}`,
       `Gestionnaire: ${ctx.managerName||"N/A"}`,
       `Equipe: ${ctx.team||"N/A"}`,
       `Objectif: ${ctx.purpose||"N/A"}`,
@@ -285,7 +293,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
     const session = {
       id: Date.now().toString(), savedAt: new Date().toISOString().split("T")[0],
       managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
-      engineType,
+      engineType, niveau,
       date: ctx.date, purpose: ctx.purpose, notes, output,
       meetingTranscript: meetingAnalysis.transcript || "",
       meetingKeyPoints: meetingAnalysis.keyPoints || "",
@@ -549,24 +557,30 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
           {/* ════════════════ CONTEXT ════════════════ */}
           {pTab==="context" && (
             <div>
-              {/* Engine type selector */}
+              {/* Engine type selector — cards */}
               <div style={{...css.card, borderLeft:`3px solid ${activeEngine?.color||C.blue}`, marginBottom:14}}>
                 <Mono color={C.blue} size={9}>TYPE D'ANALYSE</Mono>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
-                  {ENGINE_TYPES.map(t => (
-                    <button key={t.id} onClick={() => setEngineType(t.id)}
-                      style={{ padding:"7px 14px", borderRadius:7, fontSize:12, cursor:"pointer",
-                        fontFamily:"'DM Sans',sans-serif",
-                        background: engineType===t.id ? t.color+"22" : C.surfL,
-                        border:`1px solid ${engineType===t.id ? t.color+"66" : C.border}`,
-                        color: engineType===t.id ? t.color : C.textM,
-                        fontWeight: engineType===t.id ? 600 : 400 }}>
-                      <span style={{ marginRight:6 }}>{t.icon}</span>{t.label}
-                    </button>
-                  ))}
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:8, marginTop:10 }}>
+                  {ENGINE_TYPES.map(t => {
+                    const active = engineType === t.id;
+                    return (
+                      <button key={t.id} onClick={() => setEngineType(t.id)}
+                        style={{ padding:"12px 14px", borderRadius:9, cursor:"pointer",
+                          fontFamily:"'DM Sans',sans-serif", textAlign:"left",
+                          background: active ? t.color+"18" : C.surfL,
+                          border:`1px solid ${active ? t.color+"66" : C.border}`,
+                          transition:"all .15s" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:5 }}>
+                          <span style={{ fontSize:16 }}>{t.icon}</span>
+                          <span style={{ fontSize:12, fontWeight:active?700:500, color:active?t.color:C.text }}>{t.label}</span>
+                        </div>
+                        <div style={{ fontSize:10, color:active?t.color:C.textD, lineHeight:1.4 }}>{t.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
-                {engineType === "disciplinaire" && (
-                  <div style={{ marginTop:8, fontSize:11, color:C.red, fontStyle:"italic" }}>
+                {activeEngine?.legal && (
+                  <div style={{ marginTop:10, fontSize:11, color:C.red, fontStyle:"italic" }}>
                     ⚖ Le cadre juridique provincial sera injecté automatiquement dans l'analyse.
                   </div>
                 )}
@@ -590,6 +604,19 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
                           onBlur={e=>e.target.style.borderColor=C.border}/>
                       </div>
                     ))}
+                    <div style={{marginBottom:12}}>
+                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                        Niveau
+                      </div>
+                      <select value={niveau}
+                        onChange={e=>setNiveau(e.target.value)}
+                        style={{...css.select}}>
+                        <option value="gestionnaire" style={{background:C.surfL}}>Gestionnaire</option>
+                        <option value="directeur" style={{background:C.surfL}}>Directeur</option>
+                        <option value="vp" style={{background:C.surfL}}>VP</option>
+                        <option value="executif" style={{background:C.surfL}}>Exécutif</option>
+                      </select>
+                    </div>
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
                         Équipe / Fonction

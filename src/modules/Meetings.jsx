@@ -15,6 +15,7 @@ import Divider      from '../components/Divider.jsx';
 import ProvinceBadge  from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import Module1on1Prep from './Prep1on1.jsx';
+import MeetingEngine  from './MeetingEngine.jsx';
 
 // ── Inline shared helpers ─────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -76,7 +77,7 @@ function MeetingLoader({ chars=0 }) {
   );
 }
 
-function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus }) {
+function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
   const [view, setView] = useState("list"); // list | new | result | director
   const [transcript, setTranscript] = useState("");
   const [meetingType, setMeetingType] = useState("director");
@@ -232,7 +233,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <div style={{ fontSize:12, color:C.textM }}>{meetings.length} meeting(s) enregistré(s)</div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          <button onClick={() => props.onNavigate("meetingengine")} style={{ ...css.btn(C.em) }}>⚡ Meeting Engine</button>
+          <button onClick={() => onSwitchTab && onSwitchTab("engine")} style={{ ...css.btn(C.em) }}>⚡ Meeting Engine</button>
         </div>
       </div>
 
@@ -402,7 +403,8 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
   }
 
   if (view === "new") {
-    props.onNavigate("meetingengine");
+    if (onSwitchTab) onSwitchTab("engine");
+    setView("list");
     return null;
   }
 
@@ -1466,14 +1468,9 @@ function PreparationTab({ data, onSave }) {
   );
 }
 
-// ── 1:1 ENGINE TAB — redirects to Meeting Engine ────────────────────────────
+// ── ENGINE TAB — renders MeetingEngine inline ──────────────────────────────
 function EngineTab(props) {
-  return (
-    <div style={{ textAlign:"center", padding:"60px 20px" }}>
-      <div style={{ fontSize:14, color:C.textM, marginBottom:16 }}>Le 1:1 Engine a été fusionné dans le <b style={{ color:C.em }}>Meeting Engine</b>.</div>
-      <button onClick={() => props.onNavigate("meetingengine")} style={{ ...css.btn(C.em), padding:"12px 28px", fontSize:13 }}>⚡ Ouvrir le Meeting Engine</button>
-    </div>
-  );
+  return <MeetingEngine data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />;
 }
 
 // ── SHELL: 3 tabs (Meetings / 1:1 Engine / Préparation) ─────────────────────
@@ -1481,7 +1478,7 @@ export default function ModuleMeetings(props) {
   const [tab, setTab] = useState("transcripts");
   const tabs = [
     { id:"transcripts", label:"Meetings",     icon:"🎙️", color:C.blue },
-    { id:"engine",      label:"1:1 Engine",   color:C.teal, icon:"⚡" },
+    { id:"engine",      label:"Meeting Engine", color:C.em, icon:"⚡" },
     { id:"prep",        label:"Préparation",  icon:"📋", color:C.purple },
   ];
   return (
@@ -1503,7 +1500,7 @@ export default function ModuleMeetings(props) {
         })}
       </div>
       {tab === "prep" && <PreparationTab data={props.data} onSave={props.onSave} />}
-      {tab === "transcripts" && <MeetingsTranscripts {...props} />}
+      {tab === "transcripts" && <MeetingsTranscripts {...props} onSwitchTab={setTab} />}
       {tab === "engine" && <EngineTab data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />}
     </div>
   );

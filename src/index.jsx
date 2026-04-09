@@ -67,7 +67,6 @@ const NAV_MAIN = [
   { id:"copilot",   icon:"⚡",  label:"Copilot",   color:C.em },
   { id:"autoprompt",icon:"🧩",  label:"Prompt AI",  color:C.purple },
   { id:"meetings",  icon:"🎙️", label:"Meetings Hub",   color:C.blue },
-  { id:"meetingengine", icon:"⚡", label:"Meeting Engine", color:C.em },
   { id:"leaders",   icon:"👤",  label:"Portfolio",  color:C.purple },
   { id:"cases",     icon:"📂",  label:"Case Log",   color:C.blue },
   { id:"signals",   icon:"📡",  label:"Signaux",    color:C.purple },
@@ -478,7 +477,6 @@ export default function HRBPOS() {
           : module === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
           : module === "copilot"        ? <ModuleCopilot data={data}/>
           : module === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={setModule} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
-          : module === "meetingengine"  ? <MeetingEngine data={data} onSave={handleSave} onNavigate={setModule}/>
           : module === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={setModule}/>
           : module === "cases"          ? <ModuleCases data={data} onSave={handleSave} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
           : module === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
