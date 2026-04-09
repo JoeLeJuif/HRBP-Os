@@ -232,7 +232,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <div style={{ fontSize:12, color:C.textM }}>{meetings.length} meeting(s) enregistré(s)</div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          <button onClick={() => setView("new")} style={{ ...css.btn(C.em) }}>⚡ Analyser un meeting</button>
+          <button onClick={() => props.onNavigate("meetingengine")} style={{ ...css.btn(C.em) }}>⚡ Meeting Engine</button>
         </div>
       </div>
 
@@ -401,125 +401,10 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     );
   }
 
-  if (view === "new") return (
-    <div style={{ maxWidth:720, margin:"0 auto" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
-        <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
-        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Analyser un meeting</div>
-      </div>
-
-      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-        <div>
-          <Mono color={C.textD}>Type de meeting</Mono>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
-            {[
-              {id:"executif",    label:"🏛 Exécutif"},
-              {id:"vp",          label:"📊 VP"},
-              {id:"director",    label:"🏢 Directeur"},
-              {id:"manager",     label:"👤 Gestionnaire"},
-              {id:"hrbpteam",    label:"🤝 HRBP Team"},
-              {id:"ta",          label:"🎯 Talent Acquisition"},
-              {id:"talent",      label:"⭐ Talent/Perf"},
-              {id:"org",         label:"🔄 Org & Changement"},
-              {id:"disciplinaire",label:"⚖ Disciplinaire"},
-              {id:"initiatives", label:"🚀 Initiatives"},
-            ].map(t => (
-              <button key={t.id} onClick={() => setMeetingType(t.id)}
-                style={{ padding:"6px 14px", borderRadius:6, fontSize:12, cursor:"pointer",
-                  fontFamily:"'DM Sans',sans-serif",
-                  background: meetingType===t.id ? C.em+"22" : C.surfL,
-                  border:`1px solid ${meetingType===t.id ? C.em+"66" : C.border}`,
-                  color: meetingType===t.id ? C.em : C.textM,
-                  fontWeight: meetingType===t.id ? 600 : 400 }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <Mono color={C.textD}>Portée du meeting</Mono>
-          <select value={meetingScope} onChange={e => setMeetingScope(e.target.value)}
-            style={{ ...css.input, marginTop:6 }}>
-            <option value="leader">Leader / Gestionnaire</option>
-            <option value="team">Équipe</option>
-            <option value="individual">Employé / Individuel</option>
-            <option value="org">Organisation / Projet</option>
-          </select>
-        </div>
-
-        <div>
-          <Mono color={C.textD}>Nom</Mono>
-          <input value={dirName} onChange={e => setDirName(e.target.value)}
-            placeholder="Ex: Marie Tremblay"
-            style={{ ...css.input, marginTop:6 }}
-            onFocus={e=>e.target.style.borderColor=C.em+"60"}
-            onBlur={e=>e.target.style.borderColor=C.border}/>
-        </div>
-
-        <div>
-          <Mono color={C.textD}>Contexte additionnel</Mono>
-          <input value={context} onChange={e => setContext(e.target.value)}
-            placeholder="Ex: Directeur sous-pression, équipe en restructuration"
-            style={{ ...css.input, marginTop:6 }}
-            onFocus={e=>e.target.style.borderColor=C.em+"60"}
-            onBlur={e=>e.target.style.borderColor=C.border}/>
-        </div>
-
-        <div style={{ display:"flex", gap:12, alignItems:"flex-end" }}>
-          <div>
-            <Mono color={C.textD}>Prov.</Mono>
-            <ProvinceSelect value={meetingProvince}
-              onChange={e => setMeetingProvince(e.target.value)}
-              style={{ marginTop:6 }}/>
-          </div>
-          <div>
-            <Mono color={C.textD}>Date du meeting</Mono>
-            <input type="date" value={meetingDate}
-              onChange={e => setMeetingDate(e.target.value)}
-              style={{ ...css.input, marginTop:6, width:160 }}
-              onFocus={e=>e.target.style.borderColor=C.em+"60"}
-              onBlur={e=>e.target.style.borderColor=C.border}/>
-          </div>
-        </div>
-
-        <div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-            <Mono color={C.textD}>Notes du meeting</Mono>
-            <Mono color={C.textD} size={9}>{transcript.length.toLocaleString()} car.</Mono>
-          </div>
-          <textarea value={transcript} onChange={e => setTranscript(e.target.value)}
-            placeholder="Colle les notes ici..."
-            style={{ ...css.input, height:200, resize:"vertical", lineHeight:1.6, fontSize:12 }}
-            onFocus={e=>e.target.style.borderColor=C.em+"60"}
-            onBlur={e=>e.target.style.borderColor=C.border}/>
-        </div>
-      </div>
-
-      {error && <div style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:7,
-        padding:"10px 14px", marginBottom:12, fontSize:12, color:C.red, whiteSpace:"pre-wrap" }}>⚠ {error}</div>}
-
-      {loading ? (
-        <MeetingLoader chars={transcript.length}/>
-      ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          <button onClick={analyze} disabled={transcript.trim().length < 80}
-            style={{ ...css.btn(C.em), width:"100%", padding:"13px", fontSize:14,
-              opacity:transcript.trim().length < 80 ? .4:1,
-              boxShadow:transcript.trim().length>=80?`0 4px 20px ${C.em}30`:"none" }}>
-            ⚡ Analyser le meeting
-          </button>
-          {transcript.length > 20000 && (
-            <div style={{ fontSize:11, color:C.textD, textAlign:"center", lineHeight:1.6 }}>
-              Transcript long détecté — la compression automatique sera appliquée avant l'analyse.
-              Ou clique <span style={{ color:C.amber, cursor:"pointer", fontWeight:600 }}
-                onClick={handleCompress}>✂ Compresser</span> d'abord pour voir le résultat.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  if (view === "new") {
+    props.onNavigate("meetingengine");
+    return null;
+  }
 
   // Session / result view
   const MEETING_TYPES = [
@@ -1581,38 +1466,12 @@ function PreparationTab({ data, onSave }) {
   );
 }
 
-// ── 1:1 ENGINE TAB — wraps Module1on1Prep with level selector ───────────────
+// ── 1:1 ENGINE TAB — redirects to Meeting Engine ────────────────────────────
 function EngineTab(props) {
-  const [level, setLevel] = useState("gestionnaire");
-  const LEVELS = [
-    { id:"gestionnaire", label:"Gestionnaire", icon:"👤" },
-    { id:"directeur",    label:"Directeur",    icon:"🏢" },
-    { id:"vp",           label:"VP",           icon:"📊" },
-    { id:"executif",     label:"Exécutif",     icon:"🏛" },
-  ];
   return (
-    <div>
-      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, padding:"10px 12px", background:C.surfL, borderRadius:8, border:`1px solid ${C.border}` }}>
-        <Mono size={10} color={C.textM}>NIVEAU</Mono>
-        <div style={{ display:"flex", gap:6 }}>
-          {LEVELS.map(l => {
-            const active = level === l.id;
-            return (
-              <button key={l.id} onClick={() => setLevel(l.id)} style={{
-                padding:"6px 12px", borderRadius:6, cursor:"pointer",
-                border:`1px solid ${active ? C.teal : C.border}`,
-                background: active ? C.teal+"18" : "transparent",
-                color: active ? C.teal : C.textM,
-                fontSize:11, fontFamily:"'DM Sans',sans-serif",
-                fontWeight: active ? 600 : 400,
-              }}>
-                <span style={{ marginRight:5 }}>{l.icon}</span>{l.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <Module1on1Prep data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} level={level} />
+    <div style={{ textAlign:"center", padding:"60px 20px" }}>
+      <div style={{ fontSize:14, color:C.textM, marginBottom:16 }}>Le 1:1 Engine a été fusionné dans le <b style={{ color:C.em }}>Meeting Engine</b>.</div>
+      <button onClick={() => props.onNavigate("meetingengine")} style={{ ...css.btn(C.em), padding:"12px 28px", fontSize:13 }}>⚡ Ouvrir le Meeting Engine</button>
     </div>
   );
 }
