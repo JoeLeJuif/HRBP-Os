@@ -307,6 +307,42 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
     onSave("prep1on1", [...(data["prep1on1"]||[]), session]);
     setSaved1on1(true);
 
+    // ── Double save: also create a Meetings Hub session in SK.meetings ───
+    try {
+      const meetingSession = {
+        id: `mtg_${Date.now()}`,
+        savedAt: today,
+        dateCreated: today,
+        director: ctx.managerName || "Non assigné",
+        meetingType: ctx.meetingType || engineType || "1:1",
+        scope: "leader",
+        province: ctx.province || data.profile?.defaultProvince || "QC",
+        kind: "1:1-meeting",
+        analysis: {
+          meetingTitle: output.meetingTitle || `1:1 — ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
+          director: ctx.managerName || "Non assigné",
+          overallRisk: output.overallRisk || "Modéré",
+          overallRiskRationale: output.overallRiskRationale || "",
+          summary: output.summary || [],
+          signals: output.signals || [],
+          decisions: output.decisions || [],
+          risks: output.risks || [],
+          actions: output.actions || [],
+          people: output.people || {},
+          strategieHRBP: output.strategieHRBP || {},
+          hrbpKeyMessage: output.hrbpKeyMessage || "",
+          keySignals: output.keySignals || [],
+          mainRisks: output.mainRisks || [],
+          hrbpFollowups: output.hrbpFollowups || [],
+          crossQuestions: output.crossQuestions || [],
+          caseEntry: output.caseEntry || null,
+        },
+      };
+      onSave("meetings", [meetingSession, ...(data.meetings || [])]);
+    } catch (err) {
+      console.warn("Meeting Engine — sync Meetings Hub failed:", err);
+    }
+
     // ── Sync Portfolio ────────────────────────────────────────────────────
     try {
       const mName = (ctx.managerName || "").trim();

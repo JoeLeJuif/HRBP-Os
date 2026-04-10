@@ -1505,7 +1505,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                 <div key={p.id||i} style={{ borderBottom:`1px solid ${C.border}`, padding:"6px 0" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
                     <span style={{ fontSize:11, color:C.textM, flex:1 }}>
-                      🗂️ Prép. 1:1 — {p.meetingType||"1:1"}
+                      📋 Meeting — {p.meetingType||p.engineType||"1:1"}
                     </span>
                     <div style={{ display:"flex", gap:4, flexShrink:0 }}>
                       {p.output?.overallRisk && (

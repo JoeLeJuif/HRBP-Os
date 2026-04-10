@@ -8306,6 +8306,40 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       onSave("prep1on1", [...data["prep1on1"] || [], session]);
       setSaved1on1(true);
       try {
+        const meetingSession = {
+          id: `mtg_${Date.now()}`,
+          savedAt: today,
+          dateCreated: today,
+          director: ctx.managerName || "Non assign\xE9",
+          meetingType: ctx.meetingType || engineType || "1:1",
+          scope: "leader",
+          province: ctx.province || data.profile?.defaultProvince || "QC",
+          kind: "1:1-meeting",
+          analysis: {
+            meetingTitle: output.meetingTitle || `1:1 \u2014 ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
+            director: ctx.managerName || "Non assign\xE9",
+            overallRisk: output.overallRisk || "Mod\xE9r\xE9",
+            overallRiskRationale: output.overallRiskRationale || "",
+            summary: output.summary || [],
+            signals: output.signals || [],
+            decisions: output.decisions || [],
+            risks: output.risks || [],
+            actions: output.actions || [],
+            people: output.people || {},
+            strategieHRBP: output.strategieHRBP || {},
+            hrbpKeyMessage: output.hrbpKeyMessage || "",
+            keySignals: output.keySignals || [],
+            mainRisks: output.mainRisks || [],
+            hrbpFollowups: output.hrbpFollowups || [],
+            crossQuestions: output.crossQuestions || [],
+            caseEntry: output.caseEntry || null
+          }
+        };
+        onSave("meetings", [meetingSession, ...data.meetings || []]);
+      } catch (err) {
+        console.warn("Meeting Engine \u2014 sync Meetings Hub failed:", err);
+      }
+      try {
         const mName = (ctx.managerName || "").trim();
         const nk = mName ? normKey(mName) : "";
         if (nk && onSave) {
@@ -12315,7 +12349,7 @@ ${ctx}`, 500);
       " autre",
       sortedMeetings.length - 4 > 1 ? "s" : "",
       " \u2014 voir tous les meetings \u2192"
-    ), sortedPreps.length > 0 && sortedMeetings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 0" } }), sortedPreps.slice(0, 3).map((p, i) => /* @__PURE__ */ React.createElement("div", { key: p.id || i, style: { borderBottom: `1px solid ${C.border}`, padding: "6px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, flex: 1 } }, "\u{1F5C2}\uFE0F Pr\xE9p. 1:1 \u2014 ", p.meetingType || "1:1"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0 } }, p.output?.overallRisk && /* @__PURE__ */ React.createElement(
+    ), sortedPreps.length > 0 && sortedMeetings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 0" } }), sortedPreps.slice(0, 3).map((p, i) => /* @__PURE__ */ React.createElement("div", { key: p.id || i, style: { borderBottom: `1px solid ${C.border}`, padding: "6px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, flex: 1 } }, "\u{1F4CB} Meeting \u2014 ", p.meetingType || p.engineType || "1:1"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0 } }, p.output?.overallRisk && /* @__PURE__ */ React.createElement(
       Badge,
       {
         label: p.output.overallRisk,
