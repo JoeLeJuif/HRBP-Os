@@ -47,12 +47,16 @@ function InfoRow({ label, children }) {
 const RISK_ORDER  = { "Critique":0, "Élevé":1, "Eleve":1, "Modéré":2, "Modere":2, "Faible":3 };
 const RISK_LABELS = ["Critique","Élevé","Modéré","Faible"];
 
-const LEVEL_ORDER = { executif:0, vp:1, director:2, manager:3 };
+const LEVEL_ORDER = { executif:0, vp:1, director:2, manager:3, gestionnaire:3, employe:4, ta_team:5 };
 const LEVEL_META  = {
-  executif:  { label:"Exécutif",     icon:"🏛", color:C.purple },
-  vp:        { label:"VP",           icon:"📊", color:C.blue   },
-  director:  { label:"Directeur",    icon:"🏢", color:C.blue   },
-  manager:   { label:"Gestionnaire", icon:"👤", color:C.teal   },
+  executif:      { label:"Exécutif",     icon:"🏛", color:C.purple },
+  vp:            { label:"VP",           icon:"📊", color:C.blue   },
+  director:      { label:"Directeur",    icon:"🏢", color:C.blue   },
+  directeur:     { label:"Directeur",    icon:"🏢", color:C.blue   },
+  manager:       { label:"Gestionnaire", icon:"👤", color:C.teal   },
+  gestionnaire:  { label:"Gestionnaire", icon:"👤", color:C.teal   },
+  employe:       { label:"Employé",      icon:"🧑", color:C.em     },
+  ta_team:       { label:"TA Team",      icon:"🎯", color:C.teal   },
 };
 const DEFAULT_LEVEL = { label:"Autre", icon:"👤", color:C.textD };
 
@@ -269,7 +273,16 @@ function buildLeaderIndex(data) {
 
   (data.prep1on1||[]).forEach(p => {
     const l = ensure(p.managerName);
-    if (l) l.preps.push(p);
+    if (!l) return;
+    l.preps.push(p);
+    // Infer level from prep session — niveau or level field
+    const pLevel = p.niveau || p.level || null;
+    if (pLevel) {
+      const ord = LEVEL_ORDER[pLevel];
+      if (ord !== undefined && (l.level === null || ord < LEVEL_ORDER[l.level])) {
+        l.level = pLevel;
+      }
+    }
   });
 
   // plans306090 — linked via plan.manager (free text, same convention)
@@ -394,14 +407,16 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
   // ── LIST VIEW ────────────────────────────────────────────────────────────────
   if (!selected) {
-    // Group by level
+    // Group by level — editorial levelOverride takes precedence
     const groupMap = {};
     leaderList.forEach(l => {
-      const meta = LEVEL_META[l.level] || DEFAULT_LEVEL;
+      const lMeta = getMeta(l.name, leadersMap);
+      const effectiveLevel = lMeta.levelOverride || l.level;
+      const meta = LEVEL_META[effectiveLevel] || DEFAULT_LEVEL;
       if (!groupMap[meta.label]) groupMap[meta.label] = { meta, leaders:[] };
       groupMap[meta.label].leaders.push(l);
     });
-    const groupOrder = ["Exécutif","VP","Directeur","Gestionnaire","Autre"];
+    const groupOrder = ["Exécutif","VP","Directeur","Gestionnaire","Employé","TA Team","Autre"];
     const groups = groupOrder.filter(g => groupMap[g]).map(g => groupMap[g]);
 
     return (
@@ -538,7 +553,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
   const sortedPreps    = sortByDate(l.preps,    "savedAt");
   const lastMeeting    = sortedMeetings[0] || null;
   const lastPrep       = sortedPreps[0]    || null;
-  const levelMeta      = LEVEL_META[l.level] || DEFAULT_LEVEL;
+  const detailMeta     = getMeta(l.name, leadersMap);
+  const levelMeta      = LEVEL_META[detailMeta.levelOverride || l.level] || DEFAULT_LEVEL;
 
   // Global risk — worst of active cases + last meeting, fallback Faible
   const globalRisk = worstRisk([
@@ -719,7 +735,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           setEditingMeta(false);
         };
         const FF = (k, v) => setMetaForm(p => ({ ...p, [k]: v }));
-        const hasMeta = !!(meta.type || meta.pressure || meta.topIssue || meta.nextAction || meta.execSummary || meta.riskOverride);
+        const hasMeta = !!(meta.type || meta.pressure || meta.topIssue || meta.nextAction || meta.execSummary || meta.riskOverride || meta.levelOverride || (meta.tags && meta.tags.length > 0));
 
         return (
           <div style={{ background:C.surf, border:`1px solid ${C.purple}33`,
@@ -764,6 +780,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   {meta.pressure && <Badge label={`Pression ${meta.pressure}`} color={meta.pressure==="Elevee"||meta.pressure==="Élevée"?C.red:meta.pressure==="Moderee"||meta.pressure==="Modérée"?C.amber:C.em}/>}
                   {meta.riskOverride && <Badge label={`Risque (override): ${meta.riskOverride}`} color={C.red}/>}
                 </div>
+                {meta.tags?.length > 0 && <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8 }}>{meta.tags.map((t,i) => <Badge key={i} label={t} color={C.textM} size={9}/>)}</div>}
                 {meta.topIssue && <InfoRow label="Enjeu principal"><div style={{ fontSize:13, color:C.text, lineHeight:1.5 }}>⚑ {meta.topIssue}</div></InfoRow>}
                 {meta.nextAction && <InfoRow label="Prochaine action HRBP"><div style={{ fontSize:13, color:C.em, lineHeight:1.5 }}>→ {meta.nextAction}</div></InfoRow>}
                 {meta.execSummary && <InfoRow label="Note libre"><div style={{ fontSize:12, color:C.textM, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{meta.execSummary}</div></InfoRow>}
@@ -772,12 +789,24 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
             )}
 
             {editingMeta && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10 }}>
                 <div>
                   <Mono size={8} color={C.textD}>Type</Mono>
                   <select value={form.type||""} onChange={e=>FF("type", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
                     <option value="">—</option>
                     {MANAGER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Mono size={8} color={C.textD}>Niveau</Mono>
+                  <select value={form.levelOverride||""} onChange={e=>FF("levelOverride", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
+                    <option value="">— (auto)</option>
+                    <option value="executif">Exécutif</option>
+                    <option value="vp">VP</option>
+                    <option value="directeur">Directeur</option>
+                    <option value="gestionnaire">Gestionnaire</option>
+                    <option value="employe">Employé</option>
+                    <option value="ta_team">TA Team</option>
                   </select>
                 </div>
                 <div>
@@ -813,6 +842,13 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   <textarea rows={3} value={form.execSummary||""} onChange={e=>FF("execSummary", e.target.value)}
                     placeholder="Contexte, observations, patterns, plan stratégique..."
                     style={{ ...css.textarea, marginTop:4, fontSize:12 }}/>
+                </div>
+                <div style={{ gridColumn:"1 / -1" }}>
+                  <Mono size={8} color={C.textD}>Tags</Mono>
+                  <input value={Array.isArray(form.tags) ? form.tags.join(", ") : (form.tags||"")}
+                    onChange={e=>FF("tags", e.target.value.split(",").map(t=>t.trim()).filter(Boolean))}
+                    placeholder="Ex: high-potential, succession, retention-risk"
+                    style={{ ...css.input, marginTop:4, fontSize:12 }}/>
                 </div>
               </div>
             )}

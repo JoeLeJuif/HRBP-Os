@@ -11090,12 +11090,16 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
   }
   var RISK_ORDER3 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
   var RISK_LABELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
-  var LEVEL_ORDER = { executif: 0, vp: 1, director: 2, manager: 3 };
+  var LEVEL_ORDER = { executif: 0, vp: 1, director: 2, manager: 3, gestionnaire: 3, employe: 4, ta_team: 5 };
   var LEVEL_META = {
     executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
     vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
     director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
-    manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal }
+    directeur: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
+    manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal },
+    gestionnaire: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal },
+    employe: { label: "Employ\xE9", icon: "\u{1F9D1}", color: C.em },
+    ta_team: { label: "TA Team", icon: "\u{1F3AF}", color: C.teal }
   };
   var DEFAULT_LEVEL = { label: "Autre", icon: "\u{1F464}", color: C.textD };
   var CASE_TYPE_LABEL = {
@@ -11287,7 +11291,15 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     });
     (data.prep1on1 || []).forEach((p) => {
       const l = ensure(p.managerName);
-      if (l) l.preps.push(p);
+      if (!l) return;
+      l.preps.push(p);
+      const pLevel = p.niveau || p.level || null;
+      if (pLevel) {
+        const ord = LEVEL_ORDER[pLevel];
+        if (ord !== void 0 && (l.level === null || ord < LEVEL_ORDER[l.level])) {
+          l.level = pLevel;
+        }
+      }
     });
     (data.plans306090 || []).forEach((p) => {
       const mgr = (p.manager || "").trim();
@@ -11412,11 +11424,13 @@ ${ctx}`, 500);
     if (!selected) {
       const groupMap = {};
       leaderList.forEach((l2) => {
-        const meta = LEVEL_META[l2.level] || DEFAULT_LEVEL;
+        const lMeta = getMeta(l2.name, leadersMap);
+        const effectiveLevel = lMeta.levelOverride || l2.level;
+        const meta = LEVEL_META[effectiveLevel] || DEFAULT_LEVEL;
         if (!groupMap[meta.label]) groupMap[meta.label] = { meta, leaders: [] };
         groupMap[meta.label].leaders.push(l2);
       });
-      const groupOrder = ["Ex\xE9cutif", "VP", "Directeur", "Gestionnaire", "Autre"];
+      const groupOrder = ["Ex\xE9cutif", "VP", "Directeur", "Gestionnaire", "Employ\xE9", "TA Team", "Autre"];
       const groups = groupOrder.filter((g) => groupMap[g]).map((g) => groupMap[g]);
       return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 880, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Fiches Leaders"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, leaderList.length, " gestionnaire", leaderList.length > 1 ? "s" : "", " d\xE9tect\xE9", leaderList.length > 1 ? "s" : "", /* @__PURE__ */ React.createElement("span", { style: { color: C.textD } }, " \xB7 Agr\xE9gation auto + couche \xE9ditoriale HRBP"))), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
         background: "linear-gradient(135deg,#ef444412,#f59e0b08)",
@@ -11549,7 +11563,8 @@ ${ctx}`, 500);
     const sortedPreps = sortByDate(l.preps, "savedAt");
     const lastMeeting = sortedMeetings[0] || null;
     const lastPrep = sortedPreps[0] || null;
-    const levelMeta = LEVEL_META[l.level] || DEFAULT_LEVEL;
+    const detailMeta = getMeta(l.name, leadersMap);
+    const levelMeta = LEVEL_META[detailMeta.levelOverride || l.level] || DEFAULT_LEVEL;
     const globalRisk = worstRisk([
       ...activeCases.map((c) => c.riskLevel),
       lastMeeting?.analysis?.overallRisk
@@ -11695,7 +11710,7 @@ ${ctx}`, 500);
         setEditingMeta(false);
       };
       const FF = (k, v) => setMetaForm((p) => ({ ...p, [k]: v }));
-      const hasMeta = !!(meta.type || meta.pressure || meta.topIssue || meta.nextAction || meta.execSummary || meta.riskOverride);
+      const hasMeta = !!(meta.type || meta.pressure || meta.topIssue || meta.nextAction || meta.execSummary || meta.riskOverride || meta.levelOverride || meta.tags && meta.tags.length > 0);
       return /* @__PURE__ */ React.createElement("div", { style: {
         background: C.surf,
         border: `1px solid ${C.purple}33`,
@@ -11726,7 +11741,7 @@ ${ctx}`, 500);
           style: { ...css.btn(C.purple, true), padding: "5px 11px", fontSize: 11 }
         },
         hasMeta ? "\u270F Modifier" : "+ Ajouter"
-      )), editingMeta && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { onClick: commitEdit, style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Enregistrer"), /* @__PURE__ */ React.createElement("button", { onClick: cancelEdit, style: { ...css.btn(C.textM, true), padding: "5px 11px", fontSize: 11 } }, "Annuler"))), !editingMeta && !hasMeta && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, 'Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.'), !editingMeta && hasMeta && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 } }, meta.type && /* @__PURE__ */ React.createElement(Badge, { label: `${TYPE_ICON[meta.type] || ""} ${meta.type}`, color: C.purple }), meta.pressure && /* @__PURE__ */ React.createElement(Badge, { label: `Pression ${meta.pressure}`, color: meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e" ? C.red : meta.pressure === "Moderee" || meta.pressure === "Mod\xE9r\xE9e" ? C.amber : C.em }), meta.riskOverride && /* @__PURE__ */ React.createElement(Badge, { label: `Risque (override): ${meta.riskOverride}`, color: C.red })), meta.topIssue && /* @__PURE__ */ React.createElement(InfoRow, { label: "Enjeu principal" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, "\u2691 ", meta.topIssue)), meta.nextAction && /* @__PURE__ */ React.createElement(InfoRow, { label: "Prochaine action HRBP" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.em, lineHeight: 1.5 } }, "\u2192 ", meta.nextAction)), meta.execSummary && /* @__PURE__ */ React.createElement(InfoRow, { label: "Note libre" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, meta.execSummary)), meta.lastInteraction && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Derni\xE8re \xE9val: ", meta.lastInteraction)), editingMeta && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.type || "", onChange: (e) => FF("type", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), MANAGER_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t, value: t }, t)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Pression"), /* @__PURE__ */ React.createElement("select", { value: form.pressure || "", onChange: (e) => FF("pressure", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), /* @__PURE__ */ React.createElement("option", { value: "Elevee" }, "\xC9lev\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Moderee" }, "Mod\xE9r\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Faible" }, "Faible"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Risque (override)"), /* @__PURE__ */ React.createElement("select", { value: form.riskOverride || "", onChange: (e) => FF("riskOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), RISK_LEVELS.map((r) => /* @__PURE__ */ React.createElement("option", { key: r, value: r }, r)))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Enjeu principal"), /* @__PURE__ */ React.createElement(
+      )), editingMeta && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { onClick: commitEdit, style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Enregistrer"), /* @__PURE__ */ React.createElement("button", { onClick: cancelEdit, style: { ...css.btn(C.textM, true), padding: "5px 11px", fontSize: 11 } }, "Annuler"))), !editingMeta && !hasMeta && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, 'Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.'), !editingMeta && hasMeta && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 } }, meta.type && /* @__PURE__ */ React.createElement(Badge, { label: `${TYPE_ICON[meta.type] || ""} ${meta.type}`, color: C.purple }), meta.pressure && /* @__PURE__ */ React.createElement(Badge, { label: `Pression ${meta.pressure}`, color: meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e" ? C.red : meta.pressure === "Moderee" || meta.pressure === "Mod\xE9r\xE9e" ? C.amber : C.em }), meta.riskOverride && /* @__PURE__ */ React.createElement(Badge, { label: `Risque (override): ${meta.riskOverride}`, color: C.red })), meta.tags?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 } }, meta.tags.map((t, i) => /* @__PURE__ */ React.createElement(Badge, { key: i, label: t, color: C.textM, size: 9 }))), meta.topIssue && /* @__PURE__ */ React.createElement(InfoRow, { label: "Enjeu principal" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, "\u2691 ", meta.topIssue)), meta.nextAction && /* @__PURE__ */ React.createElement(InfoRow, { label: "Prochaine action HRBP" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.em, lineHeight: 1.5 } }, "\u2192 ", meta.nextAction)), meta.execSummary && /* @__PURE__ */ React.createElement(InfoRow, { label: "Note libre" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, meta.execSummary)), meta.lastInteraction && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Derni\xE8re \xE9val: ", meta.lastInteraction)), editingMeta && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.type || "", onChange: (e) => FF("type", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), MANAGER_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t, value: t }, t)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Niveau"), /* @__PURE__ */ React.createElement("select", { value: form.levelOverride || "", onChange: (e) => FF("levelOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), /* @__PURE__ */ React.createElement("option", { value: "executif" }, "Ex\xE9cutif"), /* @__PURE__ */ React.createElement("option", { value: "vp" }, "VP"), /* @__PURE__ */ React.createElement("option", { value: "directeur" }, "Directeur"), /* @__PURE__ */ React.createElement("option", { value: "gestionnaire" }, "Gestionnaire"), /* @__PURE__ */ React.createElement("option", { value: "employe" }, "Employ\xE9"), /* @__PURE__ */ React.createElement("option", { value: "ta_team" }, "TA Team"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Pression"), /* @__PURE__ */ React.createElement("select", { value: form.pressure || "", onChange: (e) => FF("pressure", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), /* @__PURE__ */ React.createElement("option", { value: "Elevee" }, "\xC9lev\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Moderee" }, "Mod\xE9r\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Faible" }, "Faible"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Risque (override)"), /* @__PURE__ */ React.createElement("select", { value: form.riskOverride || "", onChange: (e) => FF("riskOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), RISK_LEVELS.map((r) => /* @__PURE__ */ React.createElement("option", { key: r, value: r }, r)))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Enjeu principal"), /* @__PURE__ */ React.createElement(
         "input",
         {
           value: form.topIssue || "",
@@ -11750,6 +11765,14 @@ ${ctx}`, 500);
           onChange: (e) => FF("execSummary", e.target.value),
           placeholder: "Contexte, observations, patterns, plan strat\xE9gique...",
           style: { ...css.textarea, marginTop: 4, fontSize: 12 }
+        }
+      )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Tags"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: Array.isArray(form.tags) ? form.tags.join(", ") : form.tags || "",
+          onChange: (e) => FF("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean)),
+          placeholder: "Ex: high-potential, succession, retention-risk",
+          style: { ...css.input, marginTop: 4, fontSize: 12 }
         }
       ))));
     })(), /* @__PURE__ */ React.createElement("div", { style: {
