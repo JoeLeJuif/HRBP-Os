@@ -274,7 +274,12 @@ function buildLeaderIndex(data) {
   (data.prep1on1||[]).forEach(p => {
     const l = ensure(p.managerName);
     if (!l) return;
-    l.preps.push(p);
+    // kind:"1:1-meeting" → count as meeting (Meeting Engine sessions)
+    if (p.kind === "1:1-meeting") {
+      l.meetings.push(p);
+    } else {
+      l.preps.push(p);
+    }
     // Infer level from prep session — niveau or level field
     const pLevel = p.niveau || p.level || null;
     if (pLevel) {
@@ -326,8 +331,8 @@ function buildLeaderTimeline(l) {
   }));
   (l.meetings || []).forEach(m => items.push({
     type: "meeting", date: m.savedAt   || "", id: m.id,
-    label: m.analysis?.meetingTitle || m.meetingType || "Meeting",
-    severity: m.analysis?.overallRisk || null,
+    label: m.analysis?.meetingTitle || m.output?.meetingTitle || m.meetingType || m.engineType || "Meeting",
+    severity: m.analysis?.overallRisk || m.output?.overallRisk || null,
   }));
   (l.exits    || []).forEach(e => items.push({
     type: "exit",    date: e.savedAt   || "", id: e.id,
@@ -530,7 +535,6 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
                       {l.meetings.length>0 && <Mono size={8} color={C.textD}>{l.meetings.length} meeting{l.meetings.length>1?"s":""}</Mono>}
                       {activeCases.length>0 && <Mono size={8} color={C.amber}>{activeCases.length} dossier{activeCases.length>1?"s":""} actif{activeCases.length>1?"s":""}</Mono>}
-                      {l.preps.length>0 && <Mono size={8} color={C.teal}>{l.preps.length} prép. 1:1</Mono>}
                       {lastMeeting?.savedAt && <Mono size={8} color={C.textD}>Contact: {lastMeeting.savedAt}</Mono>}
                     </div>
                   </button>
@@ -712,7 +716,6 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {[
             { label:"Meetings",        value:l.meetings.length,     color:C.blue  },
             { label:"Dossiers actifs", value:activeCases.length,    color:activeCases.length>0 ? C.amber : C.textD },
-            { label:"Prép. 1:1",       value:l.preps.length,        color:C.teal  },
             { label:"Plans 30-60-90",  value:(l.plans||[]).length,  color:(l.plans||[]).length>0 ? "#06b6d4" : C.textD },
           ].map((s,i) => (
             <div key={i}>

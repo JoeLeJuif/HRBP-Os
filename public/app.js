@@ -11292,7 +11292,11 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     (data.prep1on1 || []).forEach((p) => {
       const l = ensure(p.managerName);
       if (!l) return;
-      l.preps.push(p);
+      if (p.kind === "1:1-meeting") {
+        l.meetings.push(p);
+      } else {
+        l.preps.push(p);
+      }
       const pLevel = p.niveau || p.level || null;
       if (pLevel) {
         const ord = LEVEL_ORDER[pLevel];
@@ -11333,8 +11337,8 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       type: "meeting",
       date: m.savedAt || "",
       id: m.id,
-      label: m.analysis?.meetingTitle || m.meetingType || "Meeting",
-      severity: m.analysis?.overallRisk || null
+      label: m.analysis?.meetingTitle || m.output?.meetingTitle || m.meetingType || m.engineType || "Meeting",
+      severity: m.analysis?.overallRisk || m.output?.overallRisk || null
     }));
     (l.exits || []).forEach((e) => items.push({
       type: "exit",
@@ -11548,7 +11552,7 @@ ${ctx}`, 500);
           /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, TYPE_ICON[lMeta.type] || group.meta.icon), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, alignItems: "center" } }, PRESSURE_EMOJI[lMeta.pressure] && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, PRESSURE_EMOJI[lMeta.pressure]), /* @__PURE__ */ React.createElement(RiskBadge7, { level: globalRisk2 }))),
           /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 } }, l2.name),
           lMeta.topIssue && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.amber, marginBottom: 6, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } }, "\u2691 ", lMeta.topIssue),
-          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 3 } }, l2.meetings.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, l2.meetings.length, " meeting", l2.meetings.length > 1 ? "s" : ""), activeCases2.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.amber }, activeCases2.length, " dossier", activeCases2.length > 1 ? "s" : "", " actif", activeCases2.length > 1 ? "s" : ""), l2.preps.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.teal }, l2.preps.length, " pr\xE9p. 1:1"), lastMeeting2?.savedAt && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Contact: ", lastMeeting2.savedAt))
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 3 } }, l2.meetings.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, l2.meetings.length, " meeting", l2.meetings.length > 1 ? "s" : ""), activeCases2.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.amber }, activeCases2.length, " dossier", activeCases2.length > 1 ? "s" : "", " actif", activeCases2.length > 1 ? "s" : ""), lastMeeting2?.savedAt && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Contact: ", lastMeeting2.savedAt))
         );
       })))));
     }
@@ -11691,7 +11695,6 @@ ${ctx}`, 500);
     } }, [
       { label: "Meetings", value: l.meetings.length, color: C.blue },
       { label: "Dossiers actifs", value: activeCases.length, color: activeCases.length > 0 ? C.amber : C.textD },
-      { label: "Pr\xE9p. 1:1", value: l.preps.length, color: C.teal },
       { label: "Plans 30-60-90", value: (l.plans || []).length, color: (l.plans || []).length > 0 ? "#06b6d4" : C.textD }
     ].map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: s.color } }, s.value), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, s.label))))), (() => {
       const meta = getMeta(l.name, leadersMap);
