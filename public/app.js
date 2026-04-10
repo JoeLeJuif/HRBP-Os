@@ -7750,6 +7750,126 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   // src/modules/MeetingEngine.jsx
   var import_react14 = __require("react");
 
+  // src/utils/leaderStore.js
+  var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
+  var RISK_LEVELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
+  var TYPE_ICON = {
+    "Solide": "\u2705",
+    "\xC9vitant": "\u{1FAE5}",
+    "Evitant": "\u{1FAE5}",
+    "Surcharg\xE9": "\u{1F525}",
+    "Surcharge": "\u{1F525}",
+    "Micromanager": "\u{1F52C}",
+    "Politique": "\u{1F3AD}",
+    "En d\xE9veloppement": "\u{1F331}",
+    "En developpement": "\u{1F331}"
+  };
+  var PRESSURE_EMOJI = { "Elevee": "\u{1F534}", "\xC9lev\xE9e": "\u{1F534}", "Moderee": "\u{1F7E1}", "Mod\xE9r\xE9e": "\u{1F7E1}", "Faible": "\u{1F7E2}" };
+  function emptyMeta() {
+    return {
+      type: "",
+      pressure: "",
+      riskOverride: "",
+      topIssue: "",
+      nextAction: "",
+      execSummary: "",
+      tags: [],
+      lastInteraction: "",
+      updatedAt: "",
+      legacy: {}
+    };
+  }
+  function getLeadersMap(data) {
+    const existing = data.leaders;
+    if (existing && typeof existing === "object" && !Array.isArray(existing) && Object.keys(existing).length > 0) {
+      return existing;
+    }
+    const portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+    if (portfolio.length === 0) return {};
+    const out = {};
+    portfolio.forEach((p) => {
+      if (!p?.name) return;
+      const key = normKey(p.name);
+      if (!key) return;
+      const known = ["id", "name", "team", "level", "risk", "pressure", "type", "topIssue", "hrbpAction", "lastInteraction", "notes"];
+      const legacy = {};
+      Object.keys(p).forEach((k) => {
+        if (!known.includes(k)) legacy[k] = p[k];
+      });
+      out[key] = {
+        type: p.type || "",
+        pressure: p.pressure || "",
+        riskOverride: p.risk || "",
+        topIssue: p.topIssue || "",
+        nextAction: p.hrbpAction || "",
+        execSummary: p.notes || "",
+        tags: [],
+        lastInteraction: p.lastInteraction || "",
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        legacy
+      };
+    });
+    return out;
+  }
+  function getMeta(name, leadersMap) {
+    if (!name) return emptyMeta();
+    const k = normKey(name);
+    return leadersMap[k] || emptyMeta();
+  }
+  function setMeta(leadersMap, name, patch) {
+    const k = normKey(name);
+    if (!k) return leadersMap;
+    const cur = leadersMap[k] || emptyMeta();
+    const next = { ...cur, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] };
+    return { ...leadersMap, [k]: next };
+  }
+  var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
+  function computeFocusScore(autoLeader, meta, todayISO) {
+    let score = 0;
+    const reasons = [];
+    const activeCases = (autoLeader.cases || []).filter((c) => c.status !== "closed" && c.status !== "resolved");
+    const lastMeeting = (autoLeader.meetings || [])[0];
+    const autoRisks = [...activeCases.map((c) => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
+    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER2[r] ?? 3)) : 3;
+    const overrideOrder = meta.riskOverride ? RISK_ORDER2[meta.riskOverride] ?? 3 : 9;
+    const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
+    score += (3 - effectiveOrder) * 30;
+    if (effectiveOrder === 0) reasons.push("risque critique");
+    else if (effectiveOrder === 1) reasons.push("risque \xE9lev\xE9");
+    const lastDate = meta.lastInteraction || lastMeeting?.savedAt || null;
+    const days = lastDate ? Math.floor((new Date(todayISO) - new Date(lastDate)) / 864e5) : 99;
+    if (days > 21) {
+      score += 20;
+      reasons.push(`${days}j sans contact`);
+    } else if (days > 14) {
+      score += 10;
+      reasons.push(`${days}j sans contact`);
+    }
+    if (meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e") {
+      score += 15;
+      reasons.push("pression \xE9lev\xE9e");
+    }
+    if (meta.type === "\xC9vitant" || meta.type === "Evitant") {
+      score += 10;
+      reasons.push("pattern \xE9vitant");
+    }
+    if (meta.type === "Surcharg\xE9" || meta.type === "Surcharge") {
+      score += 8;
+      reasons.push("d\xE9bord\xE9");
+    }
+    if (activeCases.length >= 2) {
+      score += 5;
+    }
+    return { score, reasons: reasons.slice(0, 3), days };
+  }
+  function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {
+    return autoLeaders.map((l) => {
+      const meta = getMeta(l.name, leadersMap);
+      const f = computeFocusScore(l, meta, todayISO);
+      return { ...l, _meta: meta, _focus: f };
+    }).filter((x) => x._focus.score > 10).sort((a, b) => b._focus.score - a._focus.score).slice(0, n);
+  }
+
   // src/prompts/meetingEngine.js
   var MEETING_ENGINE_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
 Analyse les informations fournies (transcript, notes, contexte) et genere un rapport complet couvrant 3 phases : extraction factuelle, intelligence HRBP, et continuite.
@@ -7956,7 +8076,9 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     gestionnaire: "Focus op\xE9rationnel : cas employ\xE9s individuels, suivis concrets, actions de gestion quotidienne, coaching terrain.",
     directeur: "Focus \xE9quipe/syst\xE8me : dynamiques d'\xE9quipe, qualit\xE9 de gestion des gestionnaires, patterns syst\xE9miques, arbitrages RH.",
     vp: "Focus risques strat\xE9giques : talents critiques, tensions inter-\xE9quipes, structure organisationnelle, impact business des enjeux RH.",
-    executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
+    executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique.",
+    employe: "Focus individuel : situation personnelle de l'employ\xE9, performance, bien-\xEAtre, engagement, plan de d\xE9veloppement, accommodements, retour au travail. Ton empathique et orient\xE9 solution.",
+    ta_team: "Focus acquisition de talents : prise de besoin, profil de poste, pipeline candidats, d\xE9lais, enjeux de recrutement, feedback hiring manager, strat\xE9gie d'attraction. Ton consultatif et orient\xE9 r\xE9sultats."
   };
   var PREP_MEETING_TYPES2 = [
     { value: "regular", label: "1:1 r\xE9gulier" },
@@ -8162,14 +8284,16 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
     };
     const save1on1 = () => {
       if (!output || saved1on1) return;
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const session = {
         id: Date.now().toString(),
-        savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        savedAt: today,
         managerName: ctx.managerName,
         team: ctx.team,
         meetingType: ctx.meetingType,
         engineType,
         niveau,
+        kind: "1:1-meeting",
         date: ctx.date,
         purpose: ctx.purpose,
         notes,
@@ -8181,6 +8305,34 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       };
       onSave("prep1on1", [...data["prep1on1"] || [], session]);
       setSaved1on1(true);
+      const mName = ctx.managerName || "";
+      const nk = mName ? normKey(mName) : "";
+      if (nk) {
+        const leadersMap = getLeadersMap(data);
+        const existing = leadersMap[nk];
+        const historyEntry = {
+          date: today,
+          event: `1:1 archiv\xE9 \u2014 ${ENGINE_TYPES.find((t) => t.id === engineType)?.label || engineType}`,
+          source: "meeting-engine"
+        };
+        if (existing) {
+          const patched = setMeta(leadersMap, mName, {
+            lastInteraction: today,
+            history: [...existing.history || [], historyEntry]
+          });
+          onSave("leaders", patched);
+        } else {
+          const newMeta = {
+            ...emptyMeta(),
+            name: mName,
+            level: niveau || "gestionnaire",
+            lastInteraction: today,
+            createdAt: today,
+            history: [{ date: today, event: "Fiche cr\xE9\xE9e automatiquement via Meeting Engine", source: "meeting-engine" }]
+          };
+          onSave("leaders", { ...leadersMap, [nk]: newMeta });
+        }
+      }
     };
     const startNextCycle = () => {
       if (!saved1on1) save1on1();
@@ -8497,7 +8649,9 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       /* @__PURE__ */ React.createElement("option", { value: "gestionnaire", style: { background: C.surfL } }, "Gestionnaire"),
       /* @__PURE__ */ React.createElement("option", { value: "directeur", style: { background: C.surfL } }, "Directeur"),
       /* @__PURE__ */ React.createElement("option", { value: "vp", style: { background: C.surfL } }, "VP"),
-      /* @__PURE__ */ React.createElement("option", { value: "executif", style: { background: C.surfL } }, "Ex\xE9cutif")
+      /* @__PURE__ */ React.createElement("option", { value: "executif", style: { background: C.surfL } }, "Ex\xE9cutif"),
+      /* @__PURE__ */ React.createElement("option", { value: "employe", style: { background: C.surfL } }, "Employ\xE9"),
+      /* @__PURE__ */ React.createElement("option", { value: "ta_team", style: { background: C.surfL } }, "TA Team")
     )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "\xC9quipe / Fonction"), /* @__PURE__ */ React.createElement(
       "select",
       {
@@ -10905,126 +11059,6 @@ ${recap.sentText}`,
 A partir des donnees historiques d un gestionnaire (meetings analyses, dossiers actifs), evalue son profil de risque RH actuel.
 Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
 {"riskAssessment":"Critique|Eleve|Modere|Faible","pressureLevel":"Elevee|Moderee|Faible","managerType":"Solide|En developpement|A risque|Critique","topIssue":"enjeu principal identifie en 1 phrase courte","recommendedAction":"action HRBP recommandee en 1 phrase courte"}`;
-
-  // src/utils/leaderStore.js
-  var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
-  var RISK_LEVELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
-  var TYPE_ICON = {
-    "Solide": "\u2705",
-    "\xC9vitant": "\u{1FAE5}",
-    "Evitant": "\u{1FAE5}",
-    "Surcharg\xE9": "\u{1F525}",
-    "Surcharge": "\u{1F525}",
-    "Micromanager": "\u{1F52C}",
-    "Politique": "\u{1F3AD}",
-    "En d\xE9veloppement": "\u{1F331}",
-    "En developpement": "\u{1F331}"
-  };
-  var PRESSURE_EMOJI = { "Elevee": "\u{1F534}", "\xC9lev\xE9e": "\u{1F534}", "Moderee": "\u{1F7E1}", "Mod\xE9r\xE9e": "\u{1F7E1}", "Faible": "\u{1F7E2}" };
-  function emptyMeta() {
-    return {
-      type: "",
-      pressure: "",
-      riskOverride: "",
-      topIssue: "",
-      nextAction: "",
-      execSummary: "",
-      tags: [],
-      lastInteraction: "",
-      updatedAt: "",
-      legacy: {}
-    };
-  }
-  function getLeadersMap(data) {
-    const existing = data.leaders;
-    if (existing && typeof existing === "object" && !Array.isArray(existing) && Object.keys(existing).length > 0) {
-      return existing;
-    }
-    const portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
-    if (portfolio.length === 0) return {};
-    const out = {};
-    portfolio.forEach((p) => {
-      if (!p?.name) return;
-      const key = normKey(p.name);
-      if (!key) return;
-      const known = ["id", "name", "team", "level", "risk", "pressure", "type", "topIssue", "hrbpAction", "lastInteraction", "notes"];
-      const legacy = {};
-      Object.keys(p).forEach((k) => {
-        if (!known.includes(k)) legacy[k] = p[k];
-      });
-      out[key] = {
-        type: p.type || "",
-        pressure: p.pressure || "",
-        riskOverride: p.risk || "",
-        topIssue: p.topIssue || "",
-        nextAction: p.hrbpAction || "",
-        execSummary: p.notes || "",
-        tags: [],
-        lastInteraction: p.lastInteraction || "",
-        updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-        legacy
-      };
-    });
-    return out;
-  }
-  function getMeta(name, leadersMap) {
-    if (!name) return emptyMeta();
-    const k = normKey(name);
-    return leadersMap[k] || emptyMeta();
-  }
-  function setMeta(leadersMap, name, patch) {
-    const k = normKey(name);
-    if (!k) return leadersMap;
-    const cur = leadersMap[k] || emptyMeta();
-    const next = { ...cur, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] };
-    return { ...leadersMap, [k]: next };
-  }
-  var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
-  function computeFocusScore(autoLeader, meta, todayISO) {
-    let score = 0;
-    const reasons = [];
-    const activeCases = (autoLeader.cases || []).filter((c) => c.status !== "closed" && c.status !== "resolved");
-    const lastMeeting = (autoLeader.meetings || [])[0];
-    const autoRisks = [...activeCases.map((c) => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
-    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER2[r] ?? 3)) : 3;
-    const overrideOrder = meta.riskOverride ? RISK_ORDER2[meta.riskOverride] ?? 3 : 9;
-    const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
-    score += (3 - effectiveOrder) * 30;
-    if (effectiveOrder === 0) reasons.push("risque critique");
-    else if (effectiveOrder === 1) reasons.push("risque \xE9lev\xE9");
-    const lastDate = meta.lastInteraction || lastMeeting?.savedAt || null;
-    const days = lastDate ? Math.floor((new Date(todayISO) - new Date(lastDate)) / 864e5) : 99;
-    if (days > 21) {
-      score += 20;
-      reasons.push(`${days}j sans contact`);
-    } else if (days > 14) {
-      score += 10;
-      reasons.push(`${days}j sans contact`);
-    }
-    if (meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e") {
-      score += 15;
-      reasons.push("pression \xE9lev\xE9e");
-    }
-    if (meta.type === "\xC9vitant" || meta.type === "Evitant") {
-      score += 10;
-      reasons.push("pattern \xE9vitant");
-    }
-    if (meta.type === "Surcharg\xE9" || meta.type === "Surcharge") {
-      score += 8;
-      reasons.push("d\xE9bord\xE9");
-    }
-    if (activeCases.length >= 2) {
-      score += 5;
-    }
-    return { score, reasons: reasons.slice(0, 3), days };
-  }
-  function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {
-    return autoLeaders.map((l) => {
-      const meta = getMeta(l.name, leadersMap);
-      const f = computeFocusScore(l, meta, todayISO);
-      return { ...l, _meta: meta, _focus: f };
-    }).filter((x) => x._focus.score > 10).sort((a, b) => b._focus.score - a._focus.score).slice(0, n);
-  }
 
   // src/modules/Leader.jsx
   function RiskBadge7({ level }) {

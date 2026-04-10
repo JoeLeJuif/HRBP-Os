@@ -6,6 +6,7 @@ import { useState } from "react";
 import { C, css, RISK, DELAY_C } from '../theme.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { normKey } from '../utils/format.js';
+import { emptyMeta, setMeta, getLeadersMap } from '../utils/leaderStore.js';
 import { callAI } from '../api/index.js';
 import { MEETING_ENGINE_SP } from '../prompts/meetingEngine.js';
 import Mono          from '../components/Mono.jsx';
@@ -103,6 +104,8 @@ const LEVEL_CONTEXT = {
   directeur:    "Focus équipe/système : dynamiques d'équipe, qualité de gestion des gestionnaires, patterns systémiques, arbitrages RH.",
   vp:           "Focus risques stratégiques : talents critiques, tensions inter-équipes, structure organisationnelle, impact business des enjeux RH.",
   executif:     "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement stratégique.",
+  employe:      "Focus individuel : situation personnelle de l'employé, performance, bien-être, engagement, plan de développement, accommodements, retour au travail. Ton empathique et orienté solution.",
+  ta_team:      "Focus acquisition de talents : prise de besoin, profil de poste, pipeline candidats, délais, enjeux de recrutement, feedback hiring manager, stratégie d'attraction. Ton consultatif et orienté résultats.",
 };
 
 const PREP_MEETING_TYPES = [
@@ -290,10 +293,11 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
   // ── Save current session ──────────────────────────────────────────────────
   const save1on1 = () => {
     if (!output || saved1on1) return;
+    const today = new Date().toISOString().split("T")[0];
     const session = {
-      id: Date.now().toString(), savedAt: new Date().toISOString().split("T")[0],
+      id: Date.now().toString(), savedAt: today,
       managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
-      engineType, niveau,
+      engineType, niveau, kind: "1:1-meeting",
       date: ctx.date, purpose: ctx.purpose, notes, output,
       meetingTranscript: meetingAnalysis.transcript || "",
       meetingKeyPoints: meetingAnalysis.keyPoints || "",
@@ -302,6 +306,38 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
     };
     onSave("prep1on1", [...(data["prep1on1"]||[]), session]);
     setSaved1on1(true);
+
+    // ── Sync Portfolio ────────────────────────────────────────────────────
+    const mName = ctx.managerName || "";
+    const nk = mName ? normKey(mName) : "";
+    if (nk) {
+      const leadersMap = getLeadersMap(data);
+      const existing = leadersMap[nk];
+      const historyEntry = {
+        date: today,
+        event: `1:1 archivé — ${ENGINE_TYPES.find(t=>t.id===engineType)?.label || engineType}`,
+        source: "meeting-engine",
+      };
+      if (existing) {
+        // Update existing leader
+        const patched = setMeta(leadersMap, mName, {
+          lastInteraction: today,
+          history: [...(existing.history || []), historyEntry],
+        });
+        onSave("leaders", patched);
+      } else {
+        // Create new leader entry
+        const newMeta = {
+          ...emptyMeta(),
+          name: mName,
+          level: niveau || "gestionnaire",
+          lastInteraction: today,
+          createdAt: today,
+          history: [{ date: today, event: "Fiche créée automatiquement via Meeting Engine", source: "meeting-engine" }],
+        };
+        onSave("leaders", { ...leadersMap, [nk]: newMeta });
+      }
+    }
   };
 
   // ── Start next cycle ─────────────────────────────────────────────────────
@@ -615,6 +651,8 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
                         <option value="directeur" style={{background:C.surfL}}>Directeur</option>
                         <option value="vp" style={{background:C.surfL}}>VP</option>
                         <option value="executif" style={{background:C.surfL}}>Exécutif</option>
+                        <option value="employe" style={{background:C.surfL}}>Employé</option>
+                        <option value="ta_team" style={{background:C.surfL}}>TA Team</option>
                       </select>
                     </div>
                     <div style={{marginBottom:12}}>
