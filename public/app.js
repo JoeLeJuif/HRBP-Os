@@ -8305,33 +8305,37 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       };
       onSave("prep1on1", [...data["prep1on1"] || [], session]);
       setSaved1on1(true);
-      const mName = ctx.managerName || "";
-      const nk = mName ? normKey(mName) : "";
-      if (nk) {
-        const leadersMap = getLeadersMap(data);
-        const existing = leadersMap[nk];
-        const historyEntry = {
-          date: today,
-          event: `1:1 archiv\xE9 \u2014 ${ENGINE_TYPES.find((t) => t.id === engineType)?.label || engineType}`,
-          source: "meeting-engine"
-        };
-        if (existing) {
-          const patched = setMeta(leadersMap, mName, {
-            lastInteraction: today,
-            history: [...existing.history || [], historyEntry]
-          });
-          onSave("leaders", patched);
-        } else {
-          const newMeta = {
-            ...emptyMeta(),
-            name: mName,
-            level: niveau || "gestionnaire",
-            lastInteraction: today,
-            createdAt: today,
-            history: [{ date: today, event: "Fiche cr\xE9\xE9e automatiquement via Meeting Engine", source: "meeting-engine" }]
+      try {
+        const mName = (ctx.managerName || "").trim();
+        const nk = mName ? normKey(mName) : "";
+        if (nk && onSave) {
+          const leadersMap = getLeadersMap(data) || {};
+          const existing = leadersMap[nk];
+          const historyEntry = {
+            date: today,
+            event: `1:1 archiv\xE9 \u2014 ${ENGINE_TYPES.find((t) => t.id === engineType)?.label || engineType}`,
+            source: "meeting-engine"
           };
-          onSave("leaders", { ...leadersMap, [nk]: newMeta });
+          let updatedMap;
+          if (existing) {
+            updatedMap = setMeta(leadersMap, mName, {
+              lastInteraction: today,
+              history: [...existing.history || [], historyEntry]
+            });
+          } else {
+            updatedMap = { ...leadersMap, [nk]: {
+              ...emptyMeta(),
+              name: mName,
+              level: niveau || "gestionnaire",
+              lastInteraction: today,
+              createdAt: today,
+              history: [{ date: today, event: "Fiche cr\xE9\xE9e automatiquement via Meeting Engine", source: "meeting-engine" }]
+            } };
+          }
+          onSave("leaders", updatedMap);
         }
+      } catch (err) {
+        console.warn("Meeting Engine \u2014 sync Portfolio failed:", err);
       }
     };
     const startNextCycle = () => {
