@@ -105,7 +105,9 @@ const LEVEL_CONTEXT = {
   vp:           "Focus risques stratégiques : talents critiques, tensions inter-équipes, structure organisationnelle, impact business des enjeux RH.",
   executif:     "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement stratégique.",
   employe:      "Focus individuel : situation personnelle de l'employé, performance, bien-être, engagement, plan de développement, accommodements, retour au travail. Ton empathique et orienté solution.",
+  hrbp_team:    "Focus équipe RH : collaboration interne HRBP, alignement pratiques RH, partage de connaissances, développement de l'équipe RH, enjeux opérationnels RH.",
   ta_team:      "Focus acquisition de talents : prise de besoin, profil de poste, pipeline candidats, délais, enjeux de recrutement, feedback hiring manager, stratégie d'attraction. Ton consultatif et orienté résultats.",
+  autres:       "Focus général : situation spécifique à documenter, contexte particulier, suivi ad hoc selon le besoin identifié.",
 };
 
 const PREP_MEETING_TYPES = [
@@ -318,6 +320,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
         scope: "leader",
         province: ctx.province || data.profile?.defaultProvince || "QC",
         kind: "1:1-meeting",
+        niveau,
         analysis: {
           meetingTitle: output.meetingTitle || `1:1 — ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
           director: ctx.managerName || "Non assigné",
@@ -685,12 +688,14 @@ Niveau de leadership : ${LEVEL_CONTEXT[level] || LEVEL_CONTEXT.gestionnaire}`;
                       <select value={niveau}
                         onChange={e=>setNiveau(e.target.value)}
                         style={{...css.select}}>
+                        <option value="employe" style={{background:C.surfL}}>Employé</option>
                         <option value="gestionnaire" style={{background:C.surfL}}>Gestionnaire</option>
                         <option value="directeur" style={{background:C.surfL}}>Directeur</option>
                         <option value="vp" style={{background:C.surfL}}>VP</option>
                         <option value="executif" style={{background:C.surfL}}>Exécutif</option>
-                        <option value="employe" style={{background:C.surfL}}>Employé</option>
+                        <option value="hrbp_team" style={{background:C.surfL}}>HRBP Team</option>
                         <option value="ta_team" style={{background:C.surfL}}>TA Team</option>
+                        <option value="autres" style={{background:C.surfL}}>Autres</option>
                       </select>
                     </div>
                     <div style={{marginBottom:12}}>

@@ -8078,7 +8078,9 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     vp: "Focus risques strat\xE9giques : talents critiques, tensions inter-\xE9quipes, structure organisationnelle, impact business des enjeux RH.",
     executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique.",
     employe: "Focus individuel : situation personnelle de l'employ\xE9, performance, bien-\xEAtre, engagement, plan de d\xE9veloppement, accommodements, retour au travail. Ton empathique et orient\xE9 solution.",
-    ta_team: "Focus acquisition de talents : prise de besoin, profil de poste, pipeline candidats, d\xE9lais, enjeux de recrutement, feedback hiring manager, strat\xE9gie d'attraction. Ton consultatif et orient\xE9 r\xE9sultats."
+    hrbp_team: "Focus \xE9quipe RH : collaboration interne HRBP, alignement pratiques RH, partage de connaissances, d\xE9veloppement de l'\xE9quipe RH, enjeux op\xE9rationnels RH.",
+    ta_team: "Focus acquisition de talents : prise de besoin, profil de poste, pipeline candidats, d\xE9lais, enjeux de recrutement, feedback hiring manager, strat\xE9gie d'attraction. Ton consultatif et orient\xE9 r\xE9sultats.",
+    autres: "Focus g\xE9n\xE9ral : situation sp\xE9cifique \xE0 documenter, contexte particulier, suivi ad hoc selon le besoin identifi\xE9."
   };
   var PREP_MEETING_TYPES2 = [
     { value: "regular", label: "1:1 r\xE9gulier" },
@@ -8315,6 +8317,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
           scope: "leader",
           province: ctx.province || data.profile?.defaultProvince || "QC",
           kind: "1:1-meeting",
+          niveau,
           analysis: {
             meetingTitle: output.meetingTitle || `1:1 \u2014 ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
             director: ctx.managerName || "Non assign\xE9",
@@ -8684,12 +8687,14 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         onChange: (e) => setNiveau(e.target.value),
         style: { ...css.select }
       },
+      /* @__PURE__ */ React.createElement("option", { value: "employe", style: { background: C.surfL } }, "Employ\xE9"),
       /* @__PURE__ */ React.createElement("option", { value: "gestionnaire", style: { background: C.surfL } }, "Gestionnaire"),
       /* @__PURE__ */ React.createElement("option", { value: "directeur", style: { background: C.surfL } }, "Directeur"),
       /* @__PURE__ */ React.createElement("option", { value: "vp", style: { background: C.surfL } }, "VP"),
       /* @__PURE__ */ React.createElement("option", { value: "executif", style: { background: C.surfL } }, "Ex\xE9cutif"),
-      /* @__PURE__ */ React.createElement("option", { value: "employe", style: { background: C.surfL } }, "Employ\xE9"),
-      /* @__PURE__ */ React.createElement("option", { value: "ta_team", style: { background: C.surfL } }, "TA Team")
+      /* @__PURE__ */ React.createElement("option", { value: "hrbp_team", style: { background: C.surfL } }, "HRBP Team"),
+      /* @__PURE__ */ React.createElement("option", { value: "ta_team", style: { background: C.surfL } }, "TA Team"),
+      /* @__PURE__ */ React.createElement("option", { value: "autres", style: { background: C.surfL } }, "Autres")
     )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "\xC9quipe / Fonction"), /* @__PURE__ */ React.createElement(
       "select",
       {
@@ -9083,16 +9088,23 @@ ${t}`;
         g.label
       ))), groupBy === "director" && (() => {
         const LEVEL_MAP = {
-          executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple, order: 0 },
-          vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue, order: 1 },
+          employe: { label: "Employ\xE9", icon: "\u{1F9D1}", color: C.em, order: 0 },
+          gestionnaire: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal, order: 1 },
+          directeur: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue, order: 2 },
           director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue, order: 2 },
-          manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal, order: 3 }
+          manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal, order: 1 },
+          vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue, order: 3 },
+          executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple, order: 4 },
+          hrbp_team: { label: "HRBP Team", icon: "\u{1F91D}", color: C.purple, order: 5 },
+          ta_team: { label: "TA Team", icon: "\u{1F3AF}", color: C.teal, order: 6 },
+          autres: { label: "Autres", icon: "\u{1F4CB}", color: C.textD, order: 7 }
         };
-        const OTHER_LVL = { label: "Autre", icon: "\u{1F4CB}", color: C.textD, order: 4 };
+        const OTHER_LVL = { label: "Autres", icon: "\u{1F4CB}", color: C.textD, order: 7 };
         const dirLevel = {};
         meetings.forEach((m) => {
           if (!m.director) return;
-          const lvl = LEVEL_MAP[m.meetingType];
+          const levelKey = m.kind === "1:1-meeting" ? m.niveau || m.analysis?.niveau || "autres" : m.meetingType;
+          const lvl = LEVEL_MAP[levelKey];
           if (!lvl) return;
           const prev = dirLevel[m.director];
           if (!prev || lvl.order < prev.order) dirLevel[m.director] = lvl;
@@ -11124,18 +11136,20 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
   }
   var RISK_ORDER3 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
   var RISK_LABELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
-  var LEVEL_ORDER = { executif: 0, vp: 1, director: 2, manager: 3, gestionnaire: 3, employe: 4, ta_team: 5 };
+  var LEVEL_ORDER = { employe: 0, gestionnaire: 1, manager: 1, director: 2, directeur: 2, vp: 3, executif: 4, hrbp_team: 5, ta_team: 6, autres: 7 };
   var LEVEL_META = {
-    executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
-    vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
-    director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
-    directeur: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
-    manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal },
-    gestionnaire: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal },
     employe: { label: "Employ\xE9", icon: "\u{1F9D1}", color: C.em },
-    ta_team: { label: "TA Team", icon: "\u{1F3AF}", color: C.teal }
+    gestionnaire: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal },
+    manager: { label: "Gestionnaire", icon: "\u{1F464}", color: C.teal },
+    directeur: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
+    director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
+    vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
+    executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
+    hrbp_team: { label: "HRBP Team", icon: "\u{1F91D}", color: C.purple },
+    ta_team: { label: "TA Team", icon: "\u{1F3AF}", color: C.teal },
+    autres: { label: "Autres", icon: "\u{1F4CB}", color: C.textD }
   };
-  var DEFAULT_LEVEL = { label: "Autre", icon: "\u{1F464}", color: C.textD };
+  var DEFAULT_LEVEL = { label: "Autres", icon: "\u{1F4CB}", color: C.textD };
   var CASE_TYPE_LABEL = {
     performance: "Performance",
     pip: "PIP / Correctif",
@@ -11468,7 +11482,7 @@ ${ctx}`, 500);
         if (!groupMap[meta.label]) groupMap[meta.label] = { meta, leaders: [] };
         groupMap[meta.label].leaders.push(l2);
       });
-      const groupOrder = ["Ex\xE9cutif", "VP", "Directeur", "Gestionnaire", "Employ\xE9", "TA Team", "Autre"];
+      const groupOrder = ["Employ\xE9", "Gestionnaire", "Directeur", "VP", "Ex\xE9cutif", "HRBP Team", "TA Team", "Autres"];
       const groups = groupOrder.filter((g) => groupMap[g]).map((g) => groupMap[g]);
       return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 880, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Fiches Leaders"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, leaderList.length, " gestionnaire", leaderList.length > 1 ? "s" : "", " d\xE9tect\xE9", leaderList.length > 1 ? "s" : "", /* @__PURE__ */ React.createElement("span", { style: { color: C.textD } }, " \xB7 Agr\xE9gation auto + couche \xE9ditoriale HRBP"))), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
         background: "linear-gradient(135deg,#ef444412,#f59e0b08)",
@@ -11778,7 +11792,7 @@ ${ctx}`, 500);
           style: { ...css.btn(C.purple, true), padding: "5px 11px", fontSize: 11 }
         },
         hasMeta ? "\u270F Modifier" : "+ Ajouter"
-      )), editingMeta && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { onClick: commitEdit, style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Enregistrer"), /* @__PURE__ */ React.createElement("button", { onClick: cancelEdit, style: { ...css.btn(C.textM, true), padding: "5px 11px", fontSize: 11 } }, "Annuler"))), !editingMeta && !hasMeta && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, 'Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.'), !editingMeta && hasMeta && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 } }, meta.type && /* @__PURE__ */ React.createElement(Badge, { label: `${TYPE_ICON[meta.type] || ""} ${meta.type}`, color: C.purple }), meta.pressure && /* @__PURE__ */ React.createElement(Badge, { label: `Pression ${meta.pressure}`, color: meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e" ? C.red : meta.pressure === "Moderee" || meta.pressure === "Mod\xE9r\xE9e" ? C.amber : C.em }), meta.riskOverride && /* @__PURE__ */ React.createElement(Badge, { label: `Risque (override): ${meta.riskOverride}`, color: C.red })), meta.tags?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 } }, meta.tags.map((t, i) => /* @__PURE__ */ React.createElement(Badge, { key: i, label: t, color: C.textM, size: 9 }))), meta.topIssue && /* @__PURE__ */ React.createElement(InfoRow, { label: "Enjeu principal" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, "\u2691 ", meta.topIssue)), meta.nextAction && /* @__PURE__ */ React.createElement(InfoRow, { label: "Prochaine action HRBP" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.em, lineHeight: 1.5 } }, "\u2192 ", meta.nextAction)), meta.execSummary && /* @__PURE__ */ React.createElement(InfoRow, { label: "Note libre" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, meta.execSummary)), meta.lastInteraction && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Derni\xE8re \xE9val: ", meta.lastInteraction)), editingMeta && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.type || "", onChange: (e) => FF("type", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), MANAGER_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t, value: t }, t)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Niveau"), /* @__PURE__ */ React.createElement("select", { value: form.levelOverride || "", onChange: (e) => FF("levelOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), /* @__PURE__ */ React.createElement("option", { value: "executif" }, "Ex\xE9cutif"), /* @__PURE__ */ React.createElement("option", { value: "vp" }, "VP"), /* @__PURE__ */ React.createElement("option", { value: "directeur" }, "Directeur"), /* @__PURE__ */ React.createElement("option", { value: "gestionnaire" }, "Gestionnaire"), /* @__PURE__ */ React.createElement("option", { value: "employe" }, "Employ\xE9"), /* @__PURE__ */ React.createElement("option", { value: "ta_team" }, "TA Team"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Pression"), /* @__PURE__ */ React.createElement("select", { value: form.pressure || "", onChange: (e) => FF("pressure", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), /* @__PURE__ */ React.createElement("option", { value: "Elevee" }, "\xC9lev\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Moderee" }, "Mod\xE9r\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Faible" }, "Faible"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Risque (override)"), /* @__PURE__ */ React.createElement("select", { value: form.riskOverride || "", onChange: (e) => FF("riskOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), RISK_LEVELS.map((r) => /* @__PURE__ */ React.createElement("option", { key: r, value: r }, r)))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Enjeu principal"), /* @__PURE__ */ React.createElement(
+      )), editingMeta && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { onClick: commitEdit, style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Enregistrer"), /* @__PURE__ */ React.createElement("button", { onClick: cancelEdit, style: { ...css.btn(C.textM, true), padding: "5px 11px", fontSize: 11 } }, "Annuler"))), !editingMeta && !hasMeta && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, 'Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.'), !editingMeta && hasMeta && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 } }, meta.type && /* @__PURE__ */ React.createElement(Badge, { label: `${TYPE_ICON[meta.type] || ""} ${meta.type}`, color: C.purple }), meta.pressure && /* @__PURE__ */ React.createElement(Badge, { label: `Pression ${meta.pressure}`, color: meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e" ? C.red : meta.pressure === "Moderee" || meta.pressure === "Mod\xE9r\xE9e" ? C.amber : C.em }), meta.riskOverride && /* @__PURE__ */ React.createElement(Badge, { label: `Risque (override): ${meta.riskOverride}`, color: C.red })), meta.tags?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 } }, meta.tags.map((t, i) => /* @__PURE__ */ React.createElement(Badge, { key: i, label: t, color: C.textM, size: 9 }))), meta.topIssue && /* @__PURE__ */ React.createElement(InfoRow, { label: "Enjeu principal" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, "\u2691 ", meta.topIssue)), meta.nextAction && /* @__PURE__ */ React.createElement(InfoRow, { label: "Prochaine action HRBP" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.em, lineHeight: 1.5 } }, "\u2192 ", meta.nextAction)), meta.execSummary && /* @__PURE__ */ React.createElement(InfoRow, { label: "Note libre" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, meta.execSummary)), meta.lastInteraction && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Derni\xE8re \xE9val: ", meta.lastInteraction)), editingMeta && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.type || "", onChange: (e) => FF("type", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), MANAGER_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t, value: t }, t)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Niveau"), /* @__PURE__ */ React.createElement("select", { value: form.levelOverride || "", onChange: (e) => FF("levelOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), /* @__PURE__ */ React.createElement("option", { value: "employe" }, "Employ\xE9"), /* @__PURE__ */ React.createElement("option", { value: "gestionnaire" }, "Gestionnaire"), /* @__PURE__ */ React.createElement("option", { value: "directeur" }, "Directeur"), /* @__PURE__ */ React.createElement("option", { value: "vp" }, "VP"), /* @__PURE__ */ React.createElement("option", { value: "executif" }, "Ex\xE9cutif"), /* @__PURE__ */ React.createElement("option", { value: "hrbp_team" }, "HRBP Team"), /* @__PURE__ */ React.createElement("option", { value: "ta_team" }, "TA Team"), /* @__PURE__ */ React.createElement("option", { value: "autres" }, "Autres"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Pression"), /* @__PURE__ */ React.createElement("select", { value: form.pressure || "", onChange: (e) => FF("pressure", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014"), /* @__PURE__ */ React.createElement("option", { value: "Elevee" }, "\xC9lev\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Moderee" }, "Mod\xE9r\xE9e"), /* @__PURE__ */ React.createElement("option", { value: "Faible" }, "Faible"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Risque (override)"), /* @__PURE__ */ React.createElement("select", { value: form.riskOverride || "", onChange: (e) => FF("riskOverride", e.target.value), style: { ...css.select, marginTop: 4, fontSize: 12 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 (auto)"), RISK_LEVELS.map((r) => /* @__PURE__ */ React.createElement("option", { key: r, value: r }, r)))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Enjeu principal"), /* @__PURE__ */ React.createElement(
         "input",
         {
           value: form.topIssue || "",

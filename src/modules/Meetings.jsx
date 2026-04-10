@@ -254,17 +254,25 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {/* ── BY DIRECTOR ── */}
       {groupBy === "director" && (() => {
         const LEVEL_MAP = {
-          executif:  { label:"Exécutif",    icon:"🏛", color:C.purple, order:0 },
-          vp:        { label:"VP",          icon:"📊", color:C.blue,   order:1 },
-          director:  { label:"Directeur",   icon:"🏢", color:C.blue,   order:2 },
-          manager:   { label:"Gestionnaire",icon:"👤", color:C.teal,   order:3 },
+          employe:       { label:"Employé",      icon:"🧑", color:C.em,     order:0 },
+          gestionnaire:  { label:"Gestionnaire", icon:"👤", color:C.teal,   order:1 },
+          directeur:     { label:"Directeur",    icon:"🏢", color:C.blue,   order:2 },
+          director:      { label:"Directeur",    icon:"🏢", color:C.blue,   order:2 },
+          manager:       { label:"Gestionnaire", icon:"👤", color:C.teal,   order:1 },
+          vp:            { label:"VP",           icon:"📊", color:C.blue,   order:3 },
+          executif:      { label:"Exécutif",     icon:"🏛", color:C.purple, order:4 },
+          hrbp_team:     { label:"HRBP Team",    icon:"🤝", color:C.purple, order:5 },
+          ta_team:       { label:"TA Team",      icon:"🎯", color:C.teal,   order:6 },
+          autres:        { label:"Autres",       icon:"📋", color:C.textD,  order:7 },
         };
-        const OTHER_LVL = { label:"Autre", icon:"📋", color:C.textD, order:4 };
+        const OTHER_LVL = { label:"Autres", icon:"📋", color:C.textD, order:7 };
         // Determine dominant level per director name (lowest order wins)
         const dirLevel = {};
         meetings.forEach(m => {
           if (!m.director) return;
-          const lvl = LEVEL_MAP[m.meetingType];
+          // For Meeting Engine sessions: use niveau; for Meetings Hub: use meetingType
+          const levelKey = m.kind === "1:1-meeting" ? (m.niveau || m.analysis?.niveau || "autres") : m.meetingType;
+          const lvl = LEVEL_MAP[levelKey];
           if (!lvl) return;
           const prev = dirLevel[m.director];
           if (!prev || lvl.order < prev.order) dirLevel[m.director] = lvl;

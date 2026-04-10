@@ -47,18 +47,20 @@ function InfoRow({ label, children }) {
 const RISK_ORDER  = { "Critique":0, "Élevé":1, "Eleve":1, "Modéré":2, "Modere":2, "Faible":3 };
 const RISK_LABELS = ["Critique","Élevé","Modéré","Faible"];
 
-const LEVEL_ORDER = { executif:0, vp:1, director:2, manager:3, gestionnaire:3, employe:4, ta_team:5 };
+const LEVEL_ORDER = { employe:0, gestionnaire:1, manager:1, director:2, directeur:2, vp:3, executif:4, hrbp_team:5, ta_team:6, autres:7 };
 const LEVEL_META  = {
-  executif:      { label:"Exécutif",     icon:"🏛", color:C.purple },
-  vp:            { label:"VP",           icon:"📊", color:C.blue   },
-  director:      { label:"Directeur",    icon:"🏢", color:C.blue   },
-  directeur:     { label:"Directeur",    icon:"🏢", color:C.blue   },
-  manager:       { label:"Gestionnaire", icon:"👤", color:C.teal   },
-  gestionnaire:  { label:"Gestionnaire", icon:"👤", color:C.teal   },
   employe:       { label:"Employé",      icon:"🧑", color:C.em     },
+  gestionnaire:  { label:"Gestionnaire", icon:"👤", color:C.teal   },
+  manager:       { label:"Gestionnaire", icon:"👤", color:C.teal   },
+  directeur:     { label:"Directeur",    icon:"🏢", color:C.blue   },
+  director:      { label:"Directeur",    icon:"🏢", color:C.blue   },
+  vp:            { label:"VP",           icon:"📊", color:C.blue   },
+  executif:      { label:"Exécutif",     icon:"🏛", color:C.purple },
+  hrbp_team:     { label:"HRBP Team",    icon:"🤝", color:C.purple },
   ta_team:       { label:"TA Team",      icon:"🎯", color:C.teal   },
+  autres:        { label:"Autres",       icon:"📋", color:C.textD  },
 };
-const DEFAULT_LEVEL = { label:"Autre", icon:"👤", color:C.textD };
+const DEFAULT_LEVEL = { label:"Autres", icon:"📋", color:C.textD };
 
 const CASE_TYPE_LABEL = {
   performance:"Performance", pip:"PIP / Correctif",
@@ -421,7 +423,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
       if (!groupMap[meta.label]) groupMap[meta.label] = { meta, leaders:[] };
       groupMap[meta.label].leaders.push(l);
     });
-    const groupOrder = ["Exécutif","VP","Directeur","Gestionnaire","Employé","TA Team","Autre"];
+    const groupOrder = ["Employé","Gestionnaire","Directeur","VP","Exécutif","HRBP Team","TA Team","Autres"];
     const groups = groupOrder.filter(g => groupMap[g]).map(g => groupMap[g]);
 
     return (
@@ -804,12 +806,14 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   <Mono size={8} color={C.textD}>Niveau</Mono>
                   <select value={form.levelOverride||""} onChange={e=>FF("levelOverride", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
                     <option value="">— (auto)</option>
-                    <option value="executif">Exécutif</option>
-                    <option value="vp">VP</option>
-                    <option value="directeur">Directeur</option>
-                    <option value="gestionnaire">Gestionnaire</option>
                     <option value="employe">Employé</option>
+                    <option value="gestionnaire">Gestionnaire</option>
+                    <option value="directeur">Directeur</option>
+                    <option value="vp">VP</option>
+                    <option value="executif">Exécutif</option>
+                    <option value="hrbp_team">HRBP Team</option>
                     <option value="ta_team">TA Team</option>
+                    <option value="autres">Autres</option>
                   </select>
                 </div>
                 <div>
