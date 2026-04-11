@@ -336,7 +336,102 @@ ${prepsTxt ? `\n=== PRÉPARATIONS 1:1 (${weekPreps.length}) ===\n${prepsTxt}` : 
   const BRIEF_RESULT_TABS = [
     { id:"brief", label:"📊 Intelligence Brief" },
     { id:"recap", label:"📋 Récap directrice" },
+    { id:"insights", label:"🔍 Insights" },
   ];
+
+  // ── Insights cross-modules state ──────────────────────────────────────────
+  const [insightsResult, setInsightsResult] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState("");
+  const [insightsSaved, setInsightsSaved] = useState(false);
+
+  const generateInsights = async () => {
+    setInsightsLoading(true); setInsightsError(""); setInsightsResult(null); setInsightsSaved(false);
+    try {
+      const todayISO = new Date().toISOString().split("T")[0];
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+      const activeCasesIns = (data.cases || [])
+        .filter(c => !["closed","resolved","fermé","résolu"].includes((c.status||"").toLowerCase()))
+        .slice(0, 8)
+        .map(c => `- [${c.type||""}] ${c.title||"Sans titre"} — Risque: ${c.riskLevel||"?"} — Statut: ${c.status||"?"} — ${c.director||c.employee||""}`)
+        .join("\n");
+
+      const activeSignalsIns = (data.signals || [])
+        .slice(0, 8)
+        .map(s => {
+          const a = s.analysis || {};
+          return `- ${a.title||a.category||"Signal"} [${a.severity||"?"}] — ${a.interpretation||""} (${s.savedAt||""})`;
+        })
+        .join("\n");
+
+      const recentMeetingsIns = (data.meetings || [])
+        .filter(m => new Date(m.savedAt || m.dateCreated || 0).getTime() > sevenDaysAgo)
+        .slice(0, 8)
+        .map(m => {
+          const a = m.analysis || m.output || {};
+          return `- ${a.meetingTitle||m.meetingType||"Meeting"} — ${m.director||""} — Risque: ${a.overallRisk||"?"} — Actions: ${(a.actions||[]).slice(0,2).map(x=>x.action||x).join("; ")||"aucune"}`;
+        })
+        .join("\n");
+
+      const recentPrepsIns = (data.prep1on1 || [])
+        .filter(p => p.kind === "1:1-meeting" && new Date(p.savedAt || 0).getTime() > sevenDaysAgo)
+        .slice(0, 5)
+        .map(p => {
+          const o = p.output || {};
+          return `- ${o.meetingTitle||p.engineType||"1:1"} — ${p.managerName||""} — ${o.hrbpKeyMessage||""}`;
+        })
+        .join("\n");
+
+      const sp = `Tu es un HRBP senior qui analyse des patterns organisationnels.
+A partir des donnees fournies, identifie des patterns non evidents, des tendances emergentes et des risques systemiques.
+Ton analyse doit etre strategique, pas operationnelle.
+Evite de repeter les faits bruts — cherche ce qu ils revelent.
+Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucun backtick. Francais professionnel.
+{"patterns":"1 court paragraphe sur les themes recurrents entre modules","risquesSystemiques":"1 court paragraphe sur ce qui pourrait s aggraver si non traite","anglesMorts":"1 court paragraphe sur ce qui merite attention mais n est pas encore un cas ou signal formel","recommandation":"1 action HRBP prioritaire pour cette semaine — concrete et actionnable","riskLevel":"Faible|Modere|Eleve|Critique"}`;
+
+      const up = `ANALYSE CROSS-MODULES — Semaine du ${todayISO}
+
+CAS ACTIFS (${(data.cases||[]).filter(c => !["closed","resolved","fermé","résolu"].includes((c.status||"").toLowerCase())).length}) :
+${activeCasesIns || "Aucun cas actif"}
+
+SIGNAUX ORGANISATIONNELS (${(data.signals||[]).length}) :
+${activeSignalsIns || "Aucun signal"}
+
+MEETINGS RECENTS — 7 derniers jours (${(data.meetings||[]).filter(m=>new Date(m.savedAt||0).getTime()>sevenDaysAgo).length}) :
+${recentMeetingsIns || "Aucun meeting recent"}
+
+SESSIONS MEETING ENGINE RECENTES :
+${recentPrepsIns || "Aucune session recente"}
+
+Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 recommandation strategique.`;
+
+      const parsed = await callAI(sp, up, up.length);
+      setInsightsResult(parsed);
+    } catch(e) { setInsightsError("Erreur: " + e.message); }
+    finally { setInsightsLoading(false); }
+  };
+
+  const saveInsights = () => {
+    if (!insightsResult || insightsSaved) return;
+    // Save insights into the most recent brief object (migration douce)
+    const allBriefs = [...(data.briefs || [])];
+    if (allBriefs.length > 0) {
+      // Patch last brief with insights
+      const last = { ...allBriefs[allBriefs.length - 1], insights: insightsResult };
+      allBriefs[allBriefs.length - 1] = last;
+    } else {
+      // No brief yet — create a standalone entry
+      allBriefs.push({
+        id: Date.now().toString(),
+        savedAt: new Date().toISOString().split("T")[0],
+        brief: null,
+        insights: insightsResult,
+      });
+    }
+    onSave("briefs", allBriefs);
+    setInsightsSaved(true);
+  };
 
   // ── Next Week Lock ─────────────────────────────────────────────────────────
   const generateNWL = async () => {
@@ -1169,6 +1264,91 @@ ${prepsTxt ? `\n=== PRÉPARATIONS 1:1 (${weekPreps.length}) ===\n${prepsTxt}` : 
               </div>
             );
           })()}
+
+          {/* ── INSIGHTS CROSS-MODULES TAB */}
+          {briefTab === "insights" && (
+            <div>
+              <Card style={{ marginBottom:14 }}>
+                <SecHead icon="🔍" label="Insights cross-modules" color={C.purple}/>
+                <div style={{ fontSize:12, color:C.textM, marginBottom:14, lineHeight:1.6 }}>
+                  Analyse stratégique qui croise tes cas actifs, signaux, meetings et sessions Meeting Engine pour détecter des patterns non évidents.
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={generateInsights} disabled={insightsLoading}
+                    style={{ ...css.btn(C.purple), opacity:insightsLoading?.5:1 }}>
+                    {insightsLoading ? "⏳ Analyse en cours…" : "🔍 Générer les insights"}
+                  </button>
+                  {insightsResult && !insightsSaved && (
+                    <button onClick={saveInsights} style={css.btn(C.em)}>💾 Sauvegarder</button>
+                  )}
+                  {insightsSaved && <Badge label="✓ Sauvegardé" color={C.em}/>}
+                </div>
+              </Card>
+
+              {insightsLoading && <AILoader label="Analyse cross-modules en cours…"/>}
+              {insightsError && <div style={{ color:C.red, fontSize:12, marginBottom:10 }}>{insightsError}</div>}
+
+              {insightsResult && (
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  {insightsResult.patterns && (
+                    <Card style={{ borderLeft:`3px solid ${C.blue}` }}>
+                      <SecHead icon="🔄" label="Patterns récurrents" color={C.blue}/>
+                      <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{insightsResult.patterns}</div>
+                    </Card>
+                  )}
+                  {insightsResult.risquesSystemiques && (
+                    <Card style={{ borderLeft:`3px solid ${C.red}` }}>
+                      <SecHead icon="⚠️" label="Risques systémiques" color={C.red}/>
+                      <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{insightsResult.risquesSystemiques}</div>
+                    </Card>
+                  )}
+                  {insightsResult.anglesMorts && (
+                    <Card style={{ borderLeft:`3px solid ${C.amber}` }}>
+                      <SecHead icon="👁" label="Angles morts" color={C.amber}/>
+                      <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{insightsResult.anglesMorts}</div>
+                    </Card>
+                  )}
+                  {insightsResult.recommandation && (
+                    <Card style={{ borderLeft:`3px solid ${C.em}`, background:C.em+"08" }}>
+                      <SecHead icon="🎯" label="Recommandation stratégique" color={C.em}/>
+                      <div style={{ fontSize:13, color:C.text, lineHeight:1.7, fontWeight:500 }}>{insightsResult.recommandation}</div>
+                      {insightsResult.riskLevel && (
+                        <div style={{ marginTop:8 }}><RiskBadge level={insightsResult.riskLevel}/></div>
+                      )}
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Insights history — from briefs that have insights attached */}
+              {(() => {
+                const briefsWithInsights = (data.briefs||[]).filter(b => b.insights).reverse().slice(0,5);
+                return briefsWithInsights.length > 0 && !insightsResult && (
+                  <Card style={{ marginTop:14 }}>
+                    <SecHead icon="📚" label="Historique des insights" color={C.textD}/>
+                    {briefsWithInsights.map((b,i) => (
+                      <button key={b.id||i}
+                        onClick={() => setInsightsResult(b.insights)}
+                        style={{ display:"block", width:"100%", background:C.surfL, border:`1px solid ${C.border}`,
+                          borderRadius:8, padding:"10px 14px", marginBottom:8, cursor:"pointer",
+                          textAlign:"left", fontFamily:"'DM Sans',sans-serif", transition:"opacity .15s" }}
+                        onMouseEnter={e=>e.currentTarget.style.opacity="0.8"}
+                        onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <Mono size={9} color={C.purple}>🔍 Insights — {b.savedAt}</Mono>
+                          {b.insights?.riskLevel && <RiskBadge level={b.insights.riskLevel}/>}
+                        </div>
+                        <div style={{ fontSize:11, color:C.textM, marginTop:4, lineHeight:1.4,
+                          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                          {b.insights?.recommandation || b.insights?.patterns || "—"}
+                        </div>
+                      </button>
+                    ))}
+                  </Card>
+                );
+              })()}
+            </div>
+          )}
 
         </div>
       )}

@@ -10248,8 +10248,80 @@ ${prepsTxt}` : ""}`;
     };
     const BRIEF_RESULT_TABS = [
       { id: "brief", label: "\u{1F4CA} Intelligence Brief" },
-      { id: "recap", label: "\u{1F4CB} R\xE9cap directrice" }
+      { id: "recap", label: "\u{1F4CB} R\xE9cap directrice" },
+      { id: "insights", label: "\u{1F50D} Insights" }
     ];
+    const [insightsResult, setInsightsResult] = (0, import_react16.useState)(null);
+    const [insightsLoading, setInsightsLoading] = (0, import_react16.useState)(false);
+    const [insightsError, setInsightsError] = (0, import_react16.useState)("");
+    const [insightsSaved, setInsightsSaved] = (0, import_react16.useState)(false);
+    const generateInsights = async () => {
+      setInsightsLoading(true);
+      setInsightsError("");
+      setInsightsResult(null);
+      setInsightsSaved(false);
+      try {
+        const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1e3;
+        const activeCasesIns = (data.cases || []).filter((c) => !["closed", "resolved", "ferm\xE9", "r\xE9solu"].includes((c.status || "").toLowerCase())).slice(0, 8).map((c) => `- [${c.type || ""}] ${c.title || "Sans titre"} \u2014 Risque: ${c.riskLevel || "?"} \u2014 Statut: ${c.status || "?"} \u2014 ${c.director || c.employee || ""}`).join("\n");
+        const activeSignalsIns = (data.signals || []).slice(0, 8).map((s) => {
+          const a = s.analysis || {};
+          return `- ${a.title || a.category || "Signal"} [${a.severity || "?"}] \u2014 ${a.interpretation || ""} (${s.savedAt || ""})`;
+        }).join("\n");
+        const recentMeetingsIns = (data.meetings || []).filter((m) => new Date(m.savedAt || m.dateCreated || 0).getTime() > sevenDaysAgo).slice(0, 8).map((m) => {
+          const a = m.analysis || m.output || {};
+          return `- ${a.meetingTitle || m.meetingType || "Meeting"} \u2014 ${m.director || ""} \u2014 Risque: ${a.overallRisk || "?"} \u2014 Actions: ${(a.actions || []).slice(0, 2).map((x) => x.action || x).join("; ") || "aucune"}`;
+        }).join("\n");
+        const recentPrepsIns = (data.prep1on1 || []).filter((p) => p.kind === "1:1-meeting" && new Date(p.savedAt || 0).getTime() > sevenDaysAgo).slice(0, 5).map((p) => {
+          const o = p.output || {};
+          return `- ${o.meetingTitle || p.engineType || "1:1"} \u2014 ${p.managerName || ""} \u2014 ${o.hrbpKeyMessage || ""}`;
+        }).join("\n");
+        const sp = `Tu es un HRBP senior qui analyse des patterns organisationnels.
+A partir des donnees fournies, identifie des patterns non evidents, des tendances emergentes et des risques systemiques.
+Ton analyse doit etre strategique, pas operationnelle.
+Evite de repeter les faits bruts \u2014 cherche ce qu ils revelent.
+Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucun backtick. Francais professionnel.
+{"patterns":"1 court paragraphe sur les themes recurrents entre modules","risquesSystemiques":"1 court paragraphe sur ce qui pourrait s aggraver si non traite","anglesMorts":"1 court paragraphe sur ce qui merite attention mais n est pas encore un cas ou signal formel","recommandation":"1 action HRBP prioritaire pour cette semaine \u2014 concrete et actionnable","riskLevel":"Faible|Modere|Eleve|Critique"}`;
+        const up = `ANALYSE CROSS-MODULES \u2014 Semaine du ${todayISO}
+
+CAS ACTIFS (${(data.cases || []).filter((c) => !["closed", "resolved", "ferm\xE9", "r\xE9solu"].includes((c.status || "").toLowerCase())).length}) :
+${activeCasesIns || "Aucun cas actif"}
+
+SIGNAUX ORGANISATIONNELS (${(data.signals || []).length}) :
+${activeSignalsIns || "Aucun signal"}
+
+MEETINGS RECENTS \u2014 7 derniers jours (${(data.meetings || []).filter((m) => new Date(m.savedAt || 0).getTime() > sevenDaysAgo).length}) :
+${recentMeetingsIns || "Aucun meeting recent"}
+
+SESSIONS MEETING ENGINE RECENTES :
+${recentPrepsIns || "Aucune session recente"}
+
+Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 recommandation strategique.`;
+        const parsed = await callAI(sp, up, up.length);
+        setInsightsResult(parsed);
+      } catch (e) {
+        setInsightsError("Erreur: " + e.message);
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+    const saveInsights = () => {
+      if (!insightsResult || insightsSaved) return;
+      const allBriefs = [...data.briefs || []];
+      if (allBriefs.length > 0) {
+        const last = { ...allBriefs[allBriefs.length - 1], insights: insightsResult };
+        allBriefs[allBriefs.length - 1] = last;
+      } else {
+        allBriefs.push({
+          id: Date.now().toString(),
+          savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+          brief: null,
+          insights: insightsResult
+        });
+      }
+      onSave("briefs", allBriefs);
+      setInsightsSaved(true);
+    };
     const generateNWL = async () => {
       const sentList = [...data.sentRecaps || []].reverse();
       const recap = sentList[nwlSourceIdx];
@@ -10883,7 +10955,49 @@ ${recap.sentText}`,
         overflowY: "auto",
         fontFamily: "monospace"
       } }, r.sentText))))));
-    })()));
+    })(), briefTab === "insights" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F50D}", label: "Insights cross-modules", color: C.purple }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 14, lineHeight: 1.6 } }, "Analyse strat\xE9gique qui croise tes cas actifs, signaux, meetings et sessions Meeting Engine pour d\xE9tecter des patterns non \xE9vidents."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: generateInsights,
+        disabled: insightsLoading,
+        style: { ...css.btn(C.purple), opacity: insightsLoading ? 0.5 : 1 }
+      },
+      insightsLoading ? "\u23F3 Analyse en cours\u2026" : "\u{1F50D} G\xE9n\xE9rer les insights"
+    ), insightsResult && !insightsSaved && /* @__PURE__ */ React.createElement("button", { onClick: saveInsights, style: css.btn(C.em) }, "\u{1F4BE} Sauvegarder"), insightsSaved && /* @__PURE__ */ React.createElement(Badge, { label: "\u2713 Sauvegard\xE9", color: C.em }))), insightsLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "Analyse cross-modules en cours\u2026" }), insightsError && /* @__PURE__ */ React.createElement("div", { style: { color: C.red, fontSize: 12, marginBottom: 10 } }, insightsError), insightsResult && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, insightsResult.patterns && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F504}", label: "Patterns r\xE9currents", color: C.blue }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, insightsResult.patterns)), insightsResult.risquesSystemiques && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u26A0\uFE0F", label: "Risques syst\xE9miques", color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, insightsResult.risquesSystemiques)), insightsResult.anglesMorts && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F441}", label: "Angles morts", color: C.amber }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, insightsResult.anglesMorts)), insightsResult.recommandation && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}`, background: C.em + "08" } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F3AF}", label: "Recommandation strat\xE9gique", color: C.em }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, fontWeight: 500 } }, insightsResult.recommandation), insightsResult.riskLevel && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge6, { level: insightsResult.riskLevel })))), (() => {
+      const briefsWithInsights = (data.briefs || []).filter((b) => b.insights).reverse().slice(0, 5);
+      return briefsWithInsights.length > 0 && !insightsResult && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4DA}", label: "Historique des insights", color: C.textD }), briefsWithInsights.map((b, i) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: b.id || i,
+          onClick: () => setInsightsResult(b.insights),
+          style: {
+            display: "block",
+            width: "100%",
+            background: C.surfL,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            padding: "10px 14px",
+            marginBottom: 8,
+            cursor: "pointer",
+            textAlign: "left",
+            fontFamily: "'DM Sans',sans-serif",
+            transition: "opacity .15s"
+          },
+          onMouseEnter: (e) => e.currentTarget.style.opacity = "0.8",
+          onMouseLeave: (e) => e.currentTarget.style.opacity = "1"
+        },
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.purple }, "\u{1F50D} Insights \u2014 ", b.savedAt), b.insights?.riskLevel && /* @__PURE__ */ React.createElement(RiskBadge6, { level: b.insights.riskLevel })),
+        /* @__PURE__ */ React.createElement("div", { style: {
+          fontSize: 11,
+          color: C.textM,
+          marginTop: 4,
+          lineHeight: 1.4,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        } }, b.insights?.recommandation || b.insights?.patterns || "\u2014")
+      )));
+    })())));
   }
 
   // src/modules/Home.jsx
