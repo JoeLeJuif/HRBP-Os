@@ -1494,10 +1494,12 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
               <SH icon="🕒" label="HISTORIQUE" color={C.textD}/>
 
               {sortedMeetings.slice(0,4).map((m,i) => {
-                const r = RISK[normalizeRisk(m.analysis?.overallRisk)] || RISK["Faible"];
+                const a = mAna(m);
+                const r = RISK[normalizeRisk(a.overallRisk)] || RISK["Faible"];
                 return (
                   <button key={m.id||i}
                     onClick={() => onNavigate("meetings", { focusMeetingId: m.id })}
+                    title="Voir ce meeting dans Meetings Hub"
                     style={{ display:"block", width:"100%", background:"none", border:"none",
                       borderBottom:`1px solid ${C.border}`, padding:"6px 0",
                       cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif",
@@ -1505,11 +1507,11 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     onMouseEnter={e => e.currentTarget.style.background = C.blue+"0d"}
                     onMouseLeave={e => e.currentTarget.style.background = "none"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
-                      <span style={{ fontSize:11, color:C.textM, flex:1, lineHeight:1.4 }}>
-                        🎙️ {m.analysis?.meetingTitle || m.meetingType || "Meeting"}
+                      <span style={{ fontSize:11, color:C.blue, flex:1, lineHeight:1.4, textDecoration:"underline" }}>
+                        🎙️ {a.meetingTitle || m.meetingType || m.engineType || "Meeting"}
                       </span>
                       <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
-                        <Badge label={m.analysis?.overallRisk||"Faible"} color={r.color} size={9}/>
+                        <Badge label={a.overallRisk||"Faible"} color={r.color} size={9}/>
                         <Mono size={8} color={C.textD}>{m.savedAt}</Mono>
                         <span style={{ fontSize:9, color:C.blue, fontFamily:"'DM Mono',monospace", marginLeft:2 }}>→</span>
                       </div>
