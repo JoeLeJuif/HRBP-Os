@@ -1499,15 +1499,14 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                 return (
                   <button key={m.id||i}
                     onClick={() => onNavigate("meetings", { focusMeetingId: m.id })}
-                    title="Voir ce meeting dans Meetings Hub"
                     style={{ display:"block", width:"100%", background:"none", border:"none",
                       borderBottom:`1px solid ${C.border}`, padding:"6px 0",
                       cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif",
-                      transition:"background .1s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = C.blue+"0d"}
-                    onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                      transition:"opacity .15s", opacity:1 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = "0.75"}
+                    onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
-                      <span style={{ fontSize:11, color:C.blue, flex:1, lineHeight:1.4, textDecoration:"underline" }}>
+                      <span style={{ fontSize:11, color:C.blue, flex:1, lineHeight:1.4 }}>
                         🎙️ {a.meetingTitle || m.meetingType || m.engineType || "Meeting"}
                       </span>
                       <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
@@ -1533,21 +1532,31 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
               )}
 
               {sortedPreps.slice(0,3).map((p,i) => (
-                <div key={p.id||i} style={{ borderBottom:`1px solid ${C.border}`, padding:"6px 0" }}>
+                <button key={p.id||i}
+                  onClick={() => p.kind === "1:1-meeting"
+                    ? onNavigate("meetings", { focusMeetingId: p.id })
+                    : onNavigate("meetings")}
+                  style={{ display:"block", width:"100%", background:"none", border:"none",
+                    borderBottom:`1px solid ${C.border}`, padding:"6px 0",
+                    cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif",
+                    transition:"opacity .15s", opacity:1 }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = "0.75"}
+                  onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
-                    <span style={{ fontSize:11, color:C.textM, flex:1 }}>
-                      📋 Meeting — {p.meetingType||p.engineType||"1:1"}
+                    <span style={{ fontSize:11, color:C.blue, flex:1 }}>
+                      📋 {p.engineType || p.meetingType || p.output?.meetingTitle || "Meeting"}
                     </span>
-                    <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                    <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
                       {p.output?.overallRisk && (
                         <Badge label={p.output.overallRisk}
                           color={(RISK[normalizeRisk(p.output.overallRisk)]||RISK["Faible"]).color}
                           size={9}/>
                       )}
                       <Mono size={8} color={C.textD}>{p.savedAt}</Mono>
+                      <span style={{ fontSize:9, color:C.blue, fontFamily:"'DM Mono',monospace", marginLeft:2 }}>→</span>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </Card>
           )}

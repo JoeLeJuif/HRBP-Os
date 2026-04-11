@@ -12401,7 +12401,6 @@ ${ctx}`, 500);
         {
           key: m.id || i,
           onClick: () => onNavigate("meetings", { focusMeetingId: m.id }),
-          title: "Voir ce meeting dans Meetings Hub",
           style: {
             display: "block",
             width: "100%",
@@ -12412,12 +12411,13 @@ ${ctx}`, 500);
             cursor: "pointer",
             textAlign: "left",
             fontFamily: "'DM Sans',sans-serif",
-            transition: "background .1s"
+            transition: "opacity .15s",
+            opacity: 1
           },
-          onMouseEnter: (e) => e.currentTarget.style.background = C.blue + "0d",
-          onMouseLeave: (e) => e.currentTarget.style.background = "none"
+          onMouseEnter: (e) => e.currentTarget.style.opacity = "0.75",
+          onMouseLeave: (e) => e.currentTarget.style.opacity = "1"
         },
-        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.blue, flex: 1, lineHeight: 1.4, textDecoration: "underline" } }, "\u{1F399}\uFE0F ", a.meetingTitle || m.meetingType || m.engineType || "Meeting"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.overallRisk || "Faible", color: r.color, size: 9 }), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, m.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, color: C.blue, fontFamily: "'DM Mono',monospace", marginLeft: 2 } }, "\u2192")))
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.blue, flex: 1, lineHeight: 1.4 } }, "\u{1F399}\uFE0F ", a.meetingTitle || m.meetingType || m.engineType || "Meeting"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.overallRisk || "Faible", color: r.color, size: 9 }), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, m.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, color: C.blue, fontFamily: "'DM Mono',monospace", marginLeft: 2 } }, "\u2192")))
       );
     }), sortedMeetings.length > 4 && /* @__PURE__ */ React.createElement(
       "button",
@@ -12442,14 +12442,36 @@ ${ctx}`, 500);
       " autre",
       sortedMeetings.length - 4 > 1 ? "s" : "",
       " \u2014 voir tous les meetings \u2192"
-    ), sortedPreps.length > 0 && sortedMeetings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 0" } }), sortedPreps.slice(0, 3).map((p, i) => /* @__PURE__ */ React.createElement("div", { key: p.id || i, style: { borderBottom: `1px solid ${C.border}`, padding: "6px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, flex: 1 } }, "\u{1F4CB} Meeting \u2014 ", p.meetingType || p.engineType || "1:1"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0 } }, p.output?.overallRisk && /* @__PURE__ */ React.createElement(
-      Badge,
+    ), sortedPreps.length > 0 && sortedMeetings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 0" } }), sortedPreps.slice(0, 3).map((p, i) => /* @__PURE__ */ React.createElement(
+      "button",
       {
-        label: p.output.overallRisk,
-        color: (RISK[normalizeRisk(p.output.overallRisk)] || RISK["Faible"]).color,
-        size: 9
-      }
-    ), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, p.savedAt)))))), !lecture && highSignals.length === 0 && activeCases.length === 0 && keyMessages.length === 0 && linkedPlans.length === 0 && /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "24px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 24, marginBottom: 8 } }, "\u{1F4ED}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 4 } }, "Donn\xE9es limit\xE9es pour ce gestionnaire"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.6 } }, "Analysez un meeting ou pr\xE9parez un 1:1 pour enrichir cette fiche."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", marginTop: 12 } }, /* @__PURE__ */ React.createElement(
+        key: p.id || i,
+        onClick: () => p.kind === "1:1-meeting" ? onNavigate("meetings", { focusMeetingId: p.id }) : onNavigate("meetings"),
+        style: {
+          display: "block",
+          width: "100%",
+          background: "none",
+          border: "none",
+          borderBottom: `1px solid ${C.border}`,
+          padding: "6px 0",
+          cursor: "pointer",
+          textAlign: "left",
+          fontFamily: "'DM Sans',sans-serif",
+          transition: "opacity .15s",
+          opacity: 1
+        },
+        onMouseEnter: (e) => e.currentTarget.style.opacity = "0.75",
+        onMouseLeave: (e) => e.currentTarget.style.opacity = "1"
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.blue, flex: 1 } }, "\u{1F4CB} ", p.engineType || p.meetingType || p.output?.meetingTitle || "Meeting"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0, alignItems: "center" } }, p.output?.overallRisk && /* @__PURE__ */ React.createElement(
+        Badge,
+        {
+          label: p.output.overallRisk,
+          color: (RISK[normalizeRisk(p.output.overallRisk)] || RISK["Faible"]).color,
+          size: 9
+        }
+      ), /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, p.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, color: C.blue, fontFamily: "'DM Mono',monospace", marginLeft: 2 } }, "\u2192")))
+    ))), !lecture && highSignals.length === 0 && activeCases.length === 0 && keyMessages.length === 0 && linkedPlans.length === 0 && /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "24px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 24, marginBottom: 8 } }, "\u{1F4ED}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 4 } }, "Donn\xE9es limit\xE9es pour ce gestionnaire"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.6 } }, "Analysez un meeting ou pr\xE9parez un 1:1 pour enrichir cette fiche."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", marginTop: 12 } }, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => onNavigate("meetings"),
