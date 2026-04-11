@@ -8227,6 +8227,18 @@ Risques: ${risks}
 Actions: ${actions}
 Questions posees: ${questions2}`;
     }).join("\n\n");
+    const TYPE_CONTEXT = {
+      "1on1": "Rencontre reguliere de suivi \u2014 focus sur continuite, engagement, obstacles et developpement.",
+      "disciplinaire": "Rencontre disciplinaire formelle \u2014 focus sur les faits documentes, le manquement precis, les attentes claires et la mesure envisagee. Ton rigoureux, factuel, sans ambiguite.",
+      "performance": "Rencontre de gestion de la performance \u2014 focus sur les ecarts observables, les attentes non atteintes, le plan de soutien et les jalons de suivi.",
+      "coaching": "Rencontre de coaching et developpement \u2014 focus sur les forces, les zones de croissance, les objectifs convenus et l engagement du gestionnaire.",
+      "recadrage": "Rencontre de recadrage comportemental \u2014 focus sur le comportement precis observe, son impact, les attentes revisees et les consequences si recidive.",
+      "mediation": "Rencontre de mediation ou gestion de conflit \u2014 focus sur les positions des parties, les faits neutres, le terrain commun et l objectif de resolution.",
+      "enquete": "Rencontre dans le cadre d une enquete \u2014 focus sur la collecte de faits, la confidentialite, les droits des parties et la rigueur procedurale.",
+      "suivi": "Rencontre de suivi \u2014 focus sur les engagements pris, les ecarts observes, la progression et les prochaines etapes.",
+      "transition": "Rencontre de transition \u2014 focus sur le contexte du changement, l impact sur l employe, le soutien disponible et le calendrier."
+    };
+    const LEGAL_SENSITIVE_TYPES = ["disciplinaire", "enquete", "performance", "recadrage"];
     const generatePrep = async () => {
       if (!ctx.managerName) return;
       setPrepLoading(true);
@@ -8237,16 +8249,24 @@ Questions posees: ${questions2}`;
       const openCasesCtx = openCases.map(
         (c) => `- ${c.title || "Sans titre"} [${c.status}${c.riskLevel ? ` \xB7 ${c.riskLevel}` : ""}]${c.employee ? ` \xB7 ${c.employee}` : ""}: ${(c.description || c.summary || "").slice(0, 200)}`
       ).join("\n");
-      const sp = `Tu es un HRBP senior expert. Genere un plan d intervention structure pour preparer une rencontre 1:1 avec un gestionnaire.
-${histCtx ? "Tu as l historique des rencontres precedentes \u2014 personnalise le plan et fais des liens explicites avec les enjeux non resolus." : "Aucun historique disponible \u2014 base-toi uniquement sur le contexte fourni."}
+      const _typeCtx = TYPE_CONTEXT[engineType] || TYPE_CONTEXT["1on1"];
+      const _prov = ctx.province || data.profile?.defaultProvince || "QC";
+      const _isLegal = LEGAL_SENSITIVE_TYPES.includes(engineType);
+      const _legalPrep = _isLegal ? `
+${buildLegalPromptContext(_prov)}
+` : "";
+      const sp = `Tu es un HRBP senior expert. Genere un plan d intervention structure pour preparer une rencontre avec un gestionnaire.
+Type de rencontre : ${ENGINE_TYPES.find((t) => t.id === engineType)?.label || engineType}
+Contexte specifique : ${_typeCtx}
+${_legalPrep}${histCtx ? "Tu as l historique des rencontres precedentes \u2014 personnalise le plan et fais des liens explicites avec les enjeux non resolus." : "Aucun historique disponible \u2014 base-toi uniquement sur le contexte fourni."}
 Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucun backtick. Francais professionnel. Max 3 items par liste.
 {"objective":{"purpose":"but principal de la rencontre en 1 phrase","expectedOutcome":"resultat concret attendu en 1 phrase"},"priorityIssues":[{"issue":"enjeu prioritaire specifique","why":"pourquoi c est un enjeu maintenant \u2014 contexte ou signal precis","riskLevel":"Faible|Modere|Eleve"}],"recommendedApproach":{"how":"comment aborder les sujets \u2014 concret et actionnable","tone":"ton a adopter avec ce gestionnaire specifiquement","pitfalls":["piege concret a eviter"]},"suggestedPhrasing":[{"type":"Ouverture","text":"formulation d ouverture naturelle et professionnelle"},{"type":"Recadrage","text":"formulation de recadrage ou confrontation bienveillante"}],"context":{"summary":"resume des elements pertinents disponibles","relevantHistory":"synthese historique utile ou Non disponible","keySignals":["signal important a garder en tete"]},"followUpFromLast1on1":{"evolutions":[],"stagnations":[],"newRisks":[]},"recommendedActions":[{"action":"action concrete a convenir avec le gestionnaire","priority":"Faible|Modere|Eleve"}],"overallPriority":"Faible|Modere|Eleve"}
 Regles : sois direct et specifique, pas generique. Ne pas inventer d information absente du contexte. Utiliser UNIQUEMENT les valeurs exactes Faible, Modere ou Eleve pour riskLevel, priority et overallPriority. Si historique disponible : remplir followUpFromLast1on1. Si aucun historique : laisser les trois listes vides. suggestedPhrasing doit contenir au moins 1 phrase d ouverture ET 1 phrase de recadrage.
-Niveau de leadership : ${LEVEL_CONTEXT2[level] || LEVEL_CONTEXT2.gestionnaire}`;
+Niveau de leadership : ${LEVEL_CONTEXT2[niveau] || LEVEL_CONTEXT2[level] || LEVEL_CONTEXT2.gestionnaire}`;
       const up = [
         `Gestionnaire: ${ctx.managerName}`,
         `Equipe: ${ctx.team}`,
-        `Type: ${ctx.meetingType}`,
+        `Type de rencontre: ${ENGINE_TYPES.find((t) => t.id === engineType)?.label || engineType}`,
         `Objectif: ${ctx.purpose}`,
         ``,
         `CONTEXTE ACTUEL (priorite maximale):`,
@@ -8286,8 +8306,11 @@ ${buildLegalPromptContext(_prov)}
 
 TRANSCRIPT / NOTES DU MEETING :
 ${meetingAnalysis.transcript || ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}` : "";
+      const _typeCtxOut = TYPE_CONTEXT[engineType] || TYPE_CONTEXT["1on1"];
       const up = [
         `TYPE: ${engineType}`,
+        `TYPE_LABEL: ${_engineMeta?.label || engineType}`,
+        `CONTEXTE_TYPE: ${_typeCtxOut}`,
         `NIVEAU: ${niveau}`,
         `Gestionnaire: ${ctx.managerName || "N/A"}`,
         `Equipe: ${ctx.team || "N/A"}`,
