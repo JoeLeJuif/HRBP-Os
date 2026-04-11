@@ -12,7 +12,7 @@ import { normalizeRisk } from '../utils/normalize.js';
 import { normKey } from '../utils/format.js';
 import { callAIJson } from '../api/index.js';
 import { PORTFOLIO_ASSESS_SP } from '../prompts/portfolio.js';
-import { getLeadersMap, getMeta, setMeta, topFocusLeaders, computeFocusScore,
+import { getLeadersMap, getMeta, setMeta, topFocusLeaders, computeFocusScore, getLastEngineOutput,
          MANAGER_TYPES, PRESSURE_LEVELS, RISK_LEVELS, TYPE_ICON, PRESSURE_EMOJI } from '../utils/leaderStore.js';
 
 // ── Inline helpers ─────────────────────────────────────────────────────────────
@@ -632,30 +632,54 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
     if (item.type === "signal")  onNavigate("signals",  { focusSignalId:  item.id });
   };
 
+  // Helper: read analysis data from either m.analysis (Meetings Hub) or m.output (Meeting Engine)
+  const mAna = (m) => m.analysis || m.output || {};
+
   // Signals from meetings — Élevé/Critique, chronological, max 5
   const highSignals = sortedMeetings.slice(0,5).flatMap(m =>
-    (m.analysis?.signals||[])
+    (mAna(m).signals||[])
       .filter(s => s.level==="Élevé" || s.level==="Eleve" || s.level==="Critique")
-      .map(s => ({ ...s, _date:m.savedAt, _title:m.analysis?.meetingTitle }))
+      .map(s => ({ ...s, _date:m.savedAt, _title:mAna(m).meetingTitle }))
   ).slice(0,5);
 
   // hrbpKeyMessages — last 3 meetings with a key message
   const keyMessages = sortedMeetings
-    .filter(m => m.analysis?.hrbpKeyMessage)
+    .filter(m => mAna(m).hrbpKeyMessage)
     .slice(0,3)
-    .map(m => ({ msg:m.analysis.hrbpKeyMessage, date:m.savedAt, risk:m.analysis?.overallRisk }));
+    .map(m => ({ msg:mAna(m).hrbpKeyMessage, date:m.savedAt, risk:mAna(m).overallRisk }));
+
+  // Last Meeting Engine output for this leader
+  const lastEngineOut = getLastEngineOutput(l.name, data);
+
+  // Merge engine hrbpKeyMessage if not already in keyMessages
+  if (lastEngineOut?.hrbpKeyMessage && keyMessages.length < 3 &&
+      !keyMessages.some(k => k.msg === lastEngineOut.hrbpKeyMessage)) {
+    keyMessages.push({ msg:lastEngineOut.hrbpKeyMessage, date:lastEngineOut._savedAt, risk:lastEngineOut.overallRisk, source:"engine" });
+  }
 
   // Actions from meetings — high priority, max 5
   const meetingActions = sortedMeetings.slice(0,4).flatMap(m =>
-    (m.analysis?.actions||[])
-      .filter(a => a.impact==="Eleve" || a.priority==="Critique" || a.priority==="Elevée")
+    (mAna(m).actions||[])
+      .filter(a => a.impact==="Eleve" || a.priority==="Critique" || a.priority==="Elevée" || a.priorite==="Normale" || a.action)
       .map(a => ({ ...a, _date:m.savedAt }))
   ).slice(0,5);
 
-  // Lecture RH + santé équipe from last prep with strategieHRBP
+  // If no meeting actions found, fallback to last engine output actions
+  if (meetingActions.length === 0 && lastEngineOut?.actions?.length) {
+    lastEngineOut.actions.slice(0,5).forEach(a => {
+      meetingActions.push({ action:a.action||a, owner:a.owner||"HRBP", delay:a.delai||"", impact:a.priorite||"", _date:lastEngineOut._savedAt });
+    });
+  }
+
+  // Lecture RH + santé équipe — check both preps and Meeting Engine sessions in meetings
   const prepWithLecture = sortedPreps.find(p => p.output?.strategieHRBP);
-  const lecture   = prepWithLecture?.output?.strategieHRBP || null;
-  const lectureDate = prepWithLecture?.savedAt || null;
+  const engineWithLecture = sortedMeetings.find(m => m.output?.strategieHRBP);
+  // Pick the most recent one
+  const lectureSrc = [prepWithLecture, engineWithLecture]
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))[0] || null;
+  const lecture   = lectureSrc?.output?.strategieHRBP || null;
+  const lectureDate = lectureSrc?.savedAt || null;
   const sante     = lecture?.santeEquipe || null;
 
   // 30-60-90 plans linked to this leader — active first, terminated last, max 4
@@ -1181,6 +1205,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   <div style={{ display:"flex", gap:6, alignItems:"center", marginTop:4 }}>
                     <Mono size={8} color={C.textD}>{m.date}</Mono>
                     {m.risk && <RiskBadge level={m.risk}/>}
+                    {m.source === "engine" && <Badge label="Meeting Engine" color={C.purple} size={8}/>}
                   </div>
                 </div>
               ))}

@@ -113,6 +113,21 @@ export function computeFocusScore(autoLeader, meta, todayISO) {
   return { score, reasons: reasons.slice(0, 3), days };
 }
 
+// Returns the most recent Meeting Engine output for a given leader name.
+// Searches prep1on1 sessions with kind:"1:1-meeting" matched by normKey.
+export function getLastEngineOutput(leaderName, data) {
+  if (!leaderName) return null;
+  const nk = normKey(leaderName);
+  const sessions = (data.prep1on1 || [])
+    .filter(s =>
+      s.kind === "1:1-meeting" &&
+      normKey(s.managerName || "") === nk &&
+      s.output
+    )
+    .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+  return sessions.length ? { ...sessions[0].output, _savedAt: sessions[0].savedAt } : null;
+}
+
 // Returns top N leaders sorted by focus score.
 // autoLeaders: array from Object.values(buildLeaderIndex(data))
 export function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {

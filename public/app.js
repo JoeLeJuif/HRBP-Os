@@ -7886,6 +7886,14 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
     }
     return { score, reasons: reasons.slice(0, 3), days };
   }
+  function getLastEngineOutput(leaderName, data) {
+    if (!leaderName) return null;
+    const nk = normKey(leaderName);
+    const sessions = (data.prep1on1 || []).filter(
+      (s) => s.kind === "1:1-meeting" && normKey(s.managerName || "") === nk && s.output
+    ).sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+    return sessions.length ? { ...sessions[0].output, _savedAt: sessions[0].savedAt } : null;
+  }
   function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {
     return autoLeaders.map((l) => {
       const meta = getMeta(l.name, leadersMap);
@@ -11709,16 +11717,28 @@ ${ctx}`, 500);
       if (item.type === "exit") onNavigate("exit", { focusExitId: item.id });
       if (item.type === "signal") onNavigate("signals", { focusSignalId: item.id });
     };
+    const mAna = (m) => m.analysis || m.output || {};
     const highSignals = sortedMeetings.slice(0, 5).flatMap(
-      (m) => (m.analysis?.signals || []).filter((s) => s.level === "\xC9lev\xE9" || s.level === "Eleve" || s.level === "Critique").map((s) => ({ ...s, _date: m.savedAt, _title: m.analysis?.meetingTitle }))
+      (m) => (mAna(m).signals || []).filter((s) => s.level === "\xC9lev\xE9" || s.level === "Eleve" || s.level === "Critique").map((s) => ({ ...s, _date: m.savedAt, _title: mAna(m).meetingTitle }))
     ).slice(0, 5);
-    const keyMessages = sortedMeetings.filter((m) => m.analysis?.hrbpKeyMessage).slice(0, 3).map((m) => ({ msg: m.analysis.hrbpKeyMessage, date: m.savedAt, risk: m.analysis?.overallRisk }));
+    const keyMessages = sortedMeetings.filter((m) => mAna(m).hrbpKeyMessage).slice(0, 3).map((m) => ({ msg: mAna(m).hrbpKeyMessage, date: m.savedAt, risk: mAna(m).overallRisk }));
+    const lastEngineOut = getLastEngineOutput(l.name, data);
+    if (lastEngineOut?.hrbpKeyMessage && keyMessages.length < 3 && !keyMessages.some((k) => k.msg === lastEngineOut.hrbpKeyMessage)) {
+      keyMessages.push({ msg: lastEngineOut.hrbpKeyMessage, date: lastEngineOut._savedAt, risk: lastEngineOut.overallRisk, source: "engine" });
+    }
     const meetingActions = sortedMeetings.slice(0, 4).flatMap(
-      (m) => (m.analysis?.actions || []).filter((a) => a.impact === "Eleve" || a.priority === "Critique" || a.priority === "Elev\xE9e").map((a) => ({ ...a, _date: m.savedAt }))
+      (m) => (mAna(m).actions || []).filter((a) => a.impact === "Eleve" || a.priority === "Critique" || a.priority === "Elev\xE9e" || a.priorite === "Normale" || a.action).map((a) => ({ ...a, _date: m.savedAt }))
     ).slice(0, 5);
+    if (meetingActions.length === 0 && lastEngineOut?.actions?.length) {
+      lastEngineOut.actions.slice(0, 5).forEach((a) => {
+        meetingActions.push({ action: a.action || a, owner: a.owner || "HRBP", delay: a.delai || "", impact: a.priorite || "", _date: lastEngineOut._savedAt });
+      });
+    }
     const prepWithLecture = sortedPreps.find((p) => p.output?.strategieHRBP);
-    const lecture = prepWithLecture?.output?.strategieHRBP || null;
-    const lectureDate = prepWithLecture?.savedAt || null;
+    const engineWithLecture = sortedMeetings.find((m) => m.output?.strategieHRBP);
+    const lectureSrc = [prepWithLecture, engineWithLecture].filter(Boolean).sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))[0] || null;
+    const lecture = lectureSrc?.output?.strategieHRBP || null;
+    const lectureDate = lectureSrc?.savedAt || null;
     const sante = lecture?.santeEquipe || null;
     const linkedPlans = [...l.plans || []].map((p) => ({ ...p, _phase: getCurrentPhase(p.startDate) })).sort((a, b) => {
       const aActive = a._phase.phaseKey !== null ? 0 : 1;
@@ -12141,7 +12161,7 @@ ${ctx}`, 500);
       marginTop: 2,
       borderLeft: `2px solid ${C.amber}44`,
       paddingLeft: 6
-    } }, s.ifUnaddressed)))), keyMessages.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SH2, { icon: "\u{1F4AC}", label: "MESSAGES CL\xC9S HRBP", color: C.blue }), keyMessages.map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { borderBottom: `1px solid ${C.border}`, padding: "7px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, lineHeight: 1.5 } }, m.msg), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginTop: 4 } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, m.date), m.risk && /* @__PURE__ */ React.createElement(RiskBadge7, { level: m.risk }))))), meetingActions.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(
+    } }, s.ifUnaddressed)))), keyMessages.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SH2, { icon: "\u{1F4AC}", label: "MESSAGES CL\xC9S HRBP", color: C.blue }), keyMessages.map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { borderBottom: `1px solid ${C.border}`, padding: "7px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, lineHeight: 1.5 } }, m.msg), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginTop: 4 } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, m.date), m.risk && /* @__PURE__ */ React.createElement(RiskBadge7, { level: m.risk }), m.source === "engine" && /* @__PURE__ */ React.createElement(Badge, { label: "Meeting Engine", color: C.purple, size: 8 }))))), meetingActions.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(
       SH2,
       {
         icon: "\u2705",
