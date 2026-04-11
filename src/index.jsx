@@ -478,7 +478,7 @@ export default function HRBPOS() {
           : module === "copilot"        ? <ModuleCopilot data={data}/>
           : module === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={setModule} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
           : module === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={setModule}/>
-          : module === "cases"          ? <ModuleCases data={data} onSave={handleSave} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
+          : module === "cases"          ? <ModuleCases data={data} onSave={handleSave} onNavigate={setModule} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
           : module === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
           : module === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
           : module === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave}/>

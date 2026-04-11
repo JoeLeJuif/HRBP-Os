@@ -211,7 +211,7 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
   );
 }
 
-export default function ModuleCases({ data, onSave, focusCaseId, onClearFocus }) {
+export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
   const [view, setView] = useState("list"); // list | form | detail
   const [form, setForm] = useState({...EMPTY_FORM});
   const [editId, setEditId] = useState(null);
@@ -294,7 +294,12 @@ export default function ModuleCases({ data, onSave, focusCaseId, onClearFocus })
         {c.urgency && <Badge label={c.urgency} color={URGENCY_C[c.urgency]||C.textD}/>}
         {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD}/>}
         {c.hrPosture && <Badge label={c.hrPosture} color={HR_POSTURE_C[c.hrPosture]||C.textD}/>}
-        {c.director && <Badge label={c.director} color={C.blue}/>}
+        {c.director && (onNavigate
+          ? <span onClick={() => { sessionStorage.setItem("hrbpos:pendingLeader", c.director); onNavigate("leaders"); }}
+              style={{ cursor:"pointer" }} title="Voir la fiche leader">
+              <Badge label={c.director} color={C.blue}/>
+            </span>
+          : <Badge label={c.director} color={C.blue}/>)}
         {c.owner && <Mono color={C.textD}>Owner · {c.owner}</Mono>}
         <ProvinceBadge province={getProvince(c, data.profile)}/>
         {c.openDate && <Mono color={C.textD}>Ouvert: {c.openDate}</Mono>}
@@ -372,7 +377,11 @@ export default function ModuleCases({ data, onSave, focusCaseId, onClearFocus })
             </div>
             <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
               {typeObj && <span style={{ fontSize:11, color:typeObj.color }}>{typeObj.icon} {typeObj.label}</span>}
-              {c.director && <span style={{ fontSize:11, color:C.textM }}>· {c.director}</span>}
+              {c.director && (onNavigate
+                ? <span onClick={(e) => { e.stopPropagation(); sessionStorage.setItem("hrbpos:pendingLeader", c.director); onNavigate("leaders"); }}
+                    style={{ fontSize:11, color:C.blue, cursor:"pointer", textDecoration:"underline", fontWeight:500 }}
+                    title="Voir la fiche leader">· {c.director}</span>
+                : <span style={{ fontSize:11, color:C.textM }}>· {c.director}</span>)}
               {c.employee && <span style={{ fontSize:11, color:C.textM }}>· {c.employee}</span>}
               <ProvinceBadge province={getProvince(c, data.profile)}/>
               {c.urgency && <span style={{ fontSize:10, color:URGENCY_C[c.urgency]||C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:.3, marginLeft:4 }}>{c.urgency}</span>}
