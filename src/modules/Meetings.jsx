@@ -98,10 +98,20 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
   // ── Inter-module focus: auto-open a specific session on mount ────────────────
   useEffect(() => {
     if (!focusMeetingId) return;
-    const target = (data.meetings || []).find(m => m.id === focusMeetingId);
+    // Direct match by id, or match prep1on1 id → meetings mtg_ id (Meeting Engine double-save)
+    let target = (data.meetings || []).find(m => m.id === focusMeetingId);
+    if (!target) {
+      // Meeting Engine sessions: prep1on1 id = "17xxx", meetings id = "mtg_17xxx"
+      target = (data.meetings || []).find(m => m.id === `mtg_${focusMeetingId}`);
+    }
+    if (!target) {
+      // Reverse: focusMeetingId might be mtg_ but prep1on1 entry has raw timestamp
+      const rawId = focusMeetingId.startsWith("mtg_") ? focusMeetingId.slice(4) : null;
+      if (rawId) target = (data.meetings || []).find(m => m.id === rawId);
+    }
     if (target) {
       setActiveSession(target);
-      setResult(target.analysis);
+      setResult(target.analysis || target.output || null);
       setTab("summary");
       setView("session");
     }
@@ -1484,6 +1494,10 @@ function EngineTab(props) {
 // ── SHELL: 3 tabs (Meetings / 1:1 Engine / Préparation) ─────────────────────
 export default function ModuleMeetings(props) {
   const [tab, setTab] = useState("transcripts");
+  // Force "transcripts" tab when navigating from another module with focusMeetingId
+  useEffect(() => {
+    if (props.focusMeetingId) setTab("transcripts");
+  }, [props.focusMeetingId]);
   const tabs = [
     { id:"transcripts", label:"Meetings",     icon:"🎙️", color:C.blue },
     { id:"engine",      label:"Meeting Engine", color:C.em, icon:"⚡" },

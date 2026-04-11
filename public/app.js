@@ -9008,10 +9008,17 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
     const [meetingScope, setMeetingScope] = (0, import_react15.useState)("leader");
     (0, import_react15.useEffect)(() => {
       if (!focusMeetingId) return;
-      const target = (data.meetings || []).find((m) => m.id === focusMeetingId);
+      let target = (data.meetings || []).find((m) => m.id === focusMeetingId);
+      if (!target) {
+        target = (data.meetings || []).find((m) => m.id === `mtg_${focusMeetingId}`);
+      }
+      if (!target) {
+        const rawId = focusMeetingId.startsWith("mtg_") ? focusMeetingId.slice(4) : null;
+        if (rawId) target = (data.meetings || []).find((m) => m.id === rawId);
+      }
       if (target) {
         setActiveSession(target);
-        setResult(target.analysis);
+        setResult(target.analysis || target.output || null);
         setTab("summary");
         setView("session");
       }
@@ -9871,6 +9878,9 @@ Notes contextuelles: ${notes || "Aucune"}`;
   }
   function ModuleMeetings(props) {
     const [tab, setTab] = (0, import_react15.useState)("transcripts");
+    (0, import_react15.useEffect)(() => {
+      if (props.focusMeetingId) setTab("transcripts");
+    }, [props.focusMeetingId]);
     const tabs = [
       { id: "transcripts", label: "Meetings", icon: "\u{1F399}\uFE0F", color: C.blue },
       { id: "engine", label: "Meeting Engine", color: C.em, icon: "\u26A1" },
