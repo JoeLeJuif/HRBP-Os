@@ -8180,6 +8180,44 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     crossQuestions: [],
     caseEntry: null
   };
+  function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
+    const leadersList = Object.values(data.leaders || {}).map((l) => l.name || "").filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.localeCompare(b, "fr"));
+    const knownSet = new Set(leadersList.map((n) => normKey(n)));
+    const curNk = ctx.managerName ? normKey(ctx.managerName) : "";
+    const isKnown = curNk && knownSet.has(curNk);
+    const selectVal = managerManual ? "__manual__" : isKnown ? ctx.managerName : "";
+    return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Nom du gestionnaire"), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: selectVal,
+        onChange: (e) => {
+          const v = e.target.value;
+          if (v === "__manual__") {
+            setManagerManual(true);
+            setCtx((p) => ({ ...p, managerName: "" }));
+          } else {
+            setManagerManual(false);
+            setCtx((p) => ({ ...p, managerName: v }));
+          }
+        },
+        style: { ...css.select }
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "", style: { background: C.surfL } }, "\u2014 S\xE9lectionner un gestionnaire \u2014"),
+      leadersList.map((n) => /* @__PURE__ */ React.createElement("option", { key: n, value: n, style: { background: C.surfL } }, n)),
+      /* @__PURE__ */ React.createElement("option", { value: "__manual__", style: { background: C.surfL } }, "Autre (saisir manuellement)")
+    ), managerManual && /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: ctx.managerName,
+        onChange: (e) => setCtx((p) => ({ ...p, managerName: e.target.value })),
+        placeholder: "ex. Marie Tremblay",
+        style: { ...css.input, marginTop: 6 },
+        onFocus: (e) => e.target.style.borderColor = C.em,
+        onBlur: (e) => e.target.style.borderColor = C.border,
+        autoFocus: true
+      }
+    ));
+  }
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
     const [pTab, setPTab] = (0, import_react14.useState)("context");
     const [engineType, setEngineType] = (0, import_react14.useState)("1on1");
@@ -8195,6 +8233,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
       recentData: "",
       alerts: ""
     });
+    const [managerManual, setManagerManual] = (0, import_react14.useState)(false);
     const [prep, setPrep] = (0, import_react14.useState)(null);
     const [prepLoading, setPrepLoading] = (0, import_react14.useState)(false);
     const [prepAI, setPrepAI] = (0, import_react14.useState)(false);
@@ -8722,20 +8761,26 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, t.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: active ? 700 : 500, color: active ? t.color : C.text } }, t.label)),
         /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: active ? t.color : C.textD, lineHeight: 1.4 } }, t.desc)
       );
-    })), activeEngine?.legal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.red, fontStyle: "italic" } }, "\u2696 Le cadre juridique provincial sera inject\xE9 automatiquement dans l'analyse.")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
-      ["Nom du gestionnaire", "managerName", "ex. Marie Tremblay"],
-      ["Date de la rencontre", "date", (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")]
-    ].map(([label, key, ph]) => /* @__PURE__ */ React.createElement("div", { key, style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement(
+    })), activeEngine?.legal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.red, fontStyle: "italic" } }, "\u2696 Le cadre juridique provincial sera inject\xE9 automatiquement dans l'analyse.")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(
+      ManagerField,
+      {
+        data,
+        ctx,
+        setCtx,
+        managerManual,
+        setManagerManual
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Date de la rencontre"), /* @__PURE__ */ React.createElement(
       "input",
       {
-        value: ctx[key],
-        onChange: (e) => setCtx((p) => ({ ...p, [key]: e.target.value })),
-        placeholder: ph,
+        value: ctx.date,
+        onChange: (e) => setCtx((p) => ({ ...p, date: e.target.value })),
+        placeholder: (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA"),
         style: { ...css.input },
         onFocus: (e) => e.target.style.borderColor = C.em,
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Niveau"), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Niveau"), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: niveau,

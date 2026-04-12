@@ -166,6 +166,60 @@ const FALLBACK_OUTPUT = {
   nextMeetingContext: "", nextMeetingQuestions: ["A definir"], crossQuestions: [], caseEntry: null,
 };
 
+// ── Manager dropdown + free-text fallback ─────────────────────────────────────
+function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
+  const leadersList = Object.values(data.leaders || {})
+    .map(l => l.name || "")
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .sort((a, b) => a.localeCompare(b, "fr"));
+  const knownSet = new Set(leadersList.map(n => normKey(n)));
+  const curNk = ctx.managerName ? normKey(ctx.managerName) : "";
+  const isKnown = curNk && knownSet.has(curNk);
+
+  // Determine select value
+  const selectVal = managerManual ? "__manual__"
+    : isKnown ? ctx.managerName
+    : "";
+
+  return (
+    <div style={{marginBottom:12}}>
+      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+        Nom du gestionnaire
+      </div>
+      <select
+        value={selectVal}
+        onChange={e => {
+          const v = e.target.value;
+          if (v === "__manual__") {
+            setManagerManual(true);
+            setCtx(p => ({...p, managerName: ""}));
+          } else {
+            setManagerManual(false);
+            setCtx(p => ({...p, managerName: v}));
+          }
+        }}
+        style={{...css.select}}>
+        <option value="" style={{background:C.surfL}}>— Sélectionner un gestionnaire —</option>
+        {leadersList.map(n => (
+          <option key={n} value={n} style={{background:C.surfL}}>{n}</option>
+        ))}
+        <option value="__manual__" style={{background:C.surfL}}>Autre (saisir manuellement)</option>
+      </select>
+      {managerManual && (
+        <input
+          value={ctx.managerName}
+          onChange={e => setCtx(p => ({...p, managerName: e.target.value}))}
+          placeholder="ex. Marie Tremblay"
+          style={{...css.input, marginTop:6}}
+          onFocus={e => e.target.style.borderColor = C.em}
+          onBlur={e => e.target.style.borderColor = C.border}
+          autoFocus/>
+      )}
+    </div>
+  );
+}
+
 export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
 
   // ── State ────────────────────────────────────────────────────────────────
@@ -176,6 +230,7 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
     managerName:"", team:"", date:"", meetingType:"regular",
     purpose:"", background:"", activeCases:"", recentData:"", alerts:"",
   });
+  const [managerManual, setManagerManual] = useState(false); // true = free-text mode
   const [prep, setPrep]           = useState(null);
   const [prepLoading, setPrepLoading] = useState(false);
   const [prepAI, setPrepAI]       = useState(false);
@@ -690,20 +745,20 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 <div style={{...css.card}}>
                   <Mono color={C.blue} size={9}>IDENTIFICATION</Mono>
                   <div style={{marginTop:10}}>
-                    {[["Nom du gestionnaire","managerName","ex. Marie Tremblay"],
-                      ["Date de la rencontre","date",new Date().toLocaleDateString("fr-CA")]
-                    ].map(([label,key,ph]) => (
-                      <div key={key} style={{marginBottom:12}}>
-                        <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                          {label}
-                        </div>
-                        <input value={ctx[key]}
-                          onChange={e=>setCtx(p=>({...p,[key]:e.target.value}))}
-                          placeholder={ph} style={{...css.input}}
-                          onFocus={e=>e.target.style.borderColor=C.em}
-                          onBlur={e=>e.target.style.borderColor=C.border}/>
+                    {/* ── Manager dropdown + fallback libre ── */}
+                    <ManagerField data={data} ctx={ctx} setCtx={setCtx}
+                      managerManual={managerManual} setManagerManual={setManagerManual}/>
+                    {/* Date field */}
+                    <div style={{marginBottom:12}}>
+                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
+                        Date de la rencontre
                       </div>
-                    ))}
+                      <input value={ctx.date}
+                        onChange={e=>setCtx(p=>({...p,date:e.target.value}))}
+                        placeholder={new Date().toLocaleDateString("fr-CA")} style={{...css.input}}
+                        onFocus={e=>e.target.style.borderColor=C.em}
+                        onBlur={e=>e.target.style.borderColor=C.border}/>
+                    </div>
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
                         Niveau
