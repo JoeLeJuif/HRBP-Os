@@ -122,6 +122,42 @@ const PREP_FUNCTIONS = [
   {value:"hr",label:"Ressources humaines"},{value:"other",label:"Autre"},
 ];
 
+// ── Prep metadata per engine type (checklist + flow) ─────────────────────────
+const PREP_META = {
+  disciplinaire: {
+    checklist:["Faits documentés (dates, lieux, témoins)","Politique applicable identifiée et citée","Historique disciplinaire de l'employé revu","Mesure envisagée (avis écrit / suspension / etc.)","Avis légal obtenu si requis selon la province","Représentant syndical avisé si applicable"],
+    flow:["Ouverture neutre","Faits reprochés","Politique enfreinte","Réponse de l'employé","Mesure appliquée","Prochaines étapes et droit d'appel"],
+  },
+  performance: {
+    checklist:["Données objectives (KPIs, exemples concrets)","Attentes communiquées antérieurement","Historique des feedbacks donnés","Plan de soutien proposé (PIP si requis)","Échéancier réaliste des mesures"],
+    flow:["Ouverture","Constat objectif","Écart vs attentes","Discussion ouverte","Plan de soutien","Suivi convenu"],
+  },
+  coaching: {
+    checklist:["Forces observées récemment","Zones de développement prioritaires","Aspirations de carrière de l'employé","Objectifs SMART à proposer","Engagement du gestionnaire (temps, ressources)"],
+    flow:["Ouverture positive","Forces reconnues","Zones de croissance","Aspirations","Objectifs co-construits","Engagement mutuel"],
+  },
+  recadrage: {
+    checklist:["Comportement précis et observable","Impact concret sur l'équipe / le travail","Attentes claires pour l'avenir","Conséquences si récidive","Soutien offert pour réussir"],
+    flow:["Ouverture","Comportement observé","Impact","Attente claire","Engagement","Conséquence si récidive"],
+  },
+  mediation: {
+    checklist:["Position de chaque partie écoutée séparément","Faits neutres documentés","Émotions reconnues sans jugement","Terrain commun identifié","Objectif de résolution mutuellement accepté"],
+    flow:["Cadre et règles","Position partie A","Position partie B","Faits neutres","Terrain commun","Engagements mutuels"],
+  },
+  enquete: {
+    checklist:["Allégations documentées par écrit","Parties impliquées identifiées","Confidentialité expliquée et garantie","Questions ouvertes préparées","Avis légal obtenu sur le processus","Prochaines étapes définies"],
+    flow:["Cadre et confidentialité","Récit du témoin","Questions de précision","Documents cités","Engagements de confidentialité","Prochaines étapes"],
+  },
+  suivi: {
+    checklist:["Décisions et engagements précédents revus","Écarts observés depuis la dernière rencontre","Obstacles rencontrés","Ajustements requis au plan initial","Prochaine étape claire"],
+    flow:["Rappel du contexte","Engagements pris","Écarts observés","Obstacles","Ajustements","Prochaine étape"],
+  },
+  transition: {
+    checklist:["Contexte du changement clair","Impacts concrets sur l'employé","Calendrier et étapes documentés","Soutien disponible (formation, mentorat)","Questions anticipées préparées"],
+    flow:["Contexte","Annonce claire","Impacts","Calendrier","Soutien offert","Questions et engagement"],
+  },
+};
+
 const ENGINE_TYPES = [
   { id:"1on1",          label:"1:1",                        icon:"👤", color:C.blue,   legal:false, desc:"Rencontre régulière de suivi avec un gestionnaire" },
   { id:"disciplinaire", label:"Disciplinaire",              icon:"⚖️", color:C.red,    legal:true,  desc:"Notifier formellement un manquement, documenter les faits" },
@@ -1031,6 +1067,36 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.objective.expectedOutcome}</div>
                     </div>
                   </div>}
+
+                  {/* ── Checklist + Déroulement (from PREP_META) ── */}
+                  {(() => {
+                    const pm = PREP_META[engineType] || null;
+                    if (!pm) return null;
+                    return <>
+                      {pm.checklist?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
+                        <Mono color={C.teal} size={9}>✓ CHECKLIST DE PRÉPARATION</Mono>
+                        <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:5}}>
+                          {pm.checklist.map((item,i) => (
+                            <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                              <div style={{width:5,height:5,borderRadius:"50%",background:C.teal,flexShrink:0,marginTop:7}}/>
+                              <span style={{fontSize:12,color:C.text,lineHeight:1.55}}>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>}
+                      {pm.flow?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
+                        <Mono color={C.blue} size={9}>🗺 DÉROULEMENT SUGGÉRÉ</Mono>
+                        <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:6}}>
+                          {pm.flow.map((step,i) => (
+                            <span key={i} style={{background:C.blue+"14",border:`1px solid ${C.blue}30`,
+                              borderRadius:6,padding:"4px 10px",fontSize:11,color:C.blue,fontWeight:500}}>
+                              {i+1}. {step}
+                            </span>
+                          ))}
+                        </div>
+                      </div>}
+                    </>;
+                  })()}
 
                   {prep.priorityIssues?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
                     <Mono color={C.red} size={9}>⚠ ENJEUX PRIORITAIRES</Mono>

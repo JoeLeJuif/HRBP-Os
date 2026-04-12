@@ -8172,6 +8172,40 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     { value: "hr", label: "Ressources humaines" },
     { value: "other", label: "Autre" }
   ];
+  var PREP_META = {
+    disciplinaire: {
+      checklist: ["Faits document\xE9s (dates, lieux, t\xE9moins)", "Politique applicable identifi\xE9e et cit\xE9e", "Historique disciplinaire de l'employ\xE9 revu", "Mesure envisag\xE9e (avis \xE9crit / suspension / etc.)", "Avis l\xE9gal obtenu si requis selon la province", "Repr\xE9sentant syndical avis\xE9 si applicable"],
+      flow: ["Ouverture neutre", "Faits reproch\xE9s", "Politique enfreinte", "R\xE9ponse de l'employ\xE9", "Mesure appliqu\xE9e", "Prochaines \xE9tapes et droit d'appel"]
+    },
+    performance: {
+      checklist: ["Donn\xE9es objectives (KPIs, exemples concrets)", "Attentes communiqu\xE9es ant\xE9rieurement", "Historique des feedbacks donn\xE9s", "Plan de soutien propos\xE9 (PIP si requis)", "\xC9ch\xE9ancier r\xE9aliste des mesures"],
+      flow: ["Ouverture", "Constat objectif", "\xC9cart vs attentes", "Discussion ouverte", "Plan de soutien", "Suivi convenu"]
+    },
+    coaching: {
+      checklist: ["Forces observ\xE9es r\xE9cemment", "Zones de d\xE9veloppement prioritaires", "Aspirations de carri\xE8re de l'employ\xE9", "Objectifs SMART \xE0 proposer", "Engagement du gestionnaire (temps, ressources)"],
+      flow: ["Ouverture positive", "Forces reconnues", "Zones de croissance", "Aspirations", "Objectifs co-construits", "Engagement mutuel"]
+    },
+    recadrage: {
+      checklist: ["Comportement pr\xE9cis et observable", "Impact concret sur l'\xE9quipe / le travail", "Attentes claires pour l'avenir", "Cons\xE9quences si r\xE9cidive", "Soutien offert pour r\xE9ussir"],
+      flow: ["Ouverture", "Comportement observ\xE9", "Impact", "Attente claire", "Engagement", "Cons\xE9quence si r\xE9cidive"]
+    },
+    mediation: {
+      checklist: ["Position de chaque partie \xE9cout\xE9e s\xE9par\xE9ment", "Faits neutres document\xE9s", "\xC9motions reconnues sans jugement", "Terrain commun identifi\xE9", "Objectif de r\xE9solution mutuellement accept\xE9"],
+      flow: ["Cadre et r\xE8gles", "Position partie A", "Position partie B", "Faits neutres", "Terrain commun", "Engagements mutuels"]
+    },
+    enquete: {
+      checklist: ["All\xE9gations document\xE9es par \xE9crit", "Parties impliqu\xE9es identifi\xE9es", "Confidentialit\xE9 expliqu\xE9e et garantie", "Questions ouvertes pr\xE9par\xE9es", "Avis l\xE9gal obtenu sur le processus", "Prochaines \xE9tapes d\xE9finies"],
+      flow: ["Cadre et confidentialit\xE9", "R\xE9cit du t\xE9moin", "Questions de pr\xE9cision", "Documents cit\xE9s", "Engagements de confidentialit\xE9", "Prochaines \xE9tapes"]
+    },
+    suivi: {
+      checklist: ["D\xE9cisions et engagements pr\xE9c\xE9dents revus", "\xC9carts observ\xE9s depuis la derni\xE8re rencontre", "Obstacles rencontr\xE9s", "Ajustements requis au plan initial", "Prochaine \xE9tape claire"],
+      flow: ["Rappel du contexte", "Engagements pris", "\xC9carts observ\xE9s", "Obstacles", "Ajustements", "Prochaine \xE9tape"]
+    },
+    transition: {
+      checklist: ["Contexte du changement clair", "Impacts concrets sur l'employ\xE9", "Calendrier et \xE9tapes document\xE9s", "Soutien disponible (formation, mentorat)", "Questions anticip\xE9es pr\xE9par\xE9es"],
+      flow: ["Contexte", "Annonce claire", "Impacts", "Calendrier", "Soutien offert", "Questions et engagement"]
+    }
+  };
   var ENGINE_TYPES = [
     { id: "1on1", label: "1:1", icon: "\u{1F464}", color: C.blue, legal: false, desc: "Rencontre r\xE9guli\xE8re de suivi avec un gestionnaire" },
     { id: "disciplinaire", label: "Disciplinaire", icon: "\u2696\uFE0F", color: C.red, legal: true, desc: "Notifier formellement un manquement, documenter les faits" },
@@ -8969,7 +9003,19 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         style: { ...css.btn(!ctx.managerName ? C.textD : C.em), opacity: !ctx.managerName ? 0.5 : 1 }
       },
       histCount > 0 ? `\u2726 G\xE9n\xE9rer avec l'historique (${histCount} meetings)` : "\u2726 G\xE9n\xE9rer les questions"
-    )), prepLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "G\xE9n\xE9ration des questions\u2026" }), prep && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, prep.overallPriority && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "PRIORIT\xC9 GLOBALE"), /* @__PURE__ */ React.createElement(Badge, { label: normPrio(prep.overallPriority), color: { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(prep.overallPriority)] || C.textM })), prep.objective && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "\u{1F3AF} OBJECTIF DU 1:1"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "But"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 10 } }, prep.objective.purpose), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "R\xE9sultat attendu"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.objective.expectedOutcome))), prep.priorityIssues?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "\u26A0 ENJEUX PRIORITAIRES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 10 } }, prep.priorityIssues.map((issue, i) => {
+    )), prepLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "G\xE9n\xE9ration des questions\u2026" }), prep && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, prep.overallPriority && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "PRIORIT\xC9 GLOBALE"), /* @__PURE__ */ React.createElement(Badge, { label: normPrio(prep.overallPriority), color: { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(prep.overallPriority)] || C.textM })), prep.objective && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "\u{1F3AF} OBJECTIF DU 1:1"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "But"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 10 } }, prep.objective.purpose), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "R\xE9sultat attendu"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.objective.expectedOutcome))), (() => {
+      const pm = PREP_META[engineType] || null;
+      if (!pm) return null;
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, pm.checklist?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.teal}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.teal, size: 9 }, "\u2713 CHECKLIST DE PR\xC9PARATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 5 } }, pm.checklist.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.teal, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text, lineHeight: 1.55 } }, item))))), pm.flow?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "\u{1F5FA} D\xC9ROULEMENT SUGG\xC9R\xC9"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 } }, pm.flow.map((step, i) => /* @__PURE__ */ React.createElement("span", { key: i, style: {
+        background: C.blue + "14",
+        border: `1px solid ${C.blue}30`,
+        borderRadius: 6,
+        padding: "4px 10px",
+        fontSize: 11,
+        color: C.blue,
+        fontWeight: 500
+      } }, i + 1, ". ", step)))));
+    })(), prep.priorityIssues?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "\u26A0 ENJEUX PRIORITAIRES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 10 } }, prep.priorityIssues.map((issue, i) => {
       const rc = { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(issue.riskLevel)] || C.textM;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "10px 12px", background: rc + "0D", borderRadius: 8, border: `1px solid ${rc}25` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: issue.why ? 6 : 0 } }, /* @__PURE__ */ React.createElement(Badge, { label: normPrio(issue.riskLevel) || issue.riskLevel, color: rc, size: 10 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, issue.issue)), issue.why && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.55, fontStyle: "italic" } }, issue.why));
     }))), prep.context && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "\u{1F4CB} CONTEXTE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.context.summary), prep.context.relevantHistory && prep.context.relevantHistory !== "Non disponible" && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "7px 10px", background: C.blue + "0D", borderRadius: 7, fontSize: 12, color: C.textM, lineHeight: 1.55 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontWeight: 600 } }, "Historique \u2192 "), prep.context.relevantHistory), prep.context.keySignals?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "Signaux \xE0 garder en t\xEAte"), prep.context.keySignals.map((sig, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.blue, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, sig)))))), prep.followUpFromLast1on1 && (prep.followUpFromLast1on1.evolutions?.length > 0 || prep.followUpFromLast1on1.stagnations?.length > 0 || prep.followUpFromLast1on1.newRisks?.length > 0) && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "\u{1F501} SUIVI DEPUIS LE DERNIER 1:1"), /* @__PURE__ */ React.createElement(Badge, { label: "Bas\xE9 sur l'historique", color: C.purple })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, prep.followUpFromLast1on1.evolutions?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "\xC9volutions"), prep.followUpFromLast1on1.evolutions.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.em, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, e)))), prep.followUpFromLast1on1.stagnations?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "Stagnations"), prep.followUpFromLast1on1.stagnations.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.amber, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))), prep.followUpFromLast1on1.newRisks?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Nouveaux risques"), prep.followUpFromLast1on1.newRisks.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.red, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r)))))), prep.recommendedApproach && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "\u{1F9ED} APPROCHE RECOMMAND\xC9E"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "Comment aborder"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.recommendedApproach.how)), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: prep.recommendedApproach.pitfalls?.length > 0 ? 10 : 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "Ton \xE0 adopter"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.recommendedApproach.tone)), prep.recommendedApproach.pitfalls?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 6 } }, "Pi\xE8ges \xE0 \xE9viter"), prep.recommendedApproach.pitfalls.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber, fontSize: 11, flexShrink: 0, marginTop: 2 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, p)))))), prep.suggestedPhrasing?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.teal}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.teal, size: 9 }, "\u{1F4AC} PHRASES SUGG\xC9R\xC9ES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, prep.suggestedPhrasing.map((ph, i) => {
@@ -9375,7 +9421,7 @@ ${t}`;
       setView("list");
       return null;
     }
-    const MEETING_TYPES2 = [
+    const MEETING_TYPES = [
       { id: "executif", label: "\u{1F3DB} Ex\xE9cutif" },
       { id: "vp", label: "\u{1F4CA} VP" },
       { id: "director", label: "\u{1F3E2} Directeur" },
@@ -9472,7 +9518,7 @@ ${t}`;
         onChange: (e) => setMetaDraft((p) => ({ ...p, meetingType: e.target.value })),
         style: { ...css.input, marginTop: 5, fontSize: 12 }
       },
-      MEETING_TYPES2.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.id, value: t.id }, t.label))
+      MEETING_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.id, value: t.id }, t.label))
     )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 130px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Port\xE9e"), /* @__PURE__ */ React.createElement(
       "select",
       {
@@ -9759,260 +9805,6 @@ ${t}`;
     }
     return null;
   }
-  var MEETING_TYPES = [
-    {
-      id: "disciplinary",
-      label: "Disciplinaire",
-      icon: "\u2696\uFE0F",
-      color: C.red,
-      sensitive: true,
-      objective: "Notifier formellement un manquement, documenter les faits et signifier les cons\xE9quences applicables.",
-      checklist: [
-        "Faits document\xE9s (dates, lieux, t\xE9moins)",
-        "Politique applicable identifi\xE9e et cit\xE9e",
-        "Historique disciplinaire de l'employ\xE9 revu",
-        "Mesure envisag\xE9e (avis \xE9crit / suspension / etc.)",
-        "Avis l\xE9gal obtenu si requis selon la province",
-        "Repr\xE9sentant syndical avis\xE9 si applicable"
-      ],
-      flow: ["Ouverture neutre", "Faits reproch\xE9s", "Politique enfreinte", "R\xE9ponse de l'employ\xE9", "Mesure appliqu\xE9e", "Prochaines \xE9tapes et droit d'appel"]
-    },
-    {
-      id: "performance",
-      label: "Performance",
-      icon: "\u{1F4C8}",
-      color: C.amber,
-      sensitive: true,
-      objective: "Discuter d'\xE9carts de performance objectifs et convenir d'un plan de soutien mesurable.",
-      checklist: [
-        "Donn\xE9es objectives (KPIs, exemples concrets)",
-        "Attentes communiqu\xE9es ant\xE9rieurement",
-        "Historique des feedbacks donn\xE9s",
-        "Plan de soutien propos\xE9 (PIP si requis)",
-        "\xC9ch\xE9ancier r\xE9aliste des mesures"
-      ],
-      flow: ["Ouverture", "Constat objectif", "\xC9cart vs attentes", "Discussion ouverte", "Plan de soutien", "Suivi convenu"]
-    },
-    {
-      id: "coaching",
-      label: "Coaching / D\xE9veloppement",
-      icon: "\u{1F331}",
-      color: C.teal,
-      sensitive: false,
-      objective: "Renforcer les forces, identifier les zones de croissance et co-construire un plan de d\xE9veloppement.",
-      checklist: [
-        "Forces observ\xE9es r\xE9cemment",
-        "Zones de d\xE9veloppement prioritaires",
-        "Aspirations de carri\xE8re de l'employ\xE9",
-        "Objectifs SMART \xE0 proposer",
-        "Engagement du gestionnaire (temps, ressources)"
-      ],
-      flow: ["Ouverture positive", "Forces reconnues", "Zones de croissance", "Aspirations", "Objectifs co-construits", "Engagement mutuel"]
-    },
-    {
-      id: "reframing",
-      label: "Recadrage / Clarification",
-      icon: "\u{1F3AF}",
-      color: C.purple,
-      sensitive: false,
-      objective: "Recadrer un comportement pr\xE9cis sans escalade disciplinaire \u2014 clarifier l'attente et les cons\xE9quences.",
-      checklist: [
-        "Comportement pr\xE9cis et observable",
-        "Impact concret sur l'\xE9quipe / le travail",
-        "Attentes claires pour l'avenir",
-        "Cons\xE9quences si r\xE9cidive",
-        "Soutien offert pour r\xE9ussir"
-      ],
-      flow: ["Ouverture", "Comportement observ\xE9", "Impact", "Attente claire", "Engagement", "Cons\xE9quence si r\xE9cidive"]
-    },
-    {
-      id: "mediation",
-      label: "M\xE9diation / Conflit",
-      icon: "\u{1F91D}",
-      color: C.blue,
-      sensitive: false,
-      objective: "Faciliter une conversation entre deux parties en conflit pour trouver un terrain commun.",
-      checklist: [
-        "Position de chaque partie \xE9cout\xE9e s\xE9par\xE9ment",
-        "Faits neutres document\xE9s",
-        "\xC9motions reconnues sans jugement",
-        "Terrain commun identifi\xE9",
-        "Objectif de r\xE9solution mutuellement accept\xE9"
-      ],
-      flow: ["Cadre et r\xE8gles", "Position partie A", "Position partie B", "Faits neutres", "Terrain commun", "Engagements mutuels"]
-    },
-    {
-      id: "investigation",
-      label: "Enqu\xEAte / Investigation",
-      icon: "\u{1F50D}",
-      color: "#7a1e2e",
-      sensitive: true,
-      objective: "Recueillir des faits dans le cadre d'une enqu\xEAte formelle \u2014 confidentialit\xE9 stricte.",
-      checklist: [
-        "All\xE9gations document\xE9es par \xE9crit",
-        "Parties impliqu\xE9es identifi\xE9es",
-        "Confidentialit\xE9 expliqu\xE9e et garantie",
-        "Questions ouvertes pr\xE9par\xE9es",
-        "Avis l\xE9gal obtenu sur le processus",
-        "Prochaines \xE9tapes d\xE9finies"
-      ],
-      flow: ["Cadre et confidentialit\xE9", "R\xE9cit du t\xE9moin", "Questions de pr\xE9cision", "Documents cit\xE9s", "Engagements de confidentialit\xE9", "Prochaines \xE9tapes"]
-    },
-    {
-      id: "followup",
-      label: "Suivi",
-      icon: "\u{1F504}",
-      color: C.em,
-      sensitive: false,
-      objective: "Faire le suivi d'une d\xE9cision ou d'un engagement pris lors d'une rencontre ant\xE9rieure.",
-      checklist: [
-        "D\xE9cisions et engagements pr\xE9c\xE9dents revus",
-        "\xC9carts observ\xE9s depuis la derni\xE8re rencontre",
-        "Obstacles rencontr\xE9s",
-        "Ajustements requis au plan initial",
-        "Prochaine \xE9tape claire"
-      ],
-      flow: ["Rappel du contexte", "Engagements pris", "\xC9carts observ\xE9s", "Obstacles", "Ajustements", "Prochaine \xE9tape"]
-    },
-    {
-      id: "transition",
-      label: "Transition",
-      icon: "\u{1F6AA}",
-      color: C.textM,
-      sensitive: false,
-      objective: "Annoncer ou accompagner un changement (r\xF4le, \xE9quipe, structure) avec clart\xE9 et soutien.",
-      checklist: [
-        "Contexte du changement clair",
-        "Impacts concrets sur l'employ\xE9",
-        "Calendrier et \xE9tapes document\xE9s",
-        "Soutien disponible (formation, mentorat)",
-        "Questions anticip\xE9es pr\xE9par\xE9es"
-      ],
-      flow: ["Contexte", "Annonce claire", "Impacts", "Calendrier", "Soutien offert", "Questions et engagement"]
-    }
-  ];
-  function PreparationTab({ data, onSave }) {
-    const [selectedId, setSelectedId] = (0, import_react15.useState)(null);
-    const [province, setProvince] = (0, import_react15.useState)(data.profile?.defaultProvince || "QC");
-    const [notes, setNotes] = (0, import_react15.useState)("");
-    const [decision, setDecision] = (0, import_react15.useState)("");
-    const [followup, setFollowup] = (0, import_react15.useState)("");
-    const [aiPrep, setAiPrep] = (0, import_react15.useState)("");
-    const [aiLoading, setAiLoading] = (0, import_react15.useState)(false);
-    const type = MEETING_TYPES.find((t) => t.id === selectedId);
-    const reset = () => {
-      setSelectedId(null);
-      setNotes("");
-      setDecision("");
-      setFollowup("");
-      setAiPrep("");
-    };
-    const generateAIPrep = async () => {
-      if (!type) return;
-      setAiLoading(true);
-      const legal = type.sensitive ? `
-${buildLegalPromptContext(province)}
-` : "";
-      const hasContext = !!(notes && notes.trim());
-      const sp = `Tu es un HRBP senior exp\xE9riment\xE9.
-
-Tu aides \xE0 pr\xE9parer des rencontres professionnelles en tenant compte du contexte r\xE9el fourni.
-
-Ton r\xF4le est de transformer des informations partielles en une pr\xE9paration claire, structur\xE9e et directement actionnable.
-
-Tu adaptes ton analyse :
-- au type de rencontre
-- au contexte humain
-- aux enjeux potentiels
-
-Tu restes pragmatique, pr\xE9cis et orient\xE9 action.
-Pas de th\xE9orie inutile.`;
-      const checklist = (type.checklist || []).map((item) => `- ${item}`).join("\n") || "- Aucune checklist fournie";
-      const up = `Pr\xE9pare une rencontre RH${hasContext ? " avec contexte" : ""}.
-
-Type de rencontre : ${type.label || "Rencontre RH"}
-Objectif du type : ${type.objective || "Non sp\xE9cifi\xE9"}
-Province : ${province || "QC"}
-${type.sensitive ? "\n\u26A0 Cette rencontre comporte un enjeu potentiellement sensible. Int\xE8gre une vigilance l\xE9gale et relationnelle." : ""}${legal}
-Contexte fourni :
-${notes && notes.trim() ? notes.trim() : "Aucun contexte fourni"}
-
-Checklist de r\xE9f\xE9rence :
-${checklist}
-
-G\xE9n\xE8re une pr\xE9paration adapt\xE9e \xE0 ce contexte avec :
-
-1. OBJECTIF DU MEETING${hasContext ? " (adapt\xE9 au contexte)" : ""}
-\u2192 Quel est le but principal de cette rencontre ?
-
-2. STRUCTURE RECOMMAND\xC9E
-\u2192 D\xE9roulement logique du meeting
-
-3. POINTS CL\xC9S \xC0 ABORDER
-\u2192 Les sujets essentiels \xE0 couvrir
-
-4. RISQUES \xC0 ANTICIPER
-\u2192 R\xE9actions possibles, tensions, pi\xE8ges
-
-5. QUESTIONS \xC0 POSER
-\u2192 Questions concr\xE8tes pour guider l'\xE9change
-
-6. POSTURE HRBP
-\u2192 Attitude recommand\xE9e (ton, approche, vigilance)
-
-IMPORTANT :
-- Si le contexte est faible ou absent, reste g\xE9n\xE9rique et utile.
-- Si le contexte est riche, adapte fortement la pr\xE9paration.
-- Ne pas inventer d'informations absentes du contexte.
-- R\xE9ponse concise, professionnelle et directement actionnable.
-- Pas d'introduction inutile.`;
-      try {
-        const txt = await callAIText(sp, up, 2e3);
-        setAiPrep(txt || "\u26A0 R\xE9ponse vide \u2014 r\xE9essaie.");
-      } catch (err) {
-        console.error("AI Prep error:", err);
-        const msg = err?.message || "";
-        if (msg.includes("fetch") || msg.includes("network") || msg.includes("AbortError") || msg.includes("D\xE9lai"))
-          setAiPrep("\u26A0 Erreur r\xE9seau pendant la g\xE9n\xE9ration IA.");
-        else if (msg.includes("JSON") || msg.includes("format"))
-          setAiPrep("\u26A0 Erreur de format IA.");
-        else
-          setAiPrep("\u26A0 G\xE9n\xE9ration IA indisponible \u2014 utilise la checklist ci-dessus.");
-      } finally {
-        setAiLoading(false);
-      }
-    };
-    const savePreparation = () => {
-      if (!type) return;
-      const session = {
-        id: Date.now().toString(),
-        savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-        kind: "preparation",
-        meetingType: type.id,
-        meetingTypeLabel: type.label,
-        province,
-        notes,
-        decision,
-        followup,
-        aiPrep
-      };
-      const next = [...data.meetings || [], session];
-      onSave("meetings", next);
-      reset();
-    };
-    if (!type) {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { size: 11, color: C.textM, style: { marginBottom: 12, display: "block" } }, "S\xC9LECTIONNE UN TYPE DE RENCONTRE"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 } }, MEETING_TYPES.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => setSelectedId(t.id), style: {
-        ...css.card,
-        cursor: "pointer",
-        textAlign: "left",
-        borderLeft: `3px solid ${t.color}`,
-        padding: "14px 14px",
-        background: C.surfL,
-        transition: "transform .15s"
-      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, t.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t.label), t.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 L\xE9gal", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5 } }, t.objective)))));
-    }
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("button", { onClick: reset, style: { ...css.btn, marginBottom: 14, background: "none", border: `1px solid ${C.border}`, color: C.textM } }, "\u2190 Retour aux types"), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${type.color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22 } }, type.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 600, color: C.text } }, type.label), type.sensitive && /* @__PURE__ */ React.createElement(Badge, { label: "\u26A0 Sensible", color: C.red })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, lineHeight: 1.6 } }, type.objective), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM }, "PROVINCE"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: province, onChange: (e) => setProvince(e.target.value) }))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u2713", label: "CHECKLIST DE PR\xC9PARATION", color: type.color }), /* @__PURE__ */ React.createElement(BulletList2, { items: type.checklist, color: type.color })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F5FA}", label: "D\xC9ROULEMENT SUGG\xC9R\xC9", color: type.color }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, type.flow.map((step, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "6px 10px", background: C.surfL, borderRadius: 6, fontSize: 12, color: C.text, border: `1px solid ${type.color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { color: type.color, fontWeight: 600, marginRight: 6 } }, i + 1, "."), step)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F916}", label: "PR\xC9PARATION IA", color: C.blue }), /* @__PURE__ */ React.createElement("button", { onClick: generateAIPrep, disabled: aiLoading, style: { ...css.btn, background: C.blue, color: "#fff", marginBottom: 10 } }, aiLoading ? "G\xE9n\xE9ration\u2026" : "Pr\xE9parer avec l'IA"), aiPrep && /* @__PURE__ */ React.createElement("div", { style: { padding: 12, background: C.surfL, borderRadius: 8, fontSize: 13, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, aiPrep)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4DD}", label: "OUTPUT POST-RENCONTRE", color: C.em }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "NOTES"), /* @__PURE__ */ React.createElement("textarea", { value: notes, onChange: (e) => setNotes(e.target.value), style: { ...css.textarea, minHeight: 70, marginBottom: 10 }, placeholder: "Notes prises pendant la rencontre\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "D\xC9CISION PRISE"), /* @__PURE__ */ React.createElement("textarea", { value: decision, onChange: (e) => setDecision(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "D\xE9cision retenue\u2026" }), /* @__PURE__ */ React.createElement(Mono, { size: 10, color: C.textM, style: { marginBottom: 4, display: "block" } }, "SUIVI REQUIS"), /* @__PURE__ */ React.createElement("textarea", { value: followup, onChange: (e) => setFollowup(e.target.value), style: { ...css.textarea, minHeight: 50, marginBottom: 10 }, placeholder: "Actions \xE0 faire apr\xE8s la rencontre\u2026" }), /* @__PURE__ */ React.createElement("button", { onClick: savePreparation, style: { ...css.btn, background: C.em, color: "#fff" } }, "\u{1F4BE} Sauvegarder")));
-  }
   function EngineTab(props) {
     return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate });
   }
@@ -10023,8 +9815,7 @@ IMPORTANT :
     }, [props.focusMeetingId]);
     const tabs = [
       { id: "transcripts", label: "Meetings", icon: "\u{1F399}\uFE0F", color: C.blue },
-      { id: "engine", label: "Meeting Engine", color: C.em, icon: "\u26A1" },
-      { id: "prep", label: "Pr\xE9paration", icon: "\u{1F4CB}", color: C.purple }
+      { id: "engine", label: "Meeting Engine", color: C.em, icon: "\u26A1" }
     ];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, borderBottom: `1px solid ${C.border}` } }, tabs.map((t) => {
       const active = tab === t.id;
@@ -10040,7 +9831,7 @@ IMPORTANT :
         color: active ? t.color : C.textM,
         fontWeight: active ? 600 : 400
       } }, /* @__PURE__ */ React.createElement("span", { style: { marginRight: 6 } }, t.icon), t.label.toUpperCase());
-    })), tab === "prep" && /* @__PURE__ */ React.createElement(PreparationTab, { data: props.data, onSave: props.onSave }), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props, onSwitchTab: setTab }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate }));
+    })), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props, onSwitchTab: setTab }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate }));
   }
 
   // src/modules/Brief.jsx

@@ -6,14 +6,13 @@ import { useState, useEffect } from "react";
 import { C, css, DELAY_C, RISK } from '../theme.js';
 import { fmtDate, getProvince } from '../utils/format.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
-import { callAI, callAIText } from '../api/index.js';
+import { callAI } from '../api/index.js';
 import { MEETING_SP, DISC_SP, TA_SP, INIT_SP } from '../prompts/meetings.js';
 import Mono         from '../components/Mono.jsx';
 import Badge        from '../components/Badge.jsx';
 import Card         from '../components/Card.jsx';
 import Divider      from '../components/Divider.jsx';
 import ProvinceBadge  from '../components/ProvinceBadge.jsx';
-import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import Module1on1Prep from './Prep1on1.jsx';
 import MeetingEngine  from './MeetingEngine.jsx';
 
@@ -1265,293 +1264,12 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
 }
 
 // ── 8 MEETING TYPES — content ────────────────────────────────────────────────
-const MEETING_TYPES = [
-  {
-    id:"disciplinary", label:"Disciplinaire", icon:"⚖️", color:C.red, sensitive:true,
-    objective:"Notifier formellement un manquement, documenter les faits et signifier les conséquences applicables.",
-    checklist:[
-      "Faits documentés (dates, lieux, témoins)",
-      "Politique applicable identifiée et citée",
-      "Historique disciplinaire de l'employé revu",
-      "Mesure envisagée (avis écrit / suspension / etc.)",
-      "Avis légal obtenu si requis selon la province",
-      "Représentant syndical avisé si applicable",
-    ],
-    flow:["Ouverture neutre","Faits reprochés","Politique enfreinte","Réponse de l'employé","Mesure appliquée","Prochaines étapes et droit d'appel"],
-  },
-  {
-    id:"performance", label:"Performance", icon:"📈", color:C.amber, sensitive:true,
-    objective:"Discuter d'écarts de performance objectifs et convenir d'un plan de soutien mesurable.",
-    checklist:[
-      "Données objectives (KPIs, exemples concrets)",
-      "Attentes communiquées antérieurement",
-      "Historique des feedbacks donnés",
-      "Plan de soutien proposé (PIP si requis)",
-      "Échéancier réaliste des mesures",
-    ],
-    flow:["Ouverture","Constat objectif","Écart vs attentes","Discussion ouverte","Plan de soutien","Suivi convenu"],
-  },
-  {
-    id:"coaching", label:"Coaching / Développement", icon:"🌱", color:C.teal, sensitive:false,
-    objective:"Renforcer les forces, identifier les zones de croissance et co-construire un plan de développement.",
-    checklist:[
-      "Forces observées récemment",
-      "Zones de développement prioritaires",
-      "Aspirations de carrière de l'employé",
-      "Objectifs SMART à proposer",
-      "Engagement du gestionnaire (temps, ressources)",
-    ],
-    flow:["Ouverture positive","Forces reconnues","Zones de croissance","Aspirations","Objectifs co-construits","Engagement mutuel"],
-  },
-  {
-    id:"reframing", label:"Recadrage / Clarification", icon:"🎯", color:C.purple, sensitive:false,
-    objective:"Recadrer un comportement précis sans escalade disciplinaire — clarifier l'attente et les conséquences.",
-    checklist:[
-      "Comportement précis et observable",
-      "Impact concret sur l'équipe / le travail",
-      "Attentes claires pour l'avenir",
-      "Conséquences si récidive",
-      "Soutien offert pour réussir",
-    ],
-    flow:["Ouverture","Comportement observé","Impact","Attente claire","Engagement","Conséquence si récidive"],
-  },
-  {
-    id:"mediation", label:"Médiation / Conflit", icon:"🤝", color:C.blue, sensitive:false,
-    objective:"Faciliter une conversation entre deux parties en conflit pour trouver un terrain commun.",
-    checklist:[
-      "Position de chaque partie écoutée séparément",
-      "Faits neutres documentés",
-      "Émotions reconnues sans jugement",
-      "Terrain commun identifié",
-      "Objectif de résolution mutuellement accepté",
-    ],
-    flow:["Cadre et règles","Position partie A","Position partie B","Faits neutres","Terrain commun","Engagements mutuels"],
-  },
-  {
-    id:"investigation", label:"Enquête / Investigation", icon:"🔍", color:"#7a1e2e", sensitive:true,
-    objective:"Recueillir des faits dans le cadre d'une enquête formelle — confidentialité stricte.",
-    checklist:[
-      "Allégations documentées par écrit",
-      "Parties impliquées identifiées",
-      "Confidentialité expliquée et garantie",
-      "Questions ouvertes préparées",
-      "Avis légal obtenu sur le processus",
-      "Prochaines étapes définies",
-    ],
-    flow:["Cadre et confidentialité","Récit du témoin","Questions de précision","Documents cités","Engagements de confidentialité","Prochaines étapes"],
-  },
-  {
-    id:"followup", label:"Suivi", icon:"🔄", color:C.em, sensitive:false,
-    objective:"Faire le suivi d'une décision ou d'un engagement pris lors d'une rencontre antérieure.",
-    checklist:[
-      "Décisions et engagements précédents revus",
-      "Écarts observés depuis la dernière rencontre",
-      "Obstacles rencontrés",
-      "Ajustements requis au plan initial",
-      "Prochaine étape claire",
-    ],
-    flow:["Rappel du contexte","Engagements pris","Écarts observés","Obstacles","Ajustements","Prochaine étape"],
-  },
-  {
-    id:"transition", label:"Transition", icon:"🚪", color:C.textM, sensitive:false,
-    objective:"Annoncer ou accompagner un changement (rôle, équipe, structure) avec clarté et soutien.",
-    checklist:[
-      "Contexte du changement clair",
-      "Impacts concrets sur l'employé",
-      "Calendrier et étapes documentés",
-      "Soutien disponible (formation, mentorat)",
-      "Questions anticipées préparées",
-    ],
-    flow:["Contexte","Annonce claire","Impacts","Calendrier","Soutien offert","Questions et engagement"],
-  },
-];
-
-function PreparationTab({ data, onSave }) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [province, setProvince] = useState(data.profile?.defaultProvince || "QC");
-  const [notes, setNotes] = useState("");
-  const [decision, setDecision] = useState("");
-  const [followup, setFollowup] = useState("");
-  const [aiPrep, setAiPrep] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const type = MEETING_TYPES.find(t => t.id === selectedId);
-
-  const reset = () => { setSelectedId(null); setNotes(""); setDecision(""); setFollowup(""); setAiPrep(""); };
-
-  const generateAIPrep = async () => {
-    if (!type) return;
-    setAiLoading(true);
-    const legal = type.sensitive ? `\n${buildLegalPromptContext(province)}\n` : "";
-    const hasContext = !!(notes && notes.trim());
-    const sp = `Tu es un HRBP senior expérimenté.
-
-Tu aides à préparer des rencontres professionnelles en tenant compte du contexte réel fourni.
-
-Ton rôle est de transformer des informations partielles en une préparation claire, structurée et directement actionnable.
-
-Tu adaptes ton analyse :
-- au type de rencontre
-- au contexte humain
-- aux enjeux potentiels
-
-Tu restes pragmatique, précis et orienté action.
-Pas de théorie inutile.`;
-    const checklist = (type.checklist || []).map(item => `- ${item}`).join("\n") || "- Aucune checklist fournie";
-    const up = `Prépare une rencontre RH${hasContext ? " avec contexte" : ""}.
-
-Type de rencontre : ${type.label || "Rencontre RH"}
-Objectif du type : ${type.objective || "Non spécifié"}
-Province : ${province || "QC"}
-${type.sensitive ? "\n⚠ Cette rencontre comporte un enjeu potentiellement sensible. Intègre une vigilance légale et relationnelle." : ""}${legal}
-Contexte fourni :
-${notes && notes.trim() ? notes.trim() : "Aucun contexte fourni"}
-
-Checklist de référence :
-${checklist}
-
-Génère une préparation adaptée à ce contexte avec :
-
-1. OBJECTIF DU MEETING${hasContext ? " (adapté au contexte)" : ""}
-→ Quel est le but principal de cette rencontre ?
-
-2. STRUCTURE RECOMMANDÉE
-→ Déroulement logique du meeting
-
-3. POINTS CLÉS À ABORDER
-→ Les sujets essentiels à couvrir
-
-4. RISQUES À ANTICIPER
-→ Réactions possibles, tensions, pièges
-
-5. QUESTIONS À POSER
-→ Questions concrètes pour guider l'échange
-
-6. POSTURE HRBP
-→ Attitude recommandée (ton, approche, vigilance)
-
-IMPORTANT :
-- Si le contexte est faible ou absent, reste générique et utile.
-- Si le contexte est riche, adapte fortement la préparation.
-- Ne pas inventer d'informations absentes du contexte.
-- Réponse concise, professionnelle et directement actionnable.
-- Pas d'introduction inutile.`;
-    try {
-      const txt = await callAIText(sp, up, 2000);
-      setAiPrep(txt || "⚠ Réponse vide — réessaie.");
-    } catch(err) {
-      console.error("AI Prep error:", err);
-      const msg = err?.message || "";
-      if (msg.includes("fetch") || msg.includes("network") || msg.includes("AbortError") || msg.includes("Délai"))
-        setAiPrep("⚠ Erreur réseau pendant la génération IA.");
-      else if (msg.includes("JSON") || msg.includes("format"))
-        setAiPrep("⚠ Erreur de format IA.");
-      else
-        setAiPrep("⚠ Génération IA indisponible — utilise la checklist ci-dessus.");
-    }
-    finally { setAiLoading(false); }
-  };
-
-  const savePreparation = () => {
-    if (!type) return;
-    const session = {
-      id: Date.now().toString(),
-      savedAt: new Date().toISOString().split("T")[0],
-      kind: "preparation",
-      meetingType: type.id,
-      meetingTypeLabel: type.label,
-      province,
-      notes, decision, followup,
-      aiPrep,
-    };
-    const next = [...(data.meetings || []), session];
-    onSave("meetings", next);
-    reset();
-  };
-
-  if (!type) {
-    return (
-      <div>
-        <Mono size={11} color={C.textM} style={{ marginBottom:12, display:"block" }}>SÉLECTIONNE UN TYPE DE RENCONTRE</Mono>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:10 }}>
-          {MEETING_TYPES.map(t => (
-            <button key={t.id} onClick={() => setSelectedId(t.id)} style={{
-              ...css.card, cursor:"pointer", textAlign:"left",
-              borderLeft:`3px solid ${t.color}`, padding:"14px 14px",
-              background:C.surfL, transition:"transform .15s",
-            }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                <span style={{ fontSize:18 }}>{t.icon}</span>
-                <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{t.label}</span>
-                {t.sensitive && <Badge label="⚠ Légal" color={C.red} />}
-              </div>
-              <div style={{ fontSize:11, color:C.textM, lineHeight:1.5 }}>{t.objective}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <button onClick={reset} style={{ ...css.btn, marginBottom:14, background:"none", border:`1px solid ${C.border}`, color:C.textM }}>← Retour aux types</button>
-      <Card style={{ marginBottom:14, borderLeft:`3px solid ${type.color}` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-          <span style={{ fontSize:22 }}>{type.icon}</span>
-          <div style={{ fontSize:16, fontWeight:600, color:C.text }}>{type.label}</div>
-          {type.sensitive && <Badge label="⚠ Sensible" color={C.red} />}
-        </div>
-        <div style={{ fontSize:13, color:C.textM, lineHeight:1.6 }}>{type.objective}</div>
-        <div style={{ marginTop:12, display:"flex", alignItems:"center", gap:8 }}>
-          <Mono size={10} color={C.textM}>PROVINCE</Mono>
-          <ProvinceSelect value={province} onChange={e => setProvince(e.target.value)} />
-        </div>
-      </Card>
-
-      <Card style={{ marginBottom:14 }}>
-        <SecHead icon="✓" label="CHECKLIST DE PRÉPARATION" color={type.color} />
-        <BulletList items={type.checklist} color={type.color} />
-      </Card>
-
-      <Card style={{ marginBottom:14 }}>
-        <SecHead icon="🗺" label="DÉROULEMENT SUGGÉRÉ" color={type.color} />
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-          {type.flow.map((step, i) => (
-            <div key={i} style={{ padding:"6px 10px", background:C.surfL, borderRadius:6, fontSize:12, color:C.text, border:`1px solid ${type.color}28` }}>
-              <span style={{ color:type.color, fontWeight:600, marginRight:6 }}>{i+1}.</span>{step}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card style={{ marginBottom:14 }}>
-        <SecHead icon="🤖" label="PRÉPARATION IA" color={C.blue} />
-        <button onClick={generateAIPrep} disabled={aiLoading} style={{ ...css.btn, background:C.blue, color:"#fff", marginBottom:10 }}>
-          {aiLoading ? "Génération…" : "Préparer avec l'IA"}
-        </button>
-        {aiPrep && <div style={{ padding:12, background:C.surfL, borderRadius:8, fontSize:13, color:C.text, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{aiPrep}</div>}
-      </Card>
-
-      <Card style={{ marginBottom:14 }}>
-        <SecHead icon="📝" label="OUTPUT POST-RENCONTRE" color={C.em} />
-        <Mono size={10} color={C.textM} style={{ marginBottom:4, display:"block" }}>NOTES</Mono>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ ...css.textarea, minHeight:70, marginBottom:10 }} placeholder="Notes prises pendant la rencontre…" />
-        <Mono size={10} color={C.textM} style={{ marginBottom:4, display:"block" }}>DÉCISION PRISE</Mono>
-        <textarea value={decision} onChange={e => setDecision(e.target.value)} style={{ ...css.textarea, minHeight:50, marginBottom:10 }} placeholder="Décision retenue…" />
-        <Mono size={10} color={C.textM} style={{ marginBottom:4, display:"block" }}>SUIVI REQUIS</Mono>
-        <textarea value={followup} onChange={e => setFollowup(e.target.value)} style={{ ...css.textarea, minHeight:50, marginBottom:10 }} placeholder="Actions à faire après la rencontre…" />
-        <button onClick={savePreparation} style={{ ...css.btn, background:C.em, color:"#fff" }}>💾 Sauvegarder</button>
-      </Card>
-    </div>
-  );
-}
-
 // ── ENGINE TAB — renders MeetingEngine inline ──────────────────────────────
 function EngineTab(props) {
   return <MeetingEngine data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />;
 }
 
-// ── SHELL: 3 tabs (Meetings / 1:1 Engine / Préparation) ─────────────────────
+// ── SHELL: 2 tabs (Meetings / 1:1 Engine) ───────────────────────────────────
 export default function ModuleMeetings(props) {
   const [tab, setTab] = useState("transcripts");
   // Force "transcripts" tab when navigating from another module with focusMeetingId
@@ -1561,7 +1279,6 @@ export default function ModuleMeetings(props) {
   const tabs = [
     { id:"transcripts", label:"Meetings",     icon:"🎙️", color:C.blue },
     { id:"engine",      label:"Meeting Engine", color:C.em, icon:"⚡" },
-    { id:"prep",        label:"Préparation",  icon:"📋", color:C.purple },
   ];
   return (
     <div>
@@ -1581,7 +1298,6 @@ export default function ModuleMeetings(props) {
           );
         })}
       </div>
-      {tab === "prep" && <PreparationTab data={props.data} onSave={props.onSave} />}
       {tab === "transcripts" && <MeetingsTranscripts {...props} onSwitchTab={setTab} />}
       {tab === "engine" && <EngineTab data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />}
     </div>
