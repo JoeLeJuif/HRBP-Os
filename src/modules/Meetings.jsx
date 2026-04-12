@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { C, css, DELAY_C, RISK } from '../theme.js';
 import { fmtDate, getProvince } from '../utils/format.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
-import { callAI } from '../api/index.js';
+import { callAI, callAIText } from '../api/index.js';
 import { MEETING_SP, DISC_SP, TA_SP, INIT_SP } from '../prompts/meetings.js';
 import Mono         from '../components/Mono.jsx';
 import Badge        from '../components/Badge.jsx';
@@ -1382,12 +1382,62 @@ function PreparationTab({ data, onSave }) {
     if (!type) return;
     setAiLoading(true);
     const legal = type.sensitive ? `\n${buildLegalPromptContext(province)}\n` : "";
-    const sp = `Tu es un HRBP senior. Prépare une rencontre de type "${type.label}" pour un gestionnaire. Réponds en français professionnel, structuré en sections courtes : Objectif spécifique, Points clés à aborder, Phrases d'ouverture suggérées, Pièges à éviter. Sois concret et actionnable. Maximum 250 mots.`;
-    const up = `Type de rencontre: ${type.label}\nObjectif générique: ${type.objective}\nProvince: ${province}${legal}\nNotes contextuelles: ${notes || "Aucune"}`;
+    const sp = `Tu es un HRBP senior expérimenté.
+
+Tu aides à préparer des rencontres professionnelles de manière structurée, pragmatique et orientée action.
+
+Ton rôle n'est pas de faire de longues explications théoriques, mais de fournir une préparation claire, concrète et directement utilisable par un HRBP.
+
+Adapte ton contenu au type de rencontre.
+Sois précis, synthétique et utile.
+Évite les généralités vagues.`;
+    const checklist = (type.checklist || []).map(item => `- ${item}`).join("\n") || "- Aucune checklist fournie";
+    const up = `Prépare une rencontre RH.
+
+Type de rencontre : ${type.label || "Rencontre RH"}
+Objectif : ${type.objective || "Non spécifié"}
+Province : ${province || "QC"}
+${legal}
+Checklist de référence :
+${checklist}
+
+Notes contextuelles : ${notes || "Aucune note fournie"}
+
+Génère une préparation structurée avec les sections suivantes :
+
+1. OBJECTIF DU MEETING
+→ Quel est le but principal de cette rencontre ?
+
+2. STRUCTURE RECOMMANDÉE
+→ Déroulement logique du meeting
+
+3. POINTS CLÉS À ABORDER
+→ Les sujets essentiels à couvrir
+
+4. RISQUES À ANTICIPER
+→ Réactions possibles, tensions, pièges
+
+5. QUESTIONS À POSER
+→ Questions concrètes pour guider l'échange
+
+6. POSTURE HRBP
+→ Attitude recommandée (ton, approche, vigilance)
+
+Réponds de manière concise, professionnelle et directement actionnable.
+Pas d'introduction inutile.`;
     try {
-      const txt = await callAI(sp, up);
-      setAiPrep(typeof txt === "string" ? txt : JSON.stringify(txt, null, 2));
-    } catch { setAiPrep("⚠ Génération IA indisponible — utilise la checklist ci-dessus."); }
+      const txt = await callAIText(sp, up, 2000);
+      setAiPrep(txt || "⚠ Réponse vide — réessaie.");
+    } catch(err) {
+      console.error("AI Prep error:", err);
+      const msg = err?.message || "";
+      if (msg.includes("fetch") || msg.includes("network") || msg.includes("AbortError") || msg.includes("Délai"))
+        setAiPrep("⚠ Erreur réseau pendant la génération IA.");
+      else if (msg.includes("API") || msg.includes("401") || msg.includes("429") || msg.includes("500"))
+        setAiPrep("⚠ Erreur IA pendant la génération.");
+      else
+        setAiPrep("⚠ Génération IA indisponible — utilise la checklist ci-dessus.");
+    }
     finally { setAiLoading(false); }
   };
 

@@ -9873,16 +9873,61 @@ ${t}`;
       const legal = type.sensitive ? `
 ${buildLegalPromptContext(province)}
 ` : "";
-      const sp = `Tu es un HRBP senior. Pr\xE9pare une rencontre de type "${type.label}" pour un gestionnaire. R\xE9ponds en fran\xE7ais professionnel, structur\xE9 en sections courtes : Objectif sp\xE9cifique, Points cl\xE9s \xE0 aborder, Phrases d'ouverture sugg\xE9r\xE9es, Pi\xE8ges \xE0 \xE9viter. Sois concret et actionnable. Maximum 250 mots.`;
-      const up = `Type de rencontre: ${type.label}
-Objectif g\xE9n\xE9rique: ${type.objective}
-Province: ${province}${legal}
-Notes contextuelles: ${notes || "Aucune"}`;
+      const sp = `Tu es un HRBP senior exp\xE9riment\xE9.
+
+Tu aides \xE0 pr\xE9parer des rencontres professionnelles de mani\xE8re structur\xE9e, pragmatique et orient\xE9e action.
+
+Ton r\xF4le n'est pas de faire de longues explications th\xE9oriques, mais de fournir une pr\xE9paration claire, concr\xE8te et directement utilisable par un HRBP.
+
+Adapte ton contenu au type de rencontre.
+Sois pr\xE9cis, synth\xE9tique et utile.
+\xC9vite les g\xE9n\xE9ralit\xE9s vagues.`;
+      const checklist = (type.checklist || []).map((item) => `- ${item}`).join("\n") || "- Aucune checklist fournie";
+      const up = `Pr\xE9pare une rencontre RH.
+
+Type de rencontre : ${type.label || "Rencontre RH"}
+Objectif : ${type.objective || "Non sp\xE9cifi\xE9"}
+Province : ${province || "QC"}
+${legal}
+Checklist de r\xE9f\xE9rence :
+${checklist}
+
+Notes contextuelles : ${notes || "Aucune note fournie"}
+
+G\xE9n\xE8re une pr\xE9paration structur\xE9e avec les sections suivantes :
+
+1. OBJECTIF DU MEETING
+\u2192 Quel est le but principal de cette rencontre ?
+
+2. STRUCTURE RECOMMAND\xC9E
+\u2192 D\xE9roulement logique du meeting
+
+3. POINTS CL\xC9S \xC0 ABORDER
+\u2192 Les sujets essentiels \xE0 couvrir
+
+4. RISQUES \xC0 ANTICIPER
+\u2192 R\xE9actions possibles, tensions, pi\xE8ges
+
+5. QUESTIONS \xC0 POSER
+\u2192 Questions concr\xE8tes pour guider l'\xE9change
+
+6. POSTURE HRBP
+\u2192 Attitude recommand\xE9e (ton, approche, vigilance)
+
+R\xE9ponds de mani\xE8re concise, professionnelle et directement actionnable.
+Pas d'introduction inutile.`;
       try {
-        const txt = await callAI(sp, up);
-        setAiPrep(typeof txt === "string" ? txt : JSON.stringify(txt, null, 2));
-      } catch {
-        setAiPrep("\u26A0 G\xE9n\xE9ration IA indisponible \u2014 utilise la checklist ci-dessus.");
+        const txt = await callAIText(sp, up, 2e3);
+        setAiPrep(txt || "\u26A0 R\xE9ponse vide \u2014 r\xE9essaie.");
+      } catch (err) {
+        console.error("AI Prep error:", err);
+        const msg = err?.message || "";
+        if (msg.includes("fetch") || msg.includes("network") || msg.includes("AbortError") || msg.includes("D\xE9lai"))
+          setAiPrep("\u26A0 Erreur r\xE9seau pendant la g\xE9n\xE9ration IA.");
+        else if (msg.includes("API") || msg.includes("401") || msg.includes("429") || msg.includes("500"))
+          setAiPrep("\u26A0 Erreur IA pendant la g\xE9n\xE9ration.");
+        else
+          setAiPrep("\u26A0 G\xE9n\xE9ration IA indisponible \u2014 utilise la checklist ci-dessus.");
       } finally {
         setAiLoading(false);
       }
