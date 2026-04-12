@@ -1382,30 +1382,36 @@ function PreparationTab({ data, onSave }) {
     if (!type) return;
     setAiLoading(true);
     const legal = type.sensitive ? `\n${buildLegalPromptContext(province)}\n` : "";
+    const hasContext = !!(notes && notes.trim());
     const sp = `Tu es un HRBP senior expérimenté.
 
-Tu aides à préparer des rencontres professionnelles de manière structurée, pragmatique et orientée action.
+Tu aides à préparer des rencontres professionnelles en tenant compte du contexte réel fourni.
 
-Ton rôle n'est pas de faire de longues explications théoriques, mais de fournir une préparation claire, concrète et directement utilisable par un HRBP.
+Ton rôle est de transformer des informations partielles en une préparation claire, structurée et directement actionnable.
 
-Adapte ton contenu au type de rencontre.
-Sois précis, synthétique et utile.
-Évite les généralités vagues.`;
+Tu adaptes ton analyse :
+- au type de rencontre
+- au contexte humain
+- aux enjeux potentiels
+
+Tu restes pragmatique, précis et orienté action.
+Pas de théorie inutile.`;
     const checklist = (type.checklist || []).map(item => `- ${item}`).join("\n") || "- Aucune checklist fournie";
-    const up = `Prépare une rencontre RH.
+    const up = `Prépare une rencontre RH${hasContext ? " avec contexte" : ""}.
 
 Type de rencontre : ${type.label || "Rencontre RH"}
-Objectif : ${type.objective || "Non spécifié"}
+Objectif du type : ${type.objective || "Non spécifié"}
 Province : ${province || "QC"}
-${legal}
+${type.sensitive ? "\n⚠ Cette rencontre comporte un enjeu potentiellement sensible. Intègre une vigilance légale et relationnelle." : ""}${legal}
+Contexte fourni :
+${notes && notes.trim() ? notes.trim() : "Aucun contexte fourni"}
+
 Checklist de référence :
 ${checklist}
 
-Notes contextuelles : ${notes || "Aucune note fournie"}
+Génère une préparation adaptée à ce contexte avec :
 
-Génère une préparation structurée avec les sections suivantes :
-
-1. OBJECTIF DU MEETING
+1. OBJECTIF DU MEETING${hasContext ? " (adapté au contexte)" : ""}
 → Quel est le but principal de cette rencontre ?
 
 2. STRUCTURE RECOMMANDÉE
@@ -1423,8 +1429,12 @@ Génère une préparation structurée avec les sections suivantes :
 6. POSTURE HRBP
 → Attitude recommandée (ton, approche, vigilance)
 
-Réponds de manière concise, professionnelle et directement actionnable.
-Pas d'introduction inutile.`;
+IMPORTANT :
+- Si le contexte est faible ou absent, reste générique et utile.
+- Si le contexte est riche, adapte fortement la préparation.
+- Ne pas inventer d'informations absentes du contexte.
+- Réponse concise, professionnelle et directement actionnable.
+- Pas d'introduction inutile.`;
     try {
       const txt = await callAIText(sp, up, 2000);
       setAiPrep(txt || "⚠ Réponse vide — réessaie.");
@@ -1433,8 +1443,8 @@ Pas d'introduction inutile.`;
       const msg = err?.message || "";
       if (msg.includes("fetch") || msg.includes("network") || msg.includes("AbortError") || msg.includes("Délai"))
         setAiPrep("⚠ Erreur réseau pendant la génération IA.");
-      else if (msg.includes("API") || msg.includes("401") || msg.includes("429") || msg.includes("500"))
-        setAiPrep("⚠ Erreur IA pendant la génération.");
+      else if (msg.includes("JSON") || msg.includes("format"))
+        setAiPrep("⚠ Erreur de format IA.");
       else
         setAiPrep("⚠ Génération IA indisponible — utilise la checklist ci-dessus.");
     }

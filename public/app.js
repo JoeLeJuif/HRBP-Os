@@ -9873,30 +9873,36 @@ ${t}`;
       const legal = type.sensitive ? `
 ${buildLegalPromptContext(province)}
 ` : "";
+      const hasContext = !!(notes && notes.trim());
       const sp = `Tu es un HRBP senior exp\xE9riment\xE9.
 
-Tu aides \xE0 pr\xE9parer des rencontres professionnelles de mani\xE8re structur\xE9e, pragmatique et orient\xE9e action.
+Tu aides \xE0 pr\xE9parer des rencontres professionnelles en tenant compte du contexte r\xE9el fourni.
 
-Ton r\xF4le n'est pas de faire de longues explications th\xE9oriques, mais de fournir une pr\xE9paration claire, concr\xE8te et directement utilisable par un HRBP.
+Ton r\xF4le est de transformer des informations partielles en une pr\xE9paration claire, structur\xE9e et directement actionnable.
 
-Adapte ton contenu au type de rencontre.
-Sois pr\xE9cis, synth\xE9tique et utile.
-\xC9vite les g\xE9n\xE9ralit\xE9s vagues.`;
+Tu adaptes ton analyse :
+- au type de rencontre
+- au contexte humain
+- aux enjeux potentiels
+
+Tu restes pragmatique, pr\xE9cis et orient\xE9 action.
+Pas de th\xE9orie inutile.`;
       const checklist = (type.checklist || []).map((item) => `- ${item}`).join("\n") || "- Aucune checklist fournie";
-      const up = `Pr\xE9pare une rencontre RH.
+      const up = `Pr\xE9pare une rencontre RH${hasContext ? " avec contexte" : ""}.
 
 Type de rencontre : ${type.label || "Rencontre RH"}
-Objectif : ${type.objective || "Non sp\xE9cifi\xE9"}
+Objectif du type : ${type.objective || "Non sp\xE9cifi\xE9"}
 Province : ${province || "QC"}
-${legal}
+${type.sensitive ? "\n\u26A0 Cette rencontre comporte un enjeu potentiellement sensible. Int\xE8gre une vigilance l\xE9gale et relationnelle." : ""}${legal}
+Contexte fourni :
+${notes && notes.trim() ? notes.trim() : "Aucun contexte fourni"}
+
 Checklist de r\xE9f\xE9rence :
 ${checklist}
 
-Notes contextuelles : ${notes || "Aucune note fournie"}
+G\xE9n\xE8re une pr\xE9paration adapt\xE9e \xE0 ce contexte avec :
 
-G\xE9n\xE8re une pr\xE9paration structur\xE9e avec les sections suivantes :
-
-1. OBJECTIF DU MEETING
+1. OBJECTIF DU MEETING${hasContext ? " (adapt\xE9 au contexte)" : ""}
 \u2192 Quel est le but principal de cette rencontre ?
 
 2. STRUCTURE RECOMMAND\xC9E
@@ -9914,8 +9920,12 @@ G\xE9n\xE8re une pr\xE9paration structur\xE9e avec les sections suivantes :
 6. POSTURE HRBP
 \u2192 Attitude recommand\xE9e (ton, approche, vigilance)
 
-R\xE9ponds de mani\xE8re concise, professionnelle et directement actionnable.
-Pas d'introduction inutile.`;
+IMPORTANT :
+- Si le contexte est faible ou absent, reste g\xE9n\xE9rique et utile.
+- Si le contexte est riche, adapte fortement la pr\xE9paration.
+- Ne pas inventer d'informations absentes du contexte.
+- R\xE9ponse concise, professionnelle et directement actionnable.
+- Pas d'introduction inutile.`;
       try {
         const txt = await callAIText(sp, up, 2e3);
         setAiPrep(txt || "\u26A0 R\xE9ponse vide \u2014 r\xE9essaie.");
@@ -9924,8 +9934,8 @@ Pas d'introduction inutile.`;
         const msg = err?.message || "";
         if (msg.includes("fetch") || msg.includes("network") || msg.includes("AbortError") || msg.includes("D\xE9lai"))
           setAiPrep("\u26A0 Erreur r\xE9seau pendant la g\xE9n\xE9ration IA.");
-        else if (msg.includes("API") || msg.includes("401") || msg.includes("429") || msg.includes("500"))
-          setAiPrep("\u26A0 Erreur IA pendant la g\xE9n\xE9ration.");
+        else if (msg.includes("JSON") || msg.includes("format"))
+          setAiPrep("\u26A0 Erreur de format IA.");
         else
           setAiPrep("\u26A0 G\xE9n\xE9ration IA indisponible \u2014 utilise la checklist ci-dessus.");
       } finally {
