@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { C, css, RISK } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
-import { getProvince } from '../utils/format.js';
+import { getProvince, fmtDate } from '../utils/format.js';
 import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
@@ -316,6 +316,54 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
             <Divider my={8}/>
           </div>) : null)}
       </Card>
+
+      {/* ── Timeline ──────────────────────────────────────────────── */}
+      {(() => {
+        const events = [];
+        // Case creation
+        const created = c.createdAt || c.savedAt || c.openDate;
+        if (created) events.push({ date: created, type:"case", icon:"📂", label:"Dossier ouvert", sub: c.title || "", color: C.blue });
+        // Status changes
+        if (c.status === "resolved" || c.status === "closed") {
+          const closedD = c.closedDate || c.savedAt;
+          if (closedD) events.push({ date: closedD, type:"status", icon: c.status === "resolved" ? "✅" : "🔒",
+            label: c.status === "resolved" ? "Dossier résolu" : "Dossier fermé", sub:"", color: c.status === "resolved" ? C.em : C.textD });
+        }
+        if (c.status === "escalated") events.push({ date: c.savedAt || created, type:"status", icon:"🚨", label:"Dossier escaladé", sub:"", color: C.red });
+        // Due date
+        if (c.dueDate) events.push({ date: c.dueDate, type:"deadline", icon:"⏰", label:"Échéance", sub: c.nextFollowUp || "", color: C.amber });
+        // Linked decisions
+        (data.decisions || []).filter(d => d.linkedCaseId === c.id).forEach(d => {
+          events.push({ date: d.savedAt || d.decisionDate || d.createdAt, type:"decision", icon:"⚖",
+            label: d.title || "Décision RH", sub: d.summary || d.rationale || "", color: C.purple });
+        });
+        const sorted = events.filter(e => e.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
+        if (sorted.length === 0) return null;
+        return (
+          <Card style={{ marginTop: 14 }}>
+            <Mono color={C.textD} size={9} style={{ marginBottom: 12, display:"block" }}>TIMELINE</Mono>
+            <div style={{ position:"relative", paddingLeft:20 }}>
+              <div style={{ position:"absolute", left:5, top:4, bottom:4, width:2, background:C.border, borderRadius:1 }}/>
+              {sorted.map((ev, i) => (
+                <div key={i} style={{ position:"relative", marginBottom: i < sorted.length - 1 ? 16 : 0, paddingLeft:16 }}>
+                  <div style={{ position:"absolute", left:-18, top:2, width:10, height:10, borderRadius:"50%",
+                    background:ev.color+"22", border:`2px solid ${ev.color}`, zIndex:1 }}/>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
+                    <span style={{ fontSize:11 }}>{ev.icon}</span>
+                    <span style={{ fontSize:12, fontWeight:600, color:C.text }}>{ev.label}</span>
+                    <Badge label={ev.type === "decision" ? "Décision" : ev.type === "deadline" ? "Échéance"
+                      : ev.type === "status" ? "Statut" : "Dossier"} color={ev.color} size={8}/>
+                    <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", marginLeft:"auto" }}>
+                      {fmtDate(ev.date)}
+                    </span>
+                  </div>
+                  {ev.sub && <div style={{ fontSize:11, color:C.textM, lineHeight:1.4 }}>{ev.sub}</div>}
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      })()}
     </div>;
   }
 

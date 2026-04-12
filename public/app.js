@@ -5135,7 +5135,47 @@ ${buildContext()}`, 3500);
         ["Position RH", c.hrPosition],
         ["Prochain suivi", c.nextFollowUp],
         ["Notes HRBP", c.notes]
-      ].map(([l, v], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginTop: 4 } }, v), /* @__PURE__ */ React.createElement(Divider, { my: 8 })) : null)));
+      ].map(([l, v], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginTop: 4 } }, v), /* @__PURE__ */ React.createElement(Divider, { my: 8 })) : null)), (() => {
+        const events = [];
+        const created = c.createdAt || c.savedAt || c.openDate;
+        if (created) events.push({ date: created, type: "case", icon: "\u{1F4C2}", label: "Dossier ouvert", sub: c.title || "", color: C.blue });
+        if (c.status === "resolved" || c.status === "closed") {
+          const closedD = c.closedDate || c.savedAt;
+          if (closedD) events.push({
+            date: closedD,
+            type: "status",
+            icon: c.status === "resolved" ? "\u2705" : "\u{1F512}",
+            label: c.status === "resolved" ? "Dossier r\xE9solu" : "Dossier ferm\xE9",
+            sub: "",
+            color: c.status === "resolved" ? C.em : C.textD
+          });
+        }
+        if (c.status === "escalated") events.push({ date: c.savedAt || created, type: "status", icon: "\u{1F6A8}", label: "Dossier escalad\xE9", sub: "", color: C.red });
+        if (c.dueDate) events.push({ date: c.dueDate, type: "deadline", icon: "\u23F0", label: "\xC9ch\xE9ance", sub: c.nextFollowUp || "", color: C.amber });
+        (data.decisions || []).filter((d) => d.linkedCaseId === c.id).forEach((d) => {
+          events.push({
+            date: d.savedAt || d.decisionDate || d.createdAt,
+            type: "decision",
+            icon: "\u2696",
+            label: d.title || "D\xE9cision RH",
+            sub: d.summary || d.rationale || "",
+            color: C.purple
+          });
+        });
+        const sorted = events.filter((e) => e.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
+        if (sorted.length === 0) return null;
+        return /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginBottom: 12, display: "block" } }, "TIMELINE"), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", paddingLeft: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", left: 5, top: 4, bottom: 4, width: 2, background: C.border, borderRadius: 1 } }), sorted.map((ev, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { position: "relative", marginBottom: i < sorted.length - 1 ? 16 : 0, paddingLeft: 16 } }, /* @__PURE__ */ React.createElement("div", { style: {
+          position: "absolute",
+          left: -18,
+          top: 2,
+          width: 10,
+          height: 10,
+          borderRadius: "50%",
+          background: ev.color + "22",
+          border: `2px solid ${ev.color}`,
+          zIndex: 1
+        } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, ev.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, ev.label), /* @__PURE__ */ React.createElement(Badge, { label: ev.type === "decision" ? "D\xE9cision" : ev.type === "deadline" ? "\xC9ch\xE9ance" : ev.type === "status" ? "Statut" : "Dossier", color: ev.color, size: 8 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", marginLeft: "auto" } }, fmtDate(ev.date))), ev.sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.4 } }, ev.sub)))));
+      })());
     }
     return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Case Log"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, cases.length, " dossier(s) \xB7 ", cases.filter((c) => c.status === "active" || c.status === "open").length, " actifs")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
       setForm({ ...EMPTY_FORM });
