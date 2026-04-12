@@ -49,6 +49,11 @@ const DEC_STATUS_C = { draft:C.textM, decided:C.em, reviewed:C.blue, archived:C.
 const DEC_STATUS_L = { draft:"Brouillon", decided:"Décidé", reviewed:"Révisé", archived:"Archivé" };
 const DEC_TYPE_L = { discipline:"Discipline", performance:"Performance", organizational:"Organisationnel", talent:"Talent", legal:"Légal", other:"Autre" };
 
+// ── Brief source helpers ─────────────────────────────────────────────────────
+const BRIEF_URGENCY_C = { "Immediat":C.red, "Immédiat":C.red, "Cette semaine":C.amber, "Semaine prochaine":C.blue };
+const BRIEF_RISK_C = { "Critique":C.red, "Eleve":C.amber, "Élevé":C.amber, "Modere":C.blue, "Modéré":C.blue, "Faible":C.em };
+const BRIEF_SOURCE_NAV = { meeting:"meetings", case:"cases", signal:"signals", multiple:"brief" };
+
 // ── Module ────────────────────────────────────────────────────────────────────
 export default function ModuleHome({ data, onNavigate }) {
   const cases     = data.cases     || [];
@@ -57,6 +62,18 @@ export default function ModuleHome({ data, onNavigate }) {
   const prep1on1  = data.prep1on1  || [];
 
   const todayISO = new Date().toISOString().split("T")[0];
+
+  // ── Latest exploitable brief ───────────────────────────────────────────────
+  const sevenDaysAgo = Date.now() - 7 * DAY;
+  const latestBriefEntry = [...(data.briefs || [])]
+    .filter(b => b && b.brief && typeof b.brief === "object")
+    .sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""))
+    [0] || null;
+  const briefIsRecent = latestBriefEntry
+    && new Date(latestBriefEntry.savedAt || 0).getTime() >= sevenDaysAgo;
+  const briefIsStale = latestBriefEntry && !briefIsRecent;     // exploitable mais ancien
+  const lb = latestBriefEntry ? latestBriefEntry.brief : null; // always use if exploitable
+  const li = latestBriefEntry ? (latestBriefEntry.insights || null) : null;
 
   // ── Derived collections ────────────────────────────────────────────────────
   const activeCases = cases.filter(c => !["closed","resolved"].includes(c.status));
@@ -82,44 +99,130 @@ export default function ModuleHome({ data, onNavigate }) {
     { label:"Pending Signals", value:pendingSignals.length,  color:pendingSignals.length>0?C.amber:C.textD, sub:"non traités", nav:"signals" },
   ];
 
-  // ── Focus Today (synthèse courte) ──────────────────────────────────────────
-  const focusItems = [];
-  if (highRiskDecisions.length > 0)
-    focusItems.push({ icon:"⚖", text:`${highRiskDecisions.length} décision${highRiskDecisions.length>1?"s":""} à risque élevé à revoir`, color:C.red, nav:"decisions" });
-  if (agedSignals.length > 0)
-    focusItems.push({ icon:"📡", text:`${agedSignals.length} signal${agedSignals.length>1?"aux":""} non traité${agedSignals.length>1?"s":""} depuis plus de 7 jours`, color:C.amber, nav:"signals" });
-  if (agedCases.length > 0)
-    focusItems.push({ icon:"📂", text:`${agedCases.length} dossier${agedCases.length>1?"s":""} actif${agedCases.length>1?"s":""} depuis plus de 14 jours`, color:C.amber, nav:"cases" });
-  if (overdueReviews.length > 0)
-    focusItems.push({ icon:"🔄", text:`${overdueReviews.length} suivi${overdueReviews.length>1?"s":""} en retard sur le Decision Log`, color:C.red, nav:"decisions" });
-  if (overdueCases.length > 0)
-    focusItems.push({ icon:"⏰", text:`${overdueCases.length} dossier${overdueCases.length>1?"s":""} avec échéance dépassée`, color:C.red, nav:"cases" });
+  // ── Focus Today (brief-first, then fallback) ──────────────────────────────
+  const briefFocusItems = [];
+  if (lb && Array.isArray(lb.topPriorities) && lb.topPriorities.length > 0) {
+    lb.topPriorities.forEach(p => {
+      const urgColor = BRIEF_URGENCY_C[p.urgency] || C.blue;
+      const nav = BRIEF_SOURCE_NAV[p.source] || "brief";
+      briefFocusItems.push({
+        icon: p.urgency === "Immediat" || p.urgency === "Immédiat" ? "🔴" : p.urgency === "Cette semaine" ? "🟡" : "🔵",
+        text: p.priority + (p.why ? ` — ${p.why}` : ""),
+        color: urgColor,
+        nav,
+      });
+    });
+  }
 
+  const fallbackFocusItems = [];
+  if (highRiskDecisions.length > 0)
+    fallbackFocusItems.push({ icon:"⚖", text:`${highRiskDecisions.length} décision${highRiskDecisions.length>1?"s":""} à risque élevé à revoir`, color:C.red, nav:"decisions" });
+  if (agedSignals.length > 0)
+    fallbackFocusItems.push({ icon:"📡", text:`${agedSignals.length} signal${agedSignals.length>1?"aux":""} non traité${agedSignals.length>1?"s":""} depuis plus de 7 jours`, color:C.amber, nav:"signals" });
+  if (agedCases.length > 0)
+    fallbackFocusItems.push({ icon:"📂", text:`${agedCases.length} dossier${agedCases.length>1?"s":""} actif${agedCases.length>1?"s":""} depuis plus de 14 jours`, color:C.amber, nav:"cases" });
+  if (overdueReviews.length > 0)
+    fallbackFocusItems.push({ icon:"🔄", text:`${overdueReviews.length} suivi${overdueReviews.length>1?"s":""} en retard sur le Decision Log`, color:C.red, nav:"decisions" });
+  if (overdueCases.length > 0)
+    fallbackFocusItems.push({ icon:"⏰", text:`${overdueCases.length} dossier${overdueCases.length>1?"s":""} avec échéance dépassée`, color:C.red, nav:"cases" });
+
+  const focusItems = briefFocusItems.length > 0 ? briefFocusItems : fallbackFocusItems;
   const topFocus = focusItems.slice(0, 4);
+  const focusFromBrief = briefFocusItems.length > 0;
+
   const calmState = topFocus.length === 0
     ? (activeCases.length > 0
         ? `Aucun point critique aujourd'hui. ${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""} à suivre cette semaine.`
         : "Aucun point critique aujourd'hui.")
     : null;
 
-  // ── Attention Required ─────────────────────────────────────────────────────
-  const attentionItems = [];
-  overdueCases.forEach(c => attentionItems.push({
+  // ── Attention Required (brief-first, then fallback) ────────────────────────
+  const briefAttentionItems = [];
+  if (lb) {
+    // keyRisks — high/critical only
+    if (Array.isArray(lb.keyRisks)) {
+      lb.keyRisks.filter(r => ["Critique","Eleve","Élevé"].includes(r.level)).forEach((r, i) => {
+        briefAttentionItems.push({
+          sortKey: 0, type:"risk", id:"br_r"+i, title: r.risk,
+          sub: [r.owner, r.evolution].filter(Boolean).join(" · "),
+          badge: { label: r.level, color: BRIEF_RISK_C[r.level] || C.amber },
+          nav: BRIEF_SOURCE_NAV[r.source] || "brief",
+        });
+      });
+    }
+    // leadershipWatch
+    if (Array.isArray(lb.leadershipWatch)) {
+      lb.leadershipWatch.forEach((l, i) => {
+        briefAttentionItems.push({
+          sortKey: 1, type:"leader", id:"br_l"+i, title: `${l.person} — ${l.signal}`,
+          sub: l.action || "",
+          badge: { label: l.evolution || "Watch", color: l.evolution === "Aggrave" ? C.red : C.amber },
+          nav: "leaders",
+        });
+      });
+    }
+    // retentionWatch — high risk only
+    if (Array.isArray(lb.retentionWatch)) {
+      lb.retentionWatch.filter(r => ["Critique","Eleve","Élevé"].includes(r.risk)).forEach((r, i) => {
+        briefAttentionItems.push({
+          sortKey: 2, type:"retention", id:"br_ret"+i, title: r.profile,
+          sub: [r.window, r.lever].filter(Boolean).join(" · "),
+          badge: { label: `Rétention ${r.risk}`, color: BRIEF_RISK_C[r.risk] || C.red },
+          nav: "leaders",
+        });
+      });
+    }
+    // insights risques systémiques
+    if (li && li.risquesSystemiques) {
+      briefAttentionItems.push({
+        sortKey: 3, type:"insight", id:"br_ins", title: "Risque systémique identifié",
+        sub: typeof li.risquesSystemiques === "string" ? li.risquesSystemiques.substring(0, 120) : "",
+        badge: { label: li.riskLevel || "Insight", color: BRIEF_RISK_C[li.riskLevel] || C.purple },
+        nav: "brief",
+      });
+    }
+    // watchList — max 2, dedupe against existing titles
+    if (Array.isArray(lb.watchList) && lb.watchList.length > 0) {
+      const existingTitlesLc = new Set(briefAttentionItems.map(it => it.title.toLowerCase()));
+      const WATCH_CLASS_C = { activeRisk:C.amber, latentSignal:C.blue, resolved:C.textD };
+      const WATCH_CLASS_L = { activeRisk:"Risque actif", latentSignal:"Signal latent", resolved:"Résolu" };
+      let wlCount = 0;
+      for (const w of lb.watchList) {
+        if (wlCount >= 2) break;
+        const subjectLc = (w.subject || "").toLowerCase();
+        if (!subjectLc || existingTitlesLc.has(subjectLc)) continue;
+        // skip if subject is a substring of any existing title (fuzzy dedup)
+        let dup = false;
+        for (const t of existingTitlesLc) { if (t.includes(subjectLc) || subjectLc.includes(t)) { dup = true; break; } }
+        if (dup) continue;
+        briefAttentionItems.push({
+          sortKey: 4, type:"watchlist", id:"br_wl"+wlCount, title: w.subject,
+          sub: [w.note, w.evolution, w.source].filter(Boolean).join(" · "),
+          badge: { label: WATCH_CLASS_L[w.classification] || w.classification || "Watch", color: WATCH_CLASS_C[w.classification] || C.textM },
+          nav: BRIEF_SOURCE_NAV[w.source] || "brief",
+        });
+        wlCount++;
+      }
+    }
+  }
+
+  const fallbackAttentionItems = [];
+  overdueCases.forEach(c => fallbackAttentionItems.push({
     sortKey:0, type:"case", id:c.id, title:c.title||"(dossier)",
     sub:[c.director, c.dueDate && `échéance ${fmtDate(c.dueDate)}`].filter(Boolean).join(" · "),
     badge:{ label:"⚠ retard", color:C.red }, nav:"cases",
   }));
-  overdueReviews.forEach(d => attentionItems.push({
+  overdueReviews.forEach(d => fallbackAttentionItems.push({
     sortKey:1, type:"decision", id:d.id, title:d.title||"(décision)",
     sub:[d.managerName, `review ${fmtDate(d.reviewDate)}`].filter(Boolean).join(" · "),
     badge:{ label:"Review due", color:C.red }, nav:"decisions",
   }));
-  highRiskDecisions.filter(d => !overdueReviews.includes(d)).forEach(d => attentionItems.push({
+  highRiskDecisions.filter(d => !overdueReviews.includes(d)).forEach(d => fallbackAttentionItems.push({
     sortKey:2, type:"decision", id:d.id, title:d.title||"(décision)",
     sub:[DEC_TYPE_L[d.decisionType]||d.decisionType, d.managerName].filter(Boolean).join(" · "),
     badge:{ label:"Risque élevé", color:C.red }, nav:"decisions",
   }));
-  agedSignals.slice(0, 4).forEach(s => attentionItems.push({
+  agedSignals.slice(0, 4).forEach(s => fallbackAttentionItems.push({
     sortKey:3, type:"signal", id:s.id,
     title:s.analysis?.title || (s.signal||"Signal").substring(0, 60),
     sub:[s.analysis?.category, s.savedAt && `il y a ${daysBetween(todayISO, s.savedAt)}j`].filter(Boolean).join(" · "),
@@ -127,13 +230,16 @@ export default function ModuleHome({ data, onNavigate }) {
   }));
   agedCases.filter(c => !overdueCases.includes(c)).slice(0, 3).forEach(c => {
     const age = c.createdAt || c.savedAt;
-    attentionItems.push({
+    fallbackAttentionItems.push({
       sortKey:4, type:"case", id:c.id, title:c.title||"(dossier)",
       sub:[c.director, age && `ouvert depuis ${daysBetween(todayISO, age)}j`].filter(Boolean).join(" · "),
       badge:{ label:"Aging", color:C.amber }, nav:"cases",
     });
   });
+
+  const attentionItems = briefAttentionItems.length > 0 ? briefAttentionItems : fallbackAttentionItems;
   const attentionTop = attentionItems.sort((a,b)=>a.sortKey-b.sortKey).slice(0, 6);
+  const attentionFromBrief = briefAttentionItems.length > 0;
 
   // ── Recent Decisions ───────────────────────────────────────────────────────
   const recentDecisions = [...decisions]
@@ -168,25 +274,49 @@ export default function ModuleHome({ data, onNavigate }) {
     .sort((a,b) => (b.highRisk-a.highRisk) || (b.total-a.total))
     .slice(0, 5);
 
-  // ── Recommended Actions ────────────────────────────────────────────────────
-  const reco = [];
+  // ── Recommended Actions (brief-first, then fallback) ──────────────────────
+  const briefReco = [];
+  if (lb && Array.isArray(lb.weeklyActions) && lb.weeklyActions.length > 0) {
+    lb.weeklyActions.forEach(a => {
+      briefReco.push({
+        icon: a.owner === "HRBP" ? "🎯" : a.owner === "Direction" ? "👔" : "📋",
+        label: a.action + (a.deadline ? ` (${a.deadline})` : ""),
+        color: a.owner === "HRBP" ? C.em : C.blue,
+        nav: "brief",
+      });
+    });
+  }
+
+  const fallbackReco = [];
   if (draftDecisions.length > 0)
-    reco.push({ icon:"⚖", label:`Compléter ${draftDecisions.length} décision${draftDecisions.length>1?"s":""} en brouillon`, color:C.red, nav:"decisions" });
+    fallbackReco.push({ icon:"⚖", label:`Compléter ${draftDecisions.length} décision${draftDecisions.length>1?"s":""} en brouillon`, color:C.red, nav:"decisions" });
   if (pendingSignals.length > 0)
-    reco.push({ icon:"📡", label:`Traiter ${pendingSignals.length} signal${pendingSignals.length>1?"aux":""} en attente`, color:C.purple, nav:"signals" });
+    fallbackReco.push({ icon:"📡", label:`Traiter ${pendingSignals.length} signal${pendingSignals.length>1?"aux":""} en attente`, color:C.purple, nav:"signals" });
   if (overdueCases.length > 0)
-    reco.push({ icon:"📂", label:`Relancer ${overdueCases.length} dossier${overdueCases.length>1?"s":""} en retard`, color:C.amber, nav:"cases" });
+    fallbackReco.push({ icon:"📂", label:`Relancer ${overdueCases.length} dossier${overdueCases.length>1?"s":""} en retard`, color:C.amber, nav:"cases" });
   if (prep1on1.length === 0 || !prep1on1.some(p => p.date && p.date >= todayISO))
-    reco.push({ icon:"🗂️", label:"Préparer un prochain 1:1", color:C.blue, nav:"prep1on1" });
-  reco.push({ icon:"📊", label:"Générer un Weekly Brief", color:C.em, nav:"brief" });
-  reco.push({ icon:"🎙️", label:"Analyser une réunion", color:C.blue, nav:"meetings" });
+    fallbackReco.push({ icon:"🗂️", label:"Préparer un prochain 1:1", color:C.blue, nav:"prep1on1" });
+  fallbackReco.push({ icon:"📊", label:"Générer un Weekly Brief", color:C.em, nav:"brief" });
+  fallbackReco.push({ icon:"🎙️", label:"Analyser une réunion", color:C.blue, nav:"meetings" });
+
+  const reco = briefReco.length > 0 ? briefReco : fallbackReco;
   const recommended = reco.slice(0, 6);
+  const recoFromBrief = briefReco.length > 0;
 
   // ── Summary headline ───────────────────────────────────────────────────────
   const criticalCount = overdueCases.length + overdueReviews.length + highRiskDecisions.length;
-  const headline = criticalCount > 0
-    ? `${criticalCount} item${criticalCount>1?"s":""} critique${criticalCount>1?"s":""} — ${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""}`
-    : `${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""} · ${pendingSignals.length} signal${pendingSignals.length>1?"aux":""} en attente`;
+  const headline = lb && lb.executiveSummary
+    ? lb.executiveSummary
+    : criticalCount > 0
+      ? `${criticalCount} item${criticalCount>1?"s":""} critique${criticalCount>1?"s":""} — ${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""}`
+      : `${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""} · ${pendingSignals.length} signal${pendingSignals.length>1?"aux":""} en attente`;
+
+  // ── Brief source indicator ─────────────────────────────────────────────────
+  const briefSourceLabel = lb
+    ? `📊 Brief ${lb.weekOf || fmtDate(latestBriefEntry.savedAt) || ""}`
+    : null;
+  const briefAgeMs = latestBriefEntry ? Date.now() - new Date(latestBriefEntry.savedAt || 0).getTime() : 0;
+  const briefAgeDays = Math.floor(briefAgeMs / DAY);
 
   return (
     <div style={{ maxWidth:1100, margin:"0 auto", fontFamily:"'DM Sans',sans-serif" }}>
@@ -195,11 +325,28 @@ export default function ModuleHome({ data, onNavigate }) {
       <div style={{ marginBottom:16, paddingTop:16 }}>
         <div style={{ display:"flex", alignItems:"baseline", gap:12, flexWrap:"wrap" }}>
           <div style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:-.5 }}>HRBP OS</div>
-          <div style={{ fontSize:12, color:C.textM }}>{headline}</div>
-          <span style={{ marginLeft:"auto", fontSize:11, color:C.textD }}>
+          <div style={{ fontSize:12, color:C.textM, flex:1 }}>{headline}</div>
+          <span style={{ fontSize:11, color:C.textD }}>
             {new Date().toLocaleDateString("fr-CA",{ weekday:"long", year:"numeric", month:"long", day:"numeric" })}
           </span>
         </div>
+        {briefSourceLabel && (
+          <div style={{ marginTop:4, display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ fontSize:9, fontFamily:"'DM Mono',monospace", color:briefIsStale?C.textD:C.em, letterSpacing:.5,
+              background:(briefIsStale?C.textD:C.em)+"14", padding:"2px 8px", borderRadius:4 }}>{briefSourceLabel}</span>
+            {briefIsStale && (
+              <span style={{ fontSize:8, fontFamily:"'DM Mono',monospace", letterSpacing:.5,
+                color:C.amber, background:C.amber+"14", padding:"2px 6px", borderRadius:3 }}>
+                {briefAgeDays}j ancien
+              </span>
+            )}
+            {lb.riskLevel && (
+              <span style={{ fontSize:9, fontFamily:"'DM Mono',monospace", letterSpacing:.4,
+                color:BRIEF_RISK_C[lb.riskLevel]||C.textD, background:(BRIEF_RISK_C[lb.riskLevel]||C.textD)+"18",
+                padding:"2px 8px", borderRadius:4 }}>Risque {lb.riskLevel}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── KPI strip ────────────────────────────────────────────────────── */}
@@ -220,7 +367,8 @@ export default function ModuleHome({ data, onNavigate }) {
 
       {/* ── Focus Today ──────────────────────────────────────────────────── */}
       <Card style={{ marginBottom:14, borderLeft:`3px solid ${topFocus.length>0?C.red:C.em}` }}>
-        <SH icon="🎯" label="FOCUS TODAY" color={topFocus.length>0?C.red:C.em}/>
+        <SH icon="🎯" label="FOCUS TODAY" color={topFocus.length>0?C.red:C.em}
+          sub={focusFromBrief ? "via brief" : ""}/>
         {calmState && <div style={{ fontSize:13, color:C.text, lineHeight:1.5 }}>{calmState}</div>}
         {topFocus.length > 0 && (
           <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
@@ -244,7 +392,9 @@ export default function ModuleHome({ data, onNavigate }) {
         {/* Left : Attention Required */}
         <Card>
           <SH icon="⚠" label="ATTENTION REQUIRED" color={C.amber}
-            sub={attentionTop.length > 0 ? `${attentionTop.length} item${attentionTop.length>1?"s":""}` : ""}/>
+            sub={attentionTop.length > 0
+              ? `${attentionTop.length} item${attentionTop.length>1?"s":""}${attentionFromBrief?" · via brief":""}`
+              : ""}/>
           {attentionTop.length === 0 && <Empty msg="Aucun point critique aujourd'hui."/>}
           {attentionTop.map((it,i) => (
             <Row key={it.type+it.id+i}
@@ -317,8 +467,10 @@ export default function ModuleHome({ data, onNavigate }) {
 
       {/* ── Recommended Actions ──────────────────────────────────────────── */}
       <div style={{ marginBottom:16 }}>
-        <div style={{ marginBottom:10 }}>
+        <div style={{ marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
           <Mono size={9} color={C.textD}>RECOMMENDED ACTIONS</Mono>
+          {recoFromBrief && <span style={{ fontSize:8, fontFamily:"'DM Mono',monospace",
+            color:C.em, letterSpacing:.5, background:C.em+"14", padding:"1px 6px", borderRadius:3 }}>VIA BRIEF</span>}
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {recommended.map((q,i) => (
