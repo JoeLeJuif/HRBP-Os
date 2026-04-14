@@ -211,11 +211,64 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
   );
 }
 
+// ── Clipboard export formatter ────────────────────────────────────────────────
+function formatCaseForClipboard(c, data) {
+  const lines = [];
+  const sep = "─".repeat(40);
+  lines.push(`DOSSIER RH — ${c.title || "Sans titre"}`);
+  lines.push(sep);
+  const typeObj = CASE_TYPES.find(t => t.id === c.type);
+  const statusObj = STATUSES.find(s => s.id === c.status);
+  if (statusObj)      lines.push(`Statut       : ${statusObj.label}`);
+  if (c.riskLevel)    lines.push(`Risque       : ${c.riskLevel}`);
+  if (typeObj)         lines.push(`Type         : ${typeObj.label}`);
+  if (c.urgency)      lines.push(`Urgence      : ${c.urgency}`);
+  if (c.evolution)    lines.push(`Évolution    : ${c.evolution}`);
+  if (c.hrPosture)    lines.push(`Posture RH   : ${c.hrPosture}`);
+  if (c.province)     lines.push(`Province     : ${c.province}`);
+  if (c.director)     lines.push(`Gestionnaire : ${c.director}`);
+  if (c.employee)     lines.push(`Employé      : ${c.employee}`);
+  if (c.department)   lines.push(`Département  : ${c.department}`);
+  if (c.owner)        lines.push(`Owner        : ${c.owner}`);
+  if (c.openDate)     lines.push(`Ouverture    : ${c.openDate}`);
+  if (c.dueDate)      lines.push(`Échéance     : ${c.dueDate}`);
+  if (c.closedDate)   lines.push(`Fermé        : ${c.closedDate}`);
+  if (c.situation)          { lines.push(""); lines.push("SITUATION"); lines.push(c.situation); }
+  if (c.interventionsDone)  { lines.push(""); lines.push("INTERVENTIONS EFFECTUÉES"); lines.push(c.interventionsDone); }
+  if (c.hrPosition)         { lines.push(""); lines.push("POSITION RH"); lines.push(c.hrPosition); }
+  if (c.decision)           { lines.push(""); lines.push("DÉCISION"); lines.push(c.decision); }
+  if (c.nextFollowUp)       { lines.push(""); lines.push("PROCHAIN SUIVI"); lines.push(c.nextFollowUp); }
+  if (c.notes)              { lines.push(""); lines.push("NOTES"); lines.push(c.notes); }
+  // Timeline
+  const tlEvents = [];
+  const created = c.createdAt || c.savedAt || c.openDate;
+  if (created) tlEvents.push({ date: created, label: "Dossier ouvert" });
+  if ((c.status === "resolved" || c.status === "closed") && (c.closedDate || c.savedAt))
+    tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "resolved" ? "Dossier résolu" : "Dossier fermé" });
+  if (c.status === "escalated") tlEvents.push({ date: c.savedAt || created, label: "Dossier escaladé" });
+  if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "Échéance" + (c.nextFollowUp ? ` — ${c.nextFollowUp}` : "") });
+  (data.decisions || []).filter(d => d.linkedCaseId === c.id).forEach(d => {
+    tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: d.title || "Décision RH", sub: d.summary || d.rationale || "" });
+  });
+  const sortedTl = tlEvents.filter(e => e.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (sortedTl.length > 0) {
+    lines.push(""); lines.push("TIMELINE");
+    sortedTl.forEach(ev => {
+      lines.push(`• ${ev.date} — ${ev.label}`);
+      if (ev.sub) lines.push(`  ${ev.sub}`);
+    });
+  }
+  lines.push(""); lines.push(sep);
+  lines.push(`Exporté depuis HRBP OS — ${new Date().toLocaleDateString("fr-CA")}`);
+  return lines.join("\n");
+}
+
 export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
   const [view, setView] = useState("list"); // list | form | detail
   const [form, setForm] = useState({...EMPTY_FORM});
   const [editId, setEditId] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -283,6 +336,14 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
         <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
         <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{c.title}</div>
+        <button onClick={async () => {
+            const text = formatCaseForClipboard(c, data);
+            try { await navigator.clipboard.writeText(text); }
+            catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
+            setCopied(true); setTimeout(() => setCopied(false), 2000);
+          }}
+          style={{ ...css.btn(copied ? C.em : C.textM, true), padding:"6px 14px", fontSize:12 }}>
+          {copied ? "✓ Copié !" : "📋 Copier"}</button>
         <button onClick={() => openEdit(c)} style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12 }}>✏ Modifier</button>
         <button onClick={() => { if(window.confirm("Supprimer ce dossier?")) deleteCase(c.id); }}
           style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>🗑 Supprimer</button>

@@ -5027,11 +5027,87 @@ ${buildContext()}`, 3500);
       ), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onCancel, style: { ...css.btn(C.textM, true) } }, "Annuler")))
     );
   }
+  function formatCaseForClipboard(c, data) {
+    const lines = [];
+    const sep = "\u2500".repeat(40);
+    lines.push(`DOSSIER RH \u2014 ${c.title || "Sans titre"}`);
+    lines.push(sep);
+    const typeObj = CASE_TYPES.find((t) => t.id === c.type);
+    const statusObj = STATUSES.find((s) => s.id === c.status);
+    if (statusObj) lines.push(`Statut       : ${statusObj.label}`);
+    if (c.riskLevel) lines.push(`Risque       : ${c.riskLevel}`);
+    if (typeObj) lines.push(`Type         : ${typeObj.label}`);
+    if (c.urgency) lines.push(`Urgence      : ${c.urgency}`);
+    if (c.evolution) lines.push(`\xC9volution    : ${c.evolution}`);
+    if (c.hrPosture) lines.push(`Posture RH   : ${c.hrPosture}`);
+    if (c.province) lines.push(`Province     : ${c.province}`);
+    if (c.director) lines.push(`Gestionnaire : ${c.director}`);
+    if (c.employee) lines.push(`Employ\xE9      : ${c.employee}`);
+    if (c.department) lines.push(`D\xE9partement  : ${c.department}`);
+    if (c.owner) lines.push(`Owner        : ${c.owner}`);
+    if (c.openDate) lines.push(`Ouverture    : ${c.openDate}`);
+    if (c.dueDate) lines.push(`\xC9ch\xE9ance     : ${c.dueDate}`);
+    if (c.closedDate) lines.push(`Ferm\xE9        : ${c.closedDate}`);
+    if (c.situation) {
+      lines.push("");
+      lines.push("SITUATION");
+      lines.push(c.situation);
+    }
+    if (c.interventionsDone) {
+      lines.push("");
+      lines.push("INTERVENTIONS EFFECTU\xC9ES");
+      lines.push(c.interventionsDone);
+    }
+    if (c.hrPosition) {
+      lines.push("");
+      lines.push("POSITION RH");
+      lines.push(c.hrPosition);
+    }
+    if (c.decision) {
+      lines.push("");
+      lines.push("D\xC9CISION");
+      lines.push(c.decision);
+    }
+    if (c.nextFollowUp) {
+      lines.push("");
+      lines.push("PROCHAIN SUIVI");
+      lines.push(c.nextFollowUp);
+    }
+    if (c.notes) {
+      lines.push("");
+      lines.push("NOTES");
+      lines.push(c.notes);
+    }
+    const tlEvents = [];
+    const created = c.createdAt || c.savedAt || c.openDate;
+    if (created) tlEvents.push({ date: created, label: "Dossier ouvert" });
+    if ((c.status === "resolved" || c.status === "closed") && (c.closedDate || c.savedAt))
+      tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "resolved" ? "Dossier r\xE9solu" : "Dossier ferm\xE9" });
+    if (c.status === "escalated") tlEvents.push({ date: c.savedAt || created, label: "Dossier escalad\xE9" });
+    if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "\xC9ch\xE9ance" + (c.nextFollowUp ? ` \u2014 ${c.nextFollowUp}` : "") });
+    (data.decisions || []).filter((d) => d.linkedCaseId === c.id).forEach((d) => {
+      tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: d.title || "D\xE9cision RH", sub: d.summary || d.rationale || "" });
+    });
+    const sortedTl = tlEvents.filter((e) => e.date).sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (sortedTl.length > 0) {
+      lines.push("");
+      lines.push("TIMELINE");
+      sortedTl.forEach((ev) => {
+        lines.push(`\u2022 ${ev.date} \u2014 ${ev.label}`);
+        if (ev.sub) lines.push(`  ${ev.sub}`);
+      });
+    }
+    lines.push("");
+    lines.push(sep);
+    lines.push(`Export\xE9 depuis HRBP OS \u2014 ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`);
+    return lines.join("\n");
+  }
   function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
     const [view, setView] = (0, import_react10.useState)("list");
     const [form, setForm] = (0, import_react10.useState)({ ...EMPTY_FORM });
     const [editId, setEditId] = (0, import_react10.useState)(null);
     const [detail, setDetail] = (0, import_react10.useState)(null);
+    const [copied, setCopied] = (0, import_react10.useState)(false);
     const [search, setSearch] = (0, import_react10.useState)("");
     const [filterStatus, setFilterStatus] = (0, import_react10.useState)("all");
     (0, import_react10.useEffect)(() => {
@@ -5106,7 +5182,28 @@ ${buildContext()}`, 3500);
       const typeObj = CASE_TYPES.find((t) => t.id === c.type);
       const statusObj = STATUSES.find((s) => s.id === c.status);
       const r = RISK[c.riskLevel] || RISK["Mod\xE9r\xE9"];
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, c.title), /* @__PURE__ */ React.createElement("button", { onClick: () => openEdit(c), style: { ...css.btn(C.blue, true), padding: "6px 14px", fontSize: 12 } }, "\u270F Modifier"), /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, c.title), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: async () => {
+            const text = formatCaseForClipboard(c, data);
+            try {
+              await navigator.clipboard.writeText(text);
+            } catch {
+              const ta = document.createElement("textarea");
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand("copy");
+              document.body.removeChild(ta);
+            }
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2e3);
+          },
+          style: { ...css.btn(copied ? C.em : C.textM, true), padding: "6px 14px", fontSize: 12 }
+        },
+        copied ? "\u2713 Copi\xE9 !" : "\u{1F4CB} Copier"
+      ), /* @__PURE__ */ React.createElement("button", { onClick: () => openEdit(c), style: { ...css.btn(C.blue, true), padding: "6px 14px", fontSize: 12 } }, "\u270F Modifier"), /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => {
