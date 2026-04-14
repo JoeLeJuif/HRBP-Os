@@ -11170,11 +11170,12 @@ ${recap.sentText}`,
       }
       if (Array.isArray(lb.watchList) && lb.watchList.length > 0) {
         const existingTitlesLc = new Set(briefAttentionItems.map((it) => it.title.toLowerCase()));
-        const WATCH_CLASS_C = { activeRisk: C.amber, latentSignal: C.blue, resolved: C.textD };
-        const WATCH_CLASS_L = { activeRisk: "Risque actif", latentSignal: "Signal latent", resolved: "R\xE9solu" };
+        const WATCH_CLASS_C = { activeRisk: C.amber, latentSignal: C.blue };
+        const WATCH_CLASS_L = { activeRisk: "Risque actif", latentSignal: "Signal latent" };
         let wlCount = 0;
         for (const w of lb.watchList) {
           if (wlCount >= 2) break;
+          if (w.classification === "resolved") continue;
           const subjectLc = (w.subject || "").toLowerCase();
           if (!subjectLc || existingTitlesLc.has(subjectLc)) continue;
           let dup = false;
@@ -11250,6 +11251,7 @@ ${recap.sentText}`,
     const attentionItems = briefAttentionItems.length > 0 ? briefAttentionItems : fallbackAttentionItems;
     const attentionTop = attentionItems.sort((a, b) => a.sortKey - b.sortKey).slice(0, 6);
     const attentionFromBrief = briefAttentionItems.length > 0;
+    const resolvedItems = lb && Array.isArray(lb.watchList) ? lb.watchList.filter((w) => w.classification === "resolved" && w.subject).slice(0, 3) : [];
     const recentDecisions = [...decisions].sort((a, b) => (b.updatedAt || b.createdAt || b.decisionDate || "").localeCompare(a.updatedAt || a.createdAt || a.decisionDate || "")).slice(0, 4);
     const managerMap = /* @__PURE__ */ new Map();
     const touch = (name, key) => {
@@ -11409,7 +11411,13 @@ ${recap.sentText}`,
           right: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: DEC_RISK_L[d.riskLevel] || "\u2014", color: DEC_RISK_C[d.riskLevel] || C.textD, size: 9 }), /* @__PURE__ */ React.createElement(Badge, { label: DEC_STATUS_L[d.status] || d.status, color: DEC_STATUS_C[d.status] || C.textD, size: 9 }), isReviewDue && /* @__PURE__ */ React.createElement(Badge, { label: "Review due", color: C.red, size: 9 }), !isReviewDue && isReviewSoon && /* @__PURE__ */ React.createElement(Badge, { label: "Review 7j", color: C.amber, size: 9 }))
         }
       );
-    }))), managers.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(
+    }))), resolvedItems.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, opacity: 0.85 } }, /* @__PURE__ */ React.createElement(SH, { icon: "\u2705", label: "SUIVI R\xC9CENT", color: C.textD, sub: `${resolvedItems.length} r\xE9solu${resolvedItems.length > 1 ? "s" : ""}` }), resolvedItems.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 10,
+      padding: "6px 0",
+      borderBottom: i < resolvedItems.length - 1 ? `1px solid ${C.border}` : "none"
+    } }, /* @__PURE__ */ React.createElement(Badge, { label: "R\xE9solu", color: C.textD, size: 8 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, w.subject), w.note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 2, lineHeight: 1.4 } }, w.note))))), managers.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(
       SH,
       {
         icon: "\u{1F465}",

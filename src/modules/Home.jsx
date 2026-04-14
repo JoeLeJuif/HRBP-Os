@@ -181,17 +181,17 @@ export default function ModuleHome({ data, onNavigate }) {
         nav: "brief",
       });
     }
-    // watchList — max 2, dedupe against existing titles
+    // watchList — max 2, dedupe against existing titles, exclude resolved
     if (Array.isArray(lb.watchList) && lb.watchList.length > 0) {
       const existingTitlesLc = new Set(briefAttentionItems.map(it => it.title.toLowerCase()));
-      const WATCH_CLASS_C = { activeRisk:C.amber, latentSignal:C.blue, resolved:C.textD };
-      const WATCH_CLASS_L = { activeRisk:"Risque actif", latentSignal:"Signal latent", resolved:"Résolu" };
+      const WATCH_CLASS_C = { activeRisk:C.amber, latentSignal:C.blue };
+      const WATCH_CLASS_L = { activeRisk:"Risque actif", latentSignal:"Signal latent" };
       let wlCount = 0;
       for (const w of lb.watchList) {
         if (wlCount >= 2) break;
+        if (w.classification === "resolved") continue; // → Suivi récent
         const subjectLc = (w.subject || "").toLowerCase();
         if (!subjectLc || existingTitlesLc.has(subjectLc)) continue;
-        // skip if subject is a substring of any existing title (fuzzy dedup)
         let dup = false;
         for (const t of existingTitlesLc) { if (t.includes(subjectLc) || subjectLc.includes(t)) { dup = true; break; } }
         if (dup) continue;
@@ -240,6 +240,11 @@ export default function ModuleHome({ data, onNavigate }) {
   const attentionItems = briefAttentionItems.length > 0 ? briefAttentionItems : fallbackAttentionItems;
   const attentionTop = attentionItems.sort((a,b)=>a.sortKey-b.sortKey).slice(0, 6);
   const attentionFromBrief = briefAttentionItems.length > 0;
+
+  // ── Resolved watchList items → Suivi récent ────────────────────────────────
+  const resolvedItems = lb && Array.isArray(lb.watchList)
+    ? lb.watchList.filter(w => w.classification === "resolved" && w.subject).slice(0, 3)
+    : [];
 
   // ── Recent Decisions ───────────────────────────────────────────────────────
   const recentDecisions = [...decisions]
@@ -431,6 +436,23 @@ export default function ModuleHome({ data, onNavigate }) {
         </Card>
 
       </div>
+
+      {/* ── Suivi récent (resolved watchList items) ──────────────────────── */}
+      {resolvedItems.length > 0 && (
+        <Card style={{ marginBottom:14, opacity:0.85 }}>
+          <SH icon="✅" label="SUIVI RÉCENT" color={C.textD} sub={`${resolvedItems.length} résolu${resolvedItems.length>1?"s":""}`}/>
+          {resolvedItems.map((w, i) => (
+            <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"6px 0",
+              borderBottom: i < resolvedItems.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <Badge label="Résolu" color={C.textD} size={8}/>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:12, color:C.textM }}>{w.subject}</div>
+                {w.note && <div style={{ fontSize:10, color:C.textD, marginTop:2, lineHeight:1.4 }}>{w.note}</div>}
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
 
       {/* ── Managers to Watch ────────────────────────────────────────────── */}
       {managers.length > 0 && (
