@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { C, css, RISK } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
 import { getProvince, fmtDate } from '../utils/format.js';
+import { PROVINCES } from '../utils/legal.js';
 import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
@@ -271,6 +272,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterProvince, setFilterProvince] = useState("");
 
   // ── Inter-module focus: auto-open a specific case on mount ───────────────────
   useEffect(() => {
@@ -286,7 +288,8 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const q = search.toLowerCase();
     const matchSearch = !q || c.title?.toLowerCase().includes(q) || c.director?.toLowerCase().includes(q) || c.employee?.toLowerCase().includes(q);
     const matchStatus = filterStatus === "all" || c.status === filterStatus;
-    return matchSearch && matchStatus;
+    const matchProvince = !filterProvince || getProvince(c, data.profile) === filterProvince;
+    return matchSearch && matchStatus && matchProvince;
   }).sort((a, b) => {
     const ua = URGENCY_ORDER[a.urgency] ?? 4, ub = URGENCY_ORDER[b.urgency] ?? 4;
     if (ua !== ub) return ua - ub;
@@ -413,13 +416,36 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
             decisionId: d.id, decisionStatus: statusLabel,
             decisionRisk: d.riskLevel || "" });
         });
+        // Linked meetings (B-06.3: director match, 90-day window, max 3)
+        if (c.director) {
+          const dirNorm = c.director.trim().toLowerCase();
+          const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+          (data.meetings || [])
+            .filter(m => m.director && m.director.trim().toLowerCase() === dirNorm && m.savedAt && new Date(m.savedAt).getTime() >= cutoff)
+            .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
+            .slice(0, 3)
+            .forEach(m => {
+              events.push({ date: m.savedAt, type:"meeting", icon:"🗓", label: m.analysis?.meetingTitle || "Meeting", sub: m.meetingType || "", color: C.teal });
+            });
+        }
+        // Linked signals (B-06.4: director/managerName match, max 2)
+        if (c.director) {
+          const dirNorm = c.director.trim().toLowerCase();
+          (data.signals || [])
+            .filter(s => s.managerName && s.managerName.trim().toLowerCase() === dirNorm)
+            .sort((a, b) => new Date(b.createdAt || b.savedAt || 0) - new Date(a.createdAt || a.savedAt || 0))
+            .slice(0, 2)
+            .forEach(s => {
+              events.push({ date: s.createdAt || s.savedAt, type:"signal", icon:"📡", label: s.title || s.label || "Signal", sub: s.level || s.riskLevel || "", color: C.amber });
+            });
+        }
         const sorted = events.filter(e => e.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
         if (sorted.length === 0) return null;
         return (
           <Card style={{ marginTop: 14 }}>
             <Mono color={C.textD} size={9} style={{ marginBottom: 12, display:"block" }}>TIMELINE</Mono>
             <div style={{ position:"relative", paddingLeft:20 }}>
-              <div style={{ position:"absolute", left:5, top:4, bottom:4, width:2, background:C.border, borderRadius:1 }}/>
+              {sorted.length > 1 && <div style={{ position:"absolute", left:5, top:4, bottom:4, width:2, background:C.border, borderRadius:1 }}/>}
               {sorted.map((ev, i) => {
                 const isDecision = ev.type === "decision" && ev.decisionId;
                 const Wrapper = isDecision ? "button" : "div";
@@ -434,17 +460,16 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
                   <Wrapper key={i} {...wrapperProps} style={{ position:"relative", marginBottom: i < sorted.length - 1 ? 16 : 0, paddingLeft:16,
                     ...(isDecision ? { cursor:"pointer", background:"none", border:"none", textAlign:"left",
                       fontFamily:"'DM Sans',sans-serif", padding:0, paddingLeft:16, width:"100%" } : {}) }}>
-                    <div style={{ position:"absolute", left: isDecision ? -18 : -18, top:2, width:10, height:10, borderRadius:"50%",
-                      background:ev.color+"22", border:`2px solid ${ev.color}`, zIndex:1 }}/>
+                    <div style={{ position:"absolute", left:-18, top:2, width:10, height:10, borderRadius:"50%",
+                      background:ev.color, border:`2px solid ${ev.color}`, boxShadow:`0 0 0 3px ${ev.color}22`, zIndex:1 }}/>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
                       <span style={{ fontSize:11 }}>{ev.icon}</span>
                       <span style={{ fontSize:12, fontWeight:600, color: isDecision ? C.purple : C.text }}>{ev.label}</span>
                       <Badge label={ev.type === "decision" ? "Décision" : ev.type === "deadline" ? "Échéance"
+                        : ev.type === "meeting" ? "Meeting" : ev.type === "signal" ? "Signal"
                         : ev.type === "status" ? "Statut" : "Dossier"} color={ev.color} size={8}/>
                       {ev.decisionStatus && <Mono color={C.textM} size={8}>{ev.decisionStatus}</Mono>}
-                      {ev.decisionRisk && <Mono color={ev.decisionRisk==="high"?C.red:ev.decisionRisk==="medium"?C.amber:C.em} size={8}>
-                        {({low:"Faible",medium:"Modéré",high:"Élevé"})[ev.decisionRisk]||ev.decisionRisk}
-                      </Mono>}
+                      {ev.decisionRisk && <RiskBadge level={({low:"Faible",medium:"Modéré",high:"Élevé"})[ev.decisionRisk]||ev.decisionRisk}/>}
                       <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", marginLeft:"auto" }}>
                         {fmtDate(ev.date)}
                       </span>
@@ -491,9 +516,14 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
             </button>;
           })}
         </div>
+        <select value={filterProvince} onChange={e => setFilterProvince(e.target.value)} style={{ ...css.select, maxWidth:140, fontSize:11 }}>
+          <option value="">Province: Toutes</option>
+          {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
       </div>
 
       {/* Cases list */}
+      {filtered.length === 0 && <div style={{ textAlign:"center", padding:32, color:C.textM, fontSize:13 }}>Aucun dossier ne correspond aux filtres.</div>}
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {filtered.map((c,i) => {
           const r = RISK[c.riskLevel]||RISK["Modéré"];

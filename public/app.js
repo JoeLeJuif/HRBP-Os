@@ -5148,6 +5148,7 @@ ${buildContext()}`, 3500);
     const [copied, setCopied] = (0, import_react10.useState)(false);
     const [search, setSearch] = (0, import_react10.useState)("");
     const [filterStatus, setFilterStatus] = (0, import_react10.useState)("all");
+    const [filterProvince, setFilterProvince] = (0, import_react10.useState)("");
     (0, import_react10.useEffect)(() => {
       if (!focusCaseId) return;
       const target = (data.cases || []).find((c) => c.id === focusCaseId);
@@ -5163,7 +5164,8 @@ ${buildContext()}`, 3500);
       const q = search.toLowerCase();
       const matchSearch = !q || c.title?.toLowerCase().includes(q) || c.director?.toLowerCase().includes(q) || c.employee?.toLowerCase().includes(q);
       const matchStatus = filterStatus === "all" || c.status === filterStatus;
-      return matchSearch && matchStatus;
+      const matchProvince = !filterProvince || getProvince(c, data.profile) === filterProvince;
+      return matchSearch && matchStatus && matchProvince;
     }).sort((a, b) => {
       const ua = URGENCY_ORDER[a.urgency] ?? 4, ub = URGENCY_ORDER[b.urgency] ?? 4;
       if (ua !== ub) return ua - ub;
@@ -5322,9 +5324,22 @@ ${buildContext()}`, 3500);
             decisionRisk: d.riskLevel || ""
           });
         });
+        if (c.director) {
+          const dirNorm = c.director.trim().toLowerCase();
+          const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1e3;
+          (data.meetings || []).filter((m) => m.director && m.director.trim().toLowerCase() === dirNorm && m.savedAt && new Date(m.savedAt).getTime() >= cutoff).sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)).slice(0, 3).forEach((m) => {
+            events.push({ date: m.savedAt, type: "meeting", icon: "\u{1F5D3}", label: m.analysis?.meetingTitle || "Meeting", sub: m.meetingType || "", color: C.teal });
+          });
+        }
+        if (c.director) {
+          const dirNorm = c.director.trim().toLowerCase();
+          (data.signals || []).filter((s) => s.managerName && s.managerName.trim().toLowerCase() === dirNorm).sort((a, b) => new Date(b.createdAt || b.savedAt || 0) - new Date(a.createdAt || a.savedAt || 0)).slice(0, 2).forEach((s) => {
+            events.push({ date: s.createdAt || s.savedAt, type: "signal", icon: "\u{1F4E1}", label: s.title || s.label || "Signal", sub: s.level || s.riskLevel || "", color: C.amber });
+          });
+        }
         const sorted = events.filter((e) => e.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
         if (sorted.length === 0) return null;
-        return /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginBottom: 12, display: "block" } }, "TIMELINE"), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", paddingLeft: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", left: 5, top: 4, bottom: 4, width: 2, background: C.border, borderRadius: 1 } }), sorted.map((ev, i) => {
+        return /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginBottom: 12, display: "block" } }, "TIMELINE"), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", paddingLeft: 20 } }, sorted.length > 1 && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", left: 5, top: 4, bottom: 4, width: 2, background: C.border, borderRadius: 1 } }), sorted.map((ev, i) => {
           const isDecision = ev.type === "decision" && ev.decisionId;
           const Wrapper = isDecision ? "button" : "div";
           const wrapperProps = isDecision ? {
@@ -5350,15 +5365,16 @@ ${buildContext()}`, 3500);
             } : {}
           } }, /* @__PURE__ */ React.createElement("div", { style: {
             position: "absolute",
-            left: isDecision ? -18 : -18,
+            left: -18,
             top: 2,
             width: 10,
             height: 10,
             borderRadius: "50%",
-            background: ev.color + "22",
+            background: ev.color,
             border: `2px solid ${ev.color}`,
+            boxShadow: `0 0 0 3px ${ev.color}22`,
             zIndex: 1
-          } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, ev.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isDecision ? C.purple : C.text } }, ev.label), /* @__PURE__ */ React.createElement(Badge, { label: ev.type === "decision" ? "D\xE9cision" : ev.type === "deadline" ? "\xC9ch\xE9ance" : ev.type === "status" ? "Statut" : "Dossier", color: ev.color, size: 8 }), ev.decisionStatus && /* @__PURE__ */ React.createElement(Mono, { color: C.textM, size: 8 }, ev.decisionStatus), ev.decisionRisk && /* @__PURE__ */ React.createElement(Mono, { color: ev.decisionRisk === "high" ? C.red : ev.decisionRisk === "medium" ? C.amber : C.em, size: 8 }, { low: "Faible", medium: "Mod\xE9r\xE9", high: "\xC9lev\xE9" }[ev.decisionRisk] || ev.decisionRisk), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", marginLeft: "auto" } }, fmtDate(ev.date))), ev.sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.4 } }, ev.sub), isDecision && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.purple + "88", marginTop: 2 } }, "Cliquer pour ouvrir \u2192"));
+          } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, ev.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isDecision ? C.purple : C.text } }, ev.label), /* @__PURE__ */ React.createElement(Badge, { label: ev.type === "decision" ? "D\xE9cision" : ev.type === "deadline" ? "\xC9ch\xE9ance" : ev.type === "meeting" ? "Meeting" : ev.type === "signal" ? "Signal" : ev.type === "status" ? "Statut" : "Dossier", color: ev.color, size: 8 }), ev.decisionStatus && /* @__PURE__ */ React.createElement(Mono, { color: C.textM, size: 8 }, ev.decisionStatus), ev.decisionRisk && /* @__PURE__ */ React.createElement(RiskBadge2, { level: { low: "Faible", medium: "Mod\xE9r\xE9", high: "\xC9lev\xE9" }[ev.decisionRisk] || ev.decisionRisk }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", marginLeft: "auto" } }, fmtDate(ev.date))), ev.sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.4 } }, ev.sub), isDecision && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.purple + "88", marginTop: 2 } }, "Cliquer pour ouvrir \u2192"));
         })));
       })());
     }
@@ -5396,7 +5412,7 @@ ${buildContext()}`, 3500);
         },
         s === "all" ? "Tous" : so?.label
       );
-    }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, filtered.map((c, i) => {
+    })), /* @__PURE__ */ React.createElement("select", { value: filterProvince, onChange: (e) => setFilterProvince(e.target.value), style: { ...css.select, maxWidth: 140, fontSize: 11 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Province: Toutes"), PROVINCES.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }, p)))), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: 32, color: C.textM, fontSize: 13 } }, "Aucun dossier ne correspond aux filtres."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, filtered.map((c, i) => {
       const r = RISK[c.riskLevel] || RISK["Mod\xE9r\xE9"];
       const typeObj = CASE_TYPES.find((t) => t.id === c.type);
       const statusObj = STATUSES.find((s) => s.id === c.status);
