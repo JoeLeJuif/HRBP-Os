@@ -345,6 +345,17 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           style={{ ...css.btn(copied ? C.em : C.textM, true), padding:"6px 14px", fontSize:12 }}>
           {copied ? "✓ Copié !" : "📋 Copier"}</button>
         <button onClick={() => openEdit(c)} style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12 }}>✏ Modifier</button>
+        <button onClick={() => {
+            sessionStorage.setItem("hrbpos:pendingDecision", JSON.stringify({
+              linkedCaseId: c.id, caseTitle: c.title || "",
+              employee: c.employee || "", director: c.director || "",
+              context: c.situation || "", province: c.province || "",
+              type: c.type || "", department: c.department || ""
+            }));
+            onNavigate("decisions");
+          }}
+          title="Créer une décision liée à ce dossier"
+          style={{ ...css.btn(C.purple, true), padding:"6px 14px", fontSize:12 }}>⚖ Décision</button>
         <button onClick={() => { if(window.confirm("Supprimer ce dossier?")) deleteCase(c.id); }}
           style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>🗑 Supprimer</button>
       </div>
@@ -393,10 +404,14 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
         if (c.status === "escalated") events.push({ date: c.savedAt || created, type:"status", icon:"🚨", label:"Dossier escaladé", sub:"", color: C.red });
         // Due date
         if (c.dueDate) events.push({ date: c.dueDate, type:"deadline", icon:"⏰", label:"Échéance", sub: c.nextFollowUp || "", color: C.amber });
-        // Linked decisions
+        // Linked decisions (B-05.2: enriched + clickable)
         (data.decisions || []).filter(d => d.linkedCaseId === c.id).forEach(d => {
+          const statusLabel = d.status ? {draft:"Brouillon",decided:"Décidé",reviewed:"Révisé",archived:"Archivé"}[d.status] || "" : "";
+          const excerpt = d.decisionRationale || d.selectedOption || d.background || "";
           events.push({ date: d.savedAt || d.decisionDate || d.createdAt, type:"decision", icon:"⚖",
-            label: d.title || "Décision RH", sub: d.summary || d.rationale || "", color: C.purple });
+            label: d.title || "Décision RH", sub: excerpt.length > 120 ? excerpt.slice(0,117)+"…" : excerpt, color: C.purple,
+            decisionId: d.id, decisionStatus: statusLabel,
+            decisionRisk: d.riskLevel || "" });
         });
         const sorted = events.filter(e => e.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
         if (sorted.length === 0) return null;
@@ -405,22 +420,40 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
             <Mono color={C.textD} size={9} style={{ marginBottom: 12, display:"block" }}>TIMELINE</Mono>
             <div style={{ position:"relative", paddingLeft:20 }}>
               <div style={{ position:"absolute", left:5, top:4, bottom:4, width:2, background:C.border, borderRadius:1 }}/>
-              {sorted.map((ev, i) => (
-                <div key={i} style={{ position:"relative", marginBottom: i < sorted.length - 1 ? 16 : 0, paddingLeft:16 }}>
-                  <div style={{ position:"absolute", left:-18, top:2, width:10, height:10, borderRadius:"50%",
-                    background:ev.color+"22", border:`2px solid ${ev.color}`, zIndex:1 }}/>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
-                    <span style={{ fontSize:11 }}>{ev.icon}</span>
-                    <span style={{ fontSize:12, fontWeight:600, color:C.text }}>{ev.label}</span>
-                    <Badge label={ev.type === "decision" ? "Décision" : ev.type === "deadline" ? "Échéance"
-                      : ev.type === "status" ? "Statut" : "Dossier"} color={ev.color} size={8}/>
-                    <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", marginLeft:"auto" }}>
-                      {fmtDate(ev.date)}
-                    </span>
-                  </div>
-                  {ev.sub && <div style={{ fontSize:11, color:C.textM, lineHeight:1.4 }}>{ev.sub}</div>}
-                </div>
-              ))}
+              {sorted.map((ev, i) => {
+                const isDecision = ev.type === "decision" && ev.decisionId;
+                const Wrapper = isDecision ? "button" : "div";
+                const wrapperProps = isDecision ? {
+                  onClick: () => {
+                    sessionStorage.setItem("hrbpos:openDecision", JSON.stringify({ decisionId: ev.decisionId, linkedCaseId: c.id }));
+                    onNavigate && onNavigate("decisions");
+                  },
+                  title: "Ouvrir cette décision"
+                } : {};
+                return (
+                  <Wrapper key={i} {...wrapperProps} style={{ position:"relative", marginBottom: i < sorted.length - 1 ? 16 : 0, paddingLeft:16,
+                    ...(isDecision ? { cursor:"pointer", background:"none", border:"none", textAlign:"left",
+                      fontFamily:"'DM Sans',sans-serif", padding:0, paddingLeft:16, width:"100%" } : {}) }}>
+                    <div style={{ position:"absolute", left: isDecision ? -18 : -18, top:2, width:10, height:10, borderRadius:"50%",
+                      background:ev.color+"22", border:`2px solid ${ev.color}`, zIndex:1 }}/>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
+                      <span style={{ fontSize:11 }}>{ev.icon}</span>
+                      <span style={{ fontSize:12, fontWeight:600, color: isDecision ? C.purple : C.text }}>{ev.label}</span>
+                      <Badge label={ev.type === "decision" ? "Décision" : ev.type === "deadline" ? "Échéance"
+                        : ev.type === "status" ? "Statut" : "Dossier"} color={ev.color} size={8}/>
+                      {ev.decisionStatus && <Mono color={C.textM} size={8}>{ev.decisionStatus}</Mono>}
+                      {ev.decisionRisk && <Mono color={ev.decisionRisk==="high"?C.red:ev.decisionRisk==="medium"?C.amber:C.em} size={8}>
+                        {({low:"Faible",medium:"Modéré",high:"Élevé"})[ev.decisionRisk]||ev.decisionRisk}
+                      </Mono>}
+                      <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", marginLeft:"auto" }}>
+                        {fmtDate(ev.date)}
+                      </span>
+                    </div>
+                    {ev.sub && <div style={{ fontSize:11, color:C.textM, lineHeight:1.4 }}>{ev.sub}</div>}
+                    {isDecision && <div style={{ fontSize:10, color:C.purple+"88", marginTop:2 }}>Cliquer pour ouvrir →</div>}
+                  </Wrapper>
+                );
+              })}
             </div>
           </Card>
         );

@@ -1,5 +1,5 @@
 // ── MODULE: DECISIONS — Decision Log RH ──────────────────────────────────────
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C, css } from '../theme.js';
 import { callAI } from '../api/index.js';
 import { LEGAL_GUARDRAIL, buildLegalPromptContext, getLegalContext, PROVINCES } from '../utils/legal.js';
@@ -138,6 +138,49 @@ export default function ModuleDecisions({ data, onSave }) {
   const [aiLoading, setAiLoading] = useState("");
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState("");
+
+  // ── B-05.1 + B-05.2: sessionStorage bridges from Cases ─────────────────────
+  useEffect(() => {
+    // Bridge 1 (B-05.1): create new decision pre-filled from a case
+    const pending = sessionStorage.getItem("hrbpos:pendingDecision");
+    if (pending) {
+      try {
+        const ctx = JSON.parse(pending);
+        sessionStorage.removeItem("hrbpos:pendingDecision");
+        setForm(f => ({
+          ...f,
+          linkedCaseId:    ctx.linkedCaseId || "",
+          title:           ctx.caseTitle ? `Décision — ${ctx.caseTitle}` : f.title,
+          employeeName:    ctx.employee || f.employeeName,
+          managerName:     ctx.director || f.managerName,
+          background:      ctx.context  || f.background,
+          province:        ctx.province || f.province,
+          decisionType:    ctx.type === "investigation" ? "legal"
+                         : ctx.type === "performance" || ctx.type === "pip" ? "performance"
+                         : ctx.type === "conflict_ee" || ctx.type === "conflict_em" ? "discipline"
+                         : f.decisionType,
+        }));
+        setEditId(null);
+        setView("form");
+        return; // only one bridge per mount
+      } catch { /* bridge corrompu → ignorer */ }
+    }
+    // Bridge 2 (B-05.2): open existing decision from Cases timeline
+    const open = sessionStorage.getItem("hrbpos:openDecision");
+    if (open) {
+      try {
+        const payload = JSON.parse(open);
+        sessionStorage.removeItem("hrbpos:openDecision");
+        const all = (data.decisions || []).map(migrateDecision);
+        const target = all.find(d => d.id === payload.decisionId);
+        if (target) {
+          setForm(migrateDecision(target));
+          setEditId(target.id);
+          setView("form");
+        }
+      } catch { /* bridge corrompu → ignorer */ }
+    }
+  }, []); // eslint-disable-line
 
   const decisions = (data.decisions || []).map(migrateDecision);
   const profile = data.profile || { defaultProvince:"QC" };

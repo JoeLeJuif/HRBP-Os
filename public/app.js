@@ -3290,6 +3290,44 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
     const [aiLoading, setAiLoading] = (0, import_react4.useState)("");
     const [aiResult, setAiResult] = (0, import_react4.useState)(null);
     const [aiError, setAiError] = (0, import_react4.useState)("");
+    (0, import_react4.useEffect)(() => {
+      const pending = sessionStorage.getItem("hrbpos:pendingDecision");
+      if (pending) {
+        try {
+          const ctx = JSON.parse(pending);
+          sessionStorage.removeItem("hrbpos:pendingDecision");
+          setForm((f) => ({
+            ...f,
+            linkedCaseId: ctx.linkedCaseId || "",
+            title: ctx.caseTitle ? `D\xE9cision \u2014 ${ctx.caseTitle}` : f.title,
+            employeeName: ctx.employee || f.employeeName,
+            managerName: ctx.director || f.managerName,
+            background: ctx.context || f.background,
+            province: ctx.province || f.province,
+            decisionType: ctx.type === "investigation" ? "legal" : ctx.type === "performance" || ctx.type === "pip" ? "performance" : ctx.type === "conflict_ee" || ctx.type === "conflict_em" ? "discipline" : f.decisionType
+          }));
+          setEditId(null);
+          setView("form");
+          return;
+        } catch {
+        }
+      }
+      const open = sessionStorage.getItem("hrbpos:openDecision");
+      if (open) {
+        try {
+          const payload = JSON.parse(open);
+          sessionStorage.removeItem("hrbpos:openDecision");
+          const all = (data.decisions || []).map(migrateDecision);
+          const target = all.find((d) => d.id === payload.decisionId);
+          if (target) {
+            setForm(migrateDecision(target));
+            setEditId(target.id);
+            setView("form");
+          }
+        } catch {
+        }
+      }
+    }, []);
     const decisions = (data.decisions || []).map(migrateDecision);
     const profile = data.profile || { defaultProvince: "QC" };
     const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -5207,6 +5245,26 @@ ${buildContext()}`, 3500);
         "button",
         {
           onClick: () => {
+            sessionStorage.setItem("hrbpos:pendingDecision", JSON.stringify({
+              linkedCaseId: c.id,
+              caseTitle: c.title || "",
+              employee: c.employee || "",
+              director: c.director || "",
+              context: c.situation || "",
+              province: c.province || "",
+              type: c.type || "",
+              department: c.department || ""
+            }));
+            onNavigate("decisions");
+          },
+          title: "Cr\xE9er une d\xE9cision li\xE9e \xE0 ce dossier",
+          style: { ...css.btn(C.purple, true), padding: "6px 14px", fontSize: 12 }
+        },
+        "\u2696 D\xE9cision"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
             if (window.confirm("Supprimer ce dossier?")) deleteCase(c.id);
           },
           style: { ...css.btn(C.red, true), padding: "6px 14px", fontSize: 12 }
@@ -5250,28 +5308,58 @@ ${buildContext()}`, 3500);
         if (c.status === "escalated") events.push({ date: c.savedAt || created, type: "status", icon: "\u{1F6A8}", label: "Dossier escalad\xE9", sub: "", color: C.red });
         if (c.dueDate) events.push({ date: c.dueDate, type: "deadline", icon: "\u23F0", label: "\xC9ch\xE9ance", sub: c.nextFollowUp || "", color: C.amber });
         (data.decisions || []).filter((d) => d.linkedCaseId === c.id).forEach((d) => {
+          const statusLabel = d.status ? { draft: "Brouillon", decided: "D\xE9cid\xE9", reviewed: "R\xE9vis\xE9", archived: "Archiv\xE9" }[d.status] || "" : "";
+          const excerpt = d.decisionRationale || d.selectedOption || d.background || "";
           events.push({
             date: d.savedAt || d.decisionDate || d.createdAt,
             type: "decision",
             icon: "\u2696",
             label: d.title || "D\xE9cision RH",
-            sub: d.summary || d.rationale || "",
-            color: C.purple
+            sub: excerpt.length > 120 ? excerpt.slice(0, 117) + "\u2026" : excerpt,
+            color: C.purple,
+            decisionId: d.id,
+            decisionStatus: statusLabel,
+            decisionRisk: d.riskLevel || ""
           });
         });
         const sorted = events.filter((e) => e.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
         if (sorted.length === 0) return null;
-        return /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginBottom: 12, display: "block" } }, "TIMELINE"), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", paddingLeft: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", left: 5, top: 4, bottom: 4, width: 2, background: C.border, borderRadius: 1 } }), sorted.map((ev, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { position: "relative", marginBottom: i < sorted.length - 1 ? 16 : 0, paddingLeft: 16 } }, /* @__PURE__ */ React.createElement("div", { style: {
-          position: "absolute",
-          left: -18,
-          top: 2,
-          width: 10,
-          height: 10,
-          borderRadius: "50%",
-          background: ev.color + "22",
-          border: `2px solid ${ev.color}`,
-          zIndex: 1
-        } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, ev.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, ev.label), /* @__PURE__ */ React.createElement(Badge, { label: ev.type === "decision" ? "D\xE9cision" : ev.type === "deadline" ? "\xC9ch\xE9ance" : ev.type === "status" ? "Statut" : "Dossier", color: ev.color, size: 8 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", marginLeft: "auto" } }, fmtDate(ev.date))), ev.sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.4 } }, ev.sub)))));
+        return /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginBottom: 12, display: "block" } }, "TIMELINE"), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", paddingLeft: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", left: 5, top: 4, bottom: 4, width: 2, background: C.border, borderRadius: 1 } }), sorted.map((ev, i) => {
+          const isDecision = ev.type === "decision" && ev.decisionId;
+          const Wrapper = isDecision ? "button" : "div";
+          const wrapperProps = isDecision ? {
+            onClick: () => {
+              sessionStorage.setItem("hrbpos:openDecision", JSON.stringify({ decisionId: ev.decisionId, linkedCaseId: c.id }));
+              onNavigate && onNavigate("decisions");
+            },
+            title: "Ouvrir cette d\xE9cision"
+          } : {};
+          return /* @__PURE__ */ React.createElement(Wrapper, { key: i, ...wrapperProps, style: {
+            position: "relative",
+            marginBottom: i < sorted.length - 1 ? 16 : 0,
+            paddingLeft: 16,
+            ...isDecision ? {
+              cursor: "pointer",
+              background: "none",
+              border: "none",
+              textAlign: "left",
+              fontFamily: "'DM Sans',sans-serif",
+              padding: 0,
+              paddingLeft: 16,
+              width: "100%"
+            } : {}
+          } }, /* @__PURE__ */ React.createElement("div", { style: {
+            position: "absolute",
+            left: isDecision ? -18 : -18,
+            top: 2,
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: ev.color + "22",
+            border: `2px solid ${ev.color}`,
+            zIndex: 1
+          } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, ev.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: isDecision ? C.purple : C.text } }, ev.label), /* @__PURE__ */ React.createElement(Badge, { label: ev.type === "decision" ? "D\xE9cision" : ev.type === "deadline" ? "\xC9ch\xE9ance" : ev.type === "status" ? "Statut" : "Dossier", color: ev.color, size: 8 }), ev.decisionStatus && /* @__PURE__ */ React.createElement(Mono, { color: C.textM, size: 8 }, ev.decisionStatus), ev.decisionRisk && /* @__PURE__ */ React.createElement(Mono, { color: ev.decisionRisk === "high" ? C.red : ev.decisionRisk === "medium" ? C.amber : C.em, size: 8 }, { low: "Faible", medium: "Mod\xE9r\xE9", high: "\xC9lev\xE9" }[ev.decisionRisk] || ev.decisionRisk), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", marginLeft: "auto" } }, fmtDate(ev.date))), ev.sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.4 } }, ev.sub), isDecision && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.purple + "88", marginTop: 2 } }, "Cliquer pour ouvrir \u2192"));
+        })));
       })());
     }
     return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Case Log"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, cases.length, " dossier(s) \xB7 ", cases.filter((c) => c.status === "active" || c.status === "open").length, " actifs")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
