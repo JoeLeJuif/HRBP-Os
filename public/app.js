@@ -5068,6 +5068,7 @@ ${buildContext()}`, 3500);
   function formatCaseForClipboard(c, data) {
     const lines = [];
     const sep = "\u2500".repeat(40);
+    const secSep = "\u2500\u2500 ";
     lines.push(`DOSSIER RH \u2014 ${c.title || "Sans titre"}`);
     lines.push(sep);
     const typeObj = CASE_TYPES.find((t) => t.id === c.type);
@@ -5088,33 +5089,45 @@ ${buildContext()}`, 3500);
     if (c.closedDate) lines.push(`Ferm\xE9        : ${c.closedDate}`);
     if (c.situation) {
       lines.push("");
-      lines.push("SITUATION");
+      lines.push(`${secSep}SITUATION`);
       lines.push(c.situation);
     }
     if (c.interventionsDone) {
       lines.push("");
-      lines.push("INTERVENTIONS EFFECTU\xC9ES");
+      lines.push(`${secSep}INTERVENTIONS EFFECTU\xC9ES`);
       lines.push(c.interventionsDone);
     }
     if (c.hrPosition) {
       lines.push("");
-      lines.push("POSITION RH");
+      lines.push(`${secSep}POSITION RH`);
       lines.push(c.hrPosition);
     }
     if (c.decision) {
       lines.push("");
-      lines.push("D\xC9CISION");
+      lines.push(`${secSep}D\xC9CISION`);
       lines.push(c.decision);
     }
     if (c.nextFollowUp) {
       lines.push("");
-      lines.push("PROCHAIN SUIVI");
+      lines.push(`${secSep}PROCHAIN SUIVI`);
       lines.push(c.nextFollowUp);
     }
     if (c.notes) {
       lines.push("");
-      lines.push("NOTES");
+      lines.push(`${secSep}NOTES`);
       lines.push(c.notes);
+    }
+    const linkedDecs = (data.decisions || []).filter((d) => d.linkedCaseId === c.id);
+    if (linkedDecs.length > 0) {
+      lines.push("");
+      lines.push(`${secSep}D\xC9CISIONS LI\xC9ES (${linkedDecs.length})`);
+      linkedDecs.forEach((d) => {
+        const statusLabel = d.status ? { draft: "Brouillon", decided: "D\xE9cid\xE9", reviewed: "R\xE9vis\xE9", archived: "Archiv\xE9" }[d.status] || "" : "";
+        lines.push(`\u2022 ${d.title || "D\xE9cision RH"}${statusLabel ? ` [${statusLabel}]` : ""}${d.decisionDate ? ` \u2014 ${d.decisionDate}` : ""}`);
+        if (d.decisionRationale) lines.push(`  Justification : ${d.decisionRationale}`);
+        if (d.selectedOption) lines.push(`  Option retenue : ${d.selectedOption}`);
+        if (d.riskLevel) lines.push(`  Risque : ${d.riskLevel}`);
+      });
     }
     const tlEvents = [];
     const created = c.createdAt || c.savedAt || c.openDate;
@@ -5123,13 +5136,26 @@ ${buildContext()}`, 3500);
       tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "resolved" ? "Dossier r\xE9solu" : "Dossier ferm\xE9" });
     if (c.status === "escalated") tlEvents.push({ date: c.savedAt || created, label: "Dossier escalad\xE9" });
     if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "\xC9ch\xE9ance" + (c.nextFollowUp ? ` \u2014 ${c.nextFollowUp}` : "") });
-    (data.decisions || []).filter((d) => d.linkedCaseId === c.id).forEach((d) => {
-      tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: d.title || "D\xE9cision RH", sub: d.summary || d.rationale || "" });
+    linkedDecs.forEach((d) => {
+      tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: `\u2696 ${d.title || "D\xE9cision RH"}`, sub: d.summary || d.rationale || "" });
     });
+    if (c.director) {
+      const dirNorm = c.director.trim().toLowerCase();
+      const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1e3;
+      (data.meetings || []).filter((m) => m.director && m.director.trim().toLowerCase() === dirNorm && m.savedAt && new Date(m.savedAt).getTime() >= cutoff).sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)).slice(0, 3).forEach((m) => {
+        tlEvents.push({ date: m.savedAt, label: `\u{1F5D3} ${m.analysis?.meetingTitle || "Meeting"}`, sub: m.meetingType || "" });
+      });
+    }
+    if (c.director) {
+      const dirNorm = c.director.trim().toLowerCase();
+      (data.signals || []).filter((s) => s.managerName && s.managerName.trim().toLowerCase() === dirNorm).sort((a, b) => new Date(b.createdAt || b.savedAt || 0) - new Date(a.createdAt || a.savedAt || 0)).slice(0, 2).forEach((s) => {
+        tlEvents.push({ date: s.createdAt || s.savedAt, label: `\u{1F4E1} ${s.title || s.label || "Signal"}`, sub: s.level || s.riskLevel || "" });
+      });
+    }
     const sortedTl = tlEvents.filter((e) => e.date).sort((a, b) => new Date(b.date) - new Date(a.date));
     if (sortedTl.length > 0) {
       lines.push("");
-      lines.push("TIMELINE");
+      lines.push(`${secSep}TIMELINE`);
       sortedTl.forEach((ev) => {
         lines.push(`\u2022 ${ev.date} \u2014 ${ev.label}`);
         if (ev.sub) lines.push(`  ${ev.sub}`);
@@ -11899,6 +11925,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const [editingMeta, setEditingMeta] = (0, import_react17.useState)(false);
     const [metaForm, setMetaForm] = (0, import_react17.useState)(null);
     const [aiAssessing, setAiAssessing] = (0, import_react17.useState)(false);
+    const [filterArchive, setFilterArchive] = (0, import_react17.useState)("active");
     const selectLeader = (key) => {
       setSelected(key);
       setTlExpanded(false);
@@ -11957,8 +11984,16 @@ ${ctx}`, 500);
       if (leaders[key]) selectLeader(key);
     }, [leaders]);
     if (!selected) {
+      const filteredByArchive = leaderList.filter((l2) => {
+        const lMeta = getMeta(l2.name, leadersMap);
+        const isArchived = !!lMeta.archived;
+        if (filterArchive === "active") return !isArchived;
+        if (filterArchive === "archived") return isArchived;
+        return true;
+      });
+      const archivedCount = leaderList.filter((l2) => !!getMeta(l2.name, leadersMap).archived).length;
       const groupMap = {};
-      leaderList.forEach((l2) => {
+      filteredByArchive.forEach((l2) => {
         const lMeta = getMeta(l2.name, leadersMap);
         const effectiveLevel = lMeta.levelOverride || l2.level;
         const meta = LEVEL_META[effectiveLevel] || DEFAULT_LEVEL;
@@ -11967,7 +12002,30 @@ ${ctx}`, 500);
       });
       const groupOrder = ["Employ\xE9", "Gestionnaire", "Directeur", "VP", "Ex\xE9cutif", "HRBP Team", "TA Team", "Autres"];
       const groups = groupOrder.filter((g) => groupMap[g]).map((g) => groupMap[g]);
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 880, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Fiches Leaders"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, leaderList.length, " gestionnaire", leaderList.length > 1 ? "s" : "", " d\xE9tect\xE9", leaderList.length > 1 ? "s" : "", /* @__PURE__ */ React.createElement("span", { style: { color: C.textD } }, " \xB7 Agr\xE9gation auto + couche \xE9ditoriale HRBP"))), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 880, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Fiches Leaders"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, filteredByArchive.length, " gestionnaire", filteredByArchive.length > 1 ? "s" : "", filterArchive === "archived" ? " archiv\xE9" + (filteredByArchive.length > 1 ? "s" : "") : " actif" + (filteredByArchive.length > 1 ? "s" : ""), filterArchive === "all" && ` (${archivedCount} archiv\xE9${archivedCount > 1 ? "s" : ""})`, /* @__PURE__ */ React.createElement("span", { style: { color: C.textD } }, " \xB7 Agr\xE9gation auto + couche \xE9ditoriale HRBP"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, [
+        { key: "active", label: "Actifs" },
+        { key: "archived", label: "Archiv\xE9s" },
+        { key: "all", label: "Tous" }
+      ].map((f) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: f.key,
+          onClick: () => setFilterArchive(f.key),
+          style: {
+            background: filterArchive === f.key ? C.em + "22" : "none",
+            border: `1px solid ${filterArchive === f.key ? C.em + "44" : C.border}`,
+            borderRadius: 6,
+            padding: "5px 11px",
+            fontSize: 11,
+            cursor: "pointer",
+            color: filterArchive === f.key ? C.em : C.textM,
+            fontFamily: "'DM Sans',sans-serif",
+            fontWeight: filterArchive === f.key ? 600 : 400
+          }
+        },
+        f.label,
+        f.key === "archived" && archivedCount > 0 ? ` (${archivedCount})` : ""
+      ))))), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
         background: "linear-gradient(135deg,#ef444412,#f59e0b08)",
         border: `1px solid ${C.red}25`,
         borderRadius: 10,
@@ -12013,7 +12071,7 @@ ${ctx}`, 500);
           } }, i + 1),
           /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, TYPE_ICON[meta.type] || "", " ", m.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 2 } }, m._focus.reasons.join(" \xB7 ") || "Priorit\xE9"), meta.nextAction && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em, marginTop: 2 } }, "\u2192 ", meta.nextAction))
         );
-      }))), leaderList.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun leader d\xE9tect\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 16, lineHeight: 1.6 } }, "Les fiches se construisent automatiquement \xE0 partir de tes meetings, dossiers et pr\xE9parations 1:1.", /* @__PURE__ */ React.createElement("br", null), "Commence par analyser un meeting ou cr\xE9er un dossier Case Log."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center" } }, /* @__PURE__ */ React.createElement(
+      }))), filteredByArchive.length === 0 && filterArchive === "archived" ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM } }, "Aucun leader archiv\xE9")) : leaderList.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 6 } }, "Aucun leader d\xE9tect\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 16, lineHeight: 1.6 } }, "Les fiches se construisent automatiquement \xE0 partir de tes meetings, dossiers et pr\xE9parations 1:1.", /* @__PURE__ */ React.createElement("br", null), "Commence par analyser un meeting ou cr\xE9er un dossier Case Log."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center" } }, /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => onNavigate("meetings"),
@@ -12061,6 +12119,7 @@ ${ctx}`, 500);
           lastMeeting2?.analysis?.overallRisk
         ]);
         const r = RISK[normalizeRisk(globalRisk2)] || RISK["Faible"];
+        const isArchived = !!lMeta.archived;
         return /* @__PURE__ */ React.createElement(
           "button",
           {
@@ -12075,12 +12134,13 @@ ${ctx}`, 500);
               cursor: "pointer",
               textAlign: "left",
               fontFamily: "'DM Sans',sans-serif",
-              transition: "border-color .15s"
+              transition: "border-color .15s",
+              opacity: isArchived ? 0.55 : 1
             },
             onMouseEnter: (e) => e.currentTarget.style.borderColor = group.meta.color,
             onMouseLeave: (e) => e.currentTarget.style.borderColor = r.color + "28"
           },
-          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, TYPE_ICON[lMeta.type] || group.meta.icon), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, alignItems: "center" } }, PRESSURE_EMOJI[lMeta.pressure] && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, PRESSURE_EMOJI[lMeta.pressure]), /* @__PURE__ */ React.createElement(RiskBadge7, { level: globalRisk2 }))),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, TYPE_ICON[lMeta.type] || group.meta.icon), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 3, alignItems: "center" } }, isArchived && /* @__PURE__ */ React.createElement(Badge, { label: "Archiv\xE9", color: C.textD, size: 9 }), PRESSURE_EMOJI[lMeta.pressure] && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, PRESSURE_EMOJI[lMeta.pressure]), /* @__PURE__ */ React.createElement(RiskBadge7, { level: globalRisk2 }))),
           /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 } }, l2.name),
           lMeta.topIssue && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.amber, marginBottom: 6, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } }, "\u2691 ", lMeta.topIssue),
           /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 3 } }, l2.meetings.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, l2.meetings.length, " meeting", l2.meetings.length > 1 ? "s" : ""), activeCases2.length > 0 && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.amber }, activeCases2.length, " dossier", activeCases2.length > 1 ? "s" : "", " actif", activeCases2.length > 1 ? "s" : ""), lastMeeting2?.savedAt && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Contact: ", lastMeeting2.savedAt))
@@ -12215,7 +12275,44 @@ ${ctx}`, 500);
         }
       },
       "\u2190 Retour"
-    ), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "Fiches Leaders"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "/"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.em }, l.name)), /* @__PURE__ */ React.createElement("div", { style: {
+    ), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "Fiches Leaders"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "/"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.em }, l.name), detailMeta.archived && /* @__PURE__ */ React.createElement(Badge, { label: "Archiv\xE9", color: C.textD }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), detailMeta.archived ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          saveMeta(l.name, { archived: false, archivedAt: "" });
+        },
+        style: { ...css.btn(C.em, true), padding: "5px 12px", fontSize: 11 }
+      },
+      "\u21A9 Restaurer"
+    ) : /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          if (!window.confirm(`Archiver la fiche de ${l.name} ? Elle restera accessible via le filtre "Archiv\xE9s".`)) return;
+          saveMeta(l.name, { archived: true, archivedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] });
+        },
+        style: { ...css.btn(C.textD, true), padding: "5px 12px", fontSize: 11 }
+      },
+      "\u{1F4E6} Archiver"
+    )), detailMeta.archived && /* @__PURE__ */ React.createElement("div", { style: {
+      background: C.textD + "14",
+      border: `1px solid ${C.textD}33`,
+      borderRadius: 8,
+      padding: "10px 16px",
+      marginBottom: 12,
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: C.textM } }, "Fiche archiv\xE9e"), detailMeta.archivedAt && /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, "Archiv\xE9 le ", detailMeta.archivedAt)), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          saveMeta(l.name, { archived: false, archivedAt: "" });
+        },
+        style: { ...css.btn(C.em, true), padding: "5px 12px", fontSize: 11 }
+      },
+      "\u21A9 Restaurer"
+    )), /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surf,
       border: `1px solid ${rObj.color}44`,
       borderLeft: `4px solid ${levelMeta.color}`,

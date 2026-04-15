@@ -357,12 +357,13 @@ function buildLeaderTimeline(l) {
 
 // ── Module ─────────────────────────────────────────────────────────────────────
 export default function ModuleLeader({ data, onSave, onNavigate }) {
-  const [selected,    setSelected]    = useState(null);
-  const [tlExpanded,  setTlExpanded]  = useState(false);
-  const [tlFilter,    setTlFilter]    = useState("all");
-  const [editingMeta, setEditingMeta] = useState(false);
-  const [metaForm,    setMetaForm]    = useState(null);
-  const [aiAssessing, setAiAssessing] = useState(false);
+  const [selected,      setSelected]      = useState(null);
+  const [tlExpanded,    setTlExpanded]    = useState(false);
+  const [tlFilter,      setTlFilter]     = useState("all");
+  const [editingMeta,   setEditingMeta]  = useState(false);
+  const [metaForm,      setMetaForm]     = useState(null);
+  const [aiAssessing,   setAiAssessing]  = useState(false);
+  const [filterArchive, setFilterArchive] = useState("active"); // active | archived | all
 
   // Selects a leader and resets timeline state
   const selectLeader = (key) => { setSelected(key); setTlExpanded(false); setTlFilter("all"); setEditingMeta(false); setMetaForm(null); };
@@ -414,9 +415,19 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
   // ── LIST VIEW ────────────────────────────────────────────────────────────────
   if (!selected) {
+    // Filter by archive status — leaders without archived flag are active (migration douce)
+    const filteredByArchive = leaderList.filter(l => {
+      const lMeta = getMeta(l.name, leadersMap);
+      const isArchived = !!lMeta.archived;
+      if (filterArchive === "active")   return !isArchived;
+      if (filterArchive === "archived") return isArchived;
+      return true; // "all"
+    });
+    const archivedCount = leaderList.filter(l => !!getMeta(l.name, leadersMap).archived).length;
+
     // Group by level — editorial levelOverride takes precedence
     const groupMap = {};
-    leaderList.forEach(l => {
+    filteredByArchive.forEach(l => {
       const lMeta = getMeta(l.name, leadersMap);
       const effectiveLevel = lMeta.levelOverride || l.level;
       const meta = LEVEL_META[effectiveLevel] || DEFAULT_LEVEL;
@@ -429,10 +440,32 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
     return (
       <div style={{ maxWidth:880, margin:"0 auto" }}>
         <div style={{ marginBottom:20 }}>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Fiches Leaders</div>
-          <div style={{ fontSize:12, color:C.textM }}>
-            {leaderList.length} gestionnaire{leaderList.length>1?"s":""} détecté{leaderList.length>1?"s":""}
-            <span style={{ color:C.textD }}> · Agrégation auto + couche éditoriale HRBP</span>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12 }}>
+            <div>
+              <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Fiches Leaders</div>
+              <div style={{ fontSize:12, color:C.textM }}>
+                {filteredByArchive.length} gestionnaire{filteredByArchive.length>1?"s":""}
+                {filterArchive === "archived" ? " archivé" + (filteredByArchive.length>1?"s":"") : " actif" + (filteredByArchive.length>1?"s":"")}
+                {filterArchive === "all" && ` (${archivedCount} archivé${archivedCount>1?"s":""})`}
+                <span style={{ color:C.textD }}> · Agrégation auto + couche éditoriale HRBP</span>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:4 }}>
+              {[
+                { key:"active",   label:"Actifs" },
+                { key:"archived", label:"Archivés" },
+                { key:"all",      label:"Tous" },
+              ].map(f => (
+                <button key={f.key} onClick={() => setFilterArchive(f.key)}
+                  style={{ background: filterArchive===f.key ? C.em+"22" : "none",
+                    border:`1px solid ${filterArchive===f.key ? C.em+"44" : C.border}`,
+                    borderRadius:6, padding:"5px 11px", fontSize:11, cursor:"pointer",
+                    color: filterArchive===f.key ? C.em : C.textM,
+                    fontFamily:"'DM Sans',sans-serif", fontWeight: filterArchive===f.key ? 600 : 400 }}>
+                  {f.label}{f.key==="archived" && archivedCount > 0 ? ` (${archivedCount})` : ""}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -474,7 +507,12 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           </div>
         )}
 
-        {leaderList.length === 0 ? (
+        {filteredByArchive.length === 0 && filterArchive === "archived" ? (
+          <div style={{ textAlign:"center", padding:"40px 20px" }}>
+            <div style={{ fontSize:36, marginBottom:12 }}>📦</div>
+            <div style={{ fontSize:13, color:C.textM }}>Aucun leader archivé</div>
+          </div>
+        ) : leaderList.length === 0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px" }}>
             <div style={{ fontSize:36, marginBottom:12 }}>👤</div>
             <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>Aucun leader détecté</div>
@@ -515,6 +553,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   lastMeeting?.analysis?.overallRisk,
                 ]);
                 const r = RISK[normalizeRisk(globalRisk)] || RISK["Faible"];
+                const isArchived = !!lMeta.archived;
                 return (
                   <button key={l.key} onClick={() => selectLeader(l.key)}
                     style={{ background:C.surfL,
@@ -522,12 +561,14 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                       borderLeft:`3px solid ${group.meta.color}`,
                       borderRadius:10, padding:"13px 14px", cursor:"pointer",
                       textAlign:"left", fontFamily:"'DM Sans',sans-serif",
-                      transition:"border-color .15s" }}
+                      transition:"border-color .15s",
+                      opacity: isArchived ? 0.55 : 1 }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = group.meta.color}
                     onMouseLeave={e => e.currentTarget.style.borderColor = r.color+"28"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
                       <span style={{ fontSize:18 }}>{TYPE_ICON[lMeta.type] || group.meta.icon}</span>
                       <div style={{ display:"flex", gap:3, alignItems:"center" }}>
+                        {isArchived && <Badge label="Archivé" color={C.textD} size={9}/>}
                         {PRESSURE_EMOJI[lMeta.pressure] && <span style={{ fontSize:11 }}>{PRESSURE_EMOJI[lMeta.pressure]}</span>}
                         <RiskBadge level={globalRisk}/>
                       </div>
@@ -700,7 +741,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
   return (
     <div style={{ maxWidth:900, margin:"0 auto" }}>
 
-      {/* Breadcrumb */}
+      {/* Breadcrumb + archive actions */}
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
         <button onClick={() => setSelected(null)}
           style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
@@ -709,7 +750,40 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <Mono size={9} color={C.textD}>Fiches Leaders</Mono>
         <Mono size={9} color={C.textD}>/</Mono>
         <Mono size={9} color={C.em}>{l.name}</Mono>
+        {detailMeta.archived && <Badge label="Archivé" color={C.textD}/>}
+        <div style={{ flex:1 }}/>
+        {detailMeta.archived ? (
+          <button onClick={() => { saveMeta(l.name, { archived:false, archivedAt:"" }); }}
+            style={{ ...css.btn(C.em, true), padding:"5px 12px", fontSize:11 }}>
+            ↩ Restaurer
+          </button>
+        ) : (
+          <button onClick={() => {
+              if (!window.confirm(`Archiver la fiche de ${l.name} ? Elle restera accessible via le filtre "Archivés".`)) return;
+              saveMeta(l.name, { archived:true, archivedAt:new Date().toISOString().split("T")[0] });
+            }}
+            style={{ ...css.btn(C.textD, true), padding:"5px 12px", fontSize:11 }}>
+            📦 Archiver
+          </button>
+        )}
       </div>
+
+      {/* ── ARCHIVED BANNER ── */}
+      {detailMeta.archived && (
+        <div style={{ background:C.textD+"14", border:`1px solid ${C.textD}33`,
+          borderRadius:8, padding:"10px 16px", marginBottom:12,
+          display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:14 }}>📦</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:12, fontWeight:600, color:C.textM }}>Fiche archivée</div>
+            {detailMeta.archivedAt && <Mono size={8} color={C.textD}>Archivé le {detailMeta.archivedAt}</Mono>}
+          </div>
+          <button onClick={() => { saveMeta(l.name, { archived:false, archivedAt:"" }); }}
+            style={{ ...css.btn(C.em, true), padding:"5px 12px", fontSize:11 }}>
+            ↩ Restaurer
+          </button>
+        </div>
+      )}
 
       {/* ── HEADER ── */}
       <div style={{ background:C.surf, border:`1px solid ${rObj.color}44`,

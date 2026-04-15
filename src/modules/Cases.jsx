@@ -216,8 +216,13 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
 function formatCaseForClipboard(c, data) {
   const lines = [];
   const sep = "─".repeat(40);
+  const secSep = "── ";
+
+  // Header
   lines.push(`DOSSIER RH — ${c.title || "Sans titre"}`);
   lines.push(sep);
+
+  // Fiche synthèse
   const typeObj = CASE_TYPES.find(t => t.id === c.type);
   const statusObj = STATUSES.find(s => s.id === c.status);
   if (statusObj)      lines.push(`Statut       : ${statusObj.label}`);
@@ -234,13 +239,29 @@ function formatCaseForClipboard(c, data) {
   if (c.openDate)     lines.push(`Ouverture    : ${c.openDate}`);
   if (c.dueDate)      lines.push(`Échéance     : ${c.dueDate}`);
   if (c.closedDate)   lines.push(`Fermé        : ${c.closedDate}`);
-  if (c.situation)          { lines.push(""); lines.push("SITUATION"); lines.push(c.situation); }
-  if (c.interventionsDone)  { lines.push(""); lines.push("INTERVENTIONS EFFECTUÉES"); lines.push(c.interventionsDone); }
-  if (c.hrPosition)         { lines.push(""); lines.push("POSITION RH"); lines.push(c.hrPosition); }
-  if (c.decision)           { lines.push(""); lines.push("DÉCISION"); lines.push(c.decision); }
-  if (c.nextFollowUp)       { lines.push(""); lines.push("PROCHAIN SUIVI"); lines.push(c.nextFollowUp); }
-  if (c.notes)              { lines.push(""); lines.push("NOTES"); lines.push(c.notes); }
-  // Timeline
+
+  // Sections narratives
+  if (c.situation)          { lines.push(""); lines.push(`${secSep}SITUATION`); lines.push(c.situation); }
+  if (c.interventionsDone)  { lines.push(""); lines.push(`${secSep}INTERVENTIONS EFFECTUÉES`); lines.push(c.interventionsDone); }
+  if (c.hrPosition)         { lines.push(""); lines.push(`${secSep}POSITION RH`); lines.push(c.hrPosition); }
+  if (c.decision)           { lines.push(""); lines.push(`${secSep}DÉCISION`); lines.push(c.decision); }
+  if (c.nextFollowUp)       { lines.push(""); lines.push(`${secSep}PROCHAIN SUIVI`); lines.push(c.nextFollowUp); }
+  if (c.notes)              { lines.push(""); lines.push(`${secSep}NOTES`); lines.push(c.notes); }
+
+  // Décisions liées (section dédiée)
+  const linkedDecs = (data.decisions || []).filter(d => d.linkedCaseId === c.id);
+  if (linkedDecs.length > 0) {
+    lines.push(""); lines.push(`${secSep}DÉCISIONS LIÉES (${linkedDecs.length})`);
+    linkedDecs.forEach(d => {
+      const statusLabel = d.status ? {draft:"Brouillon",decided:"Décidé",reviewed:"Révisé",archived:"Archivé"}[d.status] || "" : "";
+      lines.push(`• ${d.title || "Décision RH"}${statusLabel ? ` [${statusLabel}]` : ""}${d.decisionDate ? ` — ${d.decisionDate}` : ""}`);
+      if (d.decisionRationale) lines.push(`  Justification : ${d.decisionRationale}`);
+      if (d.selectedOption)    lines.push(`  Option retenue : ${d.selectedOption}`);
+      if (d.riskLevel)         lines.push(`  Risque : ${d.riskLevel}`);
+    });
+  }
+
+  // Timeline (aligned with UI: case events + meetings + signals)
   const tlEvents = [];
   const created = c.createdAt || c.savedAt || c.openDate;
   if (created) tlEvents.push({ date: created, label: "Dossier ouvert" });
@@ -248,17 +269,41 @@ function formatCaseForClipboard(c, data) {
     tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "resolved" ? "Dossier résolu" : "Dossier fermé" });
   if (c.status === "escalated") tlEvents.push({ date: c.savedAt || created, label: "Dossier escaladé" });
   if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "Échéance" + (c.nextFollowUp ? ` — ${c.nextFollowUp}` : "") });
-  (data.decisions || []).filter(d => d.linkedCaseId === c.id).forEach(d => {
-    tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: d.title || "Décision RH", sub: d.summary || d.rationale || "" });
+  linkedDecs.forEach(d => {
+    tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: `⚖ ${d.title || "Décision RH"}`, sub: d.summary || d.rationale || "" });
   });
+  // Meetings liés (même logique que la timeline UI : director match, 90 jours, max 3)
+  if (c.director) {
+    const dirNorm = c.director.trim().toLowerCase();
+    const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    (data.meetings || [])
+      .filter(m => m.director && m.director.trim().toLowerCase() === dirNorm && m.savedAt && new Date(m.savedAt).getTime() >= cutoff)
+      .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
+      .slice(0, 3)
+      .forEach(m => {
+        tlEvents.push({ date: m.savedAt, label: `🗓 ${m.analysis?.meetingTitle || "Meeting"}`, sub: m.meetingType || "" });
+      });
+  }
+  // Signals liés (director match, max 2)
+  if (c.director) {
+    const dirNorm = c.director.trim().toLowerCase();
+    (data.signals || [])
+      .filter(s => s.managerName && s.managerName.trim().toLowerCase() === dirNorm)
+      .sort((a, b) => new Date(b.createdAt || b.savedAt || 0) - new Date(a.createdAt || a.savedAt || 0))
+      .slice(0, 2)
+      .forEach(s => {
+        tlEvents.push({ date: s.createdAt || s.savedAt, label: `📡 ${s.title || s.label || "Signal"}`, sub: s.level || s.riskLevel || "" });
+      });
+  }
   const sortedTl = tlEvents.filter(e => e.date).sort((a, b) => new Date(b.date) - new Date(a.date));
   if (sortedTl.length > 0) {
-    lines.push(""); lines.push("TIMELINE");
+    lines.push(""); lines.push(`${secSep}TIMELINE`);
     sortedTl.forEach(ev => {
       lines.push(`• ${ev.date} — ${ev.label}`);
       if (ev.sub) lines.push(`  ${ev.sub}`);
     });
   }
+
   lines.push(""); lines.push(sep);
   lines.push(`Exporté depuis HRBP OS — ${new Date().toLocaleDateString("fr-CA")}`);
   return lines.join("\n");
