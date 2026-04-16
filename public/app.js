@@ -11937,7 +11937,10 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const leaderList = Object.values(leaders);
     const leadersMap = (0, import_react17.useMemo)(() => getLeadersMap(data), [data]);
     const todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    const topFocus = (0, import_react17.useMemo)(() => topFocusLeaders(leaderList, leadersMap, todayISO_top, 3), [leaderList, leadersMap, todayISO_top]);
+    const topFocus = (0, import_react17.useMemo)(() => {
+      const activeLeaders = leaderList.filter((l2) => !getMeta(l2.name, leadersMap).archived);
+      return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
+    }, [leaderList, leadersMap, todayISO_top]);
     const saveMeta = (name, patch) => {
       if (!onSave) return;
       const next = setMeta(leadersMap, name, patch);

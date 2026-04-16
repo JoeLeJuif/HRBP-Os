@@ -372,7 +372,10 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
   const leaderList = Object.values(leaders);
   const leadersMap = useMemo(() => getLeadersMap(data), [data]);
   const todayISO_top = new Date().toISOString().split("T")[0];
-  const topFocus = useMemo(() => topFocusLeaders(leaderList, leadersMap, todayISO_top, 3), [leaderList, leadersMap, todayISO_top]);
+  const topFocus = useMemo(() => {
+    const activeLeaders = leaderList.filter(l => !getMeta(l.name, leadersMap).archived);
+    return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
+  }, [leaderList, leadersMap, todayISO_top]);
 
   const saveMeta = (name, patch) => {
     if (!onSave) return;
