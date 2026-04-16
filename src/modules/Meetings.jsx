@@ -97,25 +97,30 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
   // ── Inter-module focus: auto-open a specific session on mount ────────────────
   useEffect(() => {
     if (!focusMeetingId) return;
-    // Direct match by id, or match prep1on1 id → meetings mtg_ id (Meeting Engine double-save)
-    let target = (data.meetings || []).find(m => m.id === focusMeetingId);
-    if (!target) {
-      // Meeting Engine sessions: prep1on1 id = "17xxx", meetings id = "mtg_17xxx"
-      target = (data.meetings || []).find(m => m.id === `mtg_${focusMeetingId}`);
-    }
-    if (!target) {
-      // Reverse: focusMeetingId might be mtg_ but prep1on1 entry has raw timestamp
-      const rawId = focusMeetingId.startsWith("mtg_") ? focusMeetingId.slice(4) : null;
-      if (rawId) target = (data.meetings || []).find(m => m.id === rawId);
-    }
+    const meetings = data.meetings || [];
+    console.log("[focus]", focusMeetingId, meetings.map(m => m.id));
+    const fid = String(focusMeetingId);
+    // Pass 1: direct match
+    let target = meetings.find(m => String(m.id) === fid);
+    // Pass 2: prep1on1 id → "mtg_" + id
+    if (!target) target = meetings.find(m => String(m.id) === `mtg_${fid}`);
+    // Pass 3: focusMeetingId is "mtg_xxx", meeting stored as raw "xxx"
+    if (!target) target = meetings.find(m => `mtg_${String(m.id)}` === fid);
+    // Pass 4: fallback by savedAt (timestamp overlap)
+    if (!target) target = meetings.find(m => {
+      const sa = String(m.savedAt || "");
+      return sa && (sa.includes(fid) || fid.includes(sa));
+    });
     if (target) {
       setActiveSession(target);
       setResult(target.analysis || target.output || null);
       setTab("summary");
       setView("session");
+      if (onClearFocus) onClearFocus();
+    } else {
+      console.log("[focus] not found — keeping focusMeetingId for retry");
     }
-    if (onClearFocus) onClearFocus();
-  }, [focusMeetingId]); // eslint-disable-line
+  }, [focusMeetingId, data.meetings]); // eslint-disable-line
 
   const meetings = data.meetings || [];
   const directors = [...new Set(meetings.map(m => m.director).filter(Boolean))];
