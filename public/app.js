@@ -5540,6 +5540,71 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
 {"evidenceAnalysis":{"establishedFacts":[{"fact":"fait etabli","source":"source","weight":"Fort|Modere|Faible"}],"contestedElements":[{"element":"element conteste","complainantVersion":"version plaignant","respondentVersion":"version probable mis en cause","resolution":"comment resoudre"}],"credibilityFactors":[{"party":"role","factorsFor":["renforce credibilite"],"factorsAgainst":["fragilise credibilite"],"overallAssessment":"evaluation neutre"}],"evidenceGaps":["information manquante"],"hearsayFlags":["oui-dire a verifier"],"standardOfProof":"preponderance des probabilites \u2014 application au dossier"},"findings":{"allegationByAllegation":[{"allegation":"allegation precise","finding":"Fondee|Partiellement fondee|Non fondee|Preuve insuffisante","basis":"base factuelle","policyAnalysis":"politique ou loi visee si fondee"}],"overallFinding":"Fondee|Partiellement fondee|Non fondee|Preuve insuffisante","overallRationale":"synthese 3-4 phrases","brownvDunnCompliance":"confirmation elements contradictoires soumis aux parties"},"recommendedActions":{"forRespondent":[{"action":"action recommandee","type":"Disciplinaire|Coaching|Formation|Reorganisation|Aucune","rationale":"justification \u2014 proportionnalite","timeline":"delai"}],"forOrganization":[{"action":"mesure org","type":"Politique|Formation|Structure|Suivi","rationale":"pourquoi necessaire","owner":"responsable"}],"forComplainant":[{"action":"soutien ou mesure","rationale":"justification"}],"followUp":"plan de suivi","reprisalProtection":"mesures protection represailles"},"reportStructure":{"sections":[{"section":"nom section","content":"contenu specifique","tips":"conseil redaction"}],"privilegeConsiderations":"considerations privilege legal","distributionList":"a qui remettre","retentionNote":"delai conservation"}}`;
 
   // src/modules/Investigation.jsx
+  function generateInvestigationTitle(inv) {
+    if (!inv) return "Enqu\xEAte sans titre";
+    const type = (inv.caseType || "").trim();
+    const subject = (inv.caseTitle || "").trim();
+    const parts = [type, subject].filter(Boolean);
+    if (parts.length === 0) {
+      const id = inv.caseId || (inv.id ? String(inv.id).slice(-6) : "");
+      return id ? `Enqu\xEAte ${id}` : "Enqu\xEAte sans titre";
+    }
+    return parts.join(" \u2013 ");
+  }
+  var INV_ANGLES = {
+    complainant: {
+      id: "complainant",
+      label: "Plaignant(e)",
+      icon: "\u{1F534}",
+      note: "Recueillir un r\xE9cit complet, factuel et chronologique."
+    },
+    respondent: {
+      id: "respondent",
+      label: "Mise en cause",
+      icon: "\u{1F7E0}",
+      note: "Pr\xE9senter les \xE9l\xE9ments pertinents et obtenir la version des faits."
+    },
+    witness: {
+      id: "witness",
+      label: "T\xE9moin",
+      icon: "\u{1F535}",
+      note: "Valider les faits observ\xE9s avec des questions neutres et non suggestives."
+    }
+  };
+  function getLinkedCase(inv, data) {
+    if (!inv?.linkedCaseId) return null;
+    return (data?.cases || []).find((c) => c.id === inv.linkedCaseId) || null;
+  }
+  function getLinkedMeetings(inv, data) {
+    if (!inv?.id) return [];
+    return (data?.meetings || []).filter((m) => m.linkedInvestigationId === inv.id);
+  }
+  function buildInvestigationMeetingBridge(inv, angle) {
+    const cs = inv?.caseData?.caseSummary || {};
+    const title = inv?.title || generateInvestigationTitle(inv);
+    const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    return {
+      engineType: "enquete",
+      linkedInvestigationId: inv?.id,
+      caseTitle: title,
+      ctx: {
+        managerName: "",
+        team: "",
+        date: today,
+        meetingType: "enquete",
+        purpose: `Entrevue ${angle.label} \u2014 ${inv?.caseType || "Enqu\xEAte"}`,
+        background: [
+          `Dossier: ${inv?.caseId || inv?.id || ""}`,
+          inv?.caseType ? `Type: ${inv.caseType}` : "",
+          cs.situation ? `Situation: ${cs.situation}` : "",
+          cs.triggerEvent ? `D\xE9clencheur: ${cs.triggerEvent}` : "",
+          `Angle: ${angle.note}`
+        ].filter(Boolean).join("\n\n"),
+        activeCases: title,
+        province: inv?.province || ""
+      }
+    };
+  }
   function SecHead5({ icon, label, color = C.em }) {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
   }
@@ -5620,7 +5685,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     "Non fond\xE9e": { color: C.em, icon: "\u25CB" },
     "Preuve insuffisante": { color: C.textM, icon: "\u25CC" }
   };
-  function ModuleInvestigation({ data, onSave }) {
+  function ModuleInvestigation({ data, onSave, onNavigate }) {
     const [view, setView] = (0, import_react11.useState)("list");
     const [complaint, setComplaint] = (0, import_react11.useState)("");
     const [context, setContext] = (0, import_react11.useState)("");
@@ -5684,8 +5749,12 @@ ${evidence}` : ""
         caseType: caseData.caseType,
         urgencyLevel: caseData.urgencyLevel,
         province: invProvince,
-        caseData
+        caseData,
+        title: "",
+        titleAuto: true,
+        linkedCaseId: null
       };
+      inv.title = generateInvestigationTitle(inv);
       onSave("investigations", [...investigations, inv]);
       setSaved(true);
     };
@@ -5771,8 +5840,110 @@ ${evidence}` : ""
             fontFamily: "'DM Sans',sans-serif"
           }
         },
-        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 500, color: C.text } }, inv.caseTitle), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, fc && /* @__PURE__ */ React.createElement(InvTag, { label: inv.caseData?.findings?.overallFinding, color: fc.color }), /* @__PURE__ */ React.createElement(InvTag, { label: `Urgence: ${inv.urgencyLevel}`, color: uc.color }))),
-        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, display: "flex", gap: 6, alignItems: "center" } }, inv.caseId, " \xB7 ", inv.caseType, " \xB7 ", inv.savedAt, /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(inv, data.profile) }))
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 500, color: C.text } }, inv.title || generateInvestigationTitle(inv), /* @__PURE__ */ React.createElement(
+          "span",
+          {
+            onClick: (e) => {
+              e.stopPropagation();
+              const current = inv.title || generateInvestigationTitle(inv);
+              const next = window.prompt("Modifier le titre de l'enqu\xEAte", current);
+              if (next === null) return;
+              const trimmed = next.trim();
+              const updated = investigations.map((x) => x.id === inv.id ? {
+                ...x,
+                title: trimmed || generateInvestigationTitle(x),
+                titleAuto: !trimmed
+              } : x);
+              onSave("investigations", updated);
+            },
+            title: "Modifier le titre",
+            style: { cursor: "pointer", marginLeft: 8, opacity: 0.5, fontSize: 11 }
+          },
+          "\u270E"
+        )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, fc && /* @__PURE__ */ React.createElement(InvTag, { label: inv.caseData?.findings?.overallFinding, color: fc.color }), /* @__PURE__ */ React.createElement(InvTag, { label: `Urgence: ${inv.urgencyLevel}`, color: uc.color }))),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, display: "flex", gap: 6, alignItems: "center" } }, inv.caseId, " \xB7 ", inv.caseType, " \xB7 ", inv.savedAt, /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(inv, data.profile) })),
+        onNavigate && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" } }, Object.values(INV_ANGLES).map((a) => /* @__PURE__ */ React.createElement(
+          "span",
+          {
+            key: a.id,
+            onClick: (e) => {
+              e.stopPropagation();
+              sessionStorage.setItem(
+                "hrbpos:pendingMeetingContext",
+                JSON.stringify(buildInvestigationMeetingBridge(inv, a))
+              );
+              onNavigate("meetings");
+            },
+            title: `Pr\xE9parer une entrevue \u2014 ${a.label}`,
+            style: {
+              cursor: "pointer",
+              fontSize: 10,
+              padding: "3px 8px",
+              background: C.surfLL,
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              color: C.textM,
+              fontFamily: "'DM Sans',sans-serif"
+            }
+          },
+          "\u{1F3AF} ",
+          a.icon,
+          " ",
+          a.label
+        ))),
+        (() => {
+          const linkedCase = getLinkedCase(inv, data);
+          const linkedMeetings = getLinkedMeetings(inv, data);
+          return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+            "span",
+            {
+              onClick: (e) => {
+                e.stopPropagation();
+                const cases = data.cases || [];
+                if (cases.length === 0) {
+                  window.alert("Aucun dossier disponible dans Cases");
+                  return;
+                }
+                const list = cases.map((c, i2) => `${i2 + 1}. ${c.title || c.name || "(sans titre)"}`).join("\n");
+                const currentIdx = inv.linkedCaseId ? cases.findIndex((c) => c.id === inv.linkedCaseId) + 1 : 0;
+                const ans = window.prompt(`Lier \xE0 un dossier:
+${list}
+
+Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
+                if (ans === null) return;
+                const idx = parseInt(ans, 10);
+                const newId = Number.isFinite(idx) && idx > 0 && idx <= cases.length ? cases[idx - 1].id : null;
+                const updated = investigations.map((x) => x.id === inv.id ? { ...x, linkedCaseId: newId } : x);
+                onSave("investigations", updated);
+              },
+              title: linkedCase ? "Modifier le lien" : "Lier \xE0 un dossier Cases",
+              style: {
+                cursor: "pointer",
+                fontSize: 10,
+                padding: "3px 8px",
+                background: linkedCase ? C.em + "15" : C.surfLL,
+                border: `1px solid ${linkedCase ? C.em + "40" : C.border}`,
+                borderRadius: 4,
+                color: linkedCase ? C.em : C.textM
+              }
+            },
+            linkedCase ? `\u{1F517} ${linkedCase.title || linkedCase.name || "Dossier li\xE9"}` : "\u{1F517} Lier un dossier"
+          ), inv.linkedCaseId && !linkedCase && /* @__PURE__ */ React.createElement("span", { style: {
+            fontSize: 10,
+            padding: "3px 8px",
+            color: C.red,
+            background: C.red + "10",
+            border: `1px solid ${C.red}30`,
+            borderRadius: 4
+          } }, "\u26A0 Dossier introuvable"), linkedMeetings.length > 0 && /* @__PURE__ */ React.createElement("span", { style: {
+            fontSize: 10,
+            padding: "3px 8px",
+            color: C.blue,
+            background: C.blue + "10",
+            border: `1px solid ${C.blue}30`,
+            borderRadius: 4
+          } }, "\u{1F4C5} ", linkedMeetings.length, " rencontre", linkedMeetings.length > 1 ? "s" : ""));
+        })()
       );
     })));
     if (view === "input") return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text } }, "Nouveau dossier d'enqu\xEAte")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead5, { icon: "\u{1F50D}", label: "Plainte ou signalement re\xE7u *", color: INV_RED }), /* @__PURE__ */ React.createElement(
@@ -8586,6 +8757,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
     const [sigExp, setSigExp] = (0, import_react14.useState)({});
     const [histExp, setHistExp] = (0, import_react14.useState)({});
+    const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react14.useState)(null);
     (0, import_react14.useEffect)(() => {
       try {
         if (typeof sessionStorage === "undefined") return;
@@ -8593,6 +8765,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
         if (!raw) return;
         sessionStorage.removeItem("hrbpos:pendingMeetingContext");
         const bridge = JSON.parse(raw);
+        setLinkedInvestigationId(bridge?.linkedInvestigationId || null);
         const validTypes = ENGINE_TYPES.map((t) => t.id);
         if (bridge?.engineType && validTypes.includes(bridge.engineType)) {
           setEngineType(bridge.engineType);
@@ -8770,6 +8943,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
           province: ctx.province || data.profile?.defaultProvince || "QC",
           kind: "1:1-meeting",
           niveau,
+          linkedInvestigationId,
           analysis: {
             meetingTitle: output.meetingTitle || `1:1 \u2014 ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
             director: ctx.managerName || "Non assign\xE9",
@@ -14141,7 +14315,7 @@ ${situation.trim()}`;
       "\u26A0 ",
       c.title?.substring(0, 20),
       c.title?.length > 20 ? "\u2026" : ""
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: setModule }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);

@@ -280,6 +280,7 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   const [outputPrompt, setOutputPrompt] = useState("");
   const [sigExp, setSigExp]       = useState({});
   const [histExp, setHistExp]     = useState({});
+  const [linkedInvestigationId, setLinkedInvestigationId] = useState(null);
 
   // ── B-25: Consume pending meeting context bridge (from Cases) ─────────────
   useEffect(() => {
@@ -289,6 +290,7 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
       if (!raw) return;
       sessionStorage.removeItem("hrbpos:pendingMeetingContext");
       const bridge = JSON.parse(raw);
+      setLinkedInvestigationId(bridge?.linkedInvestigationId || null);
       const validTypes = ENGINE_TYPES.map(t => t.id);
       if (bridge?.engineType && validTypes.includes(bridge.engineType)) {
         setEngineType(bridge.engineType);
@@ -455,6 +457,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         province: ctx.province || data.profile?.defaultProvince || "QC",
         kind: "1:1-meeting",
         niveau,
+        linkedInvestigationId,
         analysis: {
           meetingTitle: output.meetingTitle || `1:1 — ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
           director: ctx.managerName || "Non assigné",

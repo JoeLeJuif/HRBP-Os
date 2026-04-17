@@ -483,7 +483,7 @@ export default function HRBPOS() {
           : module === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
           : module === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave}/>
           : module === "coaching"       ? <ModuleCoaching data={data} onSave={handleSave}/>
-          : module === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave}/>
+          : module === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={setModule}/>
           : module === "exit"           ? <ModuleExit data={data} onSave={handleSave} focusExitId={focusExitId} onClearFocus={() => setFocusExitId(null)}/>
           : module === "workshop"       ? <ModuleWorkshop />
           : module === "autoprompt"     ? <ModuleAutoPrompt data={data}/>

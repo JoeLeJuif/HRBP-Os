@@ -12,6 +12,67 @@ import AILoader from '../components/AILoader.jsx';
 import ProvinceBadge from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 
+// B-26 — Titre structuré [Type] – [Sujet]. Utilise uniquement les champs déjà persistés.
+export function generateInvestigationTitle(inv) {
+  if (!inv) return "Enquête sans titre";
+  const type = (inv.caseType || "").trim();
+  const subject = (inv.caseTitle || "").trim();
+  const parts = [type, subject].filter(Boolean);
+  if (parts.length === 0) {
+    const id = inv.caseId || (inv.id ? String(inv.id).slice(-6) : "");
+    return id ? `Enquête ${id}` : "Enquête sans titre";
+  }
+  return parts.join(" – ");
+}
+
+// B-28 — Bridge Enquête → Meeting Engine.
+const INV_ANGLES = {
+  complainant: { id:"complainant", label:"Plaignant(e)",  icon:"🔴",
+    note:"Recueillir un récit complet, factuel et chronologique." },
+  respondent:  { id:"respondent",  label:"Mise en cause", icon:"🟠",
+    note:"Présenter les éléments pertinents et obtenir la version des faits." },
+  witness:     { id:"witness",     label:"Témoin",        icon:"🔵",
+    note:"Valider les faits observés avec des questions neutres et non suggestives." },
+};
+
+// B-27 — Liens lean (caseId single, meetings derived)
+function getLinkedCase(inv, data) {
+  if (!inv?.linkedCaseId) return null;
+  return (data?.cases || []).find(c => c.id === inv.linkedCaseId) || null;
+}
+
+function getLinkedMeetings(inv, data) {
+  if (!inv?.id) return [];
+  return (data?.meetings || []).filter(m => m.linkedInvestigationId === inv.id);
+}
+
+function buildInvestigationMeetingBridge(inv, angle) {
+  const cs = inv?.caseData?.caseSummary || {};
+  const title = inv?.title || generateInvestigationTitle(inv);
+  const today = new Date().toISOString().split("T")[0];
+  return {
+    engineType: "enquete",
+    linkedInvestigationId: inv?.id,
+    caseTitle: title,
+    ctx: {
+      managerName: "",
+      team: "",
+      date: today,
+      meetingType: "enquete",
+      purpose: `Entrevue ${angle.label} — ${inv?.caseType || "Enquête"}`,
+      background: [
+        `Dossier: ${inv?.caseId || inv?.id || ""}`,
+        inv?.caseType ? `Type: ${inv.caseType}` : "",
+        cs.situation ? `Situation: ${cs.situation}` : "",
+        cs.triggerEvent ? `Déclencheur: ${cs.triggerEvent}` : "",
+        `Angle: ${angle.note}`,
+      ].filter(Boolean).join("\n\n"),
+      activeCases: title,
+      province: inv?.province || "",
+    }
+  };
+}
+
 // Inline shared helper (used in multiple modules, to be reviewed at Bloc 7)
 function SecHead({ icon, label, color=C.em }) {
   return <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, paddingBottom:8, borderBottom:`1px solid ${color}28` }}>
@@ -95,7 +156,7 @@ const INV_FINDING = {
   "Preuve insuffisante":  { color:C.textM,   icon:"◌" },
 };
 
-export default function ModuleInvestigation({ data, onSave }) {
+export default function ModuleInvestigation({ data, onSave, onNavigate }) {
   const [view, setView] = useState("list"); // list | input | loading | case
   const [complaint, setComplaint] = useState("");
   const [context, setContext] = useState("");
@@ -149,7 +210,9 @@ ${evidence}` : "",
     if (!caseData || saved) return;
     const inv = { id:Date.now().toString(), savedAt:new Date().toISOString().split("T")[0],
       caseId:caseData.caseId, caseTitle:caseData.caseTitle, caseType:caseData.caseType,
-      urgencyLevel:caseData.urgencyLevel, province:invProvince, caseData };
+      urgencyLevel:caseData.urgencyLevel, province:invProvince, caseData,
+      title:"", titleAuto:true, linkedCaseId:null };
+    inv.title = generateInvestigationTitle(inv);
     onSave("investigations", [...investigations, inv]);
     setSaved(true);
   };
@@ -366,13 +429,99 @@ ${evidence}` : "",
             style={{ background:C.surfL, border:`1px solid ${INV_RED}28`, borderLeft:`3px solid ${INV_RED}`,
               borderRadius:8, padding:"12px 14px", cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif" }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-              <span style={{ fontSize:13, fontWeight:500, color:C.text }}>{inv.caseTitle}</span>
+              <span style={{ fontSize:13, fontWeight:500, color:C.text }}>
+                {inv.title || generateInvestigationTitle(inv)}
+                <span
+                  onClick={(e)=>{
+                    e.stopPropagation();
+                    const current = inv.title || generateInvestigationTitle(inv);
+                    const next = window.prompt("Modifier le titre de l'enquête", current);
+                    if (next === null) return;
+                    const trimmed = next.trim();
+                    const updated = investigations.map(x => x.id === inv.id ? {
+                      ...x,
+                      title: trimmed || generateInvestigationTitle(x),
+                      titleAuto: !trimmed,
+                    } : x);
+                    onSave("investigations", updated);
+                  }}
+                  title="Modifier le titre"
+                  style={{ cursor:"pointer", marginLeft:8, opacity:.5, fontSize:11 }}
+                >✎</span>
+              </span>
               <div style={{ display:"flex", gap:6 }}>
                 {fc&&<InvTag label={inv.caseData?.findings?.overallFinding} color={fc.color}/>}
                 <InvTag label={`Urgence: ${inv.urgencyLevel}`} color={uc.color}/>
               </div>
             </div>
             <div style={{ fontSize:11, color:C.textM, display:"flex", gap:6, alignItems:"center" }}>{inv.caseId} · {inv.caseType} · {inv.savedAt}<ProvinceBadge province={getProvince(inv, data.profile)}/></div>
+            {onNavigate && (
+              <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
+                {Object.values(INV_ANGLES).map(a => (
+                  <span
+                    key={a.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sessionStorage.setItem(
+                        "hrbpos:pendingMeetingContext",
+                        JSON.stringify(buildInvestigationMeetingBridge(inv, a))
+                      );
+                      onNavigate("meetings");
+                    }}
+                    title={`Préparer une entrevue — ${a.label}`}
+                    style={{
+                      cursor:"pointer", fontSize:10, padding:"3px 8px",
+                      background:C.surfLL, border:`1px solid ${C.border}`,
+                      borderRadius:4, color:C.textM, fontFamily:"'DM Sans',sans-serif",
+                    }}
+                  >
+                    🎯 {a.icon} {a.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {(() => {
+              const linkedCase = getLinkedCase(inv, data);
+              const linkedMeetings = getLinkedMeetings(inv, data);
+              return (
+                <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap" }}>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const cases = data.cases || [];
+                      if (cases.length === 0) { window.alert("Aucun dossier disponible dans Cases"); return; }
+                      const list = cases.map((c, i) => `${i+1}. ${c.title || c.name || "(sans titre)"}`).join("\n");
+                      const currentIdx = inv.linkedCaseId ? cases.findIndex(c => c.id === inv.linkedCaseId) + 1 : 0;
+                      const ans = window.prompt(`Lier à un dossier:\n${list}\n\nEntrer le numéro (vide = délier):`, currentIdx || "");
+                      if (ans === null) return;
+                      const idx = parseInt(ans, 10);
+                      const newId = (Number.isFinite(idx) && idx > 0 && idx <= cases.length) ? cases[idx-1].id : null;
+                      const updated = investigations.map(x => x.id === inv.id ? { ...x, linkedCaseId: newId } : x);
+                      onSave("investigations", updated);
+                    }}
+                    title={linkedCase ? "Modifier le lien" : "Lier à un dossier Cases"}
+                    style={{ cursor:"pointer", fontSize:10, padding:"3px 8px",
+                      background: linkedCase ? C.em+"15" : C.surfLL,
+                      border: `1px solid ${linkedCase ? C.em+"40" : C.border}`,
+                      borderRadius:4, color: linkedCase ? C.em : C.textM }}
+                  >
+                    {linkedCase ? `🔗 ${linkedCase.title || linkedCase.name || "Dossier lié"}` : "🔗 Lier un dossier"}
+                  </span>
+                  {inv.linkedCaseId && !linkedCase && (
+                    <span style={{ fontSize:10, padding:"3px 8px", color:C.red,
+                      background: C.red+"10", border:`1px solid ${C.red}30`, borderRadius:4 }}>
+                      ⚠ Dossier introuvable
+                    </span>
+                  )}
+                  {linkedMeetings.length > 0 && (
+                    <span style={{ fontSize:10, padding:"3px 8px", color:C.blue,
+                      background: C.blue+"10", border:`1px solid ${C.blue}30`, borderRadius:4 }}>
+                      📅 {linkedMeetings.length} rencontre{linkedMeetings.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </button>;
         })}
       </div>}
