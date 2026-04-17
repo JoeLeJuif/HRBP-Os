@@ -11401,6 +11401,20 @@ ${recap.sentText}`,
     })())));
   }
 
+  // src/utils/caseStatus.js
+  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
+  function isCaseInactive(c) {
+    if (!c) return false;
+    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
+    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
+  }
+  function isCaseActive(c) {
+    return !isCaseInactive(c);
+  }
+  function filterActiveCases(cases) {
+    return (cases || []).filter(isCaseActive);
+  }
+
   // src/modules/Home.jsx
   var DAY = 864e5;
   var daysBetween = (isoA, isoB) => Math.floor((/* @__PURE__ */ new Date(isoA + "T00:00:00") - /* @__PURE__ */ new Date(isoB + "T00:00:00")) / DAY);
@@ -11431,7 +11445,20 @@ ${recap.sentText}`,
   var BRIEF_URGENCY_C = { "Immediat": C.red, "Imm\xE9diat": C.red, "Cette semaine": C.amber, "Semaine prochaine": C.blue };
   var BRIEF_RISK_C = { "Critique": C.red, "Eleve": C.amber, "\xC9lev\xE9": C.amber, "Modere": C.blue, "Mod\xE9r\xE9": C.blue, "Faible": C.em };
   var BRIEF_SOURCE_NAV = { meeting: "meetings", case: "cases", signal: "signals", multiple: "brief" };
+  var TYPE_TO_NAV = { case: "cases", signal: "signals", meeting: "meetings" };
+  var TYPE_TO_FOCUS = { case: "focusCaseId", signal: "focusSignalId", meeting: "focusMeetingId" };
+  function buildNav(item) {
+    const typedNav = TYPE_TO_NAV[item?.type];
+    const destination = typedNav || item?.nav || "brief";
+    const focusKey = TYPE_TO_FOCUS[item?.type];
+    const ctx = item?.sourceId && focusKey ? { [focusKey]: item.sourceId } : void 0;
+    return { destination, ctx };
+  }
   function ModuleHome({ data, onNavigate }) {
+    const goTo = (item) => {
+      const { destination, ctx } = buildNav(item);
+      onNavigate(destination, ctx);
+    };
     const cases = data.cases || [];
     const signals = data.signals || [];
     const decisions = data.decisions || [];
@@ -11443,7 +11470,7 @@ ${recap.sentText}`,
     const briefIsStale = latestBriefEntry && !briefIsRecent;
     const lb = latestBriefEntry ? latestBriefEntry.brief : null;
     const li = latestBriefEntry ? latestBriefEntry.insights || null : null;
-    const activeCases = cases.filter((c) => !["closed", "resolved"].includes(c.status));
+    const activeCases = filterActiveCases(cases);
     const overdueCases = activeCases.filter((c) => c.dueDate && c.dueDate < todayISO);
     const pendingSignals = signals.filter((s) => !s.actioned);
     const overdueReviews = decisions.filter((d) => d.reviewDate && d.reviewDate < todayISO && d.status !== "archived");
@@ -11577,6 +11604,7 @@ ${recap.sentText}`,
       sortKey: 0,
       type: "case",
       id: c.id,
+      sourceId: c.id,
       title: c.title || "(dossier)",
       sub: [c.director, c.dueDate && `\xE9ch\xE9ance ${fmtDate(c.dueDate)}`].filter(Boolean).join(" \xB7 "),
       badge: { label: "\u26A0 retard", color: C.red },
@@ -11604,6 +11632,7 @@ ${recap.sentText}`,
       sortKey: 3,
       type: "signal",
       id: s.id,
+      sourceId: s.id,
       title: s.analysis?.title || (s.signal || "Signal").substring(0, 60),
       sub: [s.analysis?.category, s.savedAt && `il y a ${daysBetween(todayISO, s.savedAt)}j`].filter(Boolean).join(" \xB7 "),
       badge: { label: s.analysis?.severity || "En attente", color: SEV_C[s.analysis?.severity] || C.amber },
@@ -11615,6 +11644,7 @@ ${recap.sentText}`,
         sortKey: 4,
         type: "case",
         id: c.id,
+        sourceId: c.id,
         title: c.title || "(dossier)",
         sub: [c.director, age && `ouvert depuis ${daysBetween(todayISO, age)}j`].filter(Boolean).join(" \xB7 "),
         badge: { label: "Aging", color: C.amber },
@@ -11735,7 +11765,7 @@ ${recap.sentText}`,
         color: topFocus.length > 0 ? C.red : C.em,
         sub: focusFromBrief ? "via brief" : ""
       }
-    ), calmState && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, calmState), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, topFocus.map((f, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => onNavigate(f.nav), style: {
+    ), calmState && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.5 } }, calmState), topFocus.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, topFocus.map((f, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => goTo(f), style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
@@ -11758,7 +11788,7 @@ ${recap.sentText}`,
       Row,
       {
         key: it.type + it.id + i,
-        onClick: () => onNavigate(it.nav),
+        onClick: () => goTo(it),
         left: it.title,
         sub: it.sub,
         right: /* @__PURE__ */ React.createElement(Badge, { label: it.badge.label, color: it.badge.color, size: 9 })
@@ -11826,7 +11856,7 @@ ${recap.sentText}`,
       "button",
       {
         key: i,
-        onClick: () => onNavigate(q.nav),
+        onClick: () => goTo(q),
         style: {
           background: C.surf,
           border: `1px solid ${C.border}`,
@@ -14315,7 +14345,13 @@ ${situation.trim()}`;
       "\u26A0 ",
       c.title?.substring(0, 20),
       c.title?.length > 20 ? "\u2026" : ""
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: setModule }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: setModule }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: (id, ctx) => {
+      if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
+      if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
+      if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
+      if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
+      setModule(id);
+    } }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: setModule }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);

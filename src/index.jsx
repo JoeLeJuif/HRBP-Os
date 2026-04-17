@@ -473,7 +473,7 @@ export default function HRBPOS() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
               <AILoader label="Chargement du système"/>
             </div>
-          ) : module === "home"         ? <ModuleHome data={data} onNavigate={setModule}/>
+          ) : module === "home"         ? <ModuleHome data={data} onNavigate={(id, ctx) => { if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId); if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId); if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId); if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId); setModule(id); }}/>
           : module === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
           : module === "copilot"        ? <ModuleCopilot data={data}/>
           : module === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={setModule} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>

@@ -5,6 +5,7 @@ import Mono  from '../components/Mono.jsx';
 import { C, css, RISK } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
 import { fmtDate } from '../utils/format.js';
+import { filterActiveCases } from '../utils/caseStatus.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const DAY = 86400000;
@@ -52,10 +53,31 @@ const DEC_TYPE_L = { discipline:"Discipline", performance:"Performance", organiz
 // ── Brief source helpers ─────────────────────────────────────────────────────
 const BRIEF_URGENCY_C = { "Immediat":C.red, "Immédiat":C.red, "Cette semaine":C.amber, "Semaine prochaine":C.blue };
 const BRIEF_RISK_C = { "Critique":C.red, "Eleve":C.amber, "Élevé":C.amber, "Modere":C.blue, "Modéré":C.blue, "Faible":C.em };
+// Brief items only carry a `source` enum, not a row-level id — so brief-derived
+// items can at best route to the source module. `multiple` / missing → Weekly.
 const BRIEF_SOURCE_NAV = { meeting:"meetings", case:"cases", signal:"signals", multiple:"brief" };
+
+// Unified routing: type+sourceId drives the destination. `nav` is only used when
+// no type is set (aggregate items). Weekly is reached only when no sourceId and
+// no module-specific nav is available.
+const TYPE_TO_NAV = { case:"cases", signal:"signals", meeting:"meetings" };
+const TYPE_TO_FOCUS = { case:"focusCaseId", signal:"focusSignalId", meeting:"focusMeetingId" };
+
+function buildNav(item) {
+  const typedNav = TYPE_TO_NAV[item?.type];
+  const destination = typedNav || item?.nav || "brief";
+  const focusKey = TYPE_TO_FOCUS[item?.type];
+  const ctx = (item?.sourceId && focusKey) ? { [focusKey]: item.sourceId } : undefined;
+  return { destination, ctx };
+}
 
 // ── Module ────────────────────────────────────────────────────────────────────
 export default function ModuleHome({ data, onNavigate }) {
+  const goTo = (item) => {
+    const { destination, ctx } = buildNav(item);
+    onNavigate(destination, ctx);
+  };
+
   const cases     = data.cases     || [];
   const signals   = data.signals   || [];
   const decisions = data.decisions || [];
@@ -76,7 +98,8 @@ export default function ModuleHome({ data, onNavigate }) {
   const li = latestBriefEntry ? (latestBriefEntry.insights || null) : null;
 
   // ── Derived collections ────────────────────────────────────────────────────
-  const activeCases = cases.filter(c => !["closed","resolved"].includes(c.status));
+  // Active = not in {closed, resolved, done, archived}. See utils/caseStatus.js.
+  const activeCases = filterActiveCases(cases);
   const overdueCases = activeCases.filter(c => c.dueDate && c.dueDate < todayISO);
   const pendingSignals = signals.filter(s => !s.actioned);
 
@@ -206,9 +229,12 @@ export default function ModuleHome({ data, onNavigate }) {
     }
   }
 
+  // Fallback items keep the actual entity id in `sourceId` so the onClick can
+  // focus the row in the target module. Decisions have no focus bridge yet, so
+  // their sourceId is intentionally omitted (clicking routes to the list only).
   const fallbackAttentionItems = [];
   overdueCases.forEach(c => fallbackAttentionItems.push({
-    sortKey:0, type:"case", id:c.id, title:c.title||"(dossier)",
+    sortKey:0, type:"case", id:c.id, sourceId:c.id, title:c.title||"(dossier)",
     sub:[c.director, c.dueDate && `échéance ${fmtDate(c.dueDate)}`].filter(Boolean).join(" · "),
     badge:{ label:"⚠ retard", color:C.red }, nav:"cases",
   }));
@@ -223,7 +249,7 @@ export default function ModuleHome({ data, onNavigate }) {
     badge:{ label:"Risque élevé", color:C.red }, nav:"decisions",
   }));
   agedSignals.slice(0, 4).forEach(s => fallbackAttentionItems.push({
-    sortKey:3, type:"signal", id:s.id,
+    sortKey:3, type:"signal", id:s.id, sourceId:s.id,
     title:s.analysis?.title || (s.signal||"Signal").substring(0, 60),
     sub:[s.analysis?.category, s.savedAt && `il y a ${daysBetween(todayISO, s.savedAt)}j`].filter(Boolean).join(" · "),
     badge:{ label:s.analysis?.severity||"En attente", color:SEV_C[s.analysis?.severity]||C.amber }, nav:"signals",
@@ -231,7 +257,7 @@ export default function ModuleHome({ data, onNavigate }) {
   agedCases.filter(c => !overdueCases.includes(c)).slice(0, 3).forEach(c => {
     const age = c.createdAt || c.savedAt;
     fallbackAttentionItems.push({
-      sortKey:4, type:"case", id:c.id, title:c.title||"(dossier)",
+      sortKey:4, type:"case", id:c.id, sourceId:c.id, title:c.title||"(dossier)",
       sub:[c.director, age && `ouvert depuis ${daysBetween(todayISO, age)}j`].filter(Boolean).join(" · "),
       badge:{ label:"Aging", color:C.amber }, nav:"cases",
     });
@@ -378,7 +404,7 @@ export default function ModuleHome({ data, onNavigate }) {
         {topFocus.length > 0 && (
           <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
             {topFocus.map((f,i) => (
-              <button key={i} onClick={()=>onNavigate(f.nav)} style={{
+              <button key={i} onClick={()=>goTo(f)} style={{
                 display:"flex", alignItems:"center", gap:10, padding:"6px 0",
                 background:"none", border:"none", cursor:"pointer", textAlign:"left",
                 fontFamily:"'DM Sans',sans-serif", borderBottom: i<topFocus.length-1?`1px solid ${C.border}`:"none" }}>
@@ -403,7 +429,7 @@ export default function ModuleHome({ data, onNavigate }) {
           {attentionTop.length === 0 && <Empty msg="Aucun point critique aujourd'hui."/>}
           {attentionTop.map((it,i) => (
             <Row key={it.type+it.id+i}
-              onClick={()=>onNavigate(it.nav)}
+              onClick={()=>goTo(it)}
               left={it.title}
               sub={it.sub}
               right={<Badge label={it.badge.label} color={it.badge.color} size={9}/>}
@@ -496,7 +522,7 @@ export default function ModuleHome({ data, onNavigate }) {
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {recommended.map((q,i) => (
-            <button key={i} onClick={()=>onNavigate(q.nav)}
+            <button key={i} onClick={()=>goTo(q)}
               style={{ background:C.surf, border:`1px solid ${C.border}`,
                 borderRadius:7, padding:"9px 14px", cursor:"pointer",
                 fontFamily:"'DM Sans',sans-serif",
