@@ -9,6 +9,7 @@ import AILoader from '../components/AILoader.jsx';
 import { BRIEF_SP, RECAP_SP, NEXT_WEEK_LOCK_SP } from '../prompts/brief.js';
 import { callAI, callAIJson } from '../api/index.js';
 import { fmtDate } from '../utils/format.js';
+import { filterActiveCases } from '../utils/caseStatus.js';
 import { C, css, DELAY_C, RISK } from '../theme.js';
 
 // ── Inline shared helpers ─────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ export default function ModuleBrief({ data, onSave }) {
   const autoFill = () => {
     const allMeetings = data.meetings || [];
     const allSignals = data.signals || [];
-    const allCases = data.cases || [];
+    const allCases = filterActiveCases(data.cases || []);
 
     const filteredMeetings = allMeetings.filter(m => inPeriod(m.savedAt));
     const filteredSignals = allSignals.filter(s => inPeriod(s.savedAt));
@@ -108,7 +109,7 @@ export default function ModuleBrief({ data, onSave }) {
         ).join("\n")
       : "(Aucun signal enregistré dans cette période)";
 
-    const casesTxt = allCases.filter(c => c.status==="active"||c.status==="open").map(c =>
+    const casesTxt = allCases.map(c =>
       `Dossier actif: ${c.title} — Risque ${c.riskLevel} — Suivi: ${c.nextFollowUp||"N/A"}`
     ).join("\n") || "(Aucun dossier actif)";
 
@@ -145,7 +146,7 @@ WatchList: ${lastBrief.watchList?.map(w=>`${w.subject} [${w.classification}]`).j
         : "\n=== BRIEF SEMAINE PRECEDENTE : Aucun (premiere semaine) ===\n";
 
       // ── Case Log context ──────────────────────────────────────────────────
-      const activeCases = (data.cases||[]).filter(c => c.status==="active"||c.status==="open");
+      const activeCases = filterActiveCases(data.cases || []);
       const caseCtx = activeCases.length > 0
         ? `\n=== CASE LOG (${activeCases.length} dossier(s) actif(s)) ===\n` +
           activeCases.map(c =>
@@ -173,14 +174,14 @@ CONTEXTE ADDITIONNEL:\n${inputs.other||""}${prevCtx}${caseCtx}`;
     try {
       const allMeetings   = data.meetings       || [];
       const allSignals    = data.signals         || [];
-      const allCases      = data.cases           || [];
+      const allCases      = filterActiveCases(data.cases || []);
       const allPreps      = data.prep1on1        || [];
       const allBriefs     = data.briefs          || [];
 
       const weekMeetings  = allMeetings.filter(m => inPeriod(m.savedAt));
       const weekSignals   = allSignals.filter(s  => inPeriod(s.savedAt));
       const weekPreps     = allPreps.filter(p    => inPeriod(p.savedAt));
-      const activeCases   = allCases.filter(c    => c.status === "active" || c.status === "open");
+      const activeCases   = allCases;
 
       const weekLabel = periodStart && periodEnd
         ? `Semaine du ${new Date(periodStart).toLocaleDateString("fr-CA")} au ${new Date(periodEnd).toLocaleDateString("fr-CA")}`
@@ -351,8 +352,7 @@ ${prepsTxt ? `\n=== PRÉPARATIONS 1:1 (${weekPreps.length}) ===\n${prepsTxt}` : 
       const todayISO = new Date().toISOString().split("T")[0];
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-      const activeCasesIns = (data.cases || [])
-        .filter(c => !["closed","resolved","fermé","résolu"].includes((c.status||"").toLowerCase()))
+      const activeCasesIns = filterActiveCases(data.cases || [])
         .slice(0, 8)
         .map(c => `- [${c.type||""}] ${c.title||"Sans titre"} — Risque: ${c.riskLevel||"?"} — Statut: ${c.status||"?"} — ${c.director||c.employee||""}`)
         .join("\n");
@@ -392,7 +392,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucun backtick. F
 
       const up = `ANALYSE CROSS-MODULES — Semaine du ${todayISO}
 
-CAS ACTIFS (${(data.cases||[]).filter(c => !["closed","resolved","fermé","résolu"].includes((c.status||"").toLowerCase())).length}) :
+CAS ACTIFS (${filterActiveCases(data.cases || []).length}) :
 ${activeCasesIns || "Aucun cas actif"}
 
 SIGNAUX ORGANISATIONNELS (${(data.signals||[]).length}) :

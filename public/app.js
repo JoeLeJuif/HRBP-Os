@@ -10338,6 +10338,20 @@ Classe automatiquement chaque element dans la bonne categorie. Redige des phrase
 Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
 {"weekLabel":"Semaine du [date]","recrutement":{"embauches":[{"item":"phrase complete"}],"processus":[{"item":"phrase complete"}],"ouvertures":[{"item":"phrase complete"}]},"promotions":[{"item":"phrase complete"}],"fins_emploi":[{"item":"phrase complete"}],"performance":[{"item":"phrase complete \u2014 sans nom"}],"projets_rh":[{"item":"phrase complete"}],"divers":[{"item":"phrase complete"}]}`;
 
+  // src/utils/caseStatus.js
+  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
+  function isCaseInactive(c) {
+    if (!c) return false;
+    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
+    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
+  }
+  function isCaseActive(c) {
+    return !isCaseInactive(c);
+  }
+  function filterActiveCases(cases) {
+    return (cases || []).filter(isCaseActive);
+  }
+
   // src/modules/Brief.jsx
   function RiskBadge6({ level }) {
     const r = RISK[level] || RISK["Mod\xE9r\xE9"];
@@ -10420,7 +10434,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const autoFill = () => {
       const allMeetings = data.meetings || [];
       const allSignals = data.signals || [];
-      const allCases = data.cases || [];
+      const allCases = filterActiveCases(data.cases || []);
       const filteredMeetings = allMeetings.filter((m) => inPeriod(m.savedAt));
       const filteredSignals = allSignals.filter((s) => inPeriod(s.savedAt));
       const meetingsTxt = filteredMeetings.length > 0 ? filteredMeetings.map(
@@ -10429,7 +10443,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const signalsTxt = filteredSignals.length > 0 ? filteredSignals.map(
         (s) => `Signal ${s.analysis?.category} (${s.savedAt}): ${s.analysis?.title} \u2014 ${s.analysis?.severity}`
       ).join("\n") : "(Aucun signal enregistr\xE9 dans cette p\xE9riode)";
-      const casesTxt = allCases.filter((c) => c.status === "active" || c.status === "open").map(
+      const casesTxt = allCases.map(
         (c) => `Dossier actif: ${c.title} \u2014 Risque ${c.riskLevel} \u2014 Suivi: ${c.nextFollowUp || "N/A"}`
       ).join("\n") || "(Aucun dossier actif)";
       const weekLabel = periodStart && periodEnd ? `Semaine du ${new Date(periodStart).toLocaleDateString("fr-CA")} au ${new Date(periodEnd).toLocaleDateString("fr-CA")}` : `Semaine du ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`;
@@ -10462,7 +10476,7 @@ LeadershipWatch: ${lastBrief.leadershipWatch?.map((l) => `${l.person}: ${l.signa
 RetentionWatch: ${lastBrief.retentionWatch?.map((r) => r.profile).join(", ") || ""}
 WatchList: ${lastBrief.watchList?.map((w) => `${w.subject} [${w.classification}]`).join("; ") || "Aucune"}
 ` : "\n=== BRIEF SEMAINE PRECEDENTE : Aucun (premiere semaine) ===\n";
-        const activeCases = (data.cases || []).filter((c) => c.status === "active" || c.status === "open");
+        const activeCases = filterActiveCases(data.cases || []);
         const caseCtx = activeCases.length > 0 ? `
 === CASE LOG (${activeCases.length} dossier(s) actif(s)) ===
 ` + activeCases.map(
@@ -10503,13 +10517,13 @@ ${inputs.other || ""}${prevCtx}${caseCtx}`;
       try {
         const allMeetings = data.meetings || [];
         const allSignals = data.signals || [];
-        const allCases = data.cases || [];
+        const allCases = filterActiveCases(data.cases || []);
         const allPreps = data.prep1on1 || [];
         const allBriefs = data.briefs || [];
         const weekMeetings = allMeetings.filter((m) => inPeriod(m.savedAt));
         const weekSignals = allSignals.filter((s) => inPeriod(s.savedAt));
         const weekPreps = allPreps.filter((p) => inPeriod(p.savedAt));
-        const activeCases = allCases.filter((c) => c.status === "active" || c.status === "open");
+        const activeCases = allCases;
         const weekLabel = periodStart && periodEnd ? `Semaine du ${new Date(periodStart).toLocaleDateString("fr-CA")} au ${new Date(periodEnd).toLocaleDateString("fr-CA")}` : `Semaine du ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`;
         const meetingsTxt = weekMeetings.length > 0 ? weekMeetings.map((m) => {
           const a = m.analysis || {};
@@ -10664,7 +10678,7 @@ ${prepsTxt}` : ""}`;
       try {
         const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1e3;
-        const activeCasesIns = (data.cases || []).filter((c) => !["closed", "resolved", "ferm\xE9", "r\xE9solu"].includes((c.status || "").toLowerCase())).slice(0, 8).map((c) => `- [${c.type || ""}] ${c.title || "Sans titre"} \u2014 Risque: ${c.riskLevel || "?"} \u2014 Statut: ${c.status || "?"} \u2014 ${c.director || c.employee || ""}`).join("\n");
+        const activeCasesIns = filterActiveCases(data.cases || []).slice(0, 8).map((c) => `- [${c.type || ""}] ${c.title || "Sans titre"} \u2014 Risque: ${c.riskLevel || "?"} \u2014 Statut: ${c.status || "?"} \u2014 ${c.director || c.employee || ""}`).join("\n");
         const activeSignalsIns = (data.signals || []).slice(0, 8).map((s) => {
           const a = s.analysis || {};
           return `- ${a.title || a.category || "Signal"} [${a.severity || "?"}] \u2014 ${a.interpretation || ""} (${s.savedAt || ""})`;
@@ -10685,7 +10699,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucun backtick. F
 {"patterns":"1 court paragraphe sur les themes recurrents entre modules","risquesSystemiques":"1 court paragraphe sur ce qui pourrait s aggraver si non traite","anglesMorts":"1 court paragraphe sur ce qui merite attention mais n est pas encore un cas ou signal formel","recommandation":"1 action HRBP prioritaire pour cette semaine \u2014 concrete et actionnable","riskLevel":"Faible|Modere|Eleve|Critique"}`;
         const up = `ANALYSE CROSS-MODULES \u2014 Semaine du ${todayISO}
 
-CAS ACTIFS (${(data.cases || []).filter((c) => !["closed", "resolved", "ferm\xE9", "r\xE9solu"].includes((c.status || "").toLowerCase())).length}) :
+CAS ACTIFS (${filterActiveCases(data.cases || []).length}) :
 ${activeCasesIns || "Aucun cas actif"}
 
 SIGNAUX ORGANISATIONNELS (${(data.signals || []).length}) :
@@ -11399,20 +11413,6 @@ ${recap.sentText}`,
         } }, b.insights?.recommandation || b.insights?.patterns || "\u2014")
       )));
     })())));
-  }
-
-  // src/utils/caseStatus.js
-  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
-  function isCaseInactive(c) {
-    if (!c) return false;
-    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
-    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
-  }
-  function isCaseActive(c) {
-    return !isCaseInactive(c);
-  }
-  function filterActiveCases(cases) {
-    return (cases || []).filter(isCaseActive);
   }
 
   // src/modules/Home.jsx
