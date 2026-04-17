@@ -8690,6 +8690,28 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     crossQuestions: [],
     caseEntry: null
   };
+  function buildInvestigationCtxBlock(inv) {
+    if (!inv) return "";
+    const cs = inv.caseData?.caseSummary || {};
+    const p = inv.caseData?.investigationPlan || {};
+    const f = inv.caseData?.findings || {};
+    const parties = (cs.parties || []).map((x) => `${x.role}: ${x.description}`).join(" | ");
+    const lines = [
+      `
+INVESTIGATION LIEE (id=${inv.id}):`,
+      `Dossier: ${inv.caseId || ""} \u2014 ${inv.caseTitle || inv.title || ""}`,
+      inv.caseType ? `Type: ${inv.caseType}` : "",
+      inv.urgencyLevel ? `Urgence: ${inv.urgencyLevel}` : "",
+      cs.situation ? `Situation: ${cs.situation}` : "",
+      cs.triggerEvent ? `Declencheur: ${cs.triggerEvent}` : "",
+      cs.thresholdAnalysis ? `Analyse seuil: ${cs.thresholdAnalysis}` : "",
+      parties ? `Parties: ${parties}` : "",
+      p.mandate ? `Mandat: ${p.mandate}` : "",
+      (p.objectives || []).length ? `Objectifs: ${p.objectives.join("; ")}` : "",
+      f.overallFinding ? `Conclusion actuelle: ${f.overallFinding}` : ""
+    ].filter(Boolean);
+    return lines.join("\n");
+  }
   function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
     const leadersList = Object.values(data.leaders || {}).map((l) => l.name || "").filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.localeCompare(b, "fr"));
     const knownSet = new Set(leadersList.map((n) => normKey(n)));
@@ -8765,6 +8787,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
         if (!raw) return;
         sessionStorage.removeItem("hrbpos:pendingMeetingContext");
         const bridge = JSON.parse(raw);
+        console.info("[MeetingEngine] bridge consumed:", { engineType: bridge?.engineType, linkedInvestigationId: bridge?.linkedInvestigationId, hasCtx: !!bridge?.ctx });
         setLinkedInvestigationId(bridge?.linkedInvestigationId || null);
         const validTypes = ENGINE_TYPES.map((t) => t.id);
         if (bridge?.engineType && validTypes.includes(bridge.engineType)) {
@@ -8877,6 +8900,19 @@ ${buildLegalPromptContext(_prov)}
 TRANSCRIPT / NOTES DU MEETING :
 ${meetingAnalysis.transcript || ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}` : "";
       const _typeCtxOut = TYPE_CONTEXT[engineType] || TYPE_CONTEXT["1on1"];
+      const linkedInv = linkedInvestigationId ? (data.investigations || []).find((i) => i.id === linkedInvestigationId) : null;
+      if (linkedInvestigationId && !linkedInv) {
+        console.warn("[MeetingEngine] linkedInvestigationId set but no matching investigation in data.investigations:", linkedInvestigationId);
+      }
+      const _invBlock = buildInvestigationCtxBlock(linkedInv);
+      console.info("[MeetingEngine] generateOutput", {
+        engineType,
+        linkedInvestigationId,
+        hasInvestigation: !!linkedInv,
+        ctxBackgroundLen: (ctx.background || "").length,
+        notesFilled: Object.values(notes).filter(Boolean).length,
+        hasTranscript: !!meetingAnalysis.transcript
+      });
       const up = [
         `TYPE: ${engineType}`,
         `TYPE_LABEL: ${_engineMeta?.label || engineType}`,
@@ -8886,6 +8922,7 @@ ${meetingAnalysis.transcript || ""}${meetingAnalysis.transcript && meetingAnalys
         `Equipe: ${ctx.team || "N/A"}`,
         `Objectif: ${ctx.purpose || "N/A"}`,
         `Contexte: ${ctx.background || "N/A"}`,
+        _invBlock,
         _legalText,
         _meetingBlock,
         histCtx ? `
@@ -8903,8 +8940,19 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       try {
         const p = await callAI(MEETING_ENGINE_SP, up);
         setOutput(p);
-      } catch {
-        setOutput(FALLBACK_OUTPUT);
+      } catch (err) {
+        console.warn("[MeetingEngine] generateOutput AI call failed \u2014 using fallback:", err?.message);
+        const fb = { ...FALLBACK_OUTPUT };
+        if (linkedInv) {
+          const cs = linkedInv.caseData?.caseSummary || {};
+          fb.meetingTitle = `Entrevue enquete \u2014 ${linkedInv.caseTitle || linkedInv.title || linkedInv.caseId || ""}`.trim();
+          fb.summary = [
+            cs.situation || "Voir resume du dossier d enquete lie.",
+            cs.triggerEvent ? `Declencheur: ${cs.triggerEvent}` : "Voir notes manuelles."
+          ].filter(Boolean);
+          fb.hrbpKeyMessage = "Generation IA indisponible \u2014 completer manuellement a partir du dossier d enquete lie.";
+        }
+        setOutput(fb);
       } finally {
         setOutputLoading(false);
       }

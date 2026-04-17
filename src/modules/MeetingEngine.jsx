@@ -202,6 +202,30 @@ const FALLBACK_OUTPUT = {
   nextMeetingContext: "", nextMeetingQuestions: ["A definir"], crossQuestions: [], caseEntry: null,
 };
 
+// ── Build investigation context block for AI prompt enrichment ──────────────
+// Pulls from inv.caseData (caseSummary, plan, findings) — only what is set.
+function buildInvestigationCtxBlock(inv) {
+  if (!inv) return "";
+  const cs = inv.caseData?.caseSummary || {};
+  const p  = inv.caseData?.investigationPlan || {};
+  const f  = inv.caseData?.findings || {};
+  const parties = (cs.parties || []).map(x => `${x.role}: ${x.description}`).join(" | ");
+  const lines = [
+    `\nINVESTIGATION LIEE (id=${inv.id}):`,
+    `Dossier: ${inv.caseId || ""} — ${inv.caseTitle || inv.title || ""}`,
+    inv.caseType ? `Type: ${inv.caseType}` : "",
+    inv.urgencyLevel ? `Urgence: ${inv.urgencyLevel}` : "",
+    cs.situation ? `Situation: ${cs.situation}` : "",
+    cs.triggerEvent ? `Declencheur: ${cs.triggerEvent}` : "",
+    cs.thresholdAnalysis ? `Analyse seuil: ${cs.thresholdAnalysis}` : "",
+    parties ? `Parties: ${parties}` : "",
+    p.mandate ? `Mandat: ${p.mandate}` : "",
+    (p.objectives || []).length ? `Objectifs: ${p.objectives.join("; ")}` : "",
+    f.overallFinding ? `Conclusion actuelle: ${f.overallFinding}` : "",
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
 // ── Manager dropdown + free-text fallback ─────────────────────────────────────
 function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
   const leadersList = Object.values(data.leaders || {})
@@ -290,6 +314,7 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
       if (!raw) return;
       sessionStorage.removeItem("hrbpos:pendingMeetingContext");
       const bridge = JSON.parse(raw);
+      console.info("[MeetingEngine] bridge consumed:", { engineType: bridge?.engineType, linkedInvestigationId: bridge?.linkedInvestigationId, hasCtx: !!bridge?.ctx });
       setLinkedInvestigationId(bridge?.linkedInvestigationId || null);
       const validTypes = ENGINE_TYPES.map(t => t.id);
       if (bridge?.engineType && validTypes.includes(bridge.engineType)) {
@@ -403,6 +428,23 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       ? `\n\nTRANSCRIPT / NOTES DU MEETING :\n${meetingAnalysis.transcript || ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}`
       : "";
     const _typeCtxOut = TYPE_CONTEXT[engineType] || TYPE_CONTEXT["1on1"];
+
+    // ── Pull linked investigation context (B-30 fix) ─────────────────────
+    const linkedInv = linkedInvestigationId
+      ? (data.investigations || []).find(i => i.id === linkedInvestigationId)
+      : null;
+    if (linkedInvestigationId && !linkedInv) {
+      console.warn("[MeetingEngine] linkedInvestigationId set but no matching investigation in data.investigations:", linkedInvestigationId);
+    }
+    const _invBlock = buildInvestigationCtxBlock(linkedInv);
+    console.info("[MeetingEngine] generateOutput", {
+      engineType, linkedInvestigationId,
+      hasInvestigation: !!linkedInv,
+      ctxBackgroundLen: (ctx.background || "").length,
+      notesFilled: Object.values(notes).filter(Boolean).length,
+      hasTranscript: !!meetingAnalysis.transcript,
+    });
+
     const up = [
       `TYPE: ${engineType}`,
       `TYPE_LABEL: ${_engineMeta?.label || engineType}`,
@@ -412,6 +454,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       `Equipe: ${ctx.team||"N/A"}`,
       `Objectif: ${ctx.purpose||"N/A"}`,
       `Contexte: ${ctx.background||"N/A"}`,
+      _invBlock,
       _legalText,
       _meetingBlock,
       histCtx ? `\nHISTORIQUE PERTINENT:\n${histCtx}` : "",
@@ -424,7 +467,21 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       `Notes — Suivis: ${notes.followups||"Aucune"}`,
     ].filter(Boolean).join("\n");
     try { const p = await callAI(MEETING_ENGINE_SP, up); setOutput(p); }
-    catch { setOutput(FALLBACK_OUTPUT); }
+    catch (err) {
+      console.warn("[MeetingEngine] generateOutput AI call failed — using fallback:", err?.message);
+      // Defensive fallback: enrich placeholders with investigation summary if available
+      const fb = { ...FALLBACK_OUTPUT };
+      if (linkedInv) {
+        const cs = linkedInv.caseData?.caseSummary || {};
+        fb.meetingTitle = `Entrevue enquete — ${linkedInv.caseTitle || linkedInv.title || linkedInv.caseId || ""}`.trim();
+        fb.summary = [
+          cs.situation || "Voir resume du dossier d enquete lie.",
+          cs.triggerEvent ? `Declencheur: ${cs.triggerEvent}` : "Voir notes manuelles.",
+        ].filter(Boolean);
+        fb.hrbpKeyMessage = "Generation IA indisponible — completer manuellement a partir du dossier d enquete lie.";
+      }
+      setOutput(fb);
+    }
     finally { setOutputLoading(false); }
   };
 
