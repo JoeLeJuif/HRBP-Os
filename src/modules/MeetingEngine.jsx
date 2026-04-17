@@ -489,6 +489,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
   const save1on1 = () => {
     if (!output || saved1on1) return;
     const today = new Date().toISOString().split("T")[0];
+    const mtgId = `mtg_${Date.now()}`;
     const session = {
       id: Date.now().toString(), savedAt: today,
       managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
@@ -505,7 +506,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     // ── Double save: also create a Meetings Hub session in SK.meetings ───
     try {
       const meetingSession = {
-        id: `mtg_${Date.now()}`,
+        id: mtgId,
         savedAt: today,
         dateCreated: today,
         director: ctx.managerName || "Non assigné",
@@ -538,6 +539,35 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       onSave("meetings", [meetingSession, ...(data.meetings || [])]);
     } catch (err) {
       console.warn("Meeting Engine — sync Meetings Hub failed:", err);
+    }
+
+    // ── Triple save: persist Case Log entry if AI detected one ────────────
+    try {
+      const ce = output.caseEntry;
+      if (ce && (ce.titre || ce.title)) {
+        const newCase = {
+          id: `case_${Date.now()}`,
+          title: ce.titre || ce.title,
+          type: ce.type || "conflict_ee",
+          riskLevel: ce.risque || ce.riskLevel || output.overallRisk || "Modéré",
+          status: "active",
+          director: ctx.managerName || "Non assigné",
+          employee: "",
+          department: ctx.team || "",
+          openDate: today,
+          situation: ce.situation || "",
+          notes: ce.notes || "",
+          province: ctx.province || data.profile?.defaultProvince || "QC",
+          meetingId: mtgId,
+          source: "meeting-engine",
+          updatedAt: today,
+        };
+        onSave("cases", [...(data.cases || []), newCase]);
+      } else {
+        console.log("[MeetingEngine] no caseEntry in output — Case Log skipped");
+      }
+    } catch (err) {
+      console.warn("Meeting Engine — sync Case Log failed:", err);
     }
 
     // ── Sync Portfolio ────────────────────────────────────────────────────

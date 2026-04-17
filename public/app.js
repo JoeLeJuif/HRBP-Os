@@ -8960,6 +8960,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
     const save1on1 = () => {
       if (!output || saved1on1) return;
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      const mtgId = `mtg_${Date.now()}`;
       const session = {
         id: Date.now().toString(),
         savedAt: today,
@@ -8982,7 +8983,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       setSaved1on1(true);
       try {
         const meetingSession = {
-          id: `mtg_${Date.now()}`,
+          id: mtgId,
           savedAt: today,
           dateCreated: today,
           director: ctx.managerName || "Non assign\xE9",
@@ -9015,6 +9016,33 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         onSave("meetings", [meetingSession, ...data.meetings || []]);
       } catch (err) {
         console.warn("Meeting Engine \u2014 sync Meetings Hub failed:", err);
+      }
+      try {
+        const ce = output.caseEntry;
+        if (ce && (ce.titre || ce.title)) {
+          const newCase = {
+            id: `case_${Date.now()}`,
+            title: ce.titre || ce.title,
+            type: ce.type || "conflict_ee",
+            riskLevel: ce.risque || ce.riskLevel || output.overallRisk || "Mod\xE9r\xE9",
+            status: "active",
+            director: ctx.managerName || "Non assign\xE9",
+            employee: "",
+            department: ctx.team || "",
+            openDate: today,
+            situation: ce.situation || "",
+            notes: ce.notes || "",
+            province: ctx.province || data.profile?.defaultProvince || "QC",
+            meetingId: mtgId,
+            source: "meeting-engine",
+            updatedAt: today
+          };
+          onSave("cases", [...data.cases || [], newCase]);
+        } else {
+          console.log("[MeetingEngine] no caseEntry in output \u2014 Case Log skipped");
+        }
+      } catch (err) {
+        console.warn("Meeting Engine \u2014 sync Case Log failed:", err);
       }
       try {
         const mName = (ctx.managerName || "").trim();
