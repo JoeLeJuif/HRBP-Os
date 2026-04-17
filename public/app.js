@@ -4819,6 +4819,21 @@ ${buildContext()}`, 3500);
   var HR_POSTURE_C = { "Partenaire": C.blue, "Garant": C.red, "Coach": C.teal, "Neutre": C.textD, "Enqu\xEAteur": "#7a1e2e" };
   var URGENCY_ORDER = { "Immediat": 0, "Cette semaine": 1, "Ce mois": 2, "En veille": 3 };
   var RISK_ORDER = { "Critique": 0, "\xC9lev\xE9": 1, "Mod\xE9r\xE9": 2, "Faible": 3 };
+  var CASE_TO_ENGINE = {
+    performance: "performance",
+    pip: "performance",
+    conflict_ee: "mediation",
+    conflict_em: "mediation",
+    complaint: "enquete",
+    immigration: "1on1",
+    retention: "coaching",
+    promotion: "coaching",
+    return: "transition",
+    reorg: "transition",
+    exit: "transition",
+    investigation: "enquete"
+  };
+  var mapCaseTypeToEngineType = (caseType) => CASE_TO_ENGINE[caseType] || "1on1";
   var EMPTY_FORM = {
     title: "",
     type: "conflict_ee",
@@ -5289,6 +5304,29 @@ ${buildContext()}`, 3500);
           style: { ...css.btn(C.purple, true), padding: "6px 14px", fontSize: 12 }
         },
         "\u2696 D\xE9cision"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
+            sessionStorage.setItem("hrbpos:pendingMeetingContext", JSON.stringify({
+              engineType: mapCaseTypeToEngineType(c.type),
+              linkedCaseId: c.id,
+              caseTitle: c.title || "",
+              ctx: {
+                managerName: c.director || "",
+                team: c.department || "",
+                purpose: c.title ? `Dossier: ${c.title}` : "",
+                background: c.situation || "",
+                activeCases: c.title || "",
+                province: c.province || ""
+              }
+            }));
+            onNavigate("meetings");
+          },
+          title: "Pr\xE9parer une rencontre \xE0 partir de ce dossier",
+          style: { ...css.btn(C.em, true), padding: "6px 14px", fontSize: 12 }
+        },
+        "\u{1F3AF} Pr\xE9parer une rencontre"
       ), /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -8548,6 +8586,25 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
     const [sigExp, setSigExp] = (0, import_react14.useState)({});
     const [histExp, setHistExp] = (0, import_react14.useState)({});
+    (0, import_react14.useEffect)(() => {
+      try {
+        if (typeof sessionStorage === "undefined") return;
+        const raw = sessionStorage.getItem("hrbpos:pendingMeetingContext");
+        if (!raw) return;
+        sessionStorage.removeItem("hrbpos:pendingMeetingContext");
+        const bridge = JSON.parse(raw);
+        const validTypes = ENGINE_TYPES.map((t) => t.id);
+        if (bridge?.engineType && validTypes.includes(bridge.engineType)) {
+          setEngineType(bridge.engineType);
+        }
+        if (bridge?.ctx && typeof bridge.ctx === "object") {
+          setCtx((p) => ({ ...p, ...bridge.ctx }));
+          if (bridge.ctx.managerName) setManagerManual(false);
+        }
+        setPTab("context");
+      } catch {
+      }
+    }, []);
     const managerHistory = (data.meetings || []).filter((m) => {
       if (!m.director || !ctx.managerName) return false;
       return normKey(m.director) === normKey(ctx.managerName);
@@ -10040,7 +10097,15 @@ ${t}`;
     return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate });
   }
   function ModuleMeetings(props) {
-    const [tab, setTab] = (0, import_react15.useState)("transcripts");
+    const [tab, setTab] = (0, import_react15.useState)(() => {
+      try {
+        if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("hrbpos:pendingMeetingContext")) {
+          return "engine";
+        }
+      } catch {
+      }
+      return "transcripts";
+    });
     (0, import_react15.useEffect)(() => {
       if (props.focusMeetingId) setTab("transcripts");
     }, [props.focusMeetingId]);

@@ -46,6 +46,23 @@ const EVO_C        = {"Nouveau":C.blue,"En cours":C.amber,"Aggravé":C.red,"En a
 const HR_POSTURE_C = {"Partenaire":C.blue,"Garant":C.red,"Coach":C.teal,"Neutre":C.textD,"Enquêteur":"#7a1e2e"};
 const URGENCY_ORDER = {"Immediat":0,"Cette semaine":1,"Ce mois":2,"En veille":3};
 const RISK_ORDER    = {"Critique":0,"Élevé":1,"Modéré":2,"Faible":3};
+// B-25: Map Case type → MeetingEngine engineType
+const CASE_TO_ENGINE = {
+  performance: "performance",
+  pip:         "performance",
+  conflict_ee: "mediation",
+  conflict_em: "mediation",
+  complaint:   "enquete",
+  immigration: "1on1",
+  retention:   "coaching",
+  promotion:   "coaching",
+  return:      "transition",
+  reorg:       "transition",
+  exit:        "transition",
+  investigation: "enquete",
+};
+const mapCaseTypeToEngineType = (caseType) => CASE_TO_ENGINE[caseType] || "1on1";
+
 const EMPTY_FORM = { title:"", type:"conflict_ee", riskLevel:"Modéré", status:"active",
   director:"", employee:"", department:"", openDate:new Date().toISOString().split("T")[0],
   province:"QC",
@@ -404,6 +421,24 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           }}
           title="Créer une décision liée à ce dossier"
           style={{ ...css.btn(C.purple, true), padding:"6px 14px", fontSize:12 }}>⚖ Décision</button>
+        <button onClick={() => {
+            sessionStorage.setItem("hrbpos:pendingMeetingContext", JSON.stringify({
+              engineType: mapCaseTypeToEngineType(c.type),
+              linkedCaseId: c.id,
+              caseTitle: c.title || "",
+              ctx: {
+                managerName: c.director || "",
+                team: c.department || "",
+                purpose: c.title ? `Dossier: ${c.title}` : "",
+                background: c.situation || "",
+                activeCases: c.title || "",
+                province: c.province || "",
+              }
+            }));
+            onNavigate("meetings");
+          }}
+          title="Préparer une rencontre à partir de ce dossier"
+          style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🎯 Préparer une rencontre</button>
         <button onClick={() => { if(window.confirm("Supprimer ce dossier?")) deleteCase(c.id); }}
           style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>🗑 Supprimer</button>
       </div>

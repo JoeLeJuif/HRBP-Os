@@ -2,7 +2,7 @@
 // Fusion of 1:1 Engine + Meetings transcript analysis.
 // Based on Prep1on1.jsx — enhanced output via MEETING_ENGINE_SP.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C, css, RISK, DELAY_C } from '../theme.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { normKey } from '../utils/format.js';
@@ -280,6 +280,26 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   const [outputPrompt, setOutputPrompt] = useState("");
   const [sigExp, setSigExp]       = useState({});
   const [histExp, setHistExp]     = useState({});
+
+  // ── B-25: Consume pending meeting context bridge (from Cases) ─────────────
+  useEffect(() => {
+    try {
+      if (typeof sessionStorage === "undefined") return;
+      const raw = sessionStorage.getItem("hrbpos:pendingMeetingContext");
+      if (!raw) return;
+      sessionStorage.removeItem("hrbpos:pendingMeetingContext");
+      const bridge = JSON.parse(raw);
+      const validTypes = ENGINE_TYPES.map(t => t.id);
+      if (bridge?.engineType && validTypes.includes(bridge.engineType)) {
+        setEngineType(bridge.engineType);
+      }
+      if (bridge?.ctx && typeof bridge.ctx === "object") {
+        setCtx(p => ({ ...p, ...bridge.ctx }));
+        if (bridge.ctx.managerName) setManagerManual(false);
+      }
+      setPTab("context");
+    } catch {}
+  }, []);
 
   // ── History: all meetings for this manager ────────────────────────────────
   const managerHistory = (data.meetings || [])

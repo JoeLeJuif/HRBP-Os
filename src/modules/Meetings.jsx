@@ -1276,7 +1276,15 @@ function EngineTab(props) {
 
 // ── SHELL: 2 tabs (Meetings / 1:1 Engine) ───────────────────────────────────
 export default function ModuleMeetings(props) {
-  const [tab, setTab] = useState("transcripts");
+  const [tab, setTab] = useState(() => {
+    // B-25: Switch to engine tab if a meeting context is pending (do not clear — MeetingEngine consumes it)
+    try {
+      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("hrbpos:pendingMeetingContext")) {
+        return "engine";
+      }
+    } catch {}
+    return "transcripts";
+  });
   // Force "transcripts" tab when navigating from another module with focusMeetingId
   useEffect(() => {
     if (props.focusMeetingId) setTab("transcripts");
