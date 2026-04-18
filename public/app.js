@@ -5579,6 +5579,23 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     if (!inv?.id) return [];
     return (data?.meetings || []).filter((m) => m.linkedInvestigationId === inv.id);
   }
+  function buildInvestigationTimeline(inv, data) {
+    if (!inv) return [];
+    const events = [];
+    if (inv.createdAt) events.push({ type: "case", date: inv.createdAt, label: "Dossier ouvert" });
+    if (inv.savedAt) events.push({ type: "case", date: inv.savedAt, label: "Dossier archiv\xE9" });
+    if (inv.enrichedAt) events.push({ type: "case", date: inv.enrichedAt, label: "Dossier compl\xE9t\xE9" });
+    (data?.meetings || []).filter((m) => m.linkedInvestigationId === inv.id).forEach((m) => {
+      const title = m.analysis?.meetingTitle || m.ctx?.purpose || m.meetingType || "Rencontre";
+      events.push({
+        type: "meeting",
+        date: m.savedAt || m.ctx?.date,
+        label: `Entrevue \u2014 ${title}`,
+        meetingId: m.id
+      });
+    });
+    return events.filter((e) => e.date).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  }
   function buildInvestigationMeetingBridge(inv, angle) {
     const cs = inv?.caseData?.caseSummary || {};
     const title = inv?.title || generateInvestigationTitle(inv);
@@ -5645,6 +5662,33 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       flexShrink: 0,
       borderRadius: 3
     } }, num), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16, fontWeight: 700, color: C.text } }, title));
+  }
+  function InvTimeline({ inv, data, onNavigate }) {
+    const events = buildInvestigationTimeline(inv, data);
+    if (!inv || events.length === 0) return null;
+    return /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${INV_RED}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Chronologie"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 6 } }, events.map((e, i) => {
+      const clickable = e.type === "meeting" && !!onNavigate && !!e.meetingId;
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          key: i,
+          onClick: clickable ? () => onNavigate("meetings", { focusMeetingId: e.meetingId }) : void 0,
+          title: clickable ? "Ouvrir la rencontre" : void 0,
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "6px 8px",
+            background: e.type === "meeting" ? C.surfL : "transparent",
+            border: e.type === "meeting" ? `1px solid ${C.border}` : "none",
+            borderRadius: 6,
+            cursor: clickable ? "pointer" : "default"
+          }
+        },
+        /* @__PURE__ */ React.createElement(Mono, { color: e.type === "meeting" ? INV_RED : C.textD, size: 8 }, fmtDate(String(e.date).slice(0, 10))),
+        /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, e.type === "meeting" ? "\u{1F3AF} " : "\u2022 ", e.label)
+      );
+    })));
   }
   function InvQ({ q, pfx, color }) {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: 8, borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement(Mono, { color: color || INV_RED, size: 9 }, pfx), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 13, color: C.text, lineHeight: 1.65, fontStyle: "italic" } }, q));
@@ -6139,7 +6183,7 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
         }
       },
       "\u2726 Compl\xE9ter le dossier"
-    )), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
+    )), /* @__PURE__ */ React.createElement(InvTimeline, { inv: openInv, data, onNavigate }), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
   }
 
   // src/modules/AutoPrompt.jsx
@@ -14736,7 +14780,13 @@ ${situation.trim()}`;
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
       if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
       setModule(id);
-    } }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: setModule }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
+    } }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: (id, ctx) => {
+      if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
+      if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
+      if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
+      if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
+      setModule(id);
+    } }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);

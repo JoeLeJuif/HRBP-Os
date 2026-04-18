@@ -3,7 +3,7 @@ import { useState } from "react";
 import { C, css, RISK, INV_RED } from '../theme.js';
 import { callAIJson } from '../api/index.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
-import { getProvince } from '../utils/format.js';
+import { getProvince, fmtDate } from '../utils/format.js';
 import { INV_SP_1, INV_SP_2 } from '../prompts/investigation.js';
 import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
@@ -44,6 +44,30 @@ function getLinkedCase(inv, data) {
 function getLinkedMeetings(inv, data) {
   if (!inv?.id) return [];
   return (data?.meetings || []).filter(m => m.linkedInvestigationId === inv.id);
+}
+
+// Chronologie unifiée — événements dossier + rencontres liées.
+// Defensive read: inv.createdAt is optional (not yet populated by data model).
+function buildInvestigationTimeline(inv, data) {
+  if (!inv) return [];
+  const events = [];
+  if (inv.createdAt)  events.push({ type:"case", date: inv.createdAt,  label:"Dossier ouvert" });
+  if (inv.savedAt)    events.push({ type:"case", date: inv.savedAt,    label:"Dossier archivé" });
+  if (inv.enrichedAt) events.push({ type:"case", date: inv.enrichedAt, label:"Dossier complété" });
+  (data?.meetings || [])
+    .filter(m => m.linkedInvestigationId === inv.id)
+    .forEach(m => {
+      const title = m.analysis?.meetingTitle || m.ctx?.purpose || m.meetingType || "Rencontre";
+      events.push({
+        type:"meeting",
+        date: m.savedAt || m.ctx?.date,
+        label: `Entrevue — ${title}`,
+        meetingId: m.id,
+      });
+    });
+  return events
+    .filter(e => e.date)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 
 function buildInvestigationMeetingBridge(inv, angle) {
@@ -96,6 +120,37 @@ function InvSection({ num, title }) {
       fontSize:10, fontWeight:500, flexShrink:0, borderRadius:3 }}>{num}</div>
     <span style={{ fontSize:16, fontWeight:700, color:C.text }}>{title}</span>
   </div>;
+}
+
+function InvTimeline({ inv, data, onNavigate }) {
+  const events = buildInvestigationTimeline(inv, data);
+  if (!inv || events.length === 0) return null;
+  return (
+    <Card style={{ marginBottom:14, borderLeft:`3px solid ${INV_RED}` }}>
+      <Mono color={C.textD} size={9}>Chronologie</Mono>
+      <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:6 }}>
+        {events.map((e, i) => {
+          const clickable = e.type === "meeting" && !!onNavigate && !!e.meetingId;
+          return (
+            <div key={i}
+              onClick={clickable ? () => onNavigate("meetings", { focusMeetingId: e.meetingId }) : undefined}
+              title={clickable ? "Ouvrir la rencontre" : undefined}
+              style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 8px",
+                background: e.type === "meeting" ? C.surfL : "transparent",
+                border: e.type === "meeting" ? `1px solid ${C.border}` : "none",
+                borderRadius:6, cursor: clickable ? "pointer" : "default" }}>
+              <Mono color={e.type === "meeting" ? INV_RED : C.textD} size={8}>
+                {fmtDate(String(e.date).slice(0, 10))}
+              </Mono>
+              <span style={{ fontSize:12, color:C.text }}>
+                {e.type === "meeting" ? "🎯 " : "• "}{e.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
 }
 
 // Module-scope display components — prevents remount on every render of ModuleInvestigation.
@@ -690,6 +745,7 @@ ${evidence}` : "",
           </button>
         </div>
       )}
+      <InvTimeline inv={openInv} data={data} onNavigate={onNavigate}/>
       <div>{isDraftOpen
         ? <Card style={{ textAlign:"center", padding:"36px 20px", borderStyle:"dashed" }}>
             <div style={{ fontSize:26, marginBottom:10 }}>📝</div>
