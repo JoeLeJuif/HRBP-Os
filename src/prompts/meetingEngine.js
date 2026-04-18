@@ -123,4 +123,10 @@ REGLES PAR TYPE :
 - TYPE suivi : focus engagement anterieur, ecart observe, prochaine etape. Comparer les engagements pris avec la situation actuelle, identifier les ecarts et les ajustements necessaires.
 - TYPE transition : focus changement annonce, reactions, plan de communication. Identifier l impact sur les personnes, les risques de destabilisation et le plan d accompagnement.
 
+REGLE TRANSVERSE caseEntry :
+- caseEntry.titre obligatoire pour : disciplinaire, enquete (toujours).
+- caseEntry.titre requis si un risque RH clair est detecte pour : 1on1, performance, recadrage, mediation (sinon mettre caseEntry a null).
+- caseEntry a null par defaut pour : coaching, suivi, transition (sauf si un risque RH clair emerge du contexte — alors remplir).
+- Quand caseEntry est null, emettre "caseEntry": null (ne pas omettre le champ).
+
 Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. Ne jamais inventer d information absente du contexte fourni.`;

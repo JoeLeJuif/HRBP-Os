@@ -534,6 +534,11 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
           hrbpFollowups: output.hrbpFollowups || [],
           crossQuestions: output.crossQuestions || [],
           caseEntry: output.caseEntry || null,
+          cadreJuridique: output.cadreJuridique || null,
+          sanctions: output.sanctions || [],
+          risquesLegaux: output.risquesLegaux || [],
+          nextMeetingContext: output.nextMeetingContext || "",
+          nextMeetingQuestions: output.nextMeetingQuestions || [],
         },
       };
       onSave("meetings", [meetingSession, ...(data.meetings || [])]);
@@ -1552,7 +1557,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   )}
 
                   {/* ── Variante: Disciplinaire ── */}
-                  {engineType === "disciplinaire" && output.cadreJuridique && (
+                  {(engineType === "disciplinaire" || engineType === "enquete") && output.cadreJuridique && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.red}`,background:C.red+"06"}}>
                       <Mono color={C.red} size={9}>⚖ CADRE JURIDIQUE</Mono>
                       <div style={{marginTop:10}}>
@@ -1568,7 +1573,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </div>
                     </div>
                   )}
-                  {engineType === "disciplinaire" && output.sanctions?.length > 0 && (
+                  {(engineType === "disciplinaire" || engineType === "enquete") && output.sanctions?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
                       <Mono color={C.red} size={9}>🔴 SANCTIONS</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
@@ -1582,7 +1587,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </div>
                     </div>
                   )}
-                  {engineType === "disciplinaire" && output.risquesLegaux?.length > 0 && (
+                  {(engineType === "disciplinaire" || engineType === "enquete") && output.risquesLegaux?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
                       <Mono color={C.amber} size={9}>🚨 RISQUES LÉGAUX</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
