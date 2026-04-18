@@ -20,6 +20,7 @@ import Mono          from './components/Mono.jsx';
 import Divider       from './components/Divider.jsx';
 import AILoader      from './components/AILoader.jsx';
 import ProvinceSelect from './components/ProvinceSelect.jsx';
+import Spotlight     from './components/Spotlight.jsx';
 // import Card         from './components/Card.jsx';
 // import Badge        from './components/Badge.jsx';
 // import ProvinceBadge  from './components/ProvinceBadge.jsx';
@@ -169,10 +170,23 @@ export default function HRBPOS() {
   const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
   const [toast, setToast]     = useState(false);
   const [loaded, setLoaded]   = useState(false);
-  const [focusCaseId,    setFocusCaseId]    = useState(null); // inter-module focus bridge
-  const [focusMeetingId, setFocusMeetingId] = useState(null); // inter-module focus bridge
-  const [focusExitId,    setFocusExitId]    = useState(null); // inter-module focus bridge
-  const [focusSignalId,  setFocusSignalId]  = useState(null); // inter-module focus bridge
+  const [focusCaseId,          setFocusCaseId]          = useState(null); // inter-module focus bridge
+  const [focusMeetingId,       setFocusMeetingId]       = useState(null); // inter-module focus bridge
+  const [focusExitId,          setFocusExitId]          = useState(null); // inter-module focus bridge
+  const [focusSignalId,        setFocusSignalId]        = useState(null); // inter-module focus bridge
+  const [focusDecisionId,      setFocusDecisionId]      = useState(null); // inter-module focus bridge
+  const [focusInvestigationId, setFocusInvestigationId] = useState(null); // inter-module focus bridge
+
+  // Unified navigation handler — propagates focus IDs from ctx to root state, then switches module.
+  const handleNavigate = useCallback((id, ctx) => {
+    if (ctx?.focusCaseId)          setFocusCaseId(ctx.focusCaseId);
+    if (ctx?.focusMeetingId)       setFocusMeetingId(ctx.focusMeetingId);
+    if (ctx?.focusExitId)          setFocusExitId(ctx.focusExitId);
+    if (ctx?.focusSignalId)        setFocusSignalId(ctx.focusSignalId);
+    if (ctx?.focusDecisionId)      setFocusDecisionId(ctx.focusDecisionId);
+    if (ctx?.focusInvestigationId) setFocusInvestigationId(ctx.focusInvestigationId);
+    setModule(id);
+  }, []);
 
   // Load all data on mount — always resolves even if storage fails
   useEffect(() => {
@@ -473,29 +487,30 @@ export default function HRBPOS() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
               <AILoader label="Chargement du système"/>
             </div>
-          ) : module === "home"         ? <ModuleHome data={data} onNavigate={(id, ctx) => { if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId); if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId); if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId); if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId); setModule(id); }}/>
+          ) : module === "home"         ? <ModuleHome data={data} onNavigate={handleNavigate}/>
           : module === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
           : module === "copilot"        ? <ModuleCopilot data={data}/>
-          : module === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={setModule} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
-          : module === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={setModule}/>
-          : module === "cases"          ? <ModuleCases data={data} onSave={handleSave} onNavigate={setModule} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
+          : module === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={handleNavigate} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
+          : module === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={handleNavigate}/>
+          : module === "cases"          ? <ModuleCases data={data} onSave={handleSave} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
           : module === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
           : module === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
-          : module === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave}/>
+          : module === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave} onNavigate={handleNavigate} focusDecisionId={focusDecisionId} onClearFocus={() => setFocusDecisionId(null)}/>
           : module === "coaching"       ? <ModuleCoaching data={data} onSave={handleSave}/>
-          : module === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={(id, ctx) => { if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId); if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId); if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId); if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId); setModule(id); }}/>
+          : module === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={handleNavigate} focusInvestigationId={focusInvestigationId} onClearFocus={() => setFocusInvestigationId(null)}/>
           : module === "exit"           ? <ModuleExit data={data} onSave={handleSave} focusExitId={focusExitId} onClearFocus={() => setFocusExitId(null)}/>
           : module === "workshop"       ? <ModuleWorkshop />
           : module === "autoprompt"     ? <ModuleAutoPrompt data={data}/>
           : module === "convkit"        ? <ModuleConvKit />
           : module === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
           : module === "knowledge"      ? <ModuleKnowledge />
-          : module === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={(id, ctx) => { if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId); if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId); if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId); if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId); setModule(id); }}/>
+          : module === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
           : null}
         </div>
       </div>
 
       <SavedToast show={toast}/>
+      <Spotlight data={data} onNavigate={handleNavigate}/>
     </div>
   );
 }
