@@ -1601,6 +1601,28 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                     </div>
                   )}
 
+                  {/* ── Variante: Mediation ── */}
+                  {engineType === "mediation" && (output.partieA || output.partieB) && (
+                    <div style={{...css.card,borderLeft:`3px solid ${C.purple}`}}>
+                      <Mono color={C.purple} size={9}>🤝 PARTIES EN PRESENCE</Mono>
+                      <div style={{marginTop:10,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        {[{key:"partieA",label:"Partie A",data:output.partieA},{key:"partieB",label:"Partie B",data:output.partieB}].map((p) => p.data && (
+                          <div key={p.key} style={{padding:"10px 12px",background:C.purple+"08",borderRadius:7,border:`1px solid ${C.purple}25`}}>
+                            <div style={{fontSize:12,fontWeight:700,color:C.purple,marginBottom:6}}>{p.label}{p.data.nom ? ` — ${p.data.nom}` : ""}</div>
+                            {p.data.position && <div style={{fontSize:11,color:C.textM,marginBottom:6}}><span style={{color:C.textD,fontWeight:600}}>Position : </span>{p.data.position}</div>}
+                            {p.data.perception && <div style={{fontSize:11,color:C.textM,marginBottom:6}}><span style={{color:C.textD,fontWeight:600}}>Perception : </span>{p.data.perception}</div>}
+                            {p.data.attentes?.length > 0 && (
+                              <div>
+                                <div style={{fontSize:10,color:C.textD,fontWeight:600,marginBottom:3}}>Attentes</div>
+                                {p.data.attentes.map((a,j) => <div key={j} style={{display:"flex",gap:6,marginBottom:2}}><span style={{color:C.purple,fontSize:10}}>→</span><span style={{fontSize:11,color:C.textM}}>{a}</span></div>)}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── Variante: TA ── */}
                   {engineType === "ta" && output.postes?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>

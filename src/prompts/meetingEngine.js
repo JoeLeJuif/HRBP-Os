@@ -115,7 +115,10 @@ REGLES PAR TYPE :
 - TYPE performance : focus ecarts mesurables, plan d amelioration, jalons. Identifier les KPIs en ecart, les attentes clarifiees, le plan d action avec jalons a 30-60-90 jours.
 - TYPE coaching : focus forces, zones de croissance, plan de developpement. Identifier le style du gestionnaire, les leviers de developpement et les objectifs de croissance.
 - TYPE recadrage : focus comportement cible, attentes clarifiees, consequences. Nommer le comportement precis, l ecart par rapport aux attentes, les consequences si non corrige.
-- TYPE mediation : focus parties, points d accord et de desaccord, terrain commun. Identifier les positions de chaque partie, les emotions en jeu, les pistes de resolution.
+- TYPE mediation : focus parties, points d accord et de desaccord, terrain commun. Identifier les positions de chaque partie, les emotions en jeu, les pistes de resolution. Ajouter au JSON :
+  "partieA": { "nom": "nom ou role de la partie A", "position": "position exprimee en 1 phrase", "perception": "perception de la situation en 1 phrase", "attentes": ["attente 1", "attente 2"] },
+  "partieB": { "nom": "nom ou role de la partie B", "position": "position exprimee en 1 phrase", "perception": "perception de la situation en 1 phrase", "attentes": ["attente 1", "attente 2"] }
+  Si une partie est inconnue, mettre ses champs a vide (string vide ou tableau vide) mais conserver la structure.
 - TYPE enquete : focus faits, temoins, chronologie, cadre legal. Ajouter au JSON :
   "cadreJuridique": { "politiquesVisees": ["politique concernee"], "loisApplicables": ["reference legale"], "progressivite": "non applicable", "progressiviteNote": "contexte d enquete" },
   "risquesLegaux": [{ "risque": "description", "niveau": "Eleve|Modere|Faible", "mitigation": "action recommandee" }]
