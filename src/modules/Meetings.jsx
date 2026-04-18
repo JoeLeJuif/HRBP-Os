@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { C, css, DELAY_C, RISK } from '../theme.js';
 import { fmtDate, getProvince } from '../utils/format.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
+import { filterActiveCases } from '../utils/caseStatus.js';
 import { callAI } from '../api/index.js';
 import { MEETING_SP, DISC_SP, TA_SP, INIT_SP } from '../prompts/meetings.js';
 import Mono         from '../components/Mono.jsx';
@@ -250,6 +251,62 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <button onClick={() => onSwitchTab && onSwitchTab("engine")} style={{ ...css.btn(C.em) }}>⚡ Meeting Engine</button>
         </div>
       </div>
+
+      {/* ── Mini dashboard (types / risk / caseEntry / active linked cases) ── */}
+      {meetings.length > 0 && (() => {
+        const byType = {};
+        const byRisk = { "Faible":0, "Modéré":0, "Élevé":0, "Critique":0 };
+        const RISK_ALIAS = { "Modere":"Modéré", "Eleve":"Élevé" };
+        let withCaseEntry = 0;
+        meetings.forEach(m => {
+          const t = m.meetingType || m.analysis?.engineType || "autre";
+          byType[t] = (byType[t]||0) + 1;
+          const rRaw = m.analysis?.overallRisk;
+          const r = RISK_ALIAS[rRaw] || rRaw;
+          if (r && byRisk[r] !== undefined) byRisk[r]++;
+          const ce = m.analysis?.caseEntry;
+          if (ce && (ce.titre || ce.title)) withCaseEntry++;
+        });
+        const topTypes = Object.entries(byType).sort((a,b)=>b[1]-a[1]).slice(0,3);
+        const linkedActiveCases = filterActiveCases(data.cases).filter(c => c.meetingId).length;
+        const riskColors = { "Faible":C.em, "Modéré":C.blue, "Élevé":C.amber, "Critique":C.red };
+        const tileCss = { background:C.surfL, border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px" };
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginBottom:18 }}>
+            <div style={{ ...tileCss, borderLeft:`3px solid ${C.em}` }}>
+              <Mono color={C.em} size={9}>MEETINGS PAR TYPE</Mono>
+              <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
+                {topTypes.map(([t,n]) => (
+                  <div key={t} style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:C.textM }}>
+                    <span>{t}</span><span style={{ color:C.text, fontWeight:600 }}>{n}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ ...tileCss, borderLeft:`3px solid ${C.amber}` }}>
+              <Mono color={C.amber} size={9}>PAR RISQUE</Mono>
+              <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
+                {Object.entries(byRisk).map(([lvl,n]) => (
+                  <div key={lvl} style={{ display:"flex", justifyContent:"space-between", fontSize:11 }}>
+                    <span style={{ color:riskColors[lvl] }}>{lvl}</span>
+                    <span style={{ color:C.text, fontWeight:600 }}>{n}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ ...tileCss, borderLeft:`3px solid ${C.purple}` }}>
+              <Mono color={C.purple} size={9}>AVEC CASE ENTRY</Mono>
+              <div style={{ marginTop:8, fontSize:24, fontWeight:700, color:C.text }}>{withCaseEntry}</div>
+              <div style={{ fontSize:10, color:C.textD }}>sur {meetings.length} meeting{meetings.length>1?"s":""}</div>
+            </div>
+            <div style={{ ...tileCss, borderLeft:`3px solid ${C.red}` }}>
+              <Mono color={C.red} size={9}>CASES ACTIVES LIÉES</Mono>
+              <div style={{ marginTop:8, fontSize:24, fontWeight:700, color:C.text }}>{linkedActiveCases}</div>
+              <div style={{ fontSize:10, color:C.textD }}>provenant de meetings</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Group by toggle */}
       <div style={{ display:"flex", gap:2, marginBottom:20, background:C.surfL, borderRadius:8, padding:4, width:"fit-content" }}>

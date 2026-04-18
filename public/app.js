@@ -6997,6 +6997,20 @@ Pr\xE9pare la conversation d'accueil:
   // src/modules/Meetings.jsx
   var import_react15 = __require("react");
 
+  // src/utils/caseStatus.js
+  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
+  function isCaseInactive(c) {
+    if (!c) return false;
+    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
+    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
+  }
+  function isCaseActive(c) {
+    return !isCaseInactive(c);
+  }
+  function filterActiveCases(cases) {
+    return (cases || []).filter(isCaseActive);
+  }
+
   // src/prompts/meetings.js
   var MEETING_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Analyse le transcript de reunion et reponds UNIQUEMENT en JSON valide.
 Aucun texte avant ou apres. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
@@ -9858,7 +9872,26 @@ ${t}`;
         disciplinaire: { label: "Disciplinaire", icon: "\u2696", color: C.red },
         initiatives: { label: "Initiatives", icon: "\u{1F680}", color: C.em }
       };
-      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Meetings Hub"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, meetings.length, " meeting(s) enregistr\xE9(s)")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => onSwitchTab && onSwitchTab("engine"), style: { ...css.btn(C.em) } }, "\u26A1 Meeting Engine"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, marginBottom: 20, background: C.surfL, borderRadius: 8, padding: 4, width: "fit-content" } }, [{ id: "director", label: "Par directeur" }, { id: "type", label: "Par type" }].map((g) => /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Meetings Hub"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, meetings.length, " meeting(s) enregistr\xE9(s)")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => onSwitchTab && onSwitchTab("engine"), style: { ...css.btn(C.em) } }, "\u26A1 Meeting Engine"))), meetings.length > 0 && (() => {
+        const byType = {};
+        const byRisk = { "Faible": 0, "Mod\xE9r\xE9": 0, "\xC9lev\xE9": 0, "Critique": 0 };
+        const RISK_ALIAS = { "Modere": "Mod\xE9r\xE9", "Eleve": "\xC9lev\xE9" };
+        let withCaseEntry = 0;
+        meetings.forEach((m) => {
+          const t = m.meetingType || m.analysis?.engineType || "autre";
+          byType[t] = (byType[t] || 0) + 1;
+          const rRaw = m.analysis?.overallRisk;
+          const r = RISK_ALIAS[rRaw] || rRaw;
+          if (r && byRisk[r] !== void 0) byRisk[r]++;
+          const ce = m.analysis?.caseEntry;
+          if (ce && (ce.titre || ce.title)) withCaseEntry++;
+        });
+        const topTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const linkedActiveCases = filterActiveCases(data.cases).filter((c) => c.meetingId).length;
+        const riskColors = { "Faible": C.em, "Mod\xE9r\xE9": C.blue, "\xC9lev\xE9": C.amber, "Critique": C.red };
+        const tileCss = { background: C.surfL, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px" };
+        return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10, marginBottom: 18 } }, /* @__PURE__ */ React.createElement("div", { style: { ...tileCss, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "MEETINGS PAR TYPE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, display: "flex", flexDirection: "column", gap: 3 } }, topTypes.map(([t, n]) => /* @__PURE__ */ React.createElement("div", { key: t, style: { display: "flex", justifyContent: "space-between", fontSize: 11, color: C.textM } }, /* @__PURE__ */ React.createElement("span", null, t), /* @__PURE__ */ React.createElement("span", { style: { color: C.text, fontWeight: 600 } }, n))))), /* @__PURE__ */ React.createElement("div", { style: { ...tileCss, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "PAR RISQUE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, display: "flex", flexDirection: "column", gap: 3 } }, Object.entries(byRisk).map(([lvl, n]) => /* @__PURE__ */ React.createElement("div", { key: lvl, style: { display: "flex", justifyContent: "space-between", fontSize: 11 } }, /* @__PURE__ */ React.createElement("span", { style: { color: riskColors[lvl] } }, lvl), /* @__PURE__ */ React.createElement("span", { style: { color: C.text, fontWeight: 600 } }, n))))), /* @__PURE__ */ React.createElement("div", { style: { ...tileCss, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "AVEC CASE ENTRY"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 24, fontWeight: 700, color: C.text } }, withCaseEntry), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD } }, "sur ", meetings.length, " meeting", meetings.length > 1 ? "s" : "")), /* @__PURE__ */ React.createElement("div", { style: { ...tileCss, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "CASES ACTIVES LI\xC9ES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 24, fontWeight: 700, color: C.text } }, linkedActiveCases), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD } }, "provenant de meetings")));
+      })(), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 2, marginBottom: 20, background: C.surfL, borderRadius: 8, padding: 4, width: "fit-content" } }, [{ id: "director", label: "Par directeur" }, { id: "type", label: "Par type" }].map((g) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: g.id,
@@ -10472,20 +10505,6 @@ Reponds UNIQUEMENT en JSON valide. Aucun texte avant ou apres. Aucun backtick. A
 Classe automatiquement chaque element dans la bonne categorie. Redige des phrases completes claires \u2014 qui, quoi, statut, prochaine etape. Sans noms propres pour les dossiers sensibles (performance/enquetes). Si une categorie est vide, retourne [].
 Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
 {"weekLabel":"Semaine du [date]","recrutement":{"embauches":[{"item":"phrase complete"}],"processus":[{"item":"phrase complete"}],"ouvertures":[{"item":"phrase complete"}]},"promotions":[{"item":"phrase complete"}],"fins_emploi":[{"item":"phrase complete"}],"performance":[{"item":"phrase complete \u2014 sans nom"}],"projets_rh":[{"item":"phrase complete"}],"divers":[{"item":"phrase complete"}]}`;
-
-  // src/utils/caseStatus.js
-  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
-  function isCaseInactive(c) {
-    if (!c) return false;
-    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
-    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
-  }
-  function isCaseActive(c) {
-    return !isCaseInactive(c);
-  }
-  function filterActiveCases(cases) {
-    return (cases || []).filter(isCaseActive);
-  }
 
   // src/modules/Brief.jsx
   function RiskBadge6({ level }) {
