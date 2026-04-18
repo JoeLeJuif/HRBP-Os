@@ -361,6 +361,48 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   // dossier d'enquête. Bloque generateOutput/save tant que le lien manque.
   const needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId;
 
+  // ── Phase 1 — Création express d'un dossier minimal depuis Meeting Engine
+  // Crée un dossier "draft" directement sans quitter l'écran. Aucun appel
+  // IA : les sections INV_SP_1/2 sont enrichies plus tard depuis le module
+  // Investigation. Le lien linkedInvestigationId est établi immédiatement.
+  const makeExpressCaseId = (existing) => {
+    const year = new Date().getFullYear();
+    const existingIds = new Set((existing || []).map(i => i.caseId).filter(Boolean));
+    const A = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // exclude I, O for legibility
+    const rand3 = () => A[Math.floor(Math.random()*A.length)]
+                      + A[Math.floor(Math.random()*A.length)]
+                      + A[Math.floor(Math.random()*A.length)];
+    for (let i = 0; i < 40; i++) {
+      const id = `ENQ-${year}-${rand3()}`;
+      if (!existingIds.has(id)) return id;
+    }
+    return `ENQ-${year}-${rand3()}${Date.now().toString().slice(-2)}`;
+  };
+
+  const createDraftInvestigation = () => {
+    const invs = data.investigations || [];
+    const today = new Date().toISOString().split("T")[0];
+    const subject = (ctx.purpose || "").trim().slice(0, 80)
+      || (ctx.managerName ? `Dossier — ${ctx.managerName}` : "")
+      || "Dossier brouillon";
+    const draft = {
+      id: Date.now().toString(),
+      caseId: makeExpressCaseId(invs),
+      caseTitle: subject,
+      caseType: "enquete",
+      urgencyLevel: "Moderee",
+      province: ctx.province || data.profile?.defaultProvince || "QC",
+      status: "draft",
+      savedAt: today,
+      createdAt: new Date().toISOString(),
+      caseData: {},
+      source: "meeting-engine-express",
+    };
+    onSave("investigations", [...invs, draft]);
+    setLinkedInvestigationId(draft.id);
+    console.info("[MeetingEngine] express investigation created", { id: draft.id, caseId: draft.caseId });
+  };
+
   // ── B-25: Consume pending meeting context bridge (from Cases) ─────────────
   useEffect(() => {
     try {
@@ -980,11 +1022,18 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       <div style={{ marginTop:10, fontSize:12, color:C.text }}>
                         <span style={{ fontWeight:600 }}>{linkedInv.caseId || "—"}</span>
                         <span style={{ color:C.textM }}> · {generateInvestigationTitle(linkedInv)}</span>
+                        {linkedInv.status === "draft" && (
+                          <span style={{ marginLeft:8, fontSize:10, padding:"2px 6px", borderRadius:4,
+                            background:C.surfLL, border:`1px solid ${C.border}`, color:C.textM,
+                            fontFamily:"'DM Mono',monospace", letterSpacing:0.5 }}>
+                            BROUILLON
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <div style={{ marginTop:10 }}>
                         <div style={{ fontSize:11, color:C.textM, marginBottom:10, lineHeight:1.5 }}>
-                          Un meeting d'enquête doit toujours appartenir à un dossier. Rattache-le à un dossier existant, ou ouvre-en un nouveau.
+                          Un meeting d'enquête doit toujours appartenir à un dossier. Rattache-le à un dossier existant, ou ouvre-en un nouveau (brouillon — enrichissable ensuite depuis le module Enquête).
                         </div>
                         <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
                           <select value=""
@@ -998,12 +1047,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                             </option>
                             {invs.slice().reverse().map(inv => (
                               <option key={inv.id} value={inv.id}>
-                                {(inv.caseId || inv.id?.toString().slice(-6) || "?")} — {generateInvestigationTitle(inv)}
+                                {(inv.caseId || inv.id?.toString().slice(-6) || "?")} — {generateInvestigationTitle(inv)}{inv.status === "draft" ? " (brouillon)" : ""}
                               </option>
                             ))}
                           </select>
                           <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>OU</span>
-                          <button onClick={() => { if (onNavigate) onNavigate("investigation"); }}
+                          <button onClick={createDraftInvestigation}
+                            title="Crée un dossier minimal rattaché immédiatement. Les sections IA pourront être générées plus tard dans le module Enquête."
                             style={{ ...css.btn(INV_RED, true), padding:"8px 12px", fontSize:11 }}>
                             + Créer un dossier
                           </button>

@@ -8849,6 +8849,38 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     const [histExp, setHistExp] = (0, import_react14.useState)({});
     const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react14.useState)(null);
     const needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId;
+    const makeExpressCaseId = (existing) => {
+      const year = (/* @__PURE__ */ new Date()).getFullYear();
+      const existingIds = new Set((existing || []).map((i) => i.caseId).filter(Boolean));
+      const A = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+      const rand3 = () => A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)];
+      for (let i = 0; i < 40; i++) {
+        const id = `ENQ-${year}-${rand3()}`;
+        if (!existingIds.has(id)) return id;
+      }
+      return `ENQ-${year}-${rand3()}${Date.now().toString().slice(-2)}`;
+    };
+    const createDraftInvestigation = () => {
+      const invs = data.investigations || [];
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      const subject = (ctx.purpose || "").trim().slice(0, 80) || (ctx.managerName ? `Dossier \u2014 ${ctx.managerName}` : "") || "Dossier brouillon";
+      const draft = {
+        id: Date.now().toString(),
+        caseId: makeExpressCaseId(invs),
+        caseTitle: subject,
+        caseType: "enquete",
+        urgencyLevel: "Moderee",
+        province: ctx.province || data.profile?.defaultProvince || "QC",
+        status: "draft",
+        savedAt: today,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        caseData: {},
+        source: "meeting-engine-express"
+      };
+      onSave("investigations", [...invs, draft]);
+      setLinkedInvestigationId(draft.id);
+      console.info("[MeetingEngine] express investigation created", { id: draft.id, caseId: draft.caseId });
+    };
     (0, import_react14.useEffect)(() => {
       try {
         if (typeof sessionStorage === "undefined") return;
@@ -9471,7 +9503,17 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
           }
         },
         "D\xE9tacher"
-      )), linkedInv ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 12, color: C.text } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, linkedInv.caseId || "\u2014"), /* @__PURE__ */ React.createElement("span", { style: { color: C.textM } }, " \xB7 ", generateInvestigationTitle(linkedInv))) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Un meeting d'enqu\xEAte doit toujours appartenir \xE0 un dossier. Rattache-le \xE0 un dossier existant, ou ouvre-en un nouveau."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+      )), linkedInv ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 12, color: C.text } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, linkedInv.caseId || "\u2014"), /* @__PURE__ */ React.createElement("span", { style: { color: C.textM } }, " \xB7 ", generateInvestigationTitle(linkedInv)), linkedInv.status === "draft" && /* @__PURE__ */ React.createElement("span", { style: {
+        marginLeft: 8,
+        fontSize: 10,
+        padding: "2px 6px",
+        borderRadius: 4,
+        background: C.surfLL,
+        border: `1px solid ${C.border}`,
+        color: C.textM,
+        fontFamily: "'DM Mono',monospace",
+        letterSpacing: 0.5
+      } }, "BROUILLON")) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Un meeting d'enqu\xEAte doit toujours appartenir \xE0 un dossier. Rattache-le \xE0 un dossier existant, ou ouvre-en un nouveau (brouillon \u2014 enrichissable ensuite depuis le module Enqu\xEAte)."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
         "select",
         {
           value: "",
@@ -9492,13 +9534,12 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
           }
         },
         /* @__PURE__ */ React.createElement("option", { value: "" }, invs.length === 0 ? "Aucun dossier disponible" : "\u2014 S\xE9lectionner un dossier existant \u2014"),
-        invs.slice().reverse().map((inv) => /* @__PURE__ */ React.createElement("option", { key: inv.id, value: inv.id }, inv.caseId || inv.id?.toString().slice(-6) || "?", " \u2014 ", generateInvestigationTitle(inv)))
+        invs.slice().reverse().map((inv) => /* @__PURE__ */ React.createElement("option", { key: inv.id, value: inv.id }, inv.caseId || inv.id?.toString().slice(-6) || "?", " \u2014 ", generateInvestigationTitle(inv), inv.status === "draft" ? " (brouillon)" : ""))
       ), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "OU"), /* @__PURE__ */ React.createElement(
         "button",
         {
-          onClick: () => {
-            if (onNavigate) onNavigate("investigation");
-          },
+          onClick: createDraftInvestigation,
+          title: "Cr\xE9e un dossier minimal rattach\xE9 imm\xE9diatement. Les sections IA pourront \xEAtre g\xE9n\xE9r\xE9es plus tard dans le module Enqu\xEAte.",
           style: { ...css.btn(INV_RED, true), padding: "8px 12px", fontSize: 11 }
         },
         "+ Cr\xE9er un dossier"
