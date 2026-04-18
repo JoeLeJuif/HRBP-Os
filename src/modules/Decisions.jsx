@@ -126,7 +126,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
 
 // ── Decision Log component ───────────────────────────────────────────────────
 
-export default function ModuleDecisions({ data, onSave }) {
+export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisionId, onClearFocus }) {
   const [view, setView] = useState("list");
   const [form, setForm] = useState({ ...EMPTY_DECISION });
   const [editId, setEditId] = useState(null);
@@ -181,6 +181,14 @@ export default function ModuleDecisions({ data, onSave }) {
       } catch { /* bridge corrompu → ignorer */ }
     }
   }, []); // eslint-disable-line
+
+  // ── Inter-module focus: auto-open a specific decision on mount ───────────────
+  useEffect(() => {
+    if (!focusDecisionId) return;
+    const target = (data.decisions || []).map(migrateDecision).find(d => d.id === focusDecisionId);
+    if (target) { setForm(target); setEditId(target.id); setView("form"); }
+    if (onClearFocus) onClearFocus();
+  }, [focusDecisionId]); // eslint-disable-line
 
   const decisions = (data.decisions || []).map(migrateDecision);
   const profile = data.profile || { defaultProvince:"QC" };
@@ -305,9 +313,16 @@ export default function ModuleDecisions({ data, onSave }) {
                     <option value="">— Aucun —</option>
                     {(data.cases||[]).map(c => <option key={c.id} value={c.id}>{`[${String(c.id).slice(-5)}] ${c.title||"(sans titre)"}${c.director?" — "+c.director:""}`}</option>)}
                   </select>}
+              {form.linkedCaseId && onNavigate && (data.cases||[]).some(c => c.id === form.linkedCaseId) && (
+                <button onClick={()=>onNavigate("cases",{focusCaseId:form.linkedCaseId})} style={{ marginTop:5, background:"none", border:`1px solid ${C.blue}44`, borderRadius:5, padding:"3px 9px", fontSize:10, color:C.blue, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>↗ Ouvrir le dossier</button>
+              )}
             </div>
             <div><Mono color={C.textD} size={9}>Enquête liée (ID)</Mono>
-              <input value={form.linkedInvestigationId} onChange={SF("linkedInvestigationId")} placeholder="ID investigation" style={{ ...css.input, marginTop:5 }} {...focusStyle}/></div>
+              <input value={form.linkedInvestigationId} onChange={SF("linkedInvestigationId")} placeholder="ID investigation" style={{ ...css.input, marginTop:5 }} {...focusStyle}/>
+              {form.linkedInvestigationId && onNavigate && (data.investigations||[]).some(inv => inv.id === form.linkedInvestigationId) && (
+                <button onClick={()=>onNavigate("investigation",{focusInvestigationId:form.linkedInvestigationId})} style={{ marginTop:5, background:"none", border:`1px solid ${C.purple}44`, borderRadius:5, padding:"3px 9px", fontSize:10, color:C.purple, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>↗ Ouvrir l'enquête</button>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -531,6 +546,8 @@ export default function ModuleDecisions({ data, onSave }) {
           const typeDef = DECISION_TYPES.find(t=>t.value===d.decisionType) || DECISION_TYPES[5];
           const comp = completeness(d);
           const reviewDue = isReviewDue(d);
+          const linkedCase = d.linkedCaseId ? (data.cases||[]).find(c => c.id === d.linkedCaseId) : null;
+          const linkedInv = d.linkedInvestigationId ? (data.investigations||[]).find(inv => inv.id === d.linkedInvestigationId) : null;
 
           return (
             <div key={d.id} style={{ background:C.surfL, border:`1px solid ${riskDef.color}28`, borderLeft:`3px solid ${riskDef.color}`, borderRadius:8, padding:"12px 14px" }}>
@@ -543,6 +560,12 @@ export default function ModuleDecisions({ data, onSave }) {
                 <Badge label={statusDef.label} color={statusDef.color} size={9}/>
                 {d.province && <ProvinceBadge province={d.province}/>}
                 {reviewDue && <Badge label="Review due" color={C.red} size={9}/>}
+                {linkedCase && onNavigate && (
+                  <button onClick={(e)=>{e.stopPropagation();onNavigate("cases",{focusCaseId:linkedCase.id});}} title={linkedCase.title||"Dossier lié"} style={{ background:"none", border:`1px solid ${C.blue}44`, borderRadius:4, padding:"1px 7px", fontSize:9, color:C.blue, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>↗ Case</button>
+                )}
+                {linkedInv && onNavigate && (
+                  <button onClick={(e)=>{e.stopPropagation();onNavigate("investigation",{focusInvestigationId:linkedInv.id});}} title={linkedInv.title||"Enquête liée"} style={{ background:"none", border:`1px solid ${C.purple}44`, borderRadius:4, padding:"1px 7px", fontSize:9, color:C.purple, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>↗ Enquête</button>
+                )}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:12, fontSize:11, color:C.textM }}>
                 {d.managerName && <span>{d.managerName}</span>}

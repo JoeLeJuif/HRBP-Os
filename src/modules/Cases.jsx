@@ -455,6 +455,14 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
               <Badge label={c.director} color={C.blue}/>
             </span>
           : <Badge label={c.director} color={C.blue}/>)}
+        {(() => {
+          const ld = (data.decisions||[]).filter(d => d.linkedCaseId === c.id);
+          if (ld.length === 0 || !onNavigate) return null;
+          const latest = [...ld].sort((a,b) => (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||""))[0];
+          return <span onClick={() => onNavigate("decisions", { focusDecisionId: latest.id })} style={{ cursor:"pointer" }} title={ld.length === 1 ? "Ouvrir la décision liée" : `Ouvrir la décision la plus récente (${ld.length} liées)`}>
+            <Badge label={ld.length === 1 ? "⚖ Décision" : `⚖ Décisions (${ld.length})`} color={C.purple} size={9}/>
+          </span>;
+        })()}
         {c.owner && <Mono color={C.textD}>Owner · {c.owner}</Mono>}
         <ProvinceBadge province={getProvince(c, data.profile)}/>
         {c.openDate && <Mono color={C.textD}>Ouvert: {c.openDate}</Mono>}
@@ -610,7 +618,8 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           const typeObj = CASE_TYPES.find(t=>t.id===c.type);
           const statusObj = STATUSES.find(s=>s.id===c.status);
           const isOverdue = c.dueDate && c.dueDate < todayISO && !["resolved","closed"].includes(c.status);
-          const hasLinkedDecision = (data.decisions||[]).some(d => d.linkedCaseId === c.id);
+          const linkedDecisions = (data.decisions||[]).filter(d => d.linkedCaseId === c.id);
+          const latestLinkedDecision = linkedDecisions.length > 0 ? [...linkedDecisions].sort((a,b) => (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||""))[0] : null;
           return <button key={c.id||i} onClick={() => { setDetail(c); setView("detail"); }}
             style={{ background:isOverdue ? C.red+"0d" : C.surfL,
               border:`1px solid ${isOverdue ? C.red+"66" : r.color+"28"}`,
@@ -624,7 +633,11 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
               <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
                 <RiskBadge level={c.riskLevel}/>
                 {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
-                {hasLinkedDecision && <Badge label="⚖ Décision liée" color={C.purple} size={9}/>}
+                {latestLinkedDecision && (onNavigate
+                  ? <span onClick={(e)=>{e.stopPropagation();onNavigate("decisions",{focusDecisionId:latestLinkedDecision.id});}} style={{ cursor:"pointer" }} title={linkedDecisions.length === 1 ? "Ouvrir la décision liée" : `Ouvrir la plus récente (${linkedDecisions.length} liées)`}>
+                      <Badge label={linkedDecisions.length === 1 ? "⚖ Décision" : `⚖ Décisions (${linkedDecisions.length})`} color={C.purple} size={9}/>
+                    </span>
+                  : <Badge label="⚖ Décision liée" color={C.purple} size={9}/>)}
               </div>
             </div>
             <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>

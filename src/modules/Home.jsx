@@ -446,7 +446,7 @@ export default function ModuleHome({ data, onNavigate }) {
             const isReviewDue = d.reviewDate && d.reviewDate < todayISO;
             const isReviewSoon = reviewDueSoon.includes(d);
             return <Row key={d.id||i}
-              onClick={()=>onNavigate("decisions")}
+              onClick={()=>onNavigate("decisions", { focusDecisionId: d.id })}
               left={d.title||"(sans titre)"}
               sub={[DEC_TYPE_L[d.decisionType]||d.decisionType, d.managerName, d.decisionDate && fmtDate(d.decisionDate)].filter(Boolean).join(" · ")}
               right={

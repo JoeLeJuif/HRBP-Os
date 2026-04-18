@@ -28,7 +28,7 @@ var HRBPOSApp = (() => {
   __export(index_exports, {
     default: () => HRBPOS
   });
-  var import_react19 = __require("react");
+  var import_react20 = __require("react");
 
   // src/theme.js
   if (typeof document !== "undefined" && !document.getElementById("hrbp-fonts")) {
@@ -501,8 +501,221 @@ ${LEGAL_GUARDRAIL}`;
     );
   }
 
-  // src/modules/Workshop.jsx
+  // src/components/Spotlight.jsx
   var import_react = __require("react");
+  var TYPE_META = {
+    case: { label: "Case", color: C.blue, module: "cases", focusKey: "focusCaseId" },
+    meeting: { label: "Meeting", color: C.em, module: "meetings", focusKey: "focusMeetingId" },
+    decision: { label: "D\xE9cision", color: C.red, module: "decisions", focusKey: "focusDecisionId" },
+    investigation: { label: "Enqu\xEAte", color: "#7a1e2e", module: "investigation", focusKey: "focusInvestigationId" }
+  };
+  function normalize(data) {
+    const out = [];
+    (data?.cases || []).forEach((c) => {
+      if (!c?.id) return;
+      out.push({
+        id: c.id,
+        type: "case",
+        label: c.title || "(cas sans titre)",
+        meta: [c.director, c.employee].filter(Boolean).join(" \xB7 ")
+      });
+    });
+    (data?.meetings || []).forEach((m) => {
+      if (!m?.id) return;
+      out.push({
+        id: m.id,
+        type: "meeting",
+        label: m.analysis?.meetingTitle || m.title || "(meeting sans titre)",
+        meta: [m.director, m.savedAt].filter(Boolean).join(" \xB7 ")
+      });
+    });
+    (data?.decisions || []).forEach((d) => {
+      if (!d?.id) return;
+      out.push({
+        id: d.id,
+        type: "decision",
+        label: d.title || "(d\xE9cision sans titre)",
+        meta: d.decisionDate || d.createdAt || ""
+      });
+    });
+    (data?.investigations || []).forEach((i) => {
+      if (!i?.id) return;
+      out.push({
+        id: i.id,
+        type: "investigation",
+        label: i.title || "(enqu\xEAte sans titre)",
+        meta: i.savedAt || i.createdAt || ""
+      });
+    });
+    return out;
+  }
+  function Spotlight({ data, onNavigate }) {
+    const [open, setOpen] = (0, import_react.useState)(false);
+    const [query, setQuery] = (0, import_react.useState)("");
+    const [sel, setSel] = (0, import_react.useState)(0);
+    const inputRef = (0, import_react.useRef)(null);
+    (0, import_react.useEffect)(() => {
+      const onKey = (e) => {
+        const isK = e.key === "k" || e.key === "K";
+        if ((e.metaKey || e.ctrlKey) && isK) {
+          e.preventDefault();
+          setOpen((o) => !o);
+          return;
+        }
+        if (e.key === "Escape" && open) {
+          e.preventDefault();
+          setOpen(false);
+        }
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [open]);
+    (0, import_react.useEffect)(() => {
+      if (open) {
+        setQuery("");
+        setSel(0);
+        setTimeout(() => inputRef.current?.focus(), 0);
+      }
+    }, [open]);
+    const items = (0, import_react.useMemo)(() => normalize(data), [data]);
+    const results = (0, import_react.useMemo)(() => {
+      const q = query.trim().toLowerCase();
+      if (!q) return items.slice(0, 30);
+      return items.filter((it) => {
+        const hay = (it.label + " " + (it.meta || "")).toLowerCase();
+        return hay.includes(q);
+      }).slice(0, 30);
+    }, [items, query]);
+    (0, import_react.useEffect)(() => {
+      if (sel >= results.length) setSel(0);
+    }, [results, sel]);
+    const choose = (it) => {
+      if (!it) return;
+      const meta = TYPE_META[it.type];
+      if (!meta) return;
+      onNavigate?.(meta.module, { [meta.focusKey]: it.id });
+      setOpen(false);
+    };
+    const onInputKey = (e) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSel((s) => Math.min(s + 1, Math.max(0, results.length - 1)));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSel((s) => Math.max(s - 1, 0));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        choose(results[sel]);
+      }
+    };
+    if (!open) return null;
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        onClick: () => setOpen(false),
+        style: {
+          position: "fixed",
+          inset: 0,
+          background: "#00000088",
+          zIndex: 1e4,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          paddingTop: "15vh",
+          fontFamily: "'DM Sans',sans-serif"
+        }
+      },
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          onClick: (e) => e.stopPropagation(),
+          style: {
+            width: 560,
+            maxWidth: "90vw",
+            background: C.surf,
+            border: `1px solid ${C.border}`,
+            borderRadius: 12,
+            overflow: "hidden",
+            boxShadow: "0 20px 60px #0008"
+          }
+        },
+        /* @__PURE__ */ React.createElement("div", { style: {
+          padding: "10px 12px",
+          borderBottom: `1px solid ${C.border}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 10
+        } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            ref: inputRef,
+            value: query,
+            onChange: (e) => {
+              setQuery(e.target.value);
+              setSel(0);
+            },
+            onKeyDown: onInputKey,
+            placeholder: "Rechercher cas, meetings, d\xE9cisions, enqu\xEAtes\u2026",
+            style: { ...css.input, background: "transparent", border: "none", padding: 0, fontSize: 14 }
+          }
+        ), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "ESC")),
+        /* @__PURE__ */ React.createElement("div", { style: { maxHeight: "50vh", overflowY: "auto" } }, results.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { padding: "24px 16px", textAlign: "center", color: C.textD, fontSize: 12 } }, "Aucun r\xE9sultat") : results.map((it, i) => {
+          const meta = TYPE_META[it.type];
+          const active = i === sel;
+          return /* @__PURE__ */ React.createElement(
+            "div",
+            {
+              key: it.type + ":" + it.id,
+              onMouseEnter: () => setSel(i),
+              onClick: () => choose(it),
+              style: {
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "9px 14px",
+                cursor: "pointer",
+                background: active ? meta.color + "18" : "transparent",
+                borderLeft: `2px solid ${active ? meta.color : "transparent"}`
+              }
+            },
+            /* @__PURE__ */ React.createElement("span", { style: {
+              display: "inline-block",
+              minWidth: 78,
+              fontSize: 9,
+              fontWeight: 600,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+              fontFamily: "'DM Mono',monospace",
+              color: meta.color
+            } }, meta.label),
+            /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: {
+              fontSize: 13,
+              color: C.text,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            } }, it.label), it.meta && /* @__PURE__ */ React.createElement("div", { style: {
+              fontSize: 11,
+              color: C.textD,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            } }, it.meta))
+          );
+        })),
+        /* @__PURE__ */ React.createElement("div", { style: {
+          padding: "7px 14px",
+          borderTop: `1px solid ${C.border}`,
+          display: "flex",
+          gap: 14,
+          background: C.surfL
+        } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "\u2191 \u2193 Naviguer"), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "\u23CE Ouvrir"), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "ESC Fermer"), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, results.length, " r\xE9sultat", results.length > 1 ? "s" : "")))
+      )
+    );
+  }
+
+  // src/modules/Workshop.jsx
+  var import_react2 = __require("react");
 
   // src/components/Badge.jsx
   function Badge({ label, color, size = 10 }) {
@@ -964,16 +1177,16 @@ ${LEGAL_GUARDRAIL}`;
     }
   ];
   function ModuleWorkshop() {
-    const [search, setSearch] = (0, import_react.useState)("");
-    const [activeCategory, setActiveCategory] = (0, import_react.useState)("Tous");
-    const [openId, setOpenId] = (0, import_react.useState)(null);
-    const [activeSection, setActiveSection] = (0, import_react.useState)({});
-    const [coachId, setCoachId] = (0, import_react.useState)(null);
-    const [coachSit, setCoachSit] = (0, import_react.useState)({});
-    const [coachCtx, setCoachCtx] = (0, import_react.useState)({});
-    const [coachMgr, setCoachMgr] = (0, import_react.useState)({});
-    const [coachPrompt, setCoachPrompt] = (0, import_react.useState)({});
-    const [coachCopied, setCoachCopied] = (0, import_react.useState)(null);
+    const [search, setSearch] = (0, import_react2.useState)("");
+    const [activeCategory, setActiveCategory] = (0, import_react2.useState)("Tous");
+    const [openId, setOpenId] = (0, import_react2.useState)(null);
+    const [activeSection, setActiveSection] = (0, import_react2.useState)({});
+    const [coachId, setCoachId] = (0, import_react2.useState)(null);
+    const [coachSit, setCoachSit] = (0, import_react2.useState)({});
+    const [coachCtx, setCoachCtx] = (0, import_react2.useState)({});
+    const [coachMgr, setCoachMgr] = (0, import_react2.useState)({});
+    const [coachPrompt, setCoachPrompt] = (0, import_react2.useState)({});
+    const [coachCopied, setCoachCopied] = (0, import_react2.useState)(null);
     const buildPrompt = (w, situation, context, manager) => {
       const steps = w.structure.map((s, i) => `  ${s.step}: ${s.detail}`).join("\n");
       const questions = w.questions.map((q) => `  - "${q}"`).join("\n");
@@ -1351,7 +1564,7 @@ Be direct. Be challenging. Do not soften the diagnosis. I need to act, not refle
   }
 
   // src/modules/ConvKit.jsx
-  var import_react2 = __require("react");
+  var import_react3 = __require("react");
   var CONV_SITUATIONS = [
     {
       id: "avoidant-perf",
@@ -1742,12 +1955,12 @@ Pour chaque point identifi\xE9 \u2014 1 action correctrice concr\xE8te pour la s
   var CONV_CATEGORIES = ["Tous", "Performance", "Leadership", "R\xE9tention", "Relations de travail", "Strat\xE9gie RH", "D\xE9veloppement", "Gestion des absences"];
   var PROMPT_CATEGORIES = ["Tous", "Strat\xE9gie hebdomadaire", "Coaching gestionnaires", "Situations difficiles", "R\xE9tention", "Gestion de la performance", "Communication ex\xE9cutive", "Diagnostic organisationnel"];
   function ModuleConvKit() {
-    const [tab, setTab] = (0, import_react2.useState)("conv");
-    const [convCat, setConvCat] = (0, import_react2.useState)("Tous");
-    const [promptCat, setPromptCat] = (0, import_react2.useState)("Tous");
-    const [openId, setOpenId] = (0, import_react2.useState)(null);
-    const [copied, setCopied] = (0, import_react2.useState)(null);
-    const [search, setSearch] = (0, import_react2.useState)("");
+    const [tab, setTab] = (0, import_react3.useState)("conv");
+    const [convCat, setConvCat] = (0, import_react3.useState)("Tous");
+    const [promptCat, setPromptCat] = (0, import_react3.useState)("Tous");
+    const [openId, setOpenId] = (0, import_react3.useState)(null);
+    const [copied, setCopied] = (0, import_react3.useState)(null);
+    const [search, setSearch] = (0, import_react3.useState)("");
     const copyText = (text, id) => {
       const ta = document.createElement("textarea");
       ta.value = text;
@@ -2049,17 +2262,17 @@ CLOSING: ${s.closing}`;
   }
 
   // src/modules/Knowledge.jsx
-  var import_react3 = __require("react");
+  var import_react4 = __require("react");
   function ModuleKnowledge() {
-    const [activeSection, setActiveSection] = (0, import_react3.useState)("home");
-    const [search, setSearch] = (0, import_react3.useState)("");
-    const [openCards, setOpenCards] = (0, import_react3.useState)({});
-    const [selected9, setSelected9] = (0, import_react3.useState)(null);
-    const [openKpi, setOpenKpi] = (0, import_react3.useState)(null);
-    const [openCase, setOpenCase] = (0, import_react3.useState)(null);
-    const [copiedCase, setCopiedCase] = (0, import_react3.useState)(null);
-    const [templateSel, setTemplateSel] = (0, import_react3.useState)(0);
-    const [templateCopied, setTemplateCopied] = (0, import_react3.useState)(false);
+    const [activeSection, setActiveSection] = (0, import_react4.useState)("home");
+    const [search, setSearch] = (0, import_react4.useState)("");
+    const [openCards, setOpenCards] = (0, import_react4.useState)({});
+    const [selected9, setSelected9] = (0, import_react4.useState)(null);
+    const [openKpi, setOpenKpi] = (0, import_react4.useState)(null);
+    const [openCase, setOpenCase] = (0, import_react4.useState)(null);
+    const [copiedCase, setCopiedCase] = (0, import_react4.useState)(null);
+    const [templateSel, setTemplateSel] = (0, import_react4.useState)(0);
+    const [templateCopied, setTemplateCopied] = (0, import_react4.useState)(false);
     const toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] }));
     const SECTIONS = [
       { id: "home", icon: "\u{1F3E0}", label: "Vue d'ensemble", group: "NAV" },
@@ -3133,7 +3346,7 @@ Signature gestionnaire : _____ Date : _____`
   }
 
   // src/modules/Decisions.jsx
-  var import_react4 = __require("react");
+  var import_react5 = __require("react");
 
   // src/components/Card.jsx
   function Card({ children, style = {} }) {
@@ -3279,18 +3492,18 @@ Reponds UNIQUEMENT en JSON strict. Structure:
 {"whatWorkedWell":["element positif"],"whatWasMissed":["element manque"],"lessonsLearned":["lecon"],"wouldDoSameAgain":"oui/non et pourquoi en 2-3 phrases","improvementSuggestions":["suggestion"]}
 Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les valeurs.`, user: ctx + retro };
   }
-  function ModuleDecisions({ data, onSave }) {
-    const [view, setView] = (0, import_react4.useState)("list");
-    const [form, setForm] = (0, import_react4.useState)({ ...EMPTY_DECISION });
-    const [editId, setEditId] = (0, import_react4.useState)(null);
-    const [search, setSearch] = (0, import_react4.useState)("");
-    const [filterStatus, setFilterStatus] = (0, import_react4.useState)("all");
-    const [filterType, setFilterType] = (0, import_react4.useState)("all");
-    const [filterProvince, setFilterProvince] = (0, import_react4.useState)("all");
-    const [aiLoading, setAiLoading] = (0, import_react4.useState)("");
-    const [aiResult, setAiResult] = (0, import_react4.useState)(null);
-    const [aiError, setAiError] = (0, import_react4.useState)("");
-    (0, import_react4.useEffect)(() => {
+  function ModuleDecisions({ data, onSave, onNavigate, focusDecisionId, onClearFocus }) {
+    const [view, setView] = (0, import_react5.useState)("list");
+    const [form, setForm] = (0, import_react5.useState)({ ...EMPTY_DECISION });
+    const [editId, setEditId] = (0, import_react5.useState)(null);
+    const [search, setSearch] = (0, import_react5.useState)("");
+    const [filterStatus, setFilterStatus] = (0, import_react5.useState)("all");
+    const [filterType, setFilterType] = (0, import_react5.useState)("all");
+    const [filterProvince, setFilterProvince] = (0, import_react5.useState)("all");
+    const [aiLoading, setAiLoading] = (0, import_react5.useState)("");
+    const [aiResult, setAiResult] = (0, import_react5.useState)(null);
+    const [aiError, setAiError] = (0, import_react5.useState)("");
+    (0, import_react5.useEffect)(() => {
       const pending = sessionStorage.getItem("hrbpos:pendingDecision");
       if (pending) {
         try {
@@ -3328,6 +3541,16 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
         }
       }
     }, []);
+    (0, import_react5.useEffect)(() => {
+      if (!focusDecisionId) return;
+      const target = (data.decisions || []).map(migrateDecision).find((d) => d.id === focusDecisionId);
+      if (target) {
+        setForm(target);
+        setEditId(target.id);
+        setView("form");
+      }
+      if (onClearFocus) onClearFocus();
+    }, [focusDecisionId]);
     const decisions = (data.decisions || []).map(migrateDecision);
     const profile = data.profile || { defaultProvince: "QC" };
     const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -3414,7 +3637,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
         setView("list");
         setForm({ ...EMPTY_DECISION });
         setEditId(null);
-      }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, editId ? "Modifier la d\xE9cision" : "Nouvelle d\xE9cision"), editId && /* @__PURE__ */ React.createElement("button", { onClick: () => deleteDecision(editId), style: { ...css.btn(C.red, true), padding: "6px 14px", fontSize: 11 } }, "\u{1F5D1} Supprimer")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F4CB}", label: "M\xE9tadonn\xE9es", color: C.blue }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Titre de la d\xE9cision *"), /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: SF("title"), placeholder: "Ex: Avis disciplinaire \u2014 retard chronique", style: { ...css.input, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Date de d\xE9cision"), /* @__PURE__ */ React.createElement("input", { type: "date", value: form.decisionDate, onChange: SF("decisionDate"), style: { ...css.input, marginTop: 5 } }))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.decisionType, onChange: SF("decisionType"), style: { ...css.select, marginTop: 5 } }, DECISION_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.value, value: t.value }, t.label)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Niveau de risque"), /* @__PURE__ */ React.createElement("select", { value: form.riskLevel, onChange: SF("riskLevel"), style: { ...css.select, marginTop: 5 } }, DECISION_RISK.map((r) => /* @__PURE__ */ React.createElement("option", { key: r.value, value: r.value }, r.label)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Province"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: form.province, onChange: SF("province"), style: { marginTop: 5, width: "100%" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Statut"), /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: SF("status"), style: { ...css.select, marginTop: 5 } }, DECISION_STATUSES.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.value, value: s.value }, s.label))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Gestionnaire"), /* @__PURE__ */ React.createElement("input", { value: form.managerName, onChange: SF("managerName"), placeholder: "Nom", style: { ...css.input, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Employ\xE9 (optionnel)"), /* @__PURE__ */ React.createElement("input", { value: form.employeeName, onChange: SF("employeeName"), placeholder: "Nom", style: { ...css.input, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Dossier li\xE9"), (data.cases || []).length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { ...css.input, marginTop: 5, color: C.textD, fontSize: 11, display: "flex", alignItems: "center" } }, "Aucun cas disponible") : /* @__PURE__ */ React.createElement("select", { value: form.linkedCaseId, onChange: SF("linkedCaseId"), style: { ...css.select, marginTop: 5 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 Aucun \u2014"), (data.cases || []).map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, `[${String(c.id).slice(-5)}] ${c.title || "(sans titre)"}${c.director ? " \u2014 " + c.director : ""}`)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Enqu\xEAte li\xE9e (ID)"), /* @__PURE__ */ React.createElement("input", { value: form.linkedInvestigationId, onChange: SF("linkedInvestigationId"), placeholder: "ID investigation", style: { ...css.input, marginTop: 5 }, ...focusStyle })))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F4DD}", label: "Contexte et faits", color: C.purple }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Faits \xE9tablis"), /* @__PURE__ */ React.createElement("textarea", { rows: 3, value: form.facts, onChange: SF("facts"), placeholder: "Faits objectifs, document\xE9s, v\xE9rifiables...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Contexte / historique")), /* @__PURE__ */ React.createElement("textarea", { rows: 3, value: form.background, onChange: SF("background"), placeholder: "Historique, contexte organisationnel, \xE9v\xE9nements ant\xE9rieurs...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "\xC9l\xE9ments cl\xE9s consid\xE9r\xE9s")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.keyInputs, onChange: SF("keyInputs"), placeholder: "Politiques, pr\xE9c\xE9dents, avis juridiques, donn\xE9es...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F500}", label: "Options consid\xE9r\xE9es", color: C.amber }), form.options.map((opt, i) => /* @__PURE__ */ React.createElement("div", { key: opt.id, style: { background: C.surf, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "Option ", i + 1), /* @__PURE__ */ React.createElement("button", { onClick: () => removeOption(opt.id), style: { background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14 } }, "\u2715")), /* @__PURE__ */ React.createElement("input", { value: opt.title, onChange: setOpt(opt.id, "title"), placeholder: "Titre de l'option", style: { ...css.input, marginBottom: 6 }, ...focusStyle }), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.description, onChange: setOpt(opt.id, "description"), placeholder: "Description d\xE9taill\xE9e", style: { ...css.textarea, marginBottom: 6 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Avantages"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.pros, onChange: setOpt(opt.id, "pros"), style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Inconv\xE9nients"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.cons, onChange: setOpt(opt.id, "cons"), style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "Risques"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.risks, onChange: setOpt(opt.id, "risks"), style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle }))))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: addOption, style: { ...css.btn(C.amber, true), padding: "7px 14px", fontSize: 11 } }, "+ Ajouter une option"), /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("options", buildGenerateOptionsPrompt), disabled: !!aiLoading, style: { ...css.btn(C.purple, true), padding: "7px 14px", fontSize: 11, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "options" ? "\u23F3 G\xE9n\xE9ration..." : "\u{1F916} G\xE9n\xE9rer 3 options avec l'IA")), aiResult?.key === "options" && /* @__PURE__ */ React.createElement("div", { style: { background: C.surf, border: `1px solid ${C.purple}44`, borderRadius: 8, padding: 12, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "Options g\xE9n\xE9r\xE9es par l'IA"), /* @__PURE__ */ React.createElement("button", { onClick: () => applyGeneratedOptions(aiResult.data.options), style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Appliquer")), (aiResult.data.options || []).map((o, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, o.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: 2 } }, o.description))))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u2705", label: "D\xE9cision retenue", color: C.em }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Option s\xE9lectionn\xE9e"), form.options.length > 0 ? /* @__PURE__ */ React.createElement("select", { value: form.selectedOption, onChange: SF("selectedOption"), style: { ...css.select, marginTop: 5 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 S\xE9lectionner \u2014"), form.options.map((o) => /* @__PURE__ */ React.createElement("option", { key: o.id, value: o.title }, o.title || "(sans titre)"))) : /* @__PURE__ */ React.createElement("input", { value: form.selectedOption, onChange: SF("selectedOption"), placeholder: "D\xE9cision retenue", style: { ...css.input, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Justification")), /* @__PURE__ */ React.createElement("textarea", { rows: 3, value: form.decisionRationale, onChange: SF("decisionRationale"), placeholder: "Pourquoi cette option a \xE9t\xE9 retenue...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Facteurs d\xE9cisifs")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.decisionFactors, onChange: SF("decisionFactors"), placeholder: "Un facteur par ligne...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("challenge", buildChallengeDecisionPrompt), disabled: !!aiLoading, style: { ...css.btn(C.red, true), padding: "7px 14px", fontSize: 11, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "challenge" ? "\u23F3 Analyse..." : "\u{1F534} Challenger cette d\xE9cision"), /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("rationale", buildDecisionRationalePrompt), disabled: !!aiLoading, style: { ...css.btn(C.blue, true), padding: "7px 14px", fontSize: 11, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "rationale" ? "\u23F3 R\xE9daction..." : "\u{1F4DD} R\xE9diger la justification")), aiResult?.key === "challenge" && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "08", border: `1px solid ${C.red}33`, borderRadius: 8, padding: 14, marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "Challenge IA"), aiResult.data.blindSpots?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "Angles morts"), aiResult.data.blindSpots.map((b, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: 12, color: C.text, marginTop: 4 } }, "\u2022 ", b))), aiResult.data.objections?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 8 }, "Objections probables"), aiResult.data.objections.map((o, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.amber, fontWeight: 600 } }, o.from, ": ", o.objection), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em, marginTop: 2 } }, "\u2192 ", o.response)))), aiResult.data.worstCaseScenario && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Pire sc\xE9nario"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, marginTop: 4 } }, aiResult.data.worstCaseScenario)), aiResult.data.recommendation && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.em, fontStyle: "italic" } }, aiResult.data.recommendation), /* @__PURE__ */ React.createElement("button", { onClick: () => setAiResult(null), style: { ...css.btn(C.textM, true), padding: "4px 10px", fontSize: 10, marginTop: 8 } }, "Fermer")), aiResult?.key === "rationale" && /* @__PURE__ */ React.createElement("div", { style: { background: C.blue + "08", border: `1px solid ${C.blue}33`, borderRadius: 8, padding: 14, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "Justification IA"), /* @__PURE__ */ React.createElement("button", { onClick: () => applyRationale(aiResult.data), style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Appliquer")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, lineHeight: 1.7 } }, aiResult.data.rationale), aiResult.data.legalBasis && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, fontSize: 11, color: C.blue } }, "\u{1F4CB} ", aiResult.data.legalBasis), aiResult.data.precedentNote && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: C.amber } }, "\u26A0 ", aiResult.data.precedentNote))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u26A0\uFE0F", label: "Risques anticip\xE9s", color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, [["legalRisk", "Risque l\xE9gal"], ["employeeRelationsRisk", "Relations employ\xE9s"], ["managerCapabilityRisk", "Capacit\xE9 gestionnaire"], ["organizationalRisk", "Risque organisationnel"], ["precedentRisk", "Risque de pr\xE9c\xE9dent"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, label), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.anticipatedRisks[k] || "", onChange: setRisk(k), placeholder: label + "...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle }))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Plan de mitigation"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.anticipatedRisks.mitigationPlan || "", onChange: setRisk("mitigationPlan"), placeholder: "Mesures de mitigation pr\xE9vues...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u2696\uFE0F", label: `Notes l\xE9gales \u2014 ${prov}`, color: C.blue }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, padding: "6px 10px", background: C.surf, borderRadius: 6 } }, getLegalContext(prov)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Notes l\xE9gales"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.legalNotes || "", onChange: setLegal("legalNotes"), placeholder: "Points l\xE9gaux pertinents...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Cadre applicable"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.applicableFramework || "", onChange: setLegal("applicableFramework"), placeholder: "Lois, normes, politiques...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Sources consult\xE9es"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.consultedSources || "", onChange: setLegal("consultedSources"), placeholder: "Juriste, CNESST, politique interne...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Pr\xE9cautions l\xE9gales"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.legalCautions || "", onChange: setLegal("legalCautions"), placeholder: "Points d'attention, risques juridiques...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F4CA}", label: "R\xE9sultat et suivi", color: C.teal }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "R\xE9sultat observ\xE9"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.outcome, onChange: SF("outcome"), placeholder: "R\xE9sultat concret apr\xE8s la d\xE9cision...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Actions de suivi")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.followUpActions, onChange: SF("followUpActions"), placeholder: "Prochaines \xE9tapes, \xE9ch\xE9ances...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Date de r\xE9vision")), /* @__PURE__ */ React.createElement("input", { type: "date", value: form.reviewDate, onChange: SF("reviewDate"), style: { ...css.input, marginTop: 5, maxWidth: 200 } })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F504}", label: "R\xE9trospective", color: C.purple }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Ce qui a fonctionn\xE9"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.whatWorked, onChange: SF("whatWorked"), placeholder: "Points positifs...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Ce qui a \xE9t\xE9 manqu\xE9"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.whatWasMissed, onChange: SF("whatWasMissed"), placeholder: "Angles morts, erreurs...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle }))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Referais-tu la m\xEAme chose ?")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.wouldDoSameAgain, onChange: SF("wouldDoSameAgain"), placeholder: "Oui/Non et pourquoi...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Le\xE7ons et notes r\xE9trospectives")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.retrospective, onChange: SF("retrospective"), placeholder: "Le\xE7ons apprises pour les prochaines d\xE9cisions...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("retro", buildDecisionRetrospectivePrompt), disabled: !!aiLoading, style: { ...css.btn(C.purple, true), padding: "7px 14px", fontSize: 11, marginTop: 10, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "retro" ? "\u23F3 Analyse..." : "\u{1F504} Analyser le r\xE9sultat avec l'IA"), aiResult?.key === "retro" && /* @__PURE__ */ React.createElement("div", { style: { background: C.purple + "08", border: `1px solid ${C.purple}33`, borderRadius: 8, padding: 14, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "R\xE9trospective IA"), /* @__PURE__ */ React.createElement("button", { onClick: () => applyRetrospective(aiResult.data), style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Appliquer")), aiResult.data.whatWorkedWell?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Positif"), aiResult.data.whatWorkedWell.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: 12, color: C.text, marginTop: 2 } }, "\u2713 ", w))), aiResult.data.whatWasMissed?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Manqu\xE9"), aiResult.data.whatWasMissed.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: 12, color: C.text, marginTop: 2 } }, "\u2717 ", w))), aiResult.data.wouldDoSameAgain && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.amber, fontStyle: "italic" } }, aiResult.data.wouldDoSameAgain))), aiError && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: C.red } }, "\u26A0 ", aiError), /* @__PURE__ */ React.createElement("div", { style: { position: "sticky", bottom: 0, background: C.bg, borderTop: `1px solid ${C.border}`, padding: "12px 0", display: "flex", gap: 10, zIndex: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: save, disabled: !form.title.trim(), style: { ...css.btn(C.em), flex: 1, opacity: form.title.trim() ? 1 : 0.4 } }, "\u{1F4BE} ", editId ? "Enregistrer" : "Cr\xE9er la d\xE9cision"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, editId ? "Modifier la d\xE9cision" : "Nouvelle d\xE9cision"), editId && /* @__PURE__ */ React.createElement("button", { onClick: () => deleteDecision(editId), style: { ...css.btn(C.red, true), padding: "6px 14px", fontSize: 11 } }, "\u{1F5D1} Supprimer")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F4CB}", label: "M\xE9tadonn\xE9es", color: C.blue }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Titre de la d\xE9cision *"), /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: SF("title"), placeholder: "Ex: Avis disciplinaire \u2014 retard chronique", style: { ...css.input, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Date de d\xE9cision"), /* @__PURE__ */ React.createElement("input", { type: "date", value: form.decisionDate, onChange: SF("decisionDate"), style: { ...css.input, marginTop: 5 } }))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Type"), /* @__PURE__ */ React.createElement("select", { value: form.decisionType, onChange: SF("decisionType"), style: { ...css.select, marginTop: 5 } }, DECISION_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.value, value: t.value }, t.label)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Niveau de risque"), /* @__PURE__ */ React.createElement("select", { value: form.riskLevel, onChange: SF("riskLevel"), style: { ...css.select, marginTop: 5 } }, DECISION_RISK.map((r) => /* @__PURE__ */ React.createElement("option", { key: r.value, value: r.value }, r.label)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Province"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: form.province, onChange: SF("province"), style: { marginTop: 5, width: "100%" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Statut"), /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: SF("status"), style: { ...css.select, marginTop: 5 } }, DECISION_STATUSES.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.value, value: s.value }, s.label))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Gestionnaire"), /* @__PURE__ */ React.createElement("input", { value: form.managerName, onChange: SF("managerName"), placeholder: "Nom", style: { ...css.input, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Employ\xE9 (optionnel)"), /* @__PURE__ */ React.createElement("input", { value: form.employeeName, onChange: SF("employeeName"), placeholder: "Nom", style: { ...css.input, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Dossier li\xE9"), (data.cases || []).length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { ...css.input, marginTop: 5, color: C.textD, fontSize: 11, display: "flex", alignItems: "center" } }, "Aucun cas disponible") : /* @__PURE__ */ React.createElement("select", { value: form.linkedCaseId, onChange: SF("linkedCaseId"), style: { ...css.select, marginTop: 5 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 Aucun \u2014"), (data.cases || []).map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, `[${String(c.id).slice(-5)}] ${c.title || "(sans titre)"}${c.director ? " \u2014 " + c.director : ""}`))), form.linkedCaseId && onNavigate && (data.cases || []).some((c) => c.id === form.linkedCaseId) && /* @__PURE__ */ React.createElement("button", { onClick: () => onNavigate("cases", { focusCaseId: form.linkedCaseId }), style: { marginTop: 5, background: "none", border: `1px solid ${C.blue}44`, borderRadius: 5, padding: "3px 9px", fontSize: 10, color: C.blue, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u2197 Ouvrir le dossier")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Enqu\xEAte li\xE9e (ID)"), /* @__PURE__ */ React.createElement("input", { value: form.linkedInvestigationId, onChange: SF("linkedInvestigationId"), placeholder: "ID investigation", style: { ...css.input, marginTop: 5 }, ...focusStyle }), form.linkedInvestigationId && onNavigate && (data.investigations || []).some((inv) => inv.id === form.linkedInvestigationId) && /* @__PURE__ */ React.createElement("button", { onClick: () => onNavigate("investigation", { focusInvestigationId: form.linkedInvestigationId }), style: { marginTop: 5, background: "none", border: `1px solid ${C.purple}44`, borderRadius: 5, padding: "3px 9px", fontSize: 10, color: C.purple, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u2197 Ouvrir l'enqu\xEAte")))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F4DD}", label: "Contexte et faits", color: C.purple }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Faits \xE9tablis"), /* @__PURE__ */ React.createElement("textarea", { rows: 3, value: form.facts, onChange: SF("facts"), placeholder: "Faits objectifs, document\xE9s, v\xE9rifiables...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Contexte / historique")), /* @__PURE__ */ React.createElement("textarea", { rows: 3, value: form.background, onChange: SF("background"), placeholder: "Historique, contexte organisationnel, \xE9v\xE9nements ant\xE9rieurs...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "\xC9l\xE9ments cl\xE9s consid\xE9r\xE9s")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.keyInputs, onChange: SF("keyInputs"), placeholder: "Politiques, pr\xE9c\xE9dents, avis juridiques, donn\xE9es...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F500}", label: "Options consid\xE9r\xE9es", color: C.amber }), form.options.map((opt, i) => /* @__PURE__ */ React.createElement("div", { key: opt.id, style: { background: C.surf, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "Option ", i + 1), /* @__PURE__ */ React.createElement("button", { onClick: () => removeOption(opt.id), style: { background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14 } }, "\u2715")), /* @__PURE__ */ React.createElement("input", { value: opt.title, onChange: setOpt(opt.id, "title"), placeholder: "Titre de l'option", style: { ...css.input, marginBottom: 6 }, ...focusStyle }), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.description, onChange: setOpt(opt.id, "description"), placeholder: "Description d\xE9taill\xE9e", style: { ...css.textarea, marginBottom: 6 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Avantages"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.pros, onChange: setOpt(opt.id, "pros"), style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Inconv\xE9nients"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.cons, onChange: setOpt(opt.id, "cons"), style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "Risques"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: opt.risks, onChange: setOpt(opt.id, "risks"), style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle }))))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: addOption, style: { ...css.btn(C.amber, true), padding: "7px 14px", fontSize: 11 } }, "+ Ajouter une option"), /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("options", buildGenerateOptionsPrompt), disabled: !!aiLoading, style: { ...css.btn(C.purple, true), padding: "7px 14px", fontSize: 11, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "options" ? "\u23F3 G\xE9n\xE9ration..." : "\u{1F916} G\xE9n\xE9rer 3 options avec l'IA")), aiResult?.key === "options" && /* @__PURE__ */ React.createElement("div", { style: { background: C.surf, border: `1px solid ${C.purple}44`, borderRadius: 8, padding: 12, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "Options g\xE9n\xE9r\xE9es par l'IA"), /* @__PURE__ */ React.createElement("button", { onClick: () => applyGeneratedOptions(aiResult.data.options), style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Appliquer")), (aiResult.data.options || []).map((o, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, o.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: 2 } }, o.description))))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u2705", label: "D\xE9cision retenue", color: C.em }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Option s\xE9lectionn\xE9e"), form.options.length > 0 ? /* @__PURE__ */ React.createElement("select", { value: form.selectedOption, onChange: SF("selectedOption"), style: { ...css.select, marginTop: 5 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 S\xE9lectionner \u2014"), form.options.map((o) => /* @__PURE__ */ React.createElement("option", { key: o.id, value: o.title }, o.title || "(sans titre)"))) : /* @__PURE__ */ React.createElement("input", { value: form.selectedOption, onChange: SF("selectedOption"), placeholder: "D\xE9cision retenue", style: { ...css.input, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Justification")), /* @__PURE__ */ React.createElement("textarea", { rows: 3, value: form.decisionRationale, onChange: SF("decisionRationale"), placeholder: "Pourquoi cette option a \xE9t\xE9 retenue...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Facteurs d\xE9cisifs")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.decisionFactors, onChange: SF("decisionFactors"), placeholder: "Un facteur par ligne...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("challenge", buildChallengeDecisionPrompt), disabled: !!aiLoading, style: { ...css.btn(C.red, true), padding: "7px 14px", fontSize: 11, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "challenge" ? "\u23F3 Analyse..." : "\u{1F534} Challenger cette d\xE9cision"), /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("rationale", buildDecisionRationalePrompt), disabled: !!aiLoading, style: { ...css.btn(C.blue, true), padding: "7px 14px", fontSize: 11, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "rationale" ? "\u23F3 R\xE9daction..." : "\u{1F4DD} R\xE9diger la justification")), aiResult?.key === "challenge" && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "08", border: `1px solid ${C.red}33`, borderRadius: 8, padding: 14, marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "Challenge IA"), aiResult.data.blindSpots?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "Angles morts"), aiResult.data.blindSpots.map((b, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: 12, color: C.text, marginTop: 4 } }, "\u2022 ", b))), aiResult.data.objections?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 8 }, "Objections probables"), aiResult.data.objections.map((o, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.amber, fontWeight: 600 } }, o.from, ": ", o.objection), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em, marginTop: 2 } }, "\u2192 ", o.response)))), aiResult.data.worstCaseScenario && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Pire sc\xE9nario"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, marginTop: 4 } }, aiResult.data.worstCaseScenario)), aiResult.data.recommendation && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.em, fontStyle: "italic" } }, aiResult.data.recommendation), /* @__PURE__ */ React.createElement("button", { onClick: () => setAiResult(null), style: { ...css.btn(C.textM, true), padding: "4px 10px", fontSize: 10, marginTop: 8 } }, "Fermer")), aiResult?.key === "rationale" && /* @__PURE__ */ React.createElement("div", { style: { background: C.blue + "08", border: `1px solid ${C.blue}33`, borderRadius: 8, padding: 14, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "Justification IA"), /* @__PURE__ */ React.createElement("button", { onClick: () => applyRationale(aiResult.data), style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Appliquer")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, lineHeight: 1.7 } }, aiResult.data.rationale), aiResult.data.legalBasis && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, fontSize: 11, color: C.blue } }, "\u{1F4CB} ", aiResult.data.legalBasis), aiResult.data.precedentNote && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: C.amber } }, "\u26A0 ", aiResult.data.precedentNote))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u26A0\uFE0F", label: "Risques anticip\xE9s", color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, [["legalRisk", "Risque l\xE9gal"], ["employeeRelationsRisk", "Relations employ\xE9s"], ["managerCapabilityRisk", "Capacit\xE9 gestionnaire"], ["organizationalRisk", "Risque organisationnel"], ["precedentRisk", "Risque de pr\xE9c\xE9dent"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, label), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.anticipatedRisks[k] || "", onChange: setRisk(k), placeholder: label + "...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle }))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Plan de mitigation"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.anticipatedRisks.mitigationPlan || "", onChange: setRisk("mitigationPlan"), placeholder: "Mesures de mitigation pr\xE9vues...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u2696\uFE0F", label: `Notes l\xE9gales \u2014 ${prov}`, color: C.blue }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, padding: "6px 10px", background: C.surf, borderRadius: 6 } }, getLegalContext(prov)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Notes l\xE9gales"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.legalNotes || "", onChange: setLegal("legalNotes"), placeholder: "Points l\xE9gaux pertinents...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Cadre applicable"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.applicableFramework || "", onChange: setLegal("applicableFramework"), placeholder: "Lois, normes, politiques...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Sources consult\xE9es"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.consultedSources || "", onChange: setLegal("consultedSources"), placeholder: "Juriste, CNESST, politique interne...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "Pr\xE9cautions l\xE9gales"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.legalNotes.legalCautions || "", onChange: setLegal("legalCautions"), placeholder: "Points d'attention, risques juridiques...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F4CA}", label: "R\xE9sultat et suivi", color: C.teal }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "R\xE9sultat observ\xE9"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.outcome, onChange: SF("outcome"), placeholder: "R\xE9sultat concret apr\xE8s la d\xE9cision...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Actions de suivi")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.followUpActions, onChange: SF("followUpActions"), placeholder: "Prochaines \xE9tapes, \xE9ch\xE9ances...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Date de r\xE9vision")), /* @__PURE__ */ React.createElement("input", { type: "date", value: form.reviewDate, onChange: SF("reviewDate"), style: { ...css.input, marginTop: 5, maxWidth: 200 } })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SecHead, { icon: "\u{1F504}", label: "R\xE9trospective", color: C.purple }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Ce qui a fonctionn\xE9"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.whatWorked, onChange: SF("whatWorked"), placeholder: "Points positifs...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Ce qui a \xE9t\xE9 manqu\xE9"), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.whatWasMissed, onChange: SF("whatWasMissed"), placeholder: "Angles morts, erreurs...", style: { ...css.textarea, marginTop: 4, fontSize: 12 }, ...focusStyle }))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Referais-tu la m\xEAme chose ?")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.wouldDoSameAgain, onChange: SF("wouldDoSameAgain"), placeholder: "Oui/Non et pourquoi...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Le\xE7ons et notes r\xE9trospectives")), /* @__PURE__ */ React.createElement("textarea", { rows: 2, value: form.retrospective, onChange: SF("retrospective"), placeholder: "Le\xE7ons apprises pour les prochaines d\xE9cisions...", style: { ...css.textarea, marginTop: 5 }, ...focusStyle }), /* @__PURE__ */ React.createElement("button", { onClick: () => runAI("retro", buildDecisionRetrospectivePrompt), disabled: !!aiLoading, style: { ...css.btn(C.purple, true), padding: "7px 14px", fontSize: 11, marginTop: 10, opacity: aiLoading ? 0.5 : 1 } }, aiLoading === "retro" ? "\u23F3 Analyse..." : "\u{1F504} Analyser le r\xE9sultat avec l'IA"), aiResult?.key === "retro" && /* @__PURE__ */ React.createElement("div", { style: { background: C.purple + "08", border: `1px solid ${C.purple}33`, borderRadius: 8, padding: 14, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "R\xE9trospective IA"), /* @__PURE__ */ React.createElement("button", { onClick: () => applyRetrospective(aiResult.data), style: { ...css.btn(C.em), padding: "5px 12px", fontSize: 11 } }, "\u2713 Appliquer")), aiResult.data.whatWorkedWell?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "Positif"), aiResult.data.whatWorkedWell.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: 12, color: C.text, marginTop: 2 } }, "\u2713 ", w))), aiResult.data.whatWasMissed?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Manqu\xE9"), aiResult.data.whatWasMissed.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: 12, color: C.text, marginTop: 2 } }, "\u2717 ", w))), aiResult.data.wouldDoSameAgain && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.amber, fontStyle: "italic" } }, aiResult.data.wouldDoSameAgain))), aiError && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: C.red } }, "\u26A0 ", aiError), /* @__PURE__ */ React.createElement("div", { style: { position: "sticky", bottom: 0, background: C.bg, borderTop: `1px solid ${C.border}`, padding: "12px 0", display: "flex", gap: 10, zIndex: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: save, disabled: !form.title.trim(), style: { ...css.btn(C.em), flex: 1, opacity: form.title.trim() ? 1 : 0.4 } }, "\u{1F4BE} ", editId ? "Enregistrer" : "Cr\xE9er la d\xE9cision"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
         setView("list");
         setForm({ ...EMPTY_DECISION });
         setEditId(null);
@@ -3436,7 +3659,15 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
       const typeDef = DECISION_TYPES.find((t) => t.value === d.decisionType) || DECISION_TYPES[5];
       const comp = completeness(d);
       const reviewDue = isReviewDue(d);
-      return /* @__PURE__ */ React.createElement("div", { key: d.id, style: { background: C.surfL, border: `1px solid ${riskDef.color}28`, borderLeft: `3px solid ${riskDef.color}`, borderRadius: 8, padding: "12px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("button", { onClick: () => openEdit(d), style: { flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0, fontFamily: "'DM Sans',sans-serif" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, d.title || "(sans titre)")), /* @__PURE__ */ React.createElement(Badge, { label: riskDef.label, color: riskDef.color }), /* @__PURE__ */ React.createElement(Badge, { label: typeDef.label, color: C.blue, size: 9 }), /* @__PURE__ */ React.createElement(Badge, { label: statusDef.label, color: statusDef.color, size: 9 }), d.province && /* @__PURE__ */ React.createElement(ProvinceBadge, { province: d.province }), reviewDue && /* @__PURE__ */ React.createElement(Badge, { label: "Review due", color: C.red, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: C.textM } }, d.managerName && /* @__PURE__ */ React.createElement("span", null, d.managerName), d.decisionDate && /* @__PURE__ */ React.createElement("span", null, fmtDate(d.decisionDate)), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 40, height: 4, background: C.border, borderRadius: 2, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${comp}%`, height: "100%", background: comp >= 80 ? C.em : comp >= 50 ? C.amber : C.textD, borderRadius: 2 } })), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, comp, "%")), /* @__PURE__ */ React.createElement("button", { onClick: (e) => {
+      const linkedCase = d.linkedCaseId ? (data.cases || []).find((c) => c.id === d.linkedCaseId) : null;
+      const linkedInv = d.linkedInvestigationId ? (data.investigations || []).find((inv) => inv.id === d.linkedInvestigationId) : null;
+      return /* @__PURE__ */ React.createElement("div", { key: d.id, style: { background: C.surfL, border: `1px solid ${riskDef.color}28`, borderLeft: `3px solid ${riskDef.color}`, borderRadius: 8, padding: "12px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("button", { onClick: () => openEdit(d), style: { flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0, fontFamily: "'DM Sans',sans-serif" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, d.title || "(sans titre)")), /* @__PURE__ */ React.createElement(Badge, { label: riskDef.label, color: riskDef.color }), /* @__PURE__ */ React.createElement(Badge, { label: typeDef.label, color: C.blue, size: 9 }), /* @__PURE__ */ React.createElement(Badge, { label: statusDef.label, color: statusDef.color, size: 9 }), d.province && /* @__PURE__ */ React.createElement(ProvinceBadge, { province: d.province }), reviewDue && /* @__PURE__ */ React.createElement(Badge, { label: "Review due", color: C.red, size: 9 }), linkedCase && onNavigate && /* @__PURE__ */ React.createElement("button", { onClick: (e) => {
+        e.stopPropagation();
+        onNavigate("cases", { focusCaseId: linkedCase.id });
+      }, title: linkedCase.title || "Dossier li\xE9", style: { background: "none", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "1px 7px", fontSize: 9, color: C.blue, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u2197 Case"), linkedInv && onNavigate && /* @__PURE__ */ React.createElement("button", { onClick: (e) => {
+        e.stopPropagation();
+        onNavigate("investigation", { focusInvestigationId: linkedInv.id });
+      }, title: linkedInv.title || "Enqu\xEAte li\xE9e", style: { background: "none", border: `1px solid ${C.purple}44`, borderRadius: 4, padding: "1px 7px", fontSize: 9, color: C.purple, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u2197 Enqu\xEAte")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: C.textM } }, d.managerName && /* @__PURE__ */ React.createElement("span", null, d.managerName), d.decisionDate && /* @__PURE__ */ React.createElement("span", null, fmtDate(d.decisionDate)), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 40, height: 4, background: C.border, borderRadius: 2, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${comp}%`, height: "100%", background: comp >= 80 ? C.em : comp >= 50 ? C.amber : C.textD, borderRadius: 2 } })), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, comp, "%")), /* @__PURE__ */ React.createElement("button", { onClick: (e) => {
         e.stopPropagation();
         duplicate(d);
       }, style: { background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "2px 8px", fontSize: 10, color: C.textM, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u29C9 Dupliquer")));
@@ -3444,7 +3675,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
   }
 
   // src/modules/Signals.jsx
-  var import_react5 = __require("react");
+  var import_react6 = __require("react");
 
   // src/prompts/signals.js
   var SIGNAL_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Qu\xE9bec. Analyse le signal organisationnel fourni.
@@ -3461,17 +3692,17 @@ R\xE9ponds UNIQUEMENT en JSON strict. Structure :
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
   }
   function ModuleSignals({ data, onSave, focusSignalId, onClearFocus }) {
-    const [view, setView] = (0, import_react5.useState)("list");
-    const [signalText, setSignalText] = (0, import_react5.useState)("");
-    const [source, setSource] = (0, import_react5.useState)("meeting");
-    const [director, setDirector] = (0, import_react5.useState)("");
-    const [loading, setLoading] = (0, import_react5.useState)(false);
-    const [error, setError] = (0, import_react5.useState)("");
-    const [result, setResult] = (0, import_react5.useState)(null);
-    const [saved, setSaved] = (0, import_react5.useState)(false);
-    const [signalPrompt, setSignalPrompt] = (0, import_react5.useState)("");
-    const [signalDate, setSignalDate] = (0, import_react5.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    (0, import_react5.useEffect)(() => {
+    const [view, setView] = (0, import_react6.useState)("list");
+    const [signalText, setSignalText] = (0, import_react6.useState)("");
+    const [source, setSource] = (0, import_react6.useState)("meeting");
+    const [director, setDirector] = (0, import_react6.useState)("");
+    const [loading, setLoading] = (0, import_react6.useState)(false);
+    const [error, setError] = (0, import_react6.useState)("");
+    const [result, setResult] = (0, import_react6.useState)(null);
+    const [saved, setSaved] = (0, import_react6.useState)(false);
+    const [signalPrompt, setSignalPrompt] = (0, import_react6.useState)("");
+    const [signalDate, setSignalDate] = (0, import_react6.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    (0, import_react6.useEffect)(() => {
       if (!focusSignalId) return;
       const target = (data.signals || []).find((s) => s.id === focusSignalId);
       if (target) {
@@ -3620,7 +3851,7 @@ ${signalText}`;
   }
 
   // src/modules/Coaching.jsx
-  var import_react6 = __require("react");
+  var import_react7 = __require("react");
 
   // src/prompts/coaching.js
   var COACHING_SP = `Tu es expert en coaching manag\xE9rial, gestionnaires IT qu\xE9b\xE9cois. Samuel Chartrand, HRBP senior.
@@ -3642,15 +3873,15 @@ R\xE9ponds UNIQUEMENT en JSON strict.
     { id: "credibility", icon: "\u{1F3AF}", label: "Cr\xE9dibilit\xE9 manag\xE9riale", color: C.amber }
   ];
   function ModuleCoaching({ data, onSave }) {
-    const [view, setView] = (0, import_react6.useState)("list");
-    const [scenario, setScenario] = (0, import_react6.useState)("perf");
-    const [managerDesc, setManagerDesc] = (0, import_react6.useState)("");
-    const [situation, setSituation] = (0, import_react6.useState)("");
-    const [loading, setLoading] = (0, import_react6.useState)(false);
-    const [error, setError] = (0, import_react6.useState)("");
-    const [result, setResult] = (0, import_react6.useState)(null);
-    const [saved, setSaved] = (0, import_react6.useState)(false);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react6.useState)("");
+    const [view, setView] = (0, import_react7.useState)("list");
+    const [scenario, setScenario] = (0, import_react7.useState)("perf");
+    const [managerDesc, setManagerDesc] = (0, import_react7.useState)("");
+    const [situation, setSituation] = (0, import_react7.useState)("");
+    const [loading, setLoading] = (0, import_react7.useState)(false);
+    const [error, setError] = (0, import_react7.useState)("");
+    const [result, setResult] = (0, import_react7.useState)(null);
+    const [saved, setSaved] = (0, import_react7.useState)(false);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react7.useState)("");
     const plans = data.coaching || [];
     const generate = async () => {
       if (situation.trim().length < 30) return;
@@ -3697,7 +3928,7 @@ ${situation}`);
   }
 
   // src/modules/Exit.jsx
-  var import_react7 = __require("react");
+  var import_react8 = __require("react");
 
   // src/prompts/exit.js
   var EXIT_SP = `Tu es un expert en ressources humaines sp\xE9cialis\xE9 en analyse d'entrevues de d\xE9part. Contexte l\xE9gal : Qu\xE9bec \u2014 LNT, CNESST, Loi 25, Charte QC.
@@ -3721,22 +3952,22 @@ R\xE8gles :
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item === "string" ? item : item.text || JSON.stringify(item)))));
   }
   function ModuleExit({ data, onSave, focusExitId, onClearFocus }) {
-    const [view, setView] = (0, import_react7.useState)("list");
-    const [exitDate, setExitDate] = (0, import_react7.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [notes, setNotes] = (0, import_react7.useState)("");
-    const [employeeName, setEmployeeName] = (0, import_react7.useState)("");
-    const [role, setRole] = (0, import_react7.useState)("");
-    const [tenure, setTenure] = (0, import_react7.useState)("");
-    const [seniority, setSeniority] = (0, import_react7.useState)("");
-    const [team, setTeam] = (0, import_react7.useState)("");
-    const [managerName, setManagerName] = (0, import_react7.useState)("");
-    const [exitProvince, setExitProvince] = (0, import_react7.useState)("QC");
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react7.useState)("");
-    const [loading, setLoading] = (0, import_react7.useState)(false);
-    const [error, setError] = (0, import_react7.useState)("");
-    const [result, setResult] = (0, import_react7.useState)(null);
-    const [saved, setSaved] = (0, import_react7.useState)(false);
-    (0, import_react7.useEffect)(() => {
+    const [view, setView] = (0, import_react8.useState)("list");
+    const [exitDate, setExitDate] = (0, import_react8.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [notes, setNotes] = (0, import_react8.useState)("");
+    const [employeeName, setEmployeeName] = (0, import_react8.useState)("");
+    const [role, setRole] = (0, import_react8.useState)("");
+    const [tenure, setTenure] = (0, import_react8.useState)("");
+    const [seniority, setSeniority] = (0, import_react8.useState)("");
+    const [team, setTeam] = (0, import_react8.useState)("");
+    const [managerName, setManagerName] = (0, import_react8.useState)("");
+    const [exitProvince, setExitProvince] = (0, import_react8.useState)("QC");
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react8.useState)("");
+    const [loading, setLoading] = (0, import_react8.useState)(false);
+    const [error, setError] = (0, import_react8.useState)("");
+    const [result, setResult] = (0, import_react8.useState)(null);
+    const [saved, setSaved] = (0, import_react8.useState)(false);
+    (0, import_react8.useEffect)(() => {
       if (!focusExitId) return;
       const target = (data.exits || []).find((e) => e.id === focusExitId);
       if (target) {
@@ -3805,7 +4036,7 @@ ${notes}`);
   }
 
   // src/modules/Plan306090.jsx
-  var import_react8 = __require("react");
+  var import_react9 = __require("react");
 
   // src/prompts/plan306090.js
   var PLAN_306090_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Genere un plan 30-60-90 jours structure et pratique pour une transition de role.
@@ -3918,16 +4149,16 @@ Max 3 goals par phase. Max 3 actions par goal. Max 2 watchouts par phase. Max 2 
   }
   function Module306090({ data, onSave }) {
     const plans = data.plans306090 || [];
-    const [view, setView] = (0, import_react8.useState)("list");
-    const [tab, setTab] = (0, import_react8.useState)("summary");
-    const [loading, setLoading] = (0, import_react8.useState)(false);
-    const [error, setError] = (0, import_react8.useState)("");
-    const [result, setResult] = (0, import_react8.useState)(null);
-    const [saved, setSaved] = (0, import_react8.useState)(false);
-    const [copied, setCopied] = (0, import_react8.useState)(false);
-    const [activePlan, setActivePlan] = (0, import_react8.useState)(null);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react8.useState)("");
-    const [form, setForm] = (0, import_react8.useState)({
+    const [view, setView] = (0, import_react9.useState)("list");
+    const [tab, setTab] = (0, import_react9.useState)("summary");
+    const [loading, setLoading] = (0, import_react9.useState)(false);
+    const [error, setError] = (0, import_react9.useState)("");
+    const [result, setResult] = (0, import_react9.useState)(null);
+    const [saved, setSaved] = (0, import_react9.useState)(false);
+    const [copied, setCopied] = (0, import_react9.useState)(false);
+    const [activePlan, setActivePlan] = (0, import_react9.useState)(null);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react9.useState)("");
+    const [form, setForm] = (0, import_react9.useState)({
       employeeName: "",
       role: "",
       team: "",
@@ -4311,7 +4542,7 @@ ${(c.questions || []).map((q) => `  \u2022 ${q}`).join("\n")}`).join("\n\n")}`))
   }
 
   // src/modules/Radar.jsx
-  var import_react9 = __require("react");
+  var import_react10 = __require("react");
 
   // src/prompts/radar.js
   var RADAR_SP = `Tu es un HRBP senior, groupe IT, Quebec. Tu analyses un portefeuille RH complet pour produire un radar organisationnel strategique.
@@ -4393,13 +4624,13 @@ REGLES DE SPECIFICITE ABSOLUE pour themeOfWeek:
 
   // src/modules/Radar.jsx
   function ModuleRadar({ data, onSave }) {
-    const [radar, setRadar] = (0, import_react9.useState)(() => (data.radars || [])[0]?.radar || null);
-    const [loading, setLoading] = (0, import_react9.useState)(false);
-    const [error, setError] = (0, import_react9.useState)("");
-    const [done, setDone] = (0, import_react9.useState)({});
-    const [week, setWeek] = (0, import_react9.useState)(0);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react9.useState)("");
-    const [actionFeedback, setActionFeedback] = (0, import_react9.useState)({});
+    const [radar, setRadar] = (0, import_react10.useState)(() => (data.radars || [])[0]?.radar || null);
+    const [loading, setLoading] = (0, import_react10.useState)(false);
+    const [error, setError] = (0, import_react10.useState)("");
+    const [done, setDone] = (0, import_react10.useState)({});
+    const [week, setWeek] = (0, import_react10.useState)(0);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react10.useState)("");
+    const [actionFeedback, setActionFeedback] = (0, import_react10.useState)({});
     const rC = (r) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em })[r] || C.textD;
     const dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue;
     const savedRadars = data.radars || [];
@@ -4786,7 +5017,7 @@ ${buildContext()}`, 3500);
   }
 
   // src/modules/Cases.jsx
-  var import_react10 = __require("react");
+  var import_react11 = __require("react");
   function RiskBadge2({ level }) {
     const norm = normalizeRisk(level);
     const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
@@ -5182,15 +5413,15 @@ ${buildContext()}`, 3500);
     return lines.join("\n");
   }
   function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
-    const [view, setView] = (0, import_react10.useState)("list");
-    const [form, setForm] = (0, import_react10.useState)({ ...EMPTY_FORM });
-    const [editId, setEditId] = (0, import_react10.useState)(null);
-    const [detail, setDetail] = (0, import_react10.useState)(null);
-    const [copied, setCopied] = (0, import_react10.useState)(false);
-    const [search, setSearch] = (0, import_react10.useState)("");
-    const [filterStatus, setFilterStatus] = (0, import_react10.useState)("all");
-    const [filterProvince, setFilterProvince] = (0, import_react10.useState)("");
-    (0, import_react10.useEffect)(() => {
+    const [view, setView] = (0, import_react11.useState)("list");
+    const [form, setForm] = (0, import_react11.useState)({ ...EMPTY_FORM });
+    const [editId, setEditId] = (0, import_react11.useState)(null);
+    const [detail, setDetail] = (0, import_react11.useState)(null);
+    const [copied, setCopied] = (0, import_react11.useState)(false);
+    const [search, setSearch] = (0, import_react11.useState)("");
+    const [filterStatus, setFilterStatus] = (0, import_react11.useState)("all");
+    const [filterProvince, setFilterProvince] = (0, import_react11.useState)("");
+    (0, import_react11.useEffect)(() => {
       if (!focusCaseId) return;
       const target = (data.cases || []).find((c) => c.id === focusCaseId);
       if (target) {
@@ -5347,7 +5578,12 @@ ${buildContext()}`, 3500);
           title: "Voir la fiche leader"
         },
         /* @__PURE__ */ React.createElement(Badge, { label: c.director, color: C.blue })
-      ) : /* @__PURE__ */ React.createElement(Badge, { label: c.director, color: C.blue })), c.owner && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Owner \xB7 ", c.owner), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.openDate && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Ouvert: ", c.openDate), c.dueDate && /* @__PURE__ */ React.createElement(Mono, { color: C.purple }, "\xC9ch\xE9ance: ", c.dueDate), c.closedDate && /* @__PURE__ */ React.createElement(Mono, { color: C.em }, "Ferm\xE9: ", c.closedDate)), /* @__PURE__ */ React.createElement(Card, null, [
+      ) : /* @__PURE__ */ React.createElement(Badge, { label: c.director, color: C.blue })), (() => {
+        const ld = (data.decisions || []).filter((d) => d.linkedCaseId === c.id);
+        if (ld.length === 0 || !onNavigate) return null;
+        const latest = [...ld].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
+        return /* @__PURE__ */ React.createElement("span", { onClick: () => onNavigate("decisions", { focusDecisionId: latest.id }), style: { cursor: "pointer" }, title: ld.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la d\xE9cision la plus r\xE9cente (${ld.length} li\xE9es)` }, /* @__PURE__ */ React.createElement(Badge, { label: ld.length === 1 ? "\u2696 D\xE9cision" : `\u2696 D\xE9cisions (${ld.length})`, color: C.purple, size: 9 }));
+      })(), c.owner && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Owner \xB7 ", c.owner), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.openDate && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Ouvert: ", c.openDate), c.dueDate && /* @__PURE__ */ React.createElement(Mono, { color: C.purple }, "\xC9ch\xE9ance: ", c.dueDate), c.closedDate && /* @__PURE__ */ React.createElement(Mono, { color: C.em }, "Ferm\xE9: ", c.closedDate)), /* @__PURE__ */ React.createElement(Card, null, [
         ["Employ\xE9 / Groupe", c.employee],
         ["D\xE9partement", c.department],
         ["Situation", c.situation],
@@ -5481,7 +5717,8 @@ ${buildContext()}`, 3500);
       const typeObj = CASE_TYPES.find((t) => t.id === c.type);
       const statusObj = STATUSES.find((s) => s.id === c.status);
       const isOverdue = c.dueDate && c.dueDate < todayISO && !["resolved", "closed"].includes(c.status);
-      const hasLinkedDecision = (data.decisions || []).some((d) => d.linkedCaseId === c.id);
+      const linkedDecisions = (data.decisions || []).filter((d) => d.linkedCaseId === c.id);
+      const latestLinkedDecision = linkedDecisions.length > 0 ? [...linkedDecisions].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0] : null;
       return /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -5502,7 +5739,10 @@ ${buildContext()}`, 3500);
             transition: "border-color .15s"
           }
         },
-        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, c.title, isOverdue && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.red, fontFamily: "'DM Mono',monospace", marginLeft: 8 } }, "\u26A0 \xC9CH\xC9ANCE D\xC9PASS\xC9E")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: statusObj.label, color: statusObj.color }), hasLinkedDecision && /* @__PURE__ */ React.createElement(Badge, { label: "\u2696 D\xE9cision li\xE9e", color: C.purple, size: 9 }))),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, c.title, isOverdue && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.red, fontFamily: "'DM Mono',monospace", marginLeft: 8 } }, "\u26A0 \xC9CH\xC9ANCE D\xC9PASS\xC9E")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: statusObj.label, color: statusObj.color }), latestLinkedDecision && (onNavigate ? /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
+          e.stopPropagation();
+          onNavigate("decisions", { focusDecisionId: latestLinkedDecision.id });
+        }, style: { cursor: "pointer" }, title: linkedDecisions.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la plus r\xE9cente (${linkedDecisions.length} li\xE9es)` }, /* @__PURE__ */ React.createElement(Badge, { label: linkedDecisions.length === 1 ? "\u2696 D\xE9cision" : `\u2696 D\xE9cisions (${linkedDecisions.length})`, color: C.purple, size: 9 })) : /* @__PURE__ */ React.createElement(Badge, { label: "\u2696 D\xE9cision li\xE9e", color: C.purple, size: 9 })))),
         /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, typeObj && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: typeObj.color } }, typeObj.icon, " ", typeObj.label), c.director && (onNavigate ? /* @__PURE__ */ React.createElement(
           "span",
           {
@@ -5529,7 +5769,7 @@ ${buildContext()}`, 3500);
   }
 
   // src/modules/Investigation.jsx
-  var import_react11 = __require("react");
+  var import_react12 = __require("react");
 
   // src/prompts/investigation.js
   var INV_SP_1 = `Tu es un expert en enquetes en milieu de travail au Canada et au Quebec, forme selon les standards Rubin Thomlinson. Tu travailles avec Samuel Chartrand, HRBP senior.
@@ -5729,24 +5969,36 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     "Non fond\xE9e": { color: C.em, icon: "\u25CB" },
     "Preuve insuffisante": { color: C.textM, icon: "\u25CC" }
   };
-  function ModuleInvestigation({ data, onSave, onNavigate }) {
-    const [view, setView] = (0, import_react11.useState)("list");
-    const [complaint, setComplaint] = (0, import_react11.useState)("");
-    const [context, setContext] = (0, import_react11.useState)("");
-    const [parties, setParties] = (0, import_react11.useState)("");
-    const [policy, setPolicy] = (0, import_react11.useState)("");
-    const [evidence, setEvidence] = (0, import_react11.useState)("");
-    const [invProvince, setInvProvince] = (0, import_react11.useState)("QC");
-    const [invPrompt, setInvPrompt] = (0, import_react11.useState)("");
-    const [activeTab, setActiveTab] = (0, import_react11.useState)("summary");
-    const [caseData, setCaseData] = (0, import_react11.useState)(null);
-    const [error, setError] = (0, import_react11.useState)("");
-    const [saved, setSaved] = (0, import_react11.useState)(false);
-    const [gtab, setGtab] = (0, import_react11.useState)("complainant");
-    const [openInvId, setOpenInvId] = (0, import_react11.useState)(null);
+  function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
+    const [view, setView] = (0, import_react12.useState)("list");
+    const [complaint, setComplaint] = (0, import_react12.useState)("");
+    const [context, setContext] = (0, import_react12.useState)("");
+    const [parties, setParties] = (0, import_react12.useState)("");
+    const [policy, setPolicy] = (0, import_react12.useState)("");
+    const [evidence, setEvidence] = (0, import_react12.useState)("");
+    const [invProvince, setInvProvince] = (0, import_react12.useState)("QC");
+    const [invPrompt, setInvPrompt] = (0, import_react12.useState)("");
+    const [activeTab, setActiveTab] = (0, import_react12.useState)("summary");
+    const [caseData, setCaseData] = (0, import_react12.useState)(null);
+    const [error, setError] = (0, import_react12.useState)("");
+    const [saved, setSaved] = (0, import_react12.useState)(false);
+    const [gtab, setGtab] = (0, import_react12.useState)("complainant");
+    const [openInvId, setOpenInvId] = (0, import_react12.useState)(null);
     const investigations = data.investigations || [];
     const openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null;
     const isDraftOpen = !!(openInv && openInv.status === "draft");
+    (0, import_react12.useEffect)(() => {
+      if (!focusInvestigationId) return;
+      const target = investigations.find((x) => x.id === focusInvestigationId);
+      if (target) {
+        setCaseData(target.caseData || {});
+        setOpenInvId(target.id);
+        setActiveTab("summary");
+        setSaved(true);
+        setView("case");
+      }
+      if (onClearFocus) onClearFocus();
+    }, [focusInvestigationId]);
     const enrichDraft = (inv) => {
       setOpenInvId(inv.id);
       setComplaint("");
@@ -6183,11 +6435,19 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
         }
       },
       "\u2726 Compl\xE9ter le dossier"
-    )), /* @__PURE__ */ React.createElement(InvTimeline, { inv: openInv, data, onNavigate }), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
+    )), (() => {
+      if (!openInv || !onNavigate) return null;
+      const ld = (data.decisions || []).filter(
+        (d) => d.linkedInvestigationId && d.linkedInvestigationId === openInv.id || openInv.linkedCaseId && d.linkedCaseId === openInv.linkedCaseId
+      );
+      if (ld.length === 0) return null;
+      const latest = [...ld].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { onClick: () => onNavigate("decisions", { focusDecisionId: latest.id }), title: ld.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la d\xE9cision la plus r\xE9cente (${ld.length} li\xE9es)`, style: { cursor: "pointer", fontSize: 10, padding: "3px 8px", background: C.purple + "15", border: `1px solid ${C.purple}40`, borderRadius: 4, color: C.purple, fontFamily: "'DM Sans',sans-serif" } }, "\u2696 ", ld.length === 1 ? "D\xE9cision" : `D\xE9cisions (${ld.length})`));
+    })(), /* @__PURE__ */ React.createElement(InvTimeline, { inv: openInv, data, onNavigate }), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
   }
 
   // src/modules/AutoPrompt.jsx
-  var import_react12 = __require("react");
+  var import_react13 = __require("react");
   var APE_TEMPLATES = {
     weekly_intervention: {
       title: "Plan d'intervention hebdomadaire",
@@ -6918,11 +7178,11 @@ Pr\xE9pare la conversation d'accueil:
     return situations.sort((a, b) => pScore(b) - pScore(a));
   }
   function ModuleAutoPrompt({ data }) {
-    const [selected, setSelected] = (0, import_react12.useState)(null);
-    const [mode, setMode] = (0, import_react12.useState)(null);
-    const [generated, setGenerated] = (0, import_react12.useState)("");
-    const [copied, setCopied] = (0, import_react12.useState)(false);
-    const [variant, setVariant] = (0, import_react12.useState)(null);
+    const [selected, setSelected] = (0, import_react13.useState)(null);
+    const [mode, setMode] = (0, import_react13.useState)(null);
+    const [generated, setGenerated] = (0, import_react13.useState)("");
+    const [copied, setCopied] = (0, import_react13.useState)(false);
+    const [variant, setVariant] = (0, import_react13.useState)(null);
     const situations = detectSituations(data);
     const riskC = (r) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em })[r] || C.textD;
     const generate = (sit, m, vari) => {
@@ -7159,7 +7419,7 @@ Pr\xE9pare la conversation d'accueil:
   }
 
   // src/modules/Meetings.jsx
-  var import_react15 = __require("react");
+  var import_react16 = __require("react");
 
   // src/utils/caseStatus.js
   var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
@@ -7270,7 +7530,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
 {"meetingTitle":"titre incluant semaine ou date","director":"facilitateur ou null","meetingDate":"date ou null","overallRisk":"Critique|Eleve|Modere|Faible","overallRiskRationale":"1 phrase sur l etat global du portefeuille","summary":["point 1","point 2","point 3"],"initiatives":[{"nom":"nom exact","categorie":"Performance|Talent|Culture|Processus RH|Leadership|Engagement|Technologie|Conformite|Autre","responsable":"nom ou role ou null","statut":"Planifiee|En cours|En attente|Bloquee|Completee|Annulee","avancement":"0-25%|25-50%|50-75%|75-100%|Complete","statutDetail":"ou on en est \u2014 1 phrase","dateDebut":"date ou null","dateCible":"date cible ou null","changementSemaine":"ce qui a avance cette semaine ou null","blocages":["blocage identifie"],"risque":"Eleve|Modere|Faible","risqueDetail":"enjeu principal ou null","prochainePriorite":"prochaine action avec owner","impactOrg":"impact attendu en 1 phrase"}],"blocagesGlobaux":[{"blocage":"description","initiativesConcernees":["nom"],"actionRequise":"action","owner":"HRBP|Direction|Gestionnaire|Externe"}],"decisions":[{"decision":"decision prise ou a prendre","initiative":"nom","echeance":"delai ou null"}],"actions":[{"action":"action concrete","delay":"Immediat|7 jours|30 jours|Continu","owner":"HRBP|Direction|Gestionnaire","initiative":"nom ou null"}],"metriques":{"total":0,"enCours":0,"bloquees":0,"completees":0,"aRisque":0},"questions":[{"question":"question pour prochain meeting","why":"objectif strategique","initiative":"nom ou null"}]}`;
 
   // src/modules/Prep1on1.jsx
-  var import_react13 = __require("react");
+  var import_react14 = __require("react");
   function RiskBadge3({ level }) {
     const r = RISK[level] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: level, color: r.color });
@@ -7355,7 +7615,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     { value: "other", label: "Autre" }
   ];
   function PrepObsSelector({ label, values }) {
-    const [selected, setSelected] = (0, import_react13.useState)(null);
+    const [selected, setSelected] = (0, import_react14.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
@@ -7390,8 +7650,8 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
   };
   function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    const [pTab, setPTab] = (0, import_react13.useState)("context");
-    const [ctx, setCtx] = (0, import_react13.useState)({
+    const [pTab, setPTab] = (0, import_react14.useState)("context");
+    const [ctx, setCtx] = (0, import_react14.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -7402,19 +7662,19 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
       recentData: "",
       alerts: ""
     });
-    const [prep, setPrep] = (0, import_react13.useState)(null);
-    const [prepLoading, setPrepLoading] = (0, import_react13.useState)(false);
-    const [prepAI, setPrepAI] = (0, import_react13.useState)(false);
-    const [notes, setNotes] = (0, import_react13.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
-    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react13.useState)({ transcript: "", keyPoints: "" });
-    const [output, setOutput] = (0, import_react13.useState)(null);
-    const [outputLoading, setOutputLoading] = (0, import_react13.useState)(false);
-    const [copied, setCopied] = (0, import_react13.useState)(false);
-    const [saved1on1, setSaved1on1] = (0, import_react13.useState)(false);
-    const [prepPrompt, setPrepPrompt] = (0, import_react13.useState)("");
-    const [outputPrompt, setOutputPrompt] = (0, import_react13.useState)("");
-    const [sigExp, setSigExp] = (0, import_react13.useState)({});
-    const [histExp, setHistExp] = (0, import_react13.useState)({});
+    const [prep, setPrep] = (0, import_react14.useState)(null);
+    const [prepLoading, setPrepLoading] = (0, import_react14.useState)(false);
+    const [prepAI, setPrepAI] = (0, import_react14.useState)(false);
+    const [notes, setNotes] = (0, import_react14.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react14.useState)({ transcript: "", keyPoints: "" });
+    const [output, setOutput] = (0, import_react14.useState)(null);
+    const [outputLoading, setOutputLoading] = (0, import_react14.useState)(false);
+    const [copied, setCopied] = (0, import_react14.useState)(false);
+    const [saved1on1, setSaved1on1] = (0, import_react14.useState)(false);
+    const [prepPrompt, setPrepPrompt] = (0, import_react14.useState)("");
+    const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
+    const [sigExp, setSigExp] = (0, import_react14.useState)({});
+    const [histExp, setHistExp] = (0, import_react14.useState)({});
     const managerHistory = (data.meetings || []).filter((m) => {
       if (!m.director || !ctx.managerName) return false;
       return normKey(m.director) === normKey(ctx.managerName);
@@ -8426,7 +8686,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   }
 
   // src/modules/MeetingEngine.jsx
-  var import_react14 = __require("react");
+  var import_react15 = __require("react");
 
   // src/utils/leaderStore.js
   var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
@@ -8841,7 +9101,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     { id: "transition", label: "Transition", icon: "\u{1F680}", color: C.em, legal: false, desc: "Annoncer ou accompagner un changement de r\xF4le, \xE9quipe ou structure" }
   ];
   function PrepObsSelector2({ label, values }) {
-    const [selected, setSelected] = (0, import_react14.useState)(null);
+    const [selected, setSelected] = (0, import_react15.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
@@ -8983,10 +9243,10 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     ));
   }
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    const [pTab, setPTab] = (0, import_react14.useState)("context");
-    const [engineType, setEngineType] = (0, import_react14.useState)("1on1");
-    const [niveau, setNiveau] = (0, import_react14.useState)("gestionnaire");
-    const [ctx, setCtx] = (0, import_react14.useState)({
+    const [pTab, setPTab] = (0, import_react15.useState)("context");
+    const [engineType, setEngineType] = (0, import_react15.useState)("1on1");
+    const [niveau, setNiveau] = (0, import_react15.useState)("gestionnaire");
+    const [ctx, setCtx] = (0, import_react15.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -8997,21 +9257,21 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       recentData: "",
       alerts: ""
     });
-    const [managerManual, setManagerManual] = (0, import_react14.useState)(false);
-    const [prep, setPrep] = (0, import_react14.useState)(null);
-    const [prepLoading, setPrepLoading] = (0, import_react14.useState)(false);
-    const [prepAI, setPrepAI] = (0, import_react14.useState)(false);
-    const [notes, setNotes] = (0, import_react14.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
-    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react14.useState)({ transcript: "", keyPoints: "" });
-    const [output, setOutput] = (0, import_react14.useState)(null);
-    const [outputLoading, setOutputLoading] = (0, import_react14.useState)(false);
-    const [copied, setCopied] = (0, import_react14.useState)(false);
-    const [saved1on1, setSaved1on1] = (0, import_react14.useState)(false);
-    const [prepPrompt, setPrepPrompt] = (0, import_react14.useState)("");
-    const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
-    const [sigExp, setSigExp] = (0, import_react14.useState)({});
-    const [histExp, setHistExp] = (0, import_react14.useState)({});
-    const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react14.useState)(null);
+    const [managerManual, setManagerManual] = (0, import_react15.useState)(false);
+    const [prep, setPrep] = (0, import_react15.useState)(null);
+    const [prepLoading, setPrepLoading] = (0, import_react15.useState)(false);
+    const [prepAI, setPrepAI] = (0, import_react15.useState)(false);
+    const [notes, setNotes] = (0, import_react15.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react15.useState)({ transcript: "", keyPoints: "" });
+    const [output, setOutput] = (0, import_react15.useState)(null);
+    const [outputLoading, setOutputLoading] = (0, import_react15.useState)(false);
+    const [copied, setCopied] = (0, import_react15.useState)(false);
+    const [saved1on1, setSaved1on1] = (0, import_react15.useState)(false);
+    const [prepPrompt, setPrepPrompt] = (0, import_react15.useState)("");
+    const [outputPrompt, setOutputPrompt] = (0, import_react15.useState)("");
+    const [sigExp, setSigExp] = (0, import_react15.useState)({});
+    const [histExp, setHistExp] = (0, import_react15.useState)({});
+    const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react15.useState)(null);
     const needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId;
     const makeExpressCaseId = (existing) => {
       const year = (/* @__PURE__ */ new Date()).getFullYear();
@@ -9045,7 +9305,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       setLinkedInvestigationId(draft.id);
       console.info("[MeetingEngine] express investigation created", { id: draft.id, caseId: draft.caseId });
     };
-    (0, import_react14.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       try {
         if (typeof sessionStorage === "undefined") return;
         const raw = sessionStorage.getItem("hrbpos:pendingMeetingContext");
@@ -10003,23 +10263,23 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item === "string" ? item : item.text || JSON.stringify(item)))));
   }
   function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
-    const [view, setView] = (0, import_react15.useState)("list");
-    const [transcript, setTranscript] = (0, import_react15.useState)("");
-    const [meetingType, setMeetingType] = (0, import_react15.useState)("director");
-    const [meetingProvince, setMeetingProvince] = (0, import_react15.useState)("QC");
-    const [dirName, setDirName] = (0, import_react15.useState)("");
-    const [context, setContext] = (0, import_react15.useState)("");
-    const [loading, setLoading] = (0, import_react15.useState)(false);
-    const [error, setError] = (0, import_react15.useState)("");
-    const [result, setResult] = (0, import_react15.useState)(null);
-    const [saved, setSaved] = (0, import_react15.useState)(false);
-    const [briefPrompt, setBriefPrompt] = (0, import_react15.useState)("");
-    const [meetingPrompt, setMeetingPrompt] = (0, import_react15.useState)("");
-    const [activeDir, setActiveDir] = (0, import_react15.useState)(null);
-    const [activeSession, setActiveSession] = (0, import_react15.useState)(null);
-    const [meetingDate, setMeetingDate] = (0, import_react15.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [meetingScope, setMeetingScope] = (0, import_react15.useState)("leader");
-    (0, import_react15.useEffect)(() => {
+    const [view, setView] = (0, import_react16.useState)("list");
+    const [transcript, setTranscript] = (0, import_react16.useState)("");
+    const [meetingType, setMeetingType] = (0, import_react16.useState)("director");
+    const [meetingProvince, setMeetingProvince] = (0, import_react16.useState)("QC");
+    const [dirName, setDirName] = (0, import_react16.useState)("");
+    const [context, setContext] = (0, import_react16.useState)("");
+    const [loading, setLoading] = (0, import_react16.useState)(false);
+    const [error, setError] = (0, import_react16.useState)("");
+    const [result, setResult] = (0, import_react16.useState)(null);
+    const [saved, setSaved] = (0, import_react16.useState)(false);
+    const [briefPrompt, setBriefPrompt] = (0, import_react16.useState)("");
+    const [meetingPrompt, setMeetingPrompt] = (0, import_react16.useState)("");
+    const [activeDir, setActiveDir] = (0, import_react16.useState)(null);
+    const [activeSession, setActiveSession] = (0, import_react16.useState)(null);
+    const [meetingDate, setMeetingDate] = (0, import_react16.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [meetingScope, setMeetingScope] = (0, import_react16.useState)("leader");
+    (0, import_react16.useEffect)(() => {
       if (!focusMeetingId) return;
       const meetings2 = data.meetings || [];
       console.log("[focus]", focusMeetingId, meetings2.map((m) => m.id));
@@ -10129,13 +10389,13 @@ ${t}`;
       { id: "questions", icon: "\u{1F4AC}", label: "Questions", badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
       { id: "case", icon: "\u{1F4C2}", label: "Case Log" }
     ];
-    const [tab, setTab] = (0, import_react15.useState)("summary");
-    const [qsub, setQsub] = (0, import_react15.useState)("meeting");
-    const [groupBy, setGroupBy] = (0, import_react15.useState)("director");
-    const [editingMeta, setEditingMeta] = (0, import_react15.useState)(false);
-    const [metaDraft, setMetaDraft] = (0, import_react15.useState)({});
+    const [tab, setTab] = (0, import_react16.useState)("summary");
+    const [qsub, setQsub] = (0, import_react16.useState)("meeting");
+    const [groupBy, setGroupBy] = (0, import_react16.useState)("director");
+    const [editingMeta, setEditingMeta] = (0, import_react16.useState)(false);
+    const [metaDraft, setMetaDraft] = (0, import_react16.useState)({});
     if (view === "list") {
-      const TYPE_META = {
+      const TYPE_META2 = {
         executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
         vp: { label: "VP", icon: "\u{1F4CA}", color: C.blue },
         director: { label: "Directeur", icon: "\u{1F3E2}", color: C.blue },
@@ -10258,7 +10518,7 @@ ${t}`;
           groups[t].push(m);
         });
         return /* @__PURE__ */ React.createElement(React.Fragment, null, Object.entries(groups).map(([type, group]) => {
-          const meta = TYPE_META[type] || { label: type, icon: "\u{1F4CB}", color: C.textD };
+          const meta = TYPE_META2[type] || { label: type, icon: "\u{1F4CB}", color: C.textD };
           return /* @__PURE__ */ React.createElement("div", { key: type, style: { marginBottom: 22 } }, /* @__PURE__ */ React.createElement("div", { style: {
             display: "flex",
             alignItems: "center",
@@ -10714,7 +10974,7 @@ ${t}`;
     return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate });
   }
   function ModuleMeetings(props) {
-    const [tab, setTab] = (0, import_react15.useState)(() => {
+    const [tab, setTab] = (0, import_react16.useState)(() => {
       try {
         if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("hrbpos:pendingMeetingContext")) {
           return "engine";
@@ -10723,7 +10983,7 @@ ${t}`;
       }
       return "transcripts";
     });
-    (0, import_react15.useEffect)(() => {
+    (0, import_react16.useEffect)(() => {
       if (props.focusMeetingId) setTab("transcripts");
     }, [props.focusMeetingId]);
     const tabs = [
@@ -10748,7 +11008,7 @@ ${t}`;
   }
 
   // src/modules/Brief.jsx
-  var import_react16 = __require("react");
+  var import_react17 = __require("react");
 
   // src/prompts/brief.js
   var BRIEF_SP = `Tu es un HRBP senior expert, groupe IT corporatif, Quebec. Tu produis des briefings strategiques RH hebdomadaires pour Samuel Chartrand.
@@ -10801,28 +11061,28 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, label));
   }
   function ModuleBrief({ data, onSave }) {
-    const [view, setView] = (0, import_react16.useState)("new");
-    const [briefTab, setBriefTab] = (0, import_react16.useState)("brief");
-    const [inputs, setInputs] = (0, import_react16.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" });
-    const [recapSubTab, setRecapSubTab] = (0, import_react16.useState)("generate");
-    const [sentRecapText, setSentRecapText] = (0, import_react16.useState)("");
-    const [sentRecapSaved, setSentRecapSaved] = (0, import_react16.useState)(false);
-    const [recapResult, setRecapResult] = (0, import_react16.useState)(null);
-    const [recapLoading, setRecapLoading] = (0, import_react16.useState)(false);
-    const [recapError, setRecapError] = (0, import_react16.useState)("");
-    const [copied, setCopied] = (0, import_react16.useState)(false);
-    const [recapPrompt, setRecapPrompt] = (0, import_react16.useState)("");
-    const [nwlSourceIdx, setNwlSourceIdx] = (0, import_react16.useState)(0);
-    const [nwlResult, setNwlResult] = (0, import_react16.useState)(null);
-    const [nwlLoading, setNwlLoading] = (0, import_react16.useState)(false);
-    const [nwlError, setNwlError] = (0, import_react16.useState)("");
-    const [nwlSaved, setNwlSaved] = (0, import_react16.useState)(false);
-    const [nwlCopied, setNwlCopied] = (0, import_react16.useState)(false);
-    const [nwlPrompt, setNwlPrompt] = (0, import_react16.useState)("");
-    const [loading, setLoading] = (0, import_react16.useState)(false);
-    const [error, setError] = (0, import_react16.useState)("");
-    const [result, setResult] = (0, import_react16.useState)(null);
-    const [saved, setSaved] = (0, import_react16.useState)(false);
+    const [view, setView] = (0, import_react17.useState)("new");
+    const [briefTab, setBriefTab] = (0, import_react17.useState)("brief");
+    const [inputs, setInputs] = (0, import_react17.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" });
+    const [recapSubTab, setRecapSubTab] = (0, import_react17.useState)("generate");
+    const [sentRecapText, setSentRecapText] = (0, import_react17.useState)("");
+    const [sentRecapSaved, setSentRecapSaved] = (0, import_react17.useState)(false);
+    const [recapResult, setRecapResult] = (0, import_react17.useState)(null);
+    const [recapLoading, setRecapLoading] = (0, import_react17.useState)(false);
+    const [recapError, setRecapError] = (0, import_react17.useState)("");
+    const [copied, setCopied] = (0, import_react17.useState)(false);
+    const [recapPrompt, setRecapPrompt] = (0, import_react17.useState)("");
+    const [nwlSourceIdx, setNwlSourceIdx] = (0, import_react17.useState)(0);
+    const [nwlResult, setNwlResult] = (0, import_react17.useState)(null);
+    const [nwlLoading, setNwlLoading] = (0, import_react17.useState)(false);
+    const [nwlError, setNwlError] = (0, import_react17.useState)("");
+    const [nwlSaved, setNwlSaved] = (0, import_react17.useState)(false);
+    const [nwlCopied, setNwlCopied] = (0, import_react17.useState)(false);
+    const [nwlPrompt, setNwlPrompt] = (0, import_react17.useState)("");
+    const [loading, setLoading] = (0, import_react17.useState)(false);
+    const [error, setError] = (0, import_react17.useState)("");
+    const [result, setResult] = (0, import_react17.useState)(null);
+    const [saved, setSaved] = (0, import_react17.useState)(false);
     const getWeekBounds = () => {
       const today = /* @__PURE__ */ new Date();
       const day = today.getDay();
@@ -10835,8 +11095,8 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const toISO2 = (d) => d.toISOString().split("T")[0];
       return { start: toISO2(monday), end: toISO2(friday) };
     };
-    const [periodStart, setPeriodStart] = (0, import_react16.useState)("");
-    const [periodEnd, setPeriodEnd] = (0, import_react16.useState)("");
+    const [periodStart, setPeriodStart] = (0, import_react17.useState)("");
+    const [periodEnd, setPeriodEnd] = (0, import_react17.useState)("");
     const briefs = data.briefs || [];
     const parseDate = (str) => {
       if (!str) return null;
@@ -11095,10 +11355,10 @@ ${prepsTxt}` : ""}`;
       { id: "recap", label: "\u{1F4CB} R\xE9cap directrice" },
       { id: "insights", label: "\u{1F50D} Insights" }
     ];
-    const [insightsResult, setInsightsResult] = (0, import_react16.useState)(null);
-    const [insightsLoading, setInsightsLoading] = (0, import_react16.useState)(false);
-    const [insightsError, setInsightsError] = (0, import_react16.useState)("");
-    const [insightsSaved, setInsightsSaved] = (0, import_react16.useState)(false);
+    const [insightsResult, setInsightsResult] = (0, import_react17.useState)(null);
+    const [insightsLoading, setInsightsLoading] = (0, import_react17.useState)(false);
+    const [insightsError, setInsightsError] = (0, import_react17.useState)("");
+    const [insightsSaved, setInsightsSaved] = (0, import_react17.useState)(false);
     const generateInsights = async () => {
       setInsightsLoading(true);
       setInsightsError("");
@@ -12237,7 +12497,7 @@ ${recap.sentText}`,
         Row,
         {
           key: d.id || i,
-          onClick: () => onNavigate("decisions"),
+          onClick: () => onNavigate("decisions", { focusDecisionId: d.id }),
           left: d.title || "(sans titre)",
           sub: [DEC_TYPE_L[d.decisionType] || d.decisionType, d.managerName, d.decisionDate && fmtDate(d.decisionDate)].filter(Boolean).join(" \xB7 "),
           right: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: DEC_RISK_L[d.riskLevel] || "\u2014", color: DEC_RISK_C[d.riskLevel] || C.textD, size: 9 }), /* @__PURE__ */ React.createElement(Badge, { label: DEC_STATUS_L[d.status] || d.status, color: DEC_STATUS_C[d.status] || C.textD, size: 9 }), isReviewDue && /* @__PURE__ */ React.createElement(Badge, { label: "Review due", color: C.red, size: 9 }), !isReviewDue && isReviewSoon && /* @__PURE__ */ React.createElement(Badge, { label: "Review 7j", color: C.amber, size: 9 }))
@@ -12313,7 +12573,7 @@ ${recap.sentText}`,
   }
 
   // src/modules/Leader.jsx
-  var import_react17 = __require("react");
+  var import_react18 = __require("react");
 
   // src/prompts/portfolio.js
   var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
@@ -12621,13 +12881,13 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     });
   }
   function ModuleLeader({ data, onSave, onNavigate }) {
-    const [selected, setSelected] = (0, import_react17.useState)(null);
-    const [tlExpanded, setTlExpanded] = (0, import_react17.useState)(false);
-    const [tlFilter, setTlFilter] = (0, import_react17.useState)("all");
-    const [editingMeta, setEditingMeta] = (0, import_react17.useState)(false);
-    const [metaForm, setMetaForm] = (0, import_react17.useState)(null);
-    const [aiAssessing, setAiAssessing] = (0, import_react17.useState)(false);
-    const [filterArchive, setFilterArchive] = (0, import_react17.useState)("active");
+    const [selected, setSelected] = (0, import_react18.useState)(null);
+    const [tlExpanded, setTlExpanded] = (0, import_react18.useState)(false);
+    const [tlFilter, setTlFilter] = (0, import_react18.useState)("all");
+    const [editingMeta, setEditingMeta] = (0, import_react18.useState)(false);
+    const [metaForm, setMetaForm] = (0, import_react18.useState)(null);
+    const [aiAssessing, setAiAssessing] = (0, import_react18.useState)(false);
+    const [filterArchive, setFilterArchive] = (0, import_react18.useState)("active");
     const selectLeader = (key) => {
       setSelected(key);
       setTlExpanded(false);
@@ -12635,11 +12895,11 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       setEditingMeta(false);
       setMetaForm(null);
     };
-    const leaders = (0, import_react17.useMemo)(() => buildLeaderIndex(data), [data]);
+    const leaders = (0, import_react18.useMemo)(() => buildLeaderIndex(data), [data]);
     const leaderList = Object.values(leaders);
-    const leadersMap = (0, import_react17.useMemo)(() => getLeadersMap(data), [data]);
+    const leadersMap = (0, import_react18.useMemo)(() => getLeadersMap(data), [data]);
     const todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    const topFocus = (0, import_react17.useMemo)(() => {
+    const topFocus = (0, import_react18.useMemo)(() => {
       const activeLeaders = leaderList.filter((l2) => !getMeta(l2.name, leadersMap).archived);
       return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
     }, [leaderList, leadersMap, todayISO_top]);
@@ -12681,7 +12941,7 @@ ${ctx}`, 500);
         setAiAssessing(false);
       }
     };
-    (0, import_react17.useEffect)(() => {
+    (0, import_react18.useEffect)(() => {
       const pending = sessionStorage.getItem("hrbpos:pendingLeader");
       if (!pending) return;
       sessionStorage.removeItem("hrbpos:pendingLeader");
@@ -13727,7 +13987,7 @@ ${ctx}`, 500);
   }
 
   // src/modules/Copilot.jsx
-  var import_react18 = __require("react");
+  var import_react19 = __require("react");
 
   // src/prompts/copilot.js
   var COPILOT_SP = `You are the embedded strategic intelligence layer of my HRBP OS.
@@ -13949,15 +14209,15 @@ Be sharp, structured, and decisive.`;
 
   // src/modules/Copilot.jsx
   function ModuleCopilot({ data }) {
-    const [situation, setSituation] = (0, import_react18.useState)("");
-    const [loading, setLoading] = (0, import_react18.useState)(false);
-    const [response, setResponse] = (0, import_react18.useState)(null);
-    const [error, setError] = (0, import_react18.useState)("");
-    const [history, setHistory] = (0, import_react18.useState)([]);
-    const [copied, setCopied] = (0, import_react18.useState)(false);
-    const [contextExpanded, setContextExpanded] = (0, import_react18.useState)(false);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react18.useState)("");
-    const responseRef = (0, import_react18.useRef)(null);
+    const [situation, setSituation] = (0, import_react19.useState)("");
+    const [loading, setLoading] = (0, import_react19.useState)(false);
+    const [response, setResponse] = (0, import_react19.useState)(null);
+    const [error, setError] = (0, import_react19.useState)("");
+    const [history, setHistory] = (0, import_react19.useState)([]);
+    const [copied, setCopied] = (0, import_react19.useState)(false);
+    const [contextExpanded, setContextExpanded] = (0, import_react19.useState)(false);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react19.useState)("");
+    const responseRef = (0, import_react19.useRef)(null);
     const buildContext = () => {
       const cases = data.cases || [];
       const meetings = data.meetings || [];
@@ -14320,10 +14580,10 @@ ${situation.trim()}`;
   ];
   var AUTH_KEY = "hrbpos_auth";
   function LoginScreen({ onAuth }) {
-    const [pw, setPw] = (0, import_react19.useState)("");
-    const [error, setError] = (0, import_react19.useState)(false);
-    const [shake, setShake] = (0, import_react19.useState)(false);
-    const [checking, setChecking] = (0, import_react19.useState)(false);
+    const [pw, setPw] = (0, import_react20.useState)("");
+    const [error, setError] = (0, import_react20.useState)(false);
+    const [shake, setShake] = (0, import_react20.useState)(false);
+    const [checking, setChecking] = (0, import_react20.useState)(false);
     const attempt = async () => {
       if (!pw || checking) return;
       setChecking(true);
@@ -14412,17 +14672,28 @@ ${situation.trim()}`;
     ))));
   }
   function HRBPOS() {
-    const [authed, setAuthed] = (0, import_react19.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
-    const [module, setModule] = (0, import_react19.useState)("home");
-    const [showMore, setShowMore] = (0, import_react19.useState)(false);
-    const [data, setData] = (0, import_react19.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
-    const [toast, setToast] = (0, import_react19.useState)(false);
-    const [loaded, setLoaded] = (0, import_react19.useState)(false);
-    const [focusCaseId, setFocusCaseId] = (0, import_react19.useState)(null);
-    const [focusMeetingId, setFocusMeetingId] = (0, import_react19.useState)(null);
-    const [focusExitId, setFocusExitId] = (0, import_react19.useState)(null);
-    const [focusSignalId, setFocusSignalId] = (0, import_react19.useState)(null);
-    (0, import_react19.useEffect)(() => {
+    const [authed, setAuthed] = (0, import_react20.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
+    const [module, setModule] = (0, import_react20.useState)("home");
+    const [showMore, setShowMore] = (0, import_react20.useState)(false);
+    const [data, setData] = (0, import_react20.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
+    const [toast, setToast] = (0, import_react20.useState)(false);
+    const [loaded, setLoaded] = (0, import_react20.useState)(false);
+    const [focusCaseId, setFocusCaseId] = (0, import_react20.useState)(null);
+    const [focusMeetingId, setFocusMeetingId] = (0, import_react20.useState)(null);
+    const [focusExitId, setFocusExitId] = (0, import_react20.useState)(null);
+    const [focusSignalId, setFocusSignalId] = (0, import_react20.useState)(null);
+    const [focusDecisionId, setFocusDecisionId] = (0, import_react20.useState)(null);
+    const [focusInvestigationId, setFocusInvestigationId] = (0, import_react20.useState)(null);
+    const handleNavigate = (0, import_react20.useCallback)((id, ctx) => {
+      if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
+      if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
+      if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
+      if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
+      if (ctx?.focusDecisionId) setFocusDecisionId(ctx.focusDecisionId);
+      if (ctx?.focusInvestigationId) setFocusInvestigationId(ctx.focusInvestigationId);
+      setModule(id);
+    }, []);
+    (0, import_react20.useEffect)(() => {
       const defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } };
       const timeout = setTimeout(() => setLoaded(true), 1500);
       Promise.allSettled(
@@ -14480,9 +14751,9 @@ ${situation.trim()}`;
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     };
-    const [restoreStatus, setRestoreStatus] = (0, import_react19.useState)(null);
-    const [restoreMsg, setRestoreMsg] = (0, import_react19.useState)("");
-    const fileInputRef = (0, import_react19.useRef)(null);
+    const [restoreStatus, setRestoreStatus] = (0, import_react20.useState)(null);
+    const [restoreMsg, setRestoreMsg] = (0, import_react20.useState)("");
+    const fileInputRef = (0, import_react20.useRef)(null);
     const handleRestoreClick = () => fileInputRef.current?.click();
     const handleRestoreFile = async (e) => {
       const file = e.target.files?.[0];
@@ -14514,14 +14785,14 @@ ${situation.trim()}`;
         setTimeout(() => setRestoreStatus(null), 4e3);
       }
     };
-    const handleSave = (0, import_react19.useCallback)(async (key, value) => {
+    const handleSave = (0, import_react20.useCallback)(async (key, value) => {
       const skKey = SK[key];
       if (!skKey) return;
       await sSet(skKey, value);
       setData((d) => ({ ...d, [key]: value }));
       showToast();
     }, []);
-    const handleSaveMeeting = (0, import_react19.useCallback)(async (session, caseEntry) => {
+    const handleSaveMeeting = (0, import_react20.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
       const newMeetings = [...data.meetings || [], session];
       await sSet(SK.meetings, newMeetings);
@@ -14551,7 +14822,7 @@ ${situation.trim()}`;
       }
       showToast();
     }, [data]);
-    const handleUpdateMeeting = (0, import_react19.useCallback)(async (updatedSession) => {
+    const handleUpdateMeeting = (0, import_react20.useCallback)(async (updatedSession) => {
       const newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
@@ -14774,25 +15045,7 @@ ${situation.trim()}`;
       "\u26A0 ",
       c.title?.substring(0, 20),
       c.title?.length > 20 ? "\u2026" : ""
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: (id, ctx) => {
-      if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
-      if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
-      if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
-      if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
-      setModule(id);
-    } }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: setModule, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: setModule }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: setModule, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: (id, ctx) => {
-      if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
-      if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
-      if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
-      if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
-      setModule(id);
-    } }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: (id, ctx) => {
-      if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
-      if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
-      if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
-      if (ctx?.focusSignalId) setFocusSignalId(ctx.focusSignalId);
-      setModule(id);
-    } }) : null)), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }));
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : module === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : module === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : module === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : module === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : module === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : module === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : module === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : module === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : module === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : module === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : module === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : module === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : module === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : module === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : module === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : module === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : module === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : module === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : null)), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();

@@ -1,5 +1,5 @@
 // Source: HRBP_OS.jsx L.3247-3666
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C, css, RISK, INV_RED } from '../theme.js';
 import { callAIJson } from '../api/index.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
@@ -211,7 +211,7 @@ const INV_FINDING = {
   "Preuve insuffisante":  { color:C.textM,   icon:"◌" },
 };
 
-export default function ModuleInvestigation({ data, onSave, onNavigate }) {
+export default function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
   const [view, setView] = useState("list"); // list | input | loading | case
   const [complaint, setComplaint] = useState("");
   const [context, setContext] = useState("");
@@ -232,6 +232,14 @@ export default function ModuleInvestigation({ data, onSave, onNavigate }) {
   const investigations = data.investigations || [];
   const openInv = openInvId ? investigations.find(x => x.id === openInvId) : null;
   const isDraftOpen = !!(openInv && openInv.status === "draft");
+
+  // ── Inter-module focus: auto-open a specific investigation on mount ──────────
+  useEffect(() => {
+    if (!focusInvestigationId) return;
+    const target = investigations.find(x => x.id === focusInvestigationId);
+    if (target) { setCaseData(target.caseData||{}); setOpenInvId(target.id); setActiveTab("summary"); setSaved(true); setView("case"); }
+    if (onClearFocus) onClearFocus();
+  }, [focusInvestigationId]); // eslint-disable-line
 
   // Helper : passe en mode enrichissement d'un brouillon existant
   const enrichDraft = (inv) => {
@@ -745,6 +753,22 @@ ${evidence}` : "",
           </button>
         </div>
       )}
+      {(() => {
+        if (!openInv || !onNavigate) return null;
+        const ld = (data.decisions || []).filter(d =>
+          (d.linkedInvestigationId && d.linkedInvestigationId === openInv.id) ||
+          (openInv.linkedCaseId && d.linkedCaseId === openInv.linkedCaseId)
+        );
+        if (ld.length === 0) return null;
+        const latest = [...ld].sort((a,b) => (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||""))[0];
+        return (
+          <div style={{ display:"flex", gap:6, marginBottom:10, flexWrap:"wrap" }}>
+            <span onClick={() => onNavigate("decisions", { focusDecisionId: latest.id })} title={ld.length === 1 ? "Ouvrir la décision liée" : `Ouvrir la décision la plus récente (${ld.length} liées)`} style={{ cursor:"pointer", fontSize:10, padding:"3px 8px", background:C.purple+"15", border:`1px solid ${C.purple}40`, borderRadius:4, color:C.purple, fontFamily:"'DM Sans',sans-serif" }}>
+              ⚖ {ld.length === 1 ? "Décision" : `Décisions (${ld.length})`}
+            </span>
+          </div>
+        );
+      })()}
       <InvTimeline inv={openInv} data={data} onNavigate={onNavigate}/>
       <div>{isDraftOpen
         ? <Card style={{ textAlign:"center", padding:"36px 20px", borderStyle:"dashed" }}>
