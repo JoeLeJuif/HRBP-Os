@@ -8848,6 +8848,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     const [sigExp, setSigExp] = (0, import_react14.useState)({});
     const [histExp, setHistExp] = (0, import_react14.useState)({});
     const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react14.useState)(null);
+    const needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId;
     (0, import_react14.useEffect)(() => {
       try {
         if (typeof sessionStorage === "undefined") return;
@@ -8954,6 +8955,11 @@ Niveau de leadership : ${LEVEL_CONTEXT2[niveau] || LEVEL_CONTEXT2[level] || LEVE
       }
     };
     const generateOutput = async () => {
+      if (needsInvestigationLink) {
+        console.warn("[MeetingEngine] blocked: 'enquete' meeting requires a linked investigation");
+        setPTab("context");
+        return;
+      }
       setOutputLoading(true);
       const _prov = ctx.province || data.profile?.defaultProvince || "QC";
       const _engineMeta = ENGINE_TYPES.find((t) => t.id === engineType);
@@ -9027,6 +9033,10 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
     };
     const save1on1 = () => {
       if (!output || saved1on1) return;
+      if (needsInvestigationLink) {
+        console.warn("[MeetingEngine] blocked: cannot archive 'enquete' meeting without linked investigation");
+        return;
+      }
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const mtgId = `mtg_${Date.now()}`;
       const session = {
@@ -9417,8 +9427,9 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       "button",
       {
         onClick: generateOutput,
-        disabled: outputLoading,
-        style: { ...css.btn(C.em), padding: "6px 14px", fontSize: 12 }
+        disabled: outputLoading || needsInvestigationLink,
+        title: needsInvestigationLink ? "Rattacher un dossier d'enqu\xEAte avant de g\xE9n\xE9rer" : void 0,
+        style: { ...css.btn(needsInvestigationLink ? C.textD : C.em), padding: "6px 14px", fontSize: 12, opacity: needsInvestigationLink ? 0.6 : 1 }
       },
       outputLoading ? "G\xE9n\xE9ration\u2026" : "\u2726 G\xE9n\xE9rer l'output"
     )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "20px 22px" } }, pTab === "context" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${activeEngine?.color || C.blue}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "TYPE D'ANALYSE"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10 } }, ENGINE_TYPES.map((t) => {
@@ -9442,7 +9453,57 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, t.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: active ? 700 : 500, color: active ? t.color : C.text } }, t.label)),
         /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: active ? t.color : C.textD, lineHeight: 1.4 } }, t.desc)
       );
-    })), activeEngine?.legal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.red, fontStyle: "italic" } }, "\u2696 Le cadre juridique provincial sera inject\xE9 automatiquement dans l'analyse.")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(
+    })), activeEngine?.legal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.red, fontStyle: "italic" } }, "\u2696 Le cadre juridique provincial sera inject\xE9 automatiquement dans l'analyse.")), engineType === "enquete" && (() => {
+      const invs = data.investigations || [];
+      const linkedInv = linkedInvestigationId ? invs.find((i) => i.id === linkedInvestigationId) : null;
+      return /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${INV_RED}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: INV_RED, size: 9 }, "DOSSIER D'ENQU\xCATE ", linkedInv ? "\xB7 LI\xC9" : "\xB7 REQUIS"), linkedInv && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => setLinkedInvestigationId(null),
+          style: {
+            background: "transparent",
+            border: `1px solid ${C.border}`,
+            color: C.textM,
+            borderRadius: 6,
+            padding: "3px 8px",
+            fontSize: 10,
+            cursor: "pointer"
+          }
+        },
+        "D\xE9tacher"
+      )), linkedInv ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 12, color: C.text } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, linkedInv.caseId || "\u2014"), /* @__PURE__ */ React.createElement("span", { style: { color: C.textM } }, " \xB7 ", generateInvestigationTitle(linkedInv))) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Un meeting d'enqu\xEAte doit toujours appartenir \xE0 un dossier. Rattache-le \xE0 un dossier existant, ou ouvre-en un nouveau."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+        "select",
+        {
+          value: "",
+          onChange: (e) => {
+            if (e.target.value) setLinkedInvestigationId(e.target.value);
+          },
+          disabled: invs.length === 0,
+          style: {
+            flex: "1 1 260px",
+            minWidth: 220,
+            padding: "8px 10px",
+            background: C.surfL,
+            color: C.text,
+            border: `1px solid ${C.border}`,
+            borderRadius: 7,
+            fontSize: 12,
+            fontFamily: "'DM Sans',sans-serif"
+          }
+        },
+        /* @__PURE__ */ React.createElement("option", { value: "" }, invs.length === 0 ? "Aucun dossier disponible" : "\u2014 S\xE9lectionner un dossier existant \u2014"),
+        invs.slice().reverse().map((inv) => /* @__PURE__ */ React.createElement("option", { key: inv.id, value: inv.id }, inv.caseId || inv.id?.toString().slice(-6) || "?", " \u2014 ", generateInvestigationTitle(inv)))
+      ), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "OU"), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
+            if (onNavigate) onNavigate("investigation");
+          },
+          style: { ...css.btn(INV_RED, true), padding: "8px 12px", fontSize: 11 }
+        },
+        "+ Cr\xE9er un dossier"
+      ))));
+    })(), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(
       ManagerField,
       {
         data,
@@ -9685,7 +9746,16 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         onFocus: (e) => e.target.style.borderColor = cat.color,
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    )))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, padding: "10px 14px", background: C.teal + "10", border: `1px solid ${C.teal}33`, borderRadius: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.teal } }, "\u{1F4BE} Ces notes alimentent directement l'output. Sois pr\xE9cis \u2014 l'IA s'appuie sur ce contenu."))), pTab === "output" && /* @__PURE__ */ React.createElement("div", null, outputLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "G\xE9n\xE9ration de l'analyse compl\xE8te\u2026" }), !output && !outputLoading && /* @__PURE__ */ React.createElement("div", { style: { background: C.surfL, border: `2px dashed ${C.border}`, borderRadius: 12, padding: "48px 24px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F4CA}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun output g\xE9n\xE9r\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 400, margin: "0 auto 16px" } }, "Compl\xE8te les notes et/ou le transcript, puis g\xE9n\xE8re l'analyse enrichie."), /* @__PURE__ */ React.createElement("button", { onClick: generateOutput, style: { ...css.btn(C.em) } }, "\u2726 G\xE9n\xE9rer l'output")), output && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr auto", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${RISK_C[output.overallRisk] || C.em}` } }, output.meetingTitle && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, output.meetingTitle), output.director && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 8 } }, "Gestionnaire : ", output.director), /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "R\xC9SUM\xC9"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, (output.summary || []).map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.em, marginTop: 6, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))), output.hrbpKeyMessage && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "8px 11px", background: C.purple + "10", border: `1px solid ${C.purple}25`, borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.purple, fontWeight: 600 } }, "Message cl\xE9 HRBP \u2192 "), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text, lineHeight: 1.6 } }, output.hrbpKeyMessage))), /* @__PURE__ */ React.createElement("div", { style: { background: (RISK_C[output.overallRisk] || C.em) + "18", border: `2px solid ${RISK_C[output.overallRisk] || C.em}`, borderRadius: 10, padding: "16px 20px", textAlign: "center", minWidth: 110, flexShrink: 0 } }, /* @__PURE__ */ React.createElement(Mono, { color: RISK_C[output.overallRisk] || C.em, size: 9 }, "RISQUE"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 800, color: RISK_C[output.overallRisk] || C.em, marginTop: 8 } }, output.overallRisk), output.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textM, marginTop: 6, lineHeight: 1.4 } }, output.overallRiskRationale))), (output.signals || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "\u{1F4E1} SIGNAUX D\xC9TAILL\xC9S"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 10 } }, output.signals.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "10px 12px", background: C.amber + "08", borderRadius: 8, border: `1px solid ${C.amber}20` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, s.signal), s.ampleur && /* @__PURE__ */ React.createElement(Badge, { label: s.ampleur, color: AMPLEUR_C[s.ampleur] || C.blue, size: 9 }), s.categorie && /* @__PURE__ */ React.createElement(Badge, { label: s.categorie, color: C.textD, size: 9 })), s.interpretation && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s.interpretation), s.consequence && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, fontStyle: "italic", marginTop: 4 } }, "Si non adress\xE9 : ", s.consequence))))), (output.risks || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "\u26A0 RISQUES D\xC9TAILL\xC9S"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.risks.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "9px 12px", background: C.red + "08", borderRadius: 8, border: `1px solid ${C.red}20` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, r.risque), /* @__PURE__ */ React.createElement(Badge, { label: r.niveau, color: RISK_C[r.niveau] || C.textD, size: 9 }), r.tendance && /* @__PURE__ */ React.createElement(Badge, { label: r.tendance, color: TENDANCE_C[r.tendance] || C.textD, size: 9 })), r.rationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.rationale))))), output.people && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 } }, [
+    )))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, padding: "10px 14px", background: C.teal + "10", border: `1px solid ${C.teal}33`, borderRadius: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.teal } }, "\u{1F4BE} Ces notes alimentent directement l'output. Sois pr\xE9cis \u2014 l'IA s'appuie sur ce contenu."))), pTab === "output" && /* @__PURE__ */ React.createElement("div", null, outputLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "G\xE9n\xE9ration de l'analyse compl\xE8te\u2026" }), !output && !outputLoading && /* @__PURE__ */ React.createElement("div", { style: { background: C.surfL, border: `2px dashed ${C.border}`, borderRadius: 12, padding: "48px 24px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F4CA}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun output g\xE9n\xE9r\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 400, margin: "0 auto 16px" } }, needsInvestigationLink ? "Ce meeting d'enqu\xEAte doit \xEAtre rattach\xE9 \xE0 un dossier avant d'\xEAtre analys\xE9. Retourne \xE0 l'onglet Contexte." : "Compl\xE8te les notes et/ou le transcript, puis g\xE9n\xE8re l'analyse enrichie."), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: generateOutput,
+        disabled: needsInvestigationLink,
+        title: needsInvestigationLink ? "Rattacher un dossier d'enqu\xEAte avant de g\xE9n\xE9rer" : void 0,
+        style: { ...css.btn(needsInvestigationLink ? C.textD : C.em), opacity: needsInvestigationLink ? 0.6 : 1 }
+      },
+      "\u2726 G\xE9n\xE9rer l'output"
+    )), output && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr auto", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${RISK_C[output.overallRisk] || C.em}` } }, output.meetingTitle && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, output.meetingTitle), output.director && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 8 } }, "Gestionnaire : ", output.director), /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "R\xC9SUM\xC9"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, (output.summary || []).map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.em, marginTop: 6, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))), output.hrbpKeyMessage && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, padding: "8px 11px", background: C.purple + "10", border: `1px solid ${C.purple}25`, borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.purple, fontWeight: 600 } }, "Message cl\xE9 HRBP \u2192 "), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text, lineHeight: 1.6 } }, output.hrbpKeyMessage))), /* @__PURE__ */ React.createElement("div", { style: { background: (RISK_C[output.overallRisk] || C.em) + "18", border: `2px solid ${RISK_C[output.overallRisk] || C.em}`, borderRadius: 10, padding: "16px 20px", textAlign: "center", minWidth: 110, flexShrink: 0 } }, /* @__PURE__ */ React.createElement(Mono, { color: RISK_C[output.overallRisk] || C.em, size: 9 }, "RISQUE"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 800, color: RISK_C[output.overallRisk] || C.em, marginTop: 8 } }, output.overallRisk), output.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textM, marginTop: 6, lineHeight: 1.4 } }, output.overallRiskRationale))), (output.signals || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "\u{1F4E1} SIGNAUX D\xC9TAILL\xC9S"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 10 } }, output.signals.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "10px 12px", background: C.amber + "08", borderRadius: 8, border: `1px solid ${C.amber}20` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, s.signal), s.ampleur && /* @__PURE__ */ React.createElement(Badge, { label: s.ampleur, color: AMPLEUR_C[s.ampleur] || C.blue, size: 9 }), s.categorie && /* @__PURE__ */ React.createElement(Badge, { label: s.categorie, color: C.textD, size: 9 })), s.interpretation && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s.interpretation), s.consequence && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, fontStyle: "italic", marginTop: 4 } }, "Si non adress\xE9 : ", s.consequence))))), (output.risks || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "\u26A0 RISQUES D\xC9TAILL\xC9S"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.risks.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "9px 12px", background: C.red + "08", borderRadius: 8, border: `1px solid ${C.red}20` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, r.risque), /* @__PURE__ */ React.createElement(Badge, { label: r.niveau, color: RISK_C[r.niveau] || C.textD, size: 9 }), r.tendance && /* @__PURE__ */ React.createElement(Badge, { label: r.tendance, color: TENDANCE_C[r.tendance] || C.textD, size: 9 })), r.rationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.rationale))))), output.people && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 } }, [
       { key: "performance", label: "Performance", icon: "\u{1F4C8}", color: C.blue },
       { key: "leadership", label: "Leadership", icon: "\u{1F9ED}", color: C.purple },
       { key: "engagement", label: "Engagement", icon: "\u{1F321}", color: C.amber }

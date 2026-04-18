@@ -3,12 +3,13 @@
 // Based on Prep1on1.jsx — enhanced output via MEETING_ENGINE_SP.
 
 import { useState, useEffect } from "react";
-import { C, css, RISK, DELAY_C } from '../theme.js';
+import { C, css, RISK, DELAY_C, INV_RED } from '../theme.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { normKey } from '../utils/format.js';
 import { emptyMeta, setMeta, getLeadersMap } from '../utils/leaderStore.js';
 import { callAI } from '../api/index.js';
 import { MEETING_ENGINE_SP } from '../prompts/meetingEngine.js';
+import { generateInvestigationTitle } from './Investigation.jsx';
 import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
 import AILoader      from '../components/AILoader.jsx';
@@ -355,6 +356,11 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   const [histExp, setHistExp]     = useState({});
   const [linkedInvestigationId, setLinkedInvestigationId] = useState(null);
 
+  // ── Phase 0 — Unification Meeting ↔ Enquête ─────────────────────────────
+  // Règle : un meeting de type "enquete" doit toujours être rattaché à un
+  // dossier d'enquête. Bloque generateOutput/save tant que le lien manque.
+  const needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId;
+
   // ── B-25: Consume pending meeting context bridge (from Cases) ─────────────
   useEffect(() => {
     try {
@@ -466,6 +472,11 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
   // ── AI: generate enriched output via MEETING_ENGINE_SP ─────────────────
   const generateOutput = async () => {
+    if (needsInvestigationLink) {
+      console.warn("[MeetingEngine] blocked: 'enquete' meeting requires a linked investigation");
+      setPTab("context");
+      return;
+    }
     setOutputLoading(true);
     const _prov = ctx.province || data.profile?.defaultProvince || "QC";
     const _engineMeta = ENGINE_TYPES.find(t => t.id === engineType);
@@ -537,6 +548,10 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
   // ── Save current session ──────────────────────────────────────────────────
   const save1on1 = () => {
     if (!output || saved1on1) return;
+    if (needsInvestigationLink) {
+      console.warn("[MeetingEngine] blocked: cannot archive 'enquete' meeting without linked investigation");
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
     const mtgId = `mtg_${Date.now()}`;
     const session = {
@@ -897,8 +912,9 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                     {saved1on1 ? "✓ Archivé" : "💾 Archiver"}
                   </button>
                 )}
-                <button onClick={generateOutput} disabled={outputLoading}
-                  style={{ ...css.btn(C.em), padding:"6px 14px", fontSize:12 }}>
+                <button onClick={generateOutput} disabled={outputLoading || needsInvestigationLink}
+                  title={needsInvestigationLink ? "Rattacher un dossier d'enquête avant de générer" : undefined}
+                  style={{ ...css.btn(needsInvestigationLink ? C.textD : C.em), padding:"6px 14px", fontSize:12, opacity: needsInvestigationLink ? 0.6 : 1 }}>
                   {outputLoading ? "Génération…" : "✦ Générer l'output"}
                 </button>
               </>
@@ -940,6 +956,63 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   </div>
                 )}
               </div>
+
+              {/* ── Phase 0 — Lien vers dossier d'enquête (type=enquete uniquement) ── */}
+              {engineType === "enquete" && (() => {
+                const invs = data.investigations || [];
+                const linkedInv = linkedInvestigationId
+                  ? invs.find(i => i.id === linkedInvestigationId)
+                  : null;
+                return (
+                  <div style={{ ...css.card, borderLeft:`3px solid ${INV_RED}`, marginBottom:14 }}>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
+                      <Mono color={INV_RED} size={9}>DOSSIER D'ENQUÊTE {linkedInv ? "· LIÉ" : "· REQUIS"}</Mono>
+                      {linkedInv && (
+                        <button onClick={() => setLinkedInvestigationId(null)}
+                          style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.textM,
+                            borderRadius:6, padding:"3px 8px", fontSize:10, cursor:"pointer" }}>
+                          Détacher
+                        </button>
+                      )}
+                    </div>
+
+                    {linkedInv ? (
+                      <div style={{ marginTop:10, fontSize:12, color:C.text }}>
+                        <span style={{ fontWeight:600 }}>{linkedInv.caseId || "—"}</span>
+                        <span style={{ color:C.textM }}> · {generateInvestigationTitle(linkedInv)}</span>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop:10 }}>
+                        <div style={{ fontSize:11, color:C.textM, marginBottom:10, lineHeight:1.5 }}>
+                          Un meeting d'enquête doit toujours appartenir à un dossier. Rattache-le à un dossier existant, ou ouvre-en un nouveau.
+                        </div>
+                        <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                          <select value=""
+                            onChange={(e) => { if (e.target.value) setLinkedInvestigationId(e.target.value); }}
+                            disabled={invs.length === 0}
+                            style={{ flex:"1 1 260px", minWidth:220, padding:"8px 10px",
+                              background:C.surfL, color:C.text, border:`1px solid ${C.border}`,
+                              borderRadius:7, fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
+                            <option value="">
+                              {invs.length === 0 ? "Aucun dossier disponible" : "— Sélectionner un dossier existant —"}
+                            </option>
+                            {invs.slice().reverse().map(inv => (
+                              <option key={inv.id} value={inv.id}>
+                                {(inv.caseId || inv.id?.toString().slice(-6) || "?")} — {generateInvestigationTitle(inv)}
+                              </option>
+                            ))}
+                          </select>
+                          <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>OU</span>
+                          <button onClick={() => { if (onNavigate) onNavigate("investigation"); }}
+                            style={{ ...css.btn(INV_RED, true), padding:"8px 12px", fontSize:11 }}>
+                            + Créer un dossier
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
                 <div style={{...css.card}}>
@@ -1505,9 +1578,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   <div style={{fontSize:36,marginBottom:12}}>📊</div>
                   <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>Aucun output généré</div>
                   <div style={{fontSize:12,color:C.textD,maxWidth:400,margin:"0 auto 16px"}}>
-                    Complète les notes et/ou le transcript, puis génère l'analyse enrichie.
+                    {needsInvestigationLink
+                      ? "Ce meeting d'enquête doit être rattaché à un dossier avant d'être analysé. Retourne à l'onglet Contexte."
+                      : "Complète les notes et/ou le transcript, puis génère l'analyse enrichie."}
                   </div>
-                  <button onClick={generateOutput} style={{...css.btn(C.em)}}>
+                  <button onClick={generateOutput} disabled={needsInvestigationLink}
+                    title={needsInvestigationLink ? "Rattacher un dossier d'enquête avant de générer" : undefined}
+                    style={{...css.btn(needsInvestigationLink ? C.textD : C.em), opacity: needsInvestigationLink ? 0.6 : 1}}>
                     ✦ Générer l'output
                   </button>
                 </div>
