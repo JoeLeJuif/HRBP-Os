@@ -170,8 +170,22 @@ export default function ModuleInvestigation({ data, onSave, onNavigate }) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [gtab, setGtab] = useState("complainant");
+  // Phase 2 — Suivi du dossier en cours d'ouverture pour pouvoir promouvoir
+  // un brouillon en place (preserve id, caseId, createdAt, source).
+  const [openInvId, setOpenInvId] = useState(null);
 
   const investigations = data.investigations || [];
+  const openInv = openInvId ? investigations.find(x => x.id === openInvId) : null;
+  const isDraftOpen = !!(openInv && openInv.status === "draft");
+
+  // Helper : passe en mode enrichissement d'un brouillon existant
+  const enrichDraft = (inv) => {
+    setOpenInvId(inv.id);
+    setComplaint(""); setContext(""); setParties(""); setPolicy(""); setEvidence("");
+    setInvProvince(inv.province || data.profile?.defaultProvince || "QC");
+    setError("");
+    setView("input");
+  };
 
   const generate = async () => {
     if (!complaint.trim()) return;
@@ -208,12 +222,38 @@ ${evidence}` : "",
 
   const saveDossier = () => {
     if (!caseData || saved) return;
-    const inv = { id:Date.now().toString(), savedAt:new Date().toISOString().split("T")[0],
+    const today = new Date().toISOString().split("T")[0];
+    // Phase 2 — Promotion en place d'un brouillon (id, caseId original, source, linkedCaseId préservés)
+    if (openInvId) {
+      const existing = investigations.find(x => x.id === openInvId);
+      if (existing && existing.status === "draft") {
+        const merged = {
+          ...existing,
+          savedAt: today,
+          caseId: caseData.caseId || existing.caseId,
+          caseTitle: caseData.caseTitle || existing.caseTitle,
+          caseType: caseData.caseType || existing.caseType,
+          urgencyLevel: caseData.urgencyLevel || existing.urgencyLevel,
+          province: invProvince,
+          caseData,
+          status: "complete",
+          titleAuto: true,
+          enrichedAt: new Date().toISOString(),
+        };
+        merged.title = generateInvestigationTitle(merged);
+        const updated = investigations.map(x => x.id === openInvId ? merged : x);
+        onSave("investigations", updated);
+        setSaved(true);
+        return;
+      }
+    }
+    const inv = { id:Date.now().toString(), savedAt:today,
       caseId:caseData.caseId, caseTitle:caseData.caseTitle, caseType:caseData.caseType,
       urgencyLevel:caseData.urgencyLevel, province:invProvince, caseData,
       title:"", titleAuto:true, linkedCaseId:null };
     inv.title = generateInvestigationTitle(inv);
     onSave("investigations", [...investigations, inv]);
+    setOpenInvId(inv.id);
     setSaved(true);
   };
 
@@ -414,7 +454,7 @@ ${evidence}` : "",
           <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Enquêtes & Investigations</div>
           <div style={{ fontSize:12, color:C.textM }}>{investigations.length} dossier(s) archivé(s) · Standards Rubin Thomlinson</div>
         </div>
-        <button onClick={()=>{ setComplaint(""); setContext(""); setParties(""); setPolicy(""); setEvidence(""); setCaseData(null); setView("input"); }} style={{ ...css.btn(INV_RED) }}>🔍 Ouvrir un dossier d'enquête</button>
+        <button onClick={()=>{ setComplaint(""); setContext(""); setParties(""); setPolicy(""); setEvidence(""); setCaseData(null); setOpenInvId(null); setView("input"); }} style={{ ...css.btn(INV_RED) }}>🔍 Ouvrir un dossier d'enquête</button>
       </div>
       {investigations.length === 0 && <Card style={{ textAlign:"center", padding:"40px 20px" }}>
         <div style={{ fontSize:32, marginBottom:12 }}>🔍</div>
@@ -425,8 +465,11 @@ ${evidence}` : "",
         {investigations.slice().reverse().map((inv,i) => {
           const fc = INV_FINDING[inv.caseData?.findings?.overallFinding];
           const uc = RISK[inv.urgencyLevel]||RISK["Modéré"];
-          return <button key={i} onClick={()=>{ setCaseData(inv.caseData); setActiveTab("summary"); setSaved(true); setView("case"); }}
-            style={{ background:C.surfL, border:`1px solid ${INV_RED}28`, borderLeft:`3px solid ${INV_RED}`,
+          const isDraft = inv.status === "draft";
+          const fromMeeting = inv.source === "meeting-engine-express";
+          const accent = isDraft ? C.amber : INV_RED;
+          return <button key={i} onClick={()=>{ setCaseData(inv.caseData||{}); setOpenInvId(inv.id); setActiveTab("summary"); setSaved(true); setView("case"); }}
+            style={{ background:C.surfL, border:`1px solid ${accent}28`, borderLeft:`3px solid ${accent}`,
               borderRadius:8, padding:"12px 14px", cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif" }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
               <span style={{ fontSize:13, fontWeight:500, color:C.text }}>
@@ -450,11 +493,31 @@ ${evidence}` : "",
                 >✎</span>
               </span>
               <div style={{ display:"flex", gap:6 }}>
+                {isDraft && <InvTag label="BROUILLON" color={C.amber}/>}
+                {fromMeeting && <InvTag label="📎 via meeting" color={C.blue}/>}
                 {fc&&<InvTag label={inv.caseData?.findings?.overallFinding} color={fc.color}/>}
                 <InvTag label={`Urgence: ${inv.urgencyLevel}`} color={uc.color}/>
               </div>
             </div>
             <div style={{ fontSize:11, color:C.textM, display:"flex", gap:6, alignItems:"center" }}>{inv.caseId} · {inv.caseType} · {inv.savedAt}<ProvinceBadge province={getProvince(inv, data.profile)}/></div>
+            {isDraft && (
+              <div style={{ marginTop:8, padding:"8px 10px", background:C.amber+"10",
+                border:`1px solid ${C.amber}30`, borderRadius:6, display:"flex",
+                justifyContent:"space-between", alignItems:"center", gap:10 }}>
+                <span style={{ fontSize:11, color:C.textM, lineHeight:1.5 }}>
+                  Dossier minimal — les sections IA (plan, guide, preuve, conclusions, rapport) n'ont pas encore été générées.
+                </span>
+                <span
+                  onClick={(e) => { e.stopPropagation(); enrichDraft(inv); }}
+                  title="Fournir la plainte et le contexte, puis générer les sections IA. Le dossier sera promu en place (même caseId)."
+                  style={{ cursor:"pointer", fontSize:10, padding:"5px 10px",
+                    background:C.amber, color:"#fff", border:`1px solid ${C.amber}`,
+                    borderRadius:4, whiteSpace:"nowrap", fontWeight:600,
+                    fontFamily:"'DM Sans',sans-serif" }}>
+                  ✦ Compléter
+                </span>
+              </div>
+            )}
             {onNavigate && (
               <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
                 {Object.values(INV_ANGLES).map(a => (
@@ -532,8 +595,10 @@ ${evidence}` : "",
   if (view === "input") return (
     <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
-        <button onClick={()=>setView("list")} style={{ ...css.btn(C.textM,true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
-        <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Nouveau dossier d'enquête</div>
+        <button onClick={()=>{ setView("list"); setOpenInvId(null); }} style={{ ...css.btn(C.textM,true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+        <div style={{ fontSize:18, fontWeight:700, color:C.text }}>
+          {isDraftOpen ? `Compléter le brouillon · ${openInv?.caseId || ""}` : "Nouveau dossier d'enquête"}
+        </div>
       </div>
       <Card style={{ marginBottom:14 }}>
         <SecHead icon="🔍" label="Plainte ou signalement reçu *" color={INV_RED}/>
@@ -587,7 +652,7 @@ ${evidence}` : "",
             <div style={{ fontSize:16, fontWeight:700, color:"#fff", marginTop:4 }}>{caseData?.caseId} — {caseData?.caseTitle}</div>
           </div>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={()=>setView("list")} style={{ background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.3)", borderRadius:6, padding:"6px 12px", fontSize:11, color:"#fff", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>← Retour</button>
+            <button onClick={()=>{ setView("list"); setOpenInvId(null); }} style={{ background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.3)", borderRadius:6, padding:"6px 12px", fontSize:11, color:"#fff", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>← Retour</button>
             <button onClick={saveDossier} disabled={saved} style={{ background:saved?"rgba(255,255,255,.15)":"rgba(255,255,255,.25)", border:"1px solid rgba(255,255,255,.4)", borderRadius:6, padding:"6px 14px", fontSize:11, color:"#fff", cursor:saved?"default":"pointer", fontFamily:"'DM Sans',sans-serif" }}>{saved?"✓ Archivé":"💾 Archiver"}</button>
           </div>
         </div>
@@ -601,7 +666,39 @@ ${evidence}` : "",
               whiteSpace:"nowrap", transition:"all .15s", textTransform:"uppercase" }}>{t.num?`${t.num} · `:""}{t.label}</button>)}
         </div>
       </div>
-      <div>{RENDERERS[activeTab]&&RENDERERS[activeTab]()}</div>
+      {isDraftOpen && (
+        <div style={{ background:C.amber+"12", border:`1px solid ${C.amber}40`,
+          borderLeft:`4px solid ${C.amber}`, borderRadius:8,
+          padding:"14px 18px", marginBottom:14,
+          display:"flex", justifyContent:"space-between", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+          <div style={{ flex:"1 1 320px", minWidth:240 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:C.amber,
+              fontFamily:"'DM Mono',monospace", letterSpacing:1.2, marginBottom:4 }}>
+              ⚠ DOSSIER EN BROUILLON
+            </div>
+            <div style={{ fontSize:12, color:C.textM, lineHeight:1.6 }}>
+              {openInv?.source === "meeting-engine-express"
+                ? "Dossier ouvert depuis Meeting Engine pour rattacher une rencontre. Les sections d'enquête ne sont pas encore générées — complète le dossier pour activer plan, guide, preuve et conclusions."
+                : "Ce dossier n'a pas encore été enrichi par l'IA. Complète-le pour générer plan, guide, preuve, conclusions et rapport."}
+            </div>
+          </div>
+          <button onClick={() => openInv && enrichDraft(openInv)}
+            style={{ background:C.amber, color:"#fff", border:"none", borderRadius:6,
+              padding:"9px 14px", fontSize:12, fontWeight:600, cursor:"pointer",
+              whiteSpace:"nowrap", fontFamily:"'DM Sans',sans-serif" }}>
+            ✦ Compléter le dossier
+          </button>
+        </div>
+      )}
+      <div>{isDraftOpen
+        ? <Card style={{ textAlign:"center", padding:"36px 20px", borderStyle:"dashed" }}>
+            <div style={{ fontSize:26, marginBottom:10 }}>📝</div>
+            <div style={{ fontSize:13, color:C.textM, maxWidth:420, margin:"0 auto", lineHeight:1.6 }}>
+              Les sections détaillées apparaîtront après avoir complété le dossier.
+              Les badges d'angle et la création de rencontres restent disponibles depuis la liste.
+            </div>
+          </Card>
+        : (RENDERERS[activeTab] && RENDERERS[activeTab]())}</div>
     </div>
   );
 }

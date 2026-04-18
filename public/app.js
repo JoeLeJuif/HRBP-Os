@@ -5699,7 +5699,21 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const [error, setError] = (0, import_react11.useState)("");
     const [saved, setSaved] = (0, import_react11.useState)(false);
     const [gtab, setGtab] = (0, import_react11.useState)("complainant");
+    const [openInvId, setOpenInvId] = (0, import_react11.useState)(null);
     const investigations = data.investigations || [];
+    const openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null;
+    const isDraftOpen = !!(openInv && openInv.status === "draft");
+    const enrichDraft = (inv) => {
+      setOpenInvId(inv.id);
+      setComplaint("");
+      setContext("");
+      setParties("");
+      setPolicy("");
+      setEvidence("");
+      setInvProvince(inv.province || data.profile?.defaultProvince || "QC");
+      setError("");
+      setView("input");
+    };
     const generate = async () => {
       if (!complaint.trim()) return;
       setError("");
@@ -5741,9 +5755,33 @@ ${evidence}` : ""
     };
     const saveDossier = () => {
       if (!caseData || saved) return;
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      if (openInvId) {
+        const existing = investigations.find((x) => x.id === openInvId);
+        if (existing && existing.status === "draft") {
+          const merged = {
+            ...existing,
+            savedAt: today,
+            caseId: caseData.caseId || existing.caseId,
+            caseTitle: caseData.caseTitle || existing.caseTitle,
+            caseType: caseData.caseType || existing.caseType,
+            urgencyLevel: caseData.urgencyLevel || existing.urgencyLevel,
+            province: invProvince,
+            caseData,
+            status: "complete",
+            titleAuto: true,
+            enrichedAt: (/* @__PURE__ */ new Date()).toISOString()
+          };
+          merged.title = generateInvestigationTitle(merged);
+          const updated = investigations.map((x) => x.id === openInvId ? merged : x);
+          onSave("investigations", updated);
+          setSaved(true);
+          return;
+        }
+      }
       const inv = {
         id: Date.now().toString(),
-        savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        savedAt: today,
         caseId: caseData.caseId,
         caseTitle: caseData.caseTitle,
         caseType: caseData.caseType,
@@ -5756,6 +5794,7 @@ ${evidence}` : ""
       };
       inv.title = generateInvestigationTitle(inv);
       onSave("investigations", [...investigations, inv]);
+      setOpenInvId(inv.id);
       setSaved(true);
     };
     function renderSummary() {
@@ -5815,24 +5854,29 @@ ${evidence}` : ""
       setPolicy("");
       setEvidence("");
       setCaseData(null);
+      setOpenInvId(null);
       setView("input");
     }, style: { ...css.btn(INV_RED) } }, "\u{1F50D} Ouvrir un dossier d'enqu\xEAte")), investigations.length === 0 && /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "40px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 12 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.textM } }, "Aucun dossier d'enqu\xEAte archiv\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginTop: 4 } }, 'Clique sur "Ouvrir un dossier" pour d\xE9marrer une enqu\xEAte structur\xE9e')), investigations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, investigations.slice().reverse().map((inv, i) => {
       const fc = INV_FINDING[inv.caseData?.findings?.overallFinding];
       const uc = RISK[inv.urgencyLevel] || RISK["Mod\xE9r\xE9"];
+      const isDraft = inv.status === "draft";
+      const fromMeeting = inv.source === "meeting-engine-express";
+      const accent = isDraft ? C.amber : INV_RED;
       return /* @__PURE__ */ React.createElement(
         "button",
         {
           key: i,
           onClick: () => {
-            setCaseData(inv.caseData);
+            setCaseData(inv.caseData || {});
+            setOpenInvId(inv.id);
             setActiveTab("summary");
             setSaved(true);
             setView("case");
           },
           style: {
             background: C.surfL,
-            border: `1px solid ${INV_RED}28`,
-            borderLeft: `3px solid ${INV_RED}`,
+            border: `1px solid ${accent}28`,
+            borderLeft: `3px solid ${accent}`,
             borderRadius: 8,
             padding: "12px 14px",
             cursor: "pointer",
@@ -5860,8 +5904,41 @@ ${evidence}` : ""
             style: { cursor: "pointer", marginLeft: 8, opacity: 0.5, fontSize: 11 }
           },
           "\u270E"
-        )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, fc && /* @__PURE__ */ React.createElement(InvTag, { label: inv.caseData?.findings?.overallFinding, color: fc.color }), /* @__PURE__ */ React.createElement(InvTag, { label: `Urgence: ${inv.urgencyLevel}`, color: uc.color }))),
+        )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, isDraft && /* @__PURE__ */ React.createElement(InvTag, { label: "BROUILLON", color: C.amber }), fromMeeting && /* @__PURE__ */ React.createElement(InvTag, { label: "\u{1F4CE} via meeting", color: C.blue }), fc && /* @__PURE__ */ React.createElement(InvTag, { label: inv.caseData?.findings?.overallFinding, color: fc.color }), /* @__PURE__ */ React.createElement(InvTag, { label: `Urgence: ${inv.urgencyLevel}`, color: uc.color }))),
         /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, display: "flex", gap: 6, alignItems: "center" } }, inv.caseId, " \xB7 ", inv.caseType, " \xB7 ", inv.savedAt, /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(inv, data.profile) })),
+        isDraft && /* @__PURE__ */ React.createElement("div", { style: {
+          marginTop: 8,
+          padding: "8px 10px",
+          background: C.amber + "10",
+          border: `1px solid ${C.amber}30`,
+          borderRadius: 6,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10
+        } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5 } }, "Dossier minimal \u2014 les sections IA (plan, guide, preuve, conclusions, rapport) n'ont pas encore \xE9t\xE9 g\xE9n\xE9r\xE9es."), /* @__PURE__ */ React.createElement(
+          "span",
+          {
+            onClick: (e) => {
+              e.stopPropagation();
+              enrichDraft(inv);
+            },
+            title: "Fournir la plainte et le contexte, puis g\xE9n\xE9rer les sections IA. Le dossier sera promu en place (m\xEAme caseId).",
+            style: {
+              cursor: "pointer",
+              fontSize: 10,
+              padding: "5px 10px",
+              background: C.amber,
+              color: "#fff",
+              border: `1px solid ${C.amber}`,
+              borderRadius: 4,
+              whiteSpace: "nowrap",
+              fontWeight: 600,
+              fontFamily: "'DM Sans',sans-serif"
+            }
+          },
+          "\u2726 Compl\xE9ter"
+        )),
         onNavigate && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" } }, Object.values(INV_ANGLES).map((a) => /* @__PURE__ */ React.createElement(
           "span",
           {
@@ -5946,7 +6023,10 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
         })()
       );
     })));
-    if (view === "input") return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text } }, "Nouveau dossier d'enqu\xEAte")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead5, { icon: "\u{1F50D}", label: "Plainte ou signalement re\xE7u *", color: INV_RED }), /* @__PURE__ */ React.createElement(
+    if (view === "input") return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      setView("list");
+      setOpenInvId(null);
+    }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text } }, isDraftOpen ? `Compl\xE9ter le brouillon \xB7 ${openInv?.caseId || ""}` : "Nouveau dossier d'enqu\xEAte")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(SecHead5, { icon: "\u{1F50D}", label: "Plainte ou signalement re\xE7u *", color: INV_RED }), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         rows: 5,
@@ -5990,7 +6070,10 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
       "\u{1F50D} Ouvrir le dossier d'enqu\xEAte"
     )));
     if (view === "loading") return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 32px", gap: 24 } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Ouverture du dossier d'enqu\xEAte..." }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "ANALYSE \xB7 PLAN \xB7 GUIDE D'ENTREVUE \xB7 PREUVE \xB7 CONCLUSIONS"));
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 980, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { background: INV_RED, borderRadius: 10, padding: "16px 20px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: "rgba(255,255,255,.6)", size: 8 }, "Enqu\xEAtes & Investigations \xB7 Groupe IT Qu\xE9bec"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 4 } }, caseData?.caseId, " \u2014 ", caseData?.caseTitle)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.3)", borderRadius: 6, padding: "6px 12px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("button", { onClick: saveDossier, disabled: saved, style: { background: saved ? "rgba(255,255,255,.15)" : "rgba(255,255,255,.25)", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "6px 14px", fontSize: 11, color: "#fff", cursor: saved ? "default" : "pointer", fontFamily: "'DM Sans',sans-serif" } }, saved ? "\u2713 Archiv\xE9" : "\u{1F4BE} Archiver"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 0, marginTop: 12, overflowX: "auto" } }, [{ id: "input", label: "\u2190 Nouvelle saisie" }, ...INV_TABS].map((t) => /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 980, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { background: INV_RED, borderRadius: 10, padding: "16px 20px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: "rgba(255,255,255,.6)", size: 8 }, "Enqu\xEAtes & Investigations \xB7 Groupe IT Qu\xE9bec"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 4 } }, caseData?.caseId, " \u2014 ", caseData?.caseTitle)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      setView("list");
+      setOpenInvId(null);
+    }, style: { background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.3)", borderRadius: 6, padding: "6px 12px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "'DM Sans',sans-serif" } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("button", { onClick: saveDossier, disabled: saved, style: { background: saved ? "rgba(255,255,255,.15)" : "rgba(255,255,255,.25)", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "6px 14px", fontSize: 11, color: "#fff", cursor: saved ? "default" : "pointer", fontFamily: "'DM Sans',sans-serif" } }, saved ? "\u2713 Archiv\xE9" : "\u{1F4BE} Archiver"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 0, marginTop: 12, overflowX: "auto" } }, [{ id: "input", label: "\u2190 Nouvelle saisie" }, ...INV_TABS].map((t) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: t.id,
@@ -6019,7 +6102,44 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
       },
       t.num ? `${t.num} \xB7 ` : "",
       t.label
-    )))), /* @__PURE__ */ React.createElement("div", null, RENDERERS[activeTab] && RENDERERS[activeTab]()));
+    )))), isDraftOpen && /* @__PURE__ */ React.createElement("div", { style: {
+      background: C.amber + "12",
+      border: `1px solid ${C.amber}40`,
+      borderLeft: `4px solid ${C.amber}`,
+      borderRadius: 8,
+      padding: "14px 18px",
+      marginBottom: 14,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 14,
+      flexWrap: "wrap"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 320px", minWidth: 240 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.amber,
+      fontFamily: "'DM Mono',monospace",
+      letterSpacing: 1.2,
+      marginBottom: 4
+    } }, "\u26A0 DOSSIER EN BROUILLON"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6 } }, openInv?.source === "meeting-engine-express" ? "Dossier ouvert depuis Meeting Engine pour rattacher une rencontre. Les sections d'enqu\xEAte ne sont pas encore g\xE9n\xE9r\xE9es \u2014 compl\xE8te le dossier pour activer plan, guide, preuve et conclusions." : "Ce dossier n'a pas encore \xE9t\xE9 enrichi par l'IA. Compl\xE8te-le pour g\xE9n\xE9rer plan, guide, preuve, conclusions et rapport.")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => openInv && enrichDraft(openInv),
+        style: {
+          background: C.amber,
+          color: "#fff",
+          border: "none",
+          borderRadius: 6,
+          padding: "9px 14px",
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          fontFamily: "'DM Sans',sans-serif"
+        }
+      },
+      "\u2726 Compl\xE9ter le dossier"
+    )), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
   }
 
   // src/modules/AutoPrompt.jsx
