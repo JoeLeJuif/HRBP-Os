@@ -202,6 +202,55 @@ const FALLBACK_OUTPUT = {
   nextMeetingContext: "", nextMeetingQuestions: ["A definir"], crossQuestions: [], caseEntry: null,
 };
 
+// Per-type overrides layered on top of FALLBACK_OUTPUT when the AI call fails.
+// Only covers types where a contextual hint is clearly more useful than the generic text.
+const FALLBACK_BY_TYPE = {
+  "1on1": {
+    meetingTitle: "1:1 — a completer",
+    summary: ["Rencontre 1:1 a documenter manuellement.", "Revoir les notes relationnelles et de continuite."],
+    hrbpKeyMessage: "Generation IA indisponible — completer le 1:1 manuellement a partir des notes.",
+    hrbpFollowups: ["Relire les notes", "Identifier signaux relationnels", "Planifier le prochain 1:1"],
+  },
+  disciplinaire: {
+    meetingTitle: "Rencontre disciplinaire — a completer",
+    summary: ["Rencontre disciplinaire a documenter manuellement.", "Verifier cadre juridique et progressivite des mesures."],
+    hrbpKeyMessage: "Generation IA indisponible — completer manuellement avec cadre juridique et faits.",
+    overallRisk: "Eleve",
+    cadreJuridique: { politiquesVisees: [], loisApplicables: [], progressivite: "a justifier", progressiviteNote: "A completer manuellement" },
+    sanctions: [],
+    risquesLegaux: [],
+    hrbpFollowups: ["Documenter les faits", "Valider la progressivite", "Consulter contexte legal"],
+  },
+  performance: {
+    meetingTitle: "Rencontre performance — a completer",
+    summary: ["Discussion de performance a documenter manuellement.", "Definir ecarts mesurables et plan 30-60-90."],
+    hrbpKeyMessage: "Generation IA indisponible — completer manuellement ecarts, attentes et jalons.",
+    hrbpFollowups: ["Lister KPIs en ecart", "Clarifier attentes", "Definir jalons 30-60-90 jours"],
+    actions: [{ action: "Definir plan d amelioration 30-60-90 jours", owner: "HRBP + Gestionnaire", delai: "7 jours", priorite: "Elevee" }],
+  },
+  mediation: {
+    meetingTitle: "Mediation — a completer",
+    summary: ["Mediation a documenter manuellement.", "Positions, perceptions et attentes des deux parties a clarifier."],
+    hrbpKeyMessage: "Generation IA indisponible — completer manuellement les positions et le terrain commun.",
+    hrbpFollowups: ["Recueillir position partie A", "Recueillir position partie B", "Identifier terrain commun"],
+    partieA: { nom: "", position: "", perception: "", attentes: [] },
+    partieB: { nom: "", position: "", perception: "", attentes: [] },
+  },
+  enquete: {
+    meetingTitle: "Entrevue d enquete — a completer",
+    summary: ["Entrevue d enquete a documenter manuellement.", "Faits, temoins et chronologie a clarifier."],
+    hrbpKeyMessage: "Generation IA indisponible — completer manuellement faits et cadre legal.",
+    overallRisk: "Eleve",
+    cadreJuridique: { politiquesVisees: [], loisApplicables: [], progressivite: "non applicable", progressiviteNote: "Contexte d enquete" },
+    risquesLegaux: [],
+    hrbpFollowups: ["Documenter la chronologie", "Identifier les temoins", "Verifier le cadre legal"],
+  },
+};
+
+function buildFallbackOutput(engineType) {
+  return { ...FALLBACK_OUTPUT, ...(FALLBACK_BY_TYPE[engineType] || {}) };
+}
+
 // ── Build investigation context block for AI prompt enrichment ──────────────
 // Pulls from inv.caseData (caseSummary, plan, findings) — only what is set.
 function buildInvestigationCtxBlock(inv) {
@@ -470,7 +519,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     catch (err) {
       console.warn("[MeetingEngine] generateOutput AI call failed — using fallback:", err?.message);
       // Defensive fallback: enrich placeholders with investigation summary if available
-      const fb = { ...FALLBACK_OUTPUT };
+      const fb = buildFallbackOutput(engineType);
       if (linkedInv) {
         const cs = linkedInv.caseData?.caseSummary || {};
         fb.meetingTitle = `Entrevue enquete — ${linkedInv.caseTitle || linkedInv.title || linkedInv.caseId || ""}`.trim();
