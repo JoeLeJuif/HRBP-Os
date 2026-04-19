@@ -10,6 +10,7 @@ import Mono from '../components/Mono.jsx';
 import Divider from '../components/Divider.jsx';
 import ProvinceBadge from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
+import CaseBrief from '../components/CaseBrief.jsx';
 
 // Inline shared helper (used in multiple modules, to be reviewed at Bloc 7)
 function RiskBadge({ level }) {
@@ -469,6 +470,10 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
         {c.dueDate && <Mono color={C.purple}>Échéance: {c.dueDate}</Mono>}
         {c.closedDate && <Mono color={C.em}>Fermé: {c.closedDate}</Mono>}
       </div>
+
+      {/* ⚡ Brief Copilot — auto-généré à l'ouverture du dossier (display only) */}
+      <CaseBrief caseObj={c} data={data} />
+
       <Card>
         {[["Employé / Groupe",c.employee],["Département",c.department],["Situation",c.situation],
           ["Interventions",c.interventionsDone],["Décision",c.decision],["Position RH",c.hrPosition],

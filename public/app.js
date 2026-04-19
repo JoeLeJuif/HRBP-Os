@@ -28,7 +28,7 @@ var HRBPOSApp = (() => {
   __export(index_exports, {
     default: () => HRBPOS
   });
-  var import_react20 = __require("react");
+  var import_react21 = __require("react");
 
   // src/theme.js
   if (typeof document !== "undefined" && !document.getElementById("hrbp-fonts")) {
@@ -5045,7 +5045,411 @@ ${buildContext()}`, 3500);
   }
 
   // src/modules/Cases.jsx
+  var import_react12 = __require("react");
+
+  // src/components/CaseBrief.jsx
   var import_react11 = __require("react");
+
+  // src/prompts/copilot.js
+  var CASE_BRIEF_SP = `Tu es un HRBP senior (Qu\xE9bec / Canada, contexte IT corporatif).
+
+\xC0 l'ouverture d'un dossier RH, produis un BRIEF de 30 secondes \u2014 pas une analyse compl\xE8te.
+
+# OBJECTIF
+
+Aider le HRBP \xE0 entrer dans le dossier en quelques secondes :
+\u2014 nommer la nature probable du dossier (au-del\xE0 du type d\xE9clar\xE9)
+\u2014 faire ressortir 3 risques principaux concrets
+\u2014 sugg\xE9rer 2-3 questions chirurgicales \xE0 poser AVANT d'agir
+\u2014 rappeler le cadre l\xE9gal applicable (province fournie)
+\u2014 mentionner un cas similaire si l'OS en contient un
+
+# FORMAT (OBLIGATOIRE)
+
+Rends EXACTEMENT ces sections markdown, dans cet ordre, avec ces titres EXACTS :
+
+## Nature probable
+Une seule phrase. Va au-del\xE0 du type d\xE9clar\xE9 (ex: "d\xE9clar\xE9 'performance' mais le profil ressemble \xE0 un \xE9vitement manag\xE9rial").
+
+## Risques principaux
+Exactement 3 puces (- ). Concrets, pas g\xE9n\xE9riques. Une phrase chacun.
+
+## Questions \xE0 poser
+2 ou 3 puces (- ). Questions \xE0 poser au gestionnaire ou \xE0 l'employ\xE9 AVANT toute action. Chirurgicales, pas ouvertes.
+
+## Cadre l\xE9gal
+Province + 1 ou 2 points l\xE9gaux qui s'appliquent vraiment. Si rien de critique : "Pas d'enjeu l\xE9gal critique identifi\xE9 \xE0 ce stade \u2014 vigilance standard."
+
+## Cas similaire
+Si un cas similaire ferm\xE9/r\xE9solu est fourni dans le contexte : "Ressemble \xE0 : [titre] \u2014 [1 ligne sur la r\xE9solution ou le pi\xE8ge]." Sinon, OMETS compl\xE8tement cette section (ne mets pas de titre vide).
+
+# R\xC8GLES
+
+\u2014 Maximum 200 mots au total
+\u2014 Aucune g\xE9n\xE9ralit\xE9 RH ("il faudrait \xE9valuer la situation" = interdit)
+\u2014 Si l'info manque, dis-le clairement ("situation non document\xE9e \u2014 \xE0 questionner d'abord")
+\u2014 Pas de section bonus, pas de conclusion, pas d'introduction
+\u2014 Ton direct, factuel, HRBP senior \u2014 pas diplomate`;
+  var COPILOT_SP = `You are the embedded strategic intelligence layer of my HRBP OS.
+
+You are not a generic HR assistant.
+
+You operate as a Senior HR Business Partner in a fast-paced IT / corporate environment (Quebec / Canada context), with full visibility on ongoing cases, signals, history, and internal playbooks.
+
+Your role is to think, diagnose, and act using ALL available context \u2014 not just the current input.
+
+---
+
+# CORE PRINCIPLE
+
+Never analyze a situation in isolation.
+
+Always integrate:
+
+* active cases
+* past patterns
+* signals
+* manager behavior over time
+* existing actions and follow-ups
+* internal HRBP playbooks and knowledge
+
+You must behave like a HRBP who has been following these situations for months.
+
+---
+
+# INPUT CONTEXT
+
+You will receive structured context in this format:
+
+## ACTIVE CASES
+
+[List of ongoing HR cases]
+
+## SIGNALS
+
+[Weak signals, employee feedback, manager behavior indicators]
+
+## RECENT HISTORY
+
+[Recent meetings, decisions, coaching interactions]
+
+## OPEN ACTIONS / FOLLOW-UPS
+
+[Actions that were supposed to be done, deadlines, status]
+
+## INTERNAL PLAYBOOKS
+
+[Relevant HRBP playbooks / workshop frameworks]
+
+## KNOWLEDGE BASE (IF RELEVANT)
+
+[Legal, performance, compensation, immigration, etc.]
+
+## USER SITUATION
+
+[The current situation to analyze]
+
+---
+
+# YOUR MISSION
+
+You must:
+
+1. Analyze the situation
+2. Cross-reference ALL available context
+3. Detect patterns, inconsistencies, or escalation
+4. Match the situation to the most relevant internal playbook(s)
+5. Apply those frameworks
+6. Produce a clear, high-judgment HRBP recommendation
+
+---
+
+# REQUIRED THINKING PROCESS
+
+You MUST think through:
+
+* Is this an isolated issue or part of a pattern?
+* Is the real problem the employee, the manager, or the system?
+* What has already been tried?
+* What has NOT been done that should have been done?
+* Is there avoidance, delay, or denial happening?
+* What risk is increasing over time?
+
+---
+
+# PLAYBOOK MATCHING (MANDATORY)
+
+You must explicitly identify:
+
+* Primary playbook
+* Secondary playbook (if applicable)
+* Supporting knowledge area
+
+If the situation matches a known pattern, you MUST say it clearly.
+
+Example:
+"This is not a new issue \u2014 this matches a 'manager avoiding difficult conversations' pattern already visible in previous cases."
+
+---
+
+# PATTERN DETECTION (CRITICAL)
+
+You must actively look for:
+
+* Repeated manager behavior
+* Multiple similar cases
+* Signals that confirm escalation
+* Lack of follow-through on actions
+* Misalignment between what was said and what was done
+
+If a pattern exists, you must say it clearly and directly.
+
+---
+
+# ACCOUNTABILITY LOGIC
+
+You must clearly distinguish:
+
+* What is HRBP responsibility
+* What is manager responsibility
+* What should NOT be owned by HR
+
+If a manager is avoiding, minimizing, or delaying:
+\u2192 call it out directly
+
+---
+
+# RESPONSE FORMAT (MANDATORY)
+
+## 1. Diagnostic
+
+* What is really happening
+* Root cause vs symptom
+* Pattern vs isolated issue
+
+## 2. Context insight
+
+* What in the cases, signals, or history changes the interpretation
+* What is new vs what is repeating
+
+## 3. Best internal match
+
+* Primary playbook
+* Secondary playbook / knowledge
+* Why these apply
+
+## 4. Risk assessment
+
+* People risk
+* Managerial risk
+* Organizational risk
+* Legal / compliance risk (if relevant)
+* Time sensitivity (is this getting worse?)
+
+## 5. HRBP posture
+
+* What I must own
+* What the manager must own
+* Where I need to push or challenge
+
+## 6. Recommended intervention
+
+* What to do now (immediate)
+* What to do this week
+* What to do next
+* What must stop immediately
+
+## 7. Suggested wording (French)
+
+Give concrete, realistic HRBP language for the next conversation.
+
+Be direct, not overly diplomatic.
+
+## 8. Watchouts
+
+* Signals to monitor
+* Mistakes to avoid
+* Escalation triggers
+
+---
+
+# BEHAVIOR RULES
+
+* Do NOT give generic HR advice
+* Do NOT ignore past context
+* Do NOT stay neutral if the situation requires escalation
+* Do NOT over-coach when discipline is needed
+* Do NOT over-focus on policy when the issue is managerial behavior
+* Do NOT soften reality unnecessarily
+
+You are allowed to challenge assumptions.
+
+---
+
+# PRIORITY ORDER
+
+When in doubt, prioritize:
+
+1. Legal / compliance reality
+2. Pattern detection
+3. Manager accountability
+4. Organizational risk
+5. Employee experience
+6. Communication style
+
+---
+
+# FINAL MINDSET
+
+You are not here to provide options.
+
+You are here to help me take the right decision, at the right time, with the full context of my HRBP OS.
+
+Be sharp, structured, and decisive.`;
+
+  // src/components/CaseBrief.jsx
+  var briefCache = /* @__PURE__ */ new Map();
+  function findSimilarCase(caseObj, allCases) {
+    if (!caseObj?.type) return null;
+    return (allCases || []).find(
+      (c) => c.id !== caseObj.id && c.type === caseObj.type && (c.status === "resolved" || c.status === "closed")
+    ) || null;
+  }
+  function buildBriefUserMsg(caseObj, data) {
+    const province = caseObj.province || data.profile?.defaultProvince || "QC";
+    const legalCtx = buildLegalPromptContext(province);
+    const similar = findSimilarCase(caseObj, data.cases);
+    const similarBlock = similar ? `## CAS SIMILAIRE DANS L'OS
+
+Titre : ${similar.title || "(sans titre)"}
+Statut : ${similar.status || ""}
+D\xE9cision / R\xE9solution : ${similar.decision || similar.hrPosition || "(non document\xE9e)"}
+Notes : ${similar.notes || "(aucune)"}` : `## CAS SIMILAIRE
+
+Aucun cas similaire ferm\xE9 ou r\xE9solu trouv\xE9 dans l'OS.`;
+    return `## DOSSIER OUVERT
+
+Titre : ${caseObj.title || "(sans titre)"}
+Type : ${caseObj.type || "non d\xE9fini"}
+Risque d\xE9clar\xE9 : ${caseObj.riskLevel || "non d\xE9fini"}
+Urgence : ${caseObj.urgency || "non d\xE9finie"}
+\xC9volution : ${caseObj.evolution || "non renseign\xE9e"}
+Posture RH : ${caseObj.hrPosture || "non renseign\xE9e"}
+Province : ${province}
+Gestionnaire : ${caseObj.director || "non d\xE9fini"}
+Employ\xE9 / Groupe : ${caseObj.employee || "non d\xE9fini"}
+D\xE9partement : ${caseObj.department || "non d\xE9fini"}
+
+Situation : ${caseObj.situation || "(non document\xE9e)"}
+Interventions d\xE9j\xE0 faites : ${caseObj.interventionsDone || "(aucune)"}
+Position RH actuelle : ${caseObj.hrPosition || "(non d\xE9finie)"}
+D\xE9cision actuelle : ${caseObj.decision || "(aucune)"}
+Notes HRBP : ${caseObj.notes || "(aucune)"}
+
+## CADRE L\xC9GAL APPLICABLE (${province})
+
+${legalCtx}
+
+${similarBlock}`;
+  }
+  function renderBrief(raw) {
+    if (!raw) return null;
+    const sections = [];
+    let current = null;
+    for (const line of raw.split("\n")) {
+      if (line.startsWith("## ")) {
+        if (current) sections.push(current);
+        current = { heading: line.replace(/^##\s*/, "").trim(), lines: [] };
+      } else if (current) {
+        current.lines.push(line);
+      }
+    }
+    if (current) sections.push(current);
+    return sections.map((s, i) => {
+      const body = s.lines.join("\n").trim();
+      if (!body) return null;
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, s.heading.toUpperCase()), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, color: C.text, lineHeight: 1.6, marginTop: 4 } }, body.split("\n").map((line, j) => {
+        if (line.startsWith("- ") || line.startsWith("* ")) {
+          return /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 8, marginBottom: 3, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 10, marginTop: 4, flexShrink: 0 } }, "\u25B8"), /* @__PURE__ */ React.createElement("span", null, line.replace(/^[-*]\s*/, "")));
+        }
+        if (line.trim() === "") return /* @__PURE__ */ React.createElement("div", { key: j, style: { height: 4 } });
+        return /* @__PURE__ */ React.createElement("div", { key: j, style: { marginBottom: 2 } }, line);
+      })));
+    }).filter(Boolean);
+  }
+  function CaseBrief({ caseObj, data }) {
+    const cached = briefCache.get(caseObj.id) || null;
+    const [text, setText] = (0, import_react11.useState)(cached);
+    const [loading, setLoading] = (0, import_react11.useState)(!cached);
+    const [error, setError] = (0, import_react11.useState)("");
+    const [refreshTick, setRefreshTick] = (0, import_react11.useState)(0);
+    const lastKeyRef = (0, import_react11.useRef)(null);
+    (0, import_react11.useEffect)(() => {
+      const key = `${caseObj.id}::${refreshTick}`;
+      if (lastKeyRef.current === key) return;
+      lastKeyRef.current = key;
+      if (refreshTick === 0 && briefCache.has(caseObj.id)) {
+        setText(briefCache.get(caseObj.id));
+        setLoading(false);
+        setError("");
+        return;
+      }
+      let cancelled = false;
+      setText(null);
+      setError("");
+      setLoading(true);
+      callAIText(CASE_BRIEF_SP, buildBriefUserMsg(caseObj, data), 1e3).then((t) => {
+        if (cancelled) return;
+        briefCache.set(caseObj.id, t);
+        setText(t);
+      }).catch((e) => {
+        if (!cancelled) setError(e.message || "Erreur brief");
+      }).finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [caseObj.id, refreshTick]);
+    const regenerate = () => {
+      briefCache.delete(caseObj.id);
+      setRefreshTick((t) => t + 1);
+    };
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      background: C.em + "0a",
+      border: `1px solid ${C.em}33`,
+      borderLeft: `3px solid ${C.em}`,
+      borderRadius: 8,
+      padding: "12px 14px",
+      marginBottom: 16
+    } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: loading || error || text ? 10 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u26A1"), /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 10 }, "BRIEF COPILOT (30 SEC)"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 } }, loading && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "G\xE9n\xE9ration\u2026"), !loading && (text || error) && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: regenerate,
+        title: "R\xE9g\xE9n\xE9rer le brief",
+        style: {
+          background: "none",
+          border: `1px solid ${C.border}`,
+          color: C.textD,
+          borderRadius: 5,
+          padding: "2px 8px",
+          fontSize: 10,
+          cursor: "pointer",
+          fontFamily: "'DM Mono',monospace"
+        }
+      },
+      "\u21BB R\xE9g\xE9n\xE9rer"
+    ))), loading && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "4px 0" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      width: 14,
+      height: 14,
+      border: `2px solid ${C.surfLL}`,
+      borderTop: `2px solid ${C.em}`,
+      borderRadius: "50%",
+      animation: "spin 1s linear infinite"
+    } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "Lecture du dossier \xB7 cadre l\xE9gal \xB7 cas similaires\u2026")), error && !loading && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red } }, "\u26A0 Brief indisponible : ", error), text && !loading && renderBrief(text));
+  }
+
+  // src/modules/Cases.jsx
   function RiskBadge2({ level }) {
     const norm = normalizeRisk(level);
     const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
@@ -5441,15 +5845,15 @@ ${buildContext()}`, 3500);
     return lines.join("\n");
   }
   function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
-    const [view, setView] = (0, import_react11.useState)("list");
-    const [form, setForm] = (0, import_react11.useState)({ ...EMPTY_FORM });
-    const [editId, setEditId] = (0, import_react11.useState)(null);
-    const [detail, setDetail] = (0, import_react11.useState)(null);
-    const [copied, setCopied] = (0, import_react11.useState)(false);
-    const [search, setSearch] = (0, import_react11.useState)("");
-    const [filterStatus, setFilterStatus] = (0, import_react11.useState)("all");
-    const [filterProvince, setFilterProvince] = (0, import_react11.useState)("");
-    (0, import_react11.useEffect)(() => {
+    const [view, setView] = (0, import_react12.useState)("list");
+    const [form, setForm] = (0, import_react12.useState)({ ...EMPTY_FORM });
+    const [editId, setEditId] = (0, import_react12.useState)(null);
+    const [detail, setDetail] = (0, import_react12.useState)(null);
+    const [copied, setCopied] = (0, import_react12.useState)(false);
+    const [search, setSearch] = (0, import_react12.useState)("");
+    const [filterStatus, setFilterStatus] = (0, import_react12.useState)("all");
+    const [filterProvince, setFilterProvince] = (0, import_react12.useState)("");
+    (0, import_react12.useEffect)(() => {
       if (!focusCaseId) return;
       const target = (data.cases || []).find((c) => c.id === focusCaseId);
       if (target) {
@@ -5611,7 +6015,7 @@ ${buildContext()}`, 3500);
         if (ld.length === 0 || !onNavigate) return null;
         const latest = [...ld].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
         return /* @__PURE__ */ React.createElement("span", { onClick: () => onNavigate("decisions", { focusDecisionId: latest.id }), style: { cursor: "pointer" }, title: ld.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la d\xE9cision la plus r\xE9cente (${ld.length} li\xE9es)` }, /* @__PURE__ */ React.createElement(Badge, { label: ld.length === 1 ? "\u2696 D\xE9cision" : `\u2696 D\xE9cisions (${ld.length})`, color: C.purple, size: 9 }));
-      })(), c.owner && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Owner \xB7 ", c.owner), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.openDate && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Ouvert: ", c.openDate), c.dueDate && /* @__PURE__ */ React.createElement(Mono, { color: C.purple }, "\xC9ch\xE9ance: ", c.dueDate), c.closedDate && /* @__PURE__ */ React.createElement(Mono, { color: C.em }, "Ferm\xE9: ", c.closedDate)), /* @__PURE__ */ React.createElement(Card, null, [
+      })(), c.owner && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Owner \xB7 ", c.owner), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.openDate && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Ouvert: ", c.openDate), c.dueDate && /* @__PURE__ */ React.createElement(Mono, { color: C.purple }, "\xC9ch\xE9ance: ", c.dueDate), c.closedDate && /* @__PURE__ */ React.createElement(Mono, { color: C.em }, "Ferm\xE9: ", c.closedDate)), /* @__PURE__ */ React.createElement(CaseBrief, { caseObj: c, data }), /* @__PURE__ */ React.createElement(Card, null, [
         ["Employ\xE9 / Groupe", c.employee],
         ["D\xE9partement", c.department],
         ["Situation", c.situation],
@@ -5797,7 +6201,7 @@ ${buildContext()}`, 3500);
   }
 
   // src/modules/Investigation.jsx
-  var import_react12 = __require("react");
+  var import_react13 = __require("react");
 
   // src/prompts/investigation.js
   var INV_SP_1 = `Tu es un expert en enquetes en milieu de travail au Canada et au Quebec, forme selon les standards Rubin Thomlinson. Tu travailles avec Samuel Chartrand, HRBP senior.
@@ -5998,24 +6402,24 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     "Preuve insuffisante": { color: C.textM, icon: "\u25CC" }
   };
   function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
-    const [view, setView] = (0, import_react12.useState)("list");
-    const [complaint, setComplaint] = (0, import_react12.useState)("");
-    const [context, setContext] = (0, import_react12.useState)("");
-    const [parties, setParties] = (0, import_react12.useState)("");
-    const [policy, setPolicy] = (0, import_react12.useState)("");
-    const [evidence, setEvidence] = (0, import_react12.useState)("");
-    const [invProvince, setInvProvince] = (0, import_react12.useState)("QC");
-    const [invPrompt, setInvPrompt] = (0, import_react12.useState)("");
-    const [activeTab, setActiveTab] = (0, import_react12.useState)("summary");
-    const [caseData, setCaseData] = (0, import_react12.useState)(null);
-    const [error, setError] = (0, import_react12.useState)("");
-    const [saved, setSaved] = (0, import_react12.useState)(false);
-    const [gtab, setGtab] = (0, import_react12.useState)("complainant");
-    const [openInvId, setOpenInvId] = (0, import_react12.useState)(null);
+    const [view, setView] = (0, import_react13.useState)("list");
+    const [complaint, setComplaint] = (0, import_react13.useState)("");
+    const [context, setContext] = (0, import_react13.useState)("");
+    const [parties, setParties] = (0, import_react13.useState)("");
+    const [policy, setPolicy] = (0, import_react13.useState)("");
+    const [evidence, setEvidence] = (0, import_react13.useState)("");
+    const [invProvince, setInvProvince] = (0, import_react13.useState)("QC");
+    const [invPrompt, setInvPrompt] = (0, import_react13.useState)("");
+    const [activeTab, setActiveTab] = (0, import_react13.useState)("summary");
+    const [caseData, setCaseData] = (0, import_react13.useState)(null);
+    const [error, setError] = (0, import_react13.useState)("");
+    const [saved, setSaved] = (0, import_react13.useState)(false);
+    const [gtab, setGtab] = (0, import_react13.useState)("complainant");
+    const [openInvId, setOpenInvId] = (0, import_react13.useState)(null);
     const investigations = data.investigations || [];
     const openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null;
     const isDraftOpen = !!(openInv && openInv.status === "draft");
-    (0, import_react12.useEffect)(() => {
+    (0, import_react13.useEffect)(() => {
       if (!focusInvestigationId) return;
       const target = investigations.find((x) => x.id === focusInvestigationId);
       if (target) {
@@ -6475,7 +6879,7 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
   }
 
   // src/modules/AutoPrompt.jsx
-  var import_react13 = __require("react");
+  var import_react14 = __require("react");
 
   // src/utils/situations.js
   var APE_TEMPLATES = {
@@ -7210,11 +7614,11 @@ Pr\xE9pare la conversation d'accueil:
 
   // src/modules/AutoPrompt.jsx
   function ModuleAutoPrompt({ data }) {
-    const [selected, setSelected] = (0, import_react13.useState)(null);
-    const [mode, setMode] = (0, import_react13.useState)(null);
-    const [generated, setGenerated] = (0, import_react13.useState)("");
-    const [copied, setCopied] = (0, import_react13.useState)(false);
-    const [variant, setVariant] = (0, import_react13.useState)(null);
+    const [selected, setSelected] = (0, import_react14.useState)(null);
+    const [mode, setMode] = (0, import_react14.useState)(null);
+    const [generated, setGenerated] = (0, import_react14.useState)("");
+    const [copied, setCopied] = (0, import_react14.useState)(false);
+    const [variant, setVariant] = (0, import_react14.useState)(null);
     const situations = detectSituations(data);
     const riskC = (r) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue, "Faible": C.em })[r] || C.textD;
     const generate = (sit, m, vari) => {
@@ -7451,7 +7855,7 @@ Pr\xE9pare la conversation d'accueil:
   }
 
   // src/modules/Meetings.jsx
-  var import_react16 = __require("react");
+  var import_react17 = __require("react");
 
   // src/utils/caseStatus.js
   var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
@@ -7562,7 +7966,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
 {"meetingTitle":"titre incluant semaine ou date","director":"facilitateur ou null","meetingDate":"date ou null","overallRisk":"Critique|Eleve|Modere|Faible","overallRiskRationale":"1 phrase sur l etat global du portefeuille","summary":["point 1","point 2","point 3"],"initiatives":[{"nom":"nom exact","categorie":"Performance|Talent|Culture|Processus RH|Leadership|Engagement|Technologie|Conformite|Autre","responsable":"nom ou role ou null","statut":"Planifiee|En cours|En attente|Bloquee|Completee|Annulee","avancement":"0-25%|25-50%|50-75%|75-100%|Complete","statutDetail":"ou on en est \u2014 1 phrase","dateDebut":"date ou null","dateCible":"date cible ou null","changementSemaine":"ce qui a avance cette semaine ou null","blocages":["blocage identifie"],"risque":"Eleve|Modere|Faible","risqueDetail":"enjeu principal ou null","prochainePriorite":"prochaine action avec owner","impactOrg":"impact attendu en 1 phrase"}],"blocagesGlobaux":[{"blocage":"description","initiativesConcernees":["nom"],"actionRequise":"action","owner":"HRBP|Direction|Gestionnaire|Externe"}],"decisions":[{"decision":"decision prise ou a prendre","initiative":"nom","echeance":"delai ou null"}],"actions":[{"action":"action concrete","delay":"Immediat|7 jours|30 jours|Continu","owner":"HRBP|Direction|Gestionnaire","initiative":"nom ou null"}],"metriques":{"total":0,"enCours":0,"bloquees":0,"completees":0,"aRisque":0},"questions":[{"question":"question pour prochain meeting","why":"objectif strategique","initiative":"nom ou null"}]}`;
 
   // src/modules/Prep1on1.jsx
-  var import_react14 = __require("react");
+  var import_react15 = __require("react");
   function RiskBadge3({ level }) {
     const r = RISK[level] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: level, color: r.color });
@@ -7647,7 +8051,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     { value: "other", label: "Autre" }
   ];
   function PrepObsSelector({ label, values }) {
-    const [selected, setSelected] = (0, import_react14.useState)(null);
+    const [selected, setSelected] = (0, import_react15.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
@@ -7682,8 +8086,8 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
   };
   function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    const [pTab, setPTab] = (0, import_react14.useState)("context");
-    const [ctx, setCtx] = (0, import_react14.useState)({
+    const [pTab, setPTab] = (0, import_react15.useState)("context");
+    const [ctx, setCtx] = (0, import_react15.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -7694,19 +8098,19 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
       recentData: "",
       alerts: ""
     });
-    const [prep, setPrep] = (0, import_react14.useState)(null);
-    const [prepLoading, setPrepLoading] = (0, import_react14.useState)(false);
-    const [prepAI, setPrepAI] = (0, import_react14.useState)(false);
-    const [notes, setNotes] = (0, import_react14.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
-    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react14.useState)({ transcript: "", keyPoints: "" });
-    const [output, setOutput] = (0, import_react14.useState)(null);
-    const [outputLoading, setOutputLoading] = (0, import_react14.useState)(false);
-    const [copied, setCopied] = (0, import_react14.useState)(false);
-    const [saved1on1, setSaved1on1] = (0, import_react14.useState)(false);
-    const [prepPrompt, setPrepPrompt] = (0, import_react14.useState)("");
-    const [outputPrompt, setOutputPrompt] = (0, import_react14.useState)("");
-    const [sigExp, setSigExp] = (0, import_react14.useState)({});
-    const [histExp, setHistExp] = (0, import_react14.useState)({});
+    const [prep, setPrep] = (0, import_react15.useState)(null);
+    const [prepLoading, setPrepLoading] = (0, import_react15.useState)(false);
+    const [prepAI, setPrepAI] = (0, import_react15.useState)(false);
+    const [notes, setNotes] = (0, import_react15.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react15.useState)({ transcript: "", keyPoints: "" });
+    const [output, setOutput] = (0, import_react15.useState)(null);
+    const [outputLoading, setOutputLoading] = (0, import_react15.useState)(false);
+    const [copied, setCopied] = (0, import_react15.useState)(false);
+    const [saved1on1, setSaved1on1] = (0, import_react15.useState)(false);
+    const [prepPrompt, setPrepPrompt] = (0, import_react15.useState)("");
+    const [outputPrompt, setOutputPrompt] = (0, import_react15.useState)("");
+    const [sigExp, setSigExp] = (0, import_react15.useState)({});
+    const [histExp, setHistExp] = (0, import_react15.useState)({});
     const managerHistory = (data.meetings || []).filter((m) => {
       if (!m.director || !ctx.managerName) return false;
       return normKey(m.director) === normKey(ctx.managerName);
@@ -8718,7 +9122,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   }
 
   // src/modules/MeetingEngine.jsx
-  var import_react15 = __require("react");
+  var import_react16 = __require("react");
 
   // src/utils/leaderStore.js
   var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
@@ -9133,7 +9537,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     { id: "transition", label: "Transition", icon: "\u{1F680}", color: C.em, legal: false, desc: "Annoncer ou accompagner un changement de r\xF4le, \xE9quipe ou structure" }
   ];
   function PrepObsSelector2({ label, values }) {
-    const [selected, setSelected] = (0, import_react15.useState)(null);
+    const [selected, setSelected] = (0, import_react16.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
@@ -9275,10 +9679,10 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     ));
   }
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    const [pTab, setPTab] = (0, import_react15.useState)("context");
-    const [engineType, setEngineType] = (0, import_react15.useState)("1on1");
-    const [niveau, setNiveau] = (0, import_react15.useState)("gestionnaire");
-    const [ctx, setCtx] = (0, import_react15.useState)({
+    const [pTab, setPTab] = (0, import_react16.useState)("context");
+    const [engineType, setEngineType] = (0, import_react16.useState)("1on1");
+    const [niveau, setNiveau] = (0, import_react16.useState)("gestionnaire");
+    const [ctx, setCtx] = (0, import_react16.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -9289,21 +9693,21 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       recentData: "",
       alerts: ""
     });
-    const [managerManual, setManagerManual] = (0, import_react15.useState)(false);
-    const [prep, setPrep] = (0, import_react15.useState)(null);
-    const [prepLoading, setPrepLoading] = (0, import_react15.useState)(false);
-    const [prepAI, setPrepAI] = (0, import_react15.useState)(false);
-    const [notes, setNotes] = (0, import_react15.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
-    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react15.useState)({ transcript: "", keyPoints: "" });
-    const [output, setOutput] = (0, import_react15.useState)(null);
-    const [outputLoading, setOutputLoading] = (0, import_react15.useState)(false);
-    const [copied, setCopied] = (0, import_react15.useState)(false);
-    const [saved1on1, setSaved1on1] = (0, import_react15.useState)(false);
-    const [prepPrompt, setPrepPrompt] = (0, import_react15.useState)("");
-    const [outputPrompt, setOutputPrompt] = (0, import_react15.useState)("");
-    const [sigExp, setSigExp] = (0, import_react15.useState)({});
-    const [histExp, setHistExp] = (0, import_react15.useState)({});
-    const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react15.useState)(null);
+    const [managerManual, setManagerManual] = (0, import_react16.useState)(false);
+    const [prep, setPrep] = (0, import_react16.useState)(null);
+    const [prepLoading, setPrepLoading] = (0, import_react16.useState)(false);
+    const [prepAI, setPrepAI] = (0, import_react16.useState)(false);
+    const [notes, setNotes] = (0, import_react16.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" });
+    const [meetingAnalysis, setMeetingAnalysis] = (0, import_react16.useState)({ transcript: "", keyPoints: "" });
+    const [output, setOutput] = (0, import_react16.useState)(null);
+    const [outputLoading, setOutputLoading] = (0, import_react16.useState)(false);
+    const [copied, setCopied] = (0, import_react16.useState)(false);
+    const [saved1on1, setSaved1on1] = (0, import_react16.useState)(false);
+    const [prepPrompt, setPrepPrompt] = (0, import_react16.useState)("");
+    const [outputPrompt, setOutputPrompt] = (0, import_react16.useState)("");
+    const [sigExp, setSigExp] = (0, import_react16.useState)({});
+    const [histExp, setHistExp] = (0, import_react16.useState)({});
+    const [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react16.useState)(null);
     const needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId;
     const makeExpressCaseId = (existing) => {
       const year = (/* @__PURE__ */ new Date()).getFullYear();
@@ -9337,7 +9741,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       setLinkedInvestigationId(draft.id);
       console.info("[MeetingEngine] express investigation created", { id: draft.id, caseId: draft.caseId });
     };
-    (0, import_react15.useEffect)(() => {
+    (0, import_react16.useEffect)(() => {
       try {
         if (typeof sessionStorage === "undefined") return;
         const raw = sessionStorage.getItem("hrbpos:pendingMeetingContext");
@@ -10295,23 +10699,23 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item === "string" ? item : item.text || JSON.stringify(item)))));
   }
   function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
-    const [view, setView] = (0, import_react16.useState)("list");
-    const [transcript, setTranscript] = (0, import_react16.useState)("");
-    const [meetingType, setMeetingType] = (0, import_react16.useState)("director");
-    const [meetingProvince, setMeetingProvince] = (0, import_react16.useState)("QC");
-    const [dirName, setDirName] = (0, import_react16.useState)("");
-    const [context, setContext] = (0, import_react16.useState)("");
-    const [loading, setLoading] = (0, import_react16.useState)(false);
-    const [error, setError] = (0, import_react16.useState)("");
-    const [result, setResult] = (0, import_react16.useState)(null);
-    const [saved, setSaved] = (0, import_react16.useState)(false);
-    const [briefPrompt, setBriefPrompt] = (0, import_react16.useState)("");
-    const [meetingPrompt, setMeetingPrompt] = (0, import_react16.useState)("");
-    const [activeDir, setActiveDir] = (0, import_react16.useState)(null);
-    const [activeSession, setActiveSession] = (0, import_react16.useState)(null);
-    const [meetingDate, setMeetingDate] = (0, import_react16.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [meetingScope, setMeetingScope] = (0, import_react16.useState)("leader");
-    (0, import_react16.useEffect)(() => {
+    const [view, setView] = (0, import_react17.useState)("list");
+    const [transcript, setTranscript] = (0, import_react17.useState)("");
+    const [meetingType, setMeetingType] = (0, import_react17.useState)("director");
+    const [meetingProvince, setMeetingProvince] = (0, import_react17.useState)("QC");
+    const [dirName, setDirName] = (0, import_react17.useState)("");
+    const [context, setContext] = (0, import_react17.useState)("");
+    const [loading, setLoading] = (0, import_react17.useState)(false);
+    const [error, setError] = (0, import_react17.useState)("");
+    const [result, setResult] = (0, import_react17.useState)(null);
+    const [saved, setSaved] = (0, import_react17.useState)(false);
+    const [briefPrompt, setBriefPrompt] = (0, import_react17.useState)("");
+    const [meetingPrompt, setMeetingPrompt] = (0, import_react17.useState)("");
+    const [activeDir, setActiveDir] = (0, import_react17.useState)(null);
+    const [activeSession, setActiveSession] = (0, import_react17.useState)(null);
+    const [meetingDate, setMeetingDate] = (0, import_react17.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [meetingScope, setMeetingScope] = (0, import_react17.useState)("leader");
+    (0, import_react17.useEffect)(() => {
       if (!focusMeetingId) return;
       const meetings2 = data.meetings || [];
       console.log("[focus]", focusMeetingId, meetings2.map((m) => m.id));
@@ -10421,11 +10825,11 @@ ${t}`;
       { id: "questions", icon: "\u{1F4AC}", label: "Questions", badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
       { id: "case", icon: "\u{1F4C2}", label: "Case Log" }
     ];
-    const [tab, setTab] = (0, import_react16.useState)("summary");
-    const [qsub, setQsub] = (0, import_react16.useState)("meeting");
-    const [groupBy, setGroupBy] = (0, import_react16.useState)("director");
-    const [editingMeta, setEditingMeta] = (0, import_react16.useState)(false);
-    const [metaDraft, setMetaDraft] = (0, import_react16.useState)({});
+    const [tab, setTab] = (0, import_react17.useState)("summary");
+    const [qsub, setQsub] = (0, import_react17.useState)("meeting");
+    const [groupBy, setGroupBy] = (0, import_react17.useState)("director");
+    const [editingMeta, setEditingMeta] = (0, import_react17.useState)(false);
+    const [metaDraft, setMetaDraft] = (0, import_react17.useState)({});
     if (view === "list") {
       const TYPE_META2 = {
         executif: { label: "Ex\xE9cutif", icon: "\u{1F3DB}", color: C.purple },
@@ -11006,7 +11410,7 @@ ${t}`;
     return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate });
   }
   function ModuleMeetings(props) {
-    const [tab, setTab] = (0, import_react16.useState)(() => {
+    const [tab, setTab] = (0, import_react17.useState)(() => {
       try {
         if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("hrbpos:pendingMeetingContext")) {
           return "engine";
@@ -11015,7 +11419,7 @@ ${t}`;
       }
       return "transcripts";
     });
-    (0, import_react16.useEffect)(() => {
+    (0, import_react17.useEffect)(() => {
       if (props.focusMeetingId) setTab("transcripts");
     }, [props.focusMeetingId]);
     const tabs = [
@@ -11040,7 +11444,7 @@ ${t}`;
   }
 
   // src/modules/Brief.jsx
-  var import_react17 = __require("react");
+  var import_react18 = __require("react");
 
   // src/prompts/brief.js
   var BRIEF_SP = `Tu es un HRBP senior expert, groupe IT corporatif, Quebec. Tu produis des briefings strategiques RH hebdomadaires pour Samuel Chartrand.
@@ -11093,28 +11497,28 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, label));
   }
   function ModuleBrief({ data, onSave }) {
-    const [view, setView] = (0, import_react17.useState)("new");
-    const [briefTab, setBriefTab] = (0, import_react17.useState)("brief");
-    const [inputs, setInputs] = (0, import_react17.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" });
-    const [recapSubTab, setRecapSubTab] = (0, import_react17.useState)("generate");
-    const [sentRecapText, setSentRecapText] = (0, import_react17.useState)("");
-    const [sentRecapSaved, setSentRecapSaved] = (0, import_react17.useState)(false);
-    const [recapResult, setRecapResult] = (0, import_react17.useState)(null);
-    const [recapLoading, setRecapLoading] = (0, import_react17.useState)(false);
-    const [recapError, setRecapError] = (0, import_react17.useState)("");
-    const [copied, setCopied] = (0, import_react17.useState)(false);
-    const [recapPrompt, setRecapPrompt] = (0, import_react17.useState)("");
-    const [nwlSourceIdx, setNwlSourceIdx] = (0, import_react17.useState)(0);
-    const [nwlResult, setNwlResult] = (0, import_react17.useState)(null);
-    const [nwlLoading, setNwlLoading] = (0, import_react17.useState)(false);
-    const [nwlError, setNwlError] = (0, import_react17.useState)("");
-    const [nwlSaved, setNwlSaved] = (0, import_react17.useState)(false);
-    const [nwlCopied, setNwlCopied] = (0, import_react17.useState)(false);
-    const [nwlPrompt, setNwlPrompt] = (0, import_react17.useState)("");
-    const [loading, setLoading] = (0, import_react17.useState)(false);
-    const [error, setError] = (0, import_react17.useState)("");
-    const [result, setResult] = (0, import_react17.useState)(null);
-    const [saved, setSaved] = (0, import_react17.useState)(false);
+    const [view, setView] = (0, import_react18.useState)("new");
+    const [briefTab, setBriefTab] = (0, import_react18.useState)("brief");
+    const [inputs, setInputs] = (0, import_react18.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" });
+    const [recapSubTab, setRecapSubTab] = (0, import_react18.useState)("generate");
+    const [sentRecapText, setSentRecapText] = (0, import_react18.useState)("");
+    const [sentRecapSaved, setSentRecapSaved] = (0, import_react18.useState)(false);
+    const [recapResult, setRecapResult] = (0, import_react18.useState)(null);
+    const [recapLoading, setRecapLoading] = (0, import_react18.useState)(false);
+    const [recapError, setRecapError] = (0, import_react18.useState)("");
+    const [copied, setCopied] = (0, import_react18.useState)(false);
+    const [recapPrompt, setRecapPrompt] = (0, import_react18.useState)("");
+    const [nwlSourceIdx, setNwlSourceIdx] = (0, import_react18.useState)(0);
+    const [nwlResult, setNwlResult] = (0, import_react18.useState)(null);
+    const [nwlLoading, setNwlLoading] = (0, import_react18.useState)(false);
+    const [nwlError, setNwlError] = (0, import_react18.useState)("");
+    const [nwlSaved, setNwlSaved] = (0, import_react18.useState)(false);
+    const [nwlCopied, setNwlCopied] = (0, import_react18.useState)(false);
+    const [nwlPrompt, setNwlPrompt] = (0, import_react18.useState)("");
+    const [loading, setLoading] = (0, import_react18.useState)(false);
+    const [error, setError] = (0, import_react18.useState)("");
+    const [result, setResult] = (0, import_react18.useState)(null);
+    const [saved, setSaved] = (0, import_react18.useState)(false);
     const getWeekBounds = () => {
       const today = /* @__PURE__ */ new Date();
       const day = today.getDay();
@@ -11127,8 +11531,8 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const toISO2 = (d) => d.toISOString().split("T")[0];
       return { start: toISO2(monday), end: toISO2(friday) };
     };
-    const [periodStart, setPeriodStart] = (0, import_react17.useState)("");
-    const [periodEnd, setPeriodEnd] = (0, import_react17.useState)("");
+    const [periodStart, setPeriodStart] = (0, import_react18.useState)("");
+    const [periodEnd, setPeriodEnd] = (0, import_react18.useState)("");
     const briefs = data.briefs || [];
     const parseDate = (str) => {
       if (!str) return null;
@@ -11387,10 +11791,10 @@ ${prepsTxt}` : ""}`;
       { id: "recap", label: "\u{1F4CB} R\xE9cap directrice" },
       { id: "insights", label: "\u{1F50D} Insights" }
     ];
-    const [insightsResult, setInsightsResult] = (0, import_react17.useState)(null);
-    const [insightsLoading, setInsightsLoading] = (0, import_react17.useState)(false);
-    const [insightsError, setInsightsError] = (0, import_react17.useState)("");
-    const [insightsSaved, setInsightsSaved] = (0, import_react17.useState)(false);
+    const [insightsResult, setInsightsResult] = (0, import_react18.useState)(null);
+    const [insightsLoading, setInsightsLoading] = (0, import_react18.useState)(false);
+    const [insightsError, setInsightsError] = (0, import_react18.useState)("");
+    const [insightsSaved, setInsightsSaved] = (0, import_react18.useState)(false);
     const generateInsights = async () => {
       setInsightsLoading(true);
       setInsightsError("");
@@ -12605,7 +13009,7 @@ ${recap.sentText}`,
   }
 
   // src/modules/Leader.jsx
-  var import_react18 = __require("react");
+  var import_react19 = __require("react");
 
   // src/prompts/portfolio.js
   var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
@@ -12913,13 +13317,13 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     });
   }
   function ModuleLeader({ data, onSave, onNavigate }) {
-    const [selected, setSelected] = (0, import_react18.useState)(null);
-    const [tlExpanded, setTlExpanded] = (0, import_react18.useState)(false);
-    const [tlFilter, setTlFilter] = (0, import_react18.useState)("all");
-    const [editingMeta, setEditingMeta] = (0, import_react18.useState)(false);
-    const [metaForm, setMetaForm] = (0, import_react18.useState)(null);
-    const [aiAssessing, setAiAssessing] = (0, import_react18.useState)(false);
-    const [filterArchive, setFilterArchive] = (0, import_react18.useState)("active");
+    const [selected, setSelected] = (0, import_react19.useState)(null);
+    const [tlExpanded, setTlExpanded] = (0, import_react19.useState)(false);
+    const [tlFilter, setTlFilter] = (0, import_react19.useState)("all");
+    const [editingMeta, setEditingMeta] = (0, import_react19.useState)(false);
+    const [metaForm, setMetaForm] = (0, import_react19.useState)(null);
+    const [aiAssessing, setAiAssessing] = (0, import_react19.useState)(false);
+    const [filterArchive, setFilterArchive] = (0, import_react19.useState)("active");
     const selectLeader = (key) => {
       setSelected(key);
       setTlExpanded(false);
@@ -12927,11 +13331,11 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       setEditingMeta(false);
       setMetaForm(null);
     };
-    const leaders = (0, import_react18.useMemo)(() => buildLeaderIndex(data), [data]);
+    const leaders = (0, import_react19.useMemo)(() => buildLeaderIndex(data), [data]);
     const leaderList = Object.values(leaders);
-    const leadersMap = (0, import_react18.useMemo)(() => getLeadersMap(data), [data]);
+    const leadersMap = (0, import_react19.useMemo)(() => getLeadersMap(data), [data]);
     const todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    const topFocus = (0, import_react18.useMemo)(() => {
+    const topFocus = (0, import_react19.useMemo)(() => {
       const activeLeaders = leaderList.filter((l2) => !getMeta(l2.name, leadersMap).archived);
       return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
     }, [leaderList, leadersMap, todayISO_top]);
@@ -12973,7 +13377,7 @@ ${ctx}`, 500);
         setAiAssessing(false);
       }
     };
-    (0, import_react18.useEffect)(() => {
+    (0, import_react19.useEffect)(() => {
       const pending = sessionStorage.getItem("hrbpos:pendingLeader");
       if (!pending) return;
       sessionStorage.removeItem("hrbpos:pendingLeader");
@@ -14019,238 +14423,18 @@ ${ctx}`, 500);
   }
 
   // src/modules/Copilot.jsx
-  var import_react19 = __require("react");
-
-  // src/prompts/copilot.js
-  var COPILOT_SP = `You are the embedded strategic intelligence layer of my HRBP OS.
-
-You are not a generic HR assistant.
-
-You operate as a Senior HR Business Partner in a fast-paced IT / corporate environment (Quebec / Canada context), with full visibility on ongoing cases, signals, history, and internal playbooks.
-
-Your role is to think, diagnose, and act using ALL available context \u2014 not just the current input.
-
----
-
-# CORE PRINCIPLE
-
-Never analyze a situation in isolation.
-
-Always integrate:
-
-* active cases
-* past patterns
-* signals
-* manager behavior over time
-* existing actions and follow-ups
-* internal HRBP playbooks and knowledge
-
-You must behave like a HRBP who has been following these situations for months.
-
----
-
-# INPUT CONTEXT
-
-You will receive structured context in this format:
-
-## ACTIVE CASES
-
-[List of ongoing HR cases]
-
-## SIGNALS
-
-[Weak signals, employee feedback, manager behavior indicators]
-
-## RECENT HISTORY
-
-[Recent meetings, decisions, coaching interactions]
-
-## OPEN ACTIONS / FOLLOW-UPS
-
-[Actions that were supposed to be done, deadlines, status]
-
-## INTERNAL PLAYBOOKS
-
-[Relevant HRBP playbooks / workshop frameworks]
-
-## KNOWLEDGE BASE (IF RELEVANT)
-
-[Legal, performance, compensation, immigration, etc.]
-
-## USER SITUATION
-
-[The current situation to analyze]
-
----
-
-# YOUR MISSION
-
-You must:
-
-1. Analyze the situation
-2. Cross-reference ALL available context
-3. Detect patterns, inconsistencies, or escalation
-4. Match the situation to the most relevant internal playbook(s)
-5. Apply those frameworks
-6. Produce a clear, high-judgment HRBP recommendation
-
----
-
-# REQUIRED THINKING PROCESS
-
-You MUST think through:
-
-* Is this an isolated issue or part of a pattern?
-* Is the real problem the employee, the manager, or the system?
-* What has already been tried?
-* What has NOT been done that should have been done?
-* Is there avoidance, delay, or denial happening?
-* What risk is increasing over time?
-
----
-
-# PLAYBOOK MATCHING (MANDATORY)
-
-You must explicitly identify:
-
-* Primary playbook
-* Secondary playbook (if applicable)
-* Supporting knowledge area
-
-If the situation matches a known pattern, you MUST say it clearly.
-
-Example:
-"This is not a new issue \u2014 this matches a 'manager avoiding difficult conversations' pattern already visible in previous cases."
-
----
-
-# PATTERN DETECTION (CRITICAL)
-
-You must actively look for:
-
-* Repeated manager behavior
-* Multiple similar cases
-* Signals that confirm escalation
-* Lack of follow-through on actions
-* Misalignment between what was said and what was done
-
-If a pattern exists, you must say it clearly and directly.
-
----
-
-# ACCOUNTABILITY LOGIC
-
-You must clearly distinguish:
-
-* What is HRBP responsibility
-* What is manager responsibility
-* What should NOT be owned by HR
-
-If a manager is avoiding, minimizing, or delaying:
-\u2192 call it out directly
-
----
-
-# RESPONSE FORMAT (MANDATORY)
-
-## 1. Diagnostic
-
-* What is really happening
-* Root cause vs symptom
-* Pattern vs isolated issue
-
-## 2. Context insight
-
-* What in the cases, signals, or history changes the interpretation
-* What is new vs what is repeating
-
-## 3. Best internal match
-
-* Primary playbook
-* Secondary playbook / knowledge
-* Why these apply
-
-## 4. Risk assessment
-
-* People risk
-* Managerial risk
-* Organizational risk
-* Legal / compliance risk (if relevant)
-* Time sensitivity (is this getting worse?)
-
-## 5. HRBP posture
-
-* What I must own
-* What the manager must own
-* Where I need to push or challenge
-
-## 6. Recommended intervention
-
-* What to do now (immediate)
-* What to do this week
-* What to do next
-* What must stop immediately
-
-## 7. Suggested wording (French)
-
-Give concrete, realistic HRBP language for the next conversation.
-
-Be direct, not overly diplomatic.
-
-## 8. Watchouts
-
-* Signals to monitor
-* Mistakes to avoid
-* Escalation triggers
-
----
-
-# BEHAVIOR RULES
-
-* Do NOT give generic HR advice
-* Do NOT ignore past context
-* Do NOT stay neutral if the situation requires escalation
-* Do NOT over-coach when discipline is needed
-* Do NOT over-focus on policy when the issue is managerial behavior
-* Do NOT soften reality unnecessarily
-
-You are allowed to challenge assumptions.
-
----
-
-# PRIORITY ORDER
-
-When in doubt, prioritize:
-
-1. Legal / compliance reality
-2. Pattern detection
-3. Manager accountability
-4. Organizational risk
-5. Employee experience
-6. Communication style
-
----
-
-# FINAL MINDSET
-
-You are not here to provide options.
-
-You are here to help me take the right decision, at the right time, with the full context of my HRBP OS.
-
-Be sharp, structured, and decisive.`;
-
-  // src/modules/Copilot.jsx
+  var import_react20 = __require("react");
   function ModuleCopilot({ data }) {
-    const [situation, setSituation] = (0, import_react19.useState)("");
-    const [loading, setLoading] = (0, import_react19.useState)(false);
-    const [response, setResponse] = (0, import_react19.useState)(null);
-    const [error, setError] = (0, import_react19.useState)("");
-    const [history, setHistory] = (0, import_react19.useState)([]);
-    const [copied, setCopied] = (0, import_react19.useState)(false);
-    const [contextExpanded, setContextExpanded] = (0, import_react19.useState)(false);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react19.useState)("");
-    const [apeMode, setApeMode] = (0, import_react19.useState)("diagnose");
-    const responseRef = (0, import_react19.useRef)(null);
+    const [situation, setSituation] = (0, import_react20.useState)("");
+    const [loading, setLoading] = (0, import_react20.useState)(false);
+    const [response, setResponse] = (0, import_react20.useState)(null);
+    const [error, setError] = (0, import_react20.useState)("");
+    const [history, setHistory] = (0, import_react20.useState)([]);
+    const [copied, setCopied] = (0, import_react20.useState)(false);
+    const [contextExpanded, setContextExpanded] = (0, import_react20.useState)(false);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react20.useState)("");
+    const [apeMode, setApeMode] = (0, import_react20.useState)("diagnose");
+    const responseRef = (0, import_react20.useRef)(null);
     const situations = detectSituations(data).slice(0, 5);
     const buildContext = () => {
       const cases = data.cases || [];
@@ -14710,10 +14894,10 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   ];
   var AUTH_KEY = "hrbpos_auth";
   function LoginScreen({ onAuth }) {
-    const [pw, setPw] = (0, import_react20.useState)("");
-    const [error, setError] = (0, import_react20.useState)(false);
-    const [shake, setShake] = (0, import_react20.useState)(false);
-    const [checking, setChecking] = (0, import_react20.useState)(false);
+    const [pw, setPw] = (0, import_react21.useState)("");
+    const [error, setError] = (0, import_react21.useState)(false);
+    const [shake, setShake] = (0, import_react21.useState)(false);
+    const [checking, setChecking] = (0, import_react21.useState)(false);
     const attempt = async () => {
       if (!pw || checking) return;
       setChecking(true);
@@ -14802,19 +14986,19 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     ))));
   }
   function HRBPOS() {
-    const [authed, setAuthed] = (0, import_react20.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
-    const [module, setModule] = (0, import_react20.useState)("home");
-    const [showMore, setShowMore] = (0, import_react20.useState)(false);
-    const [data, setData] = (0, import_react20.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
-    const [toast, setToast] = (0, import_react20.useState)(false);
-    const [loaded, setLoaded] = (0, import_react20.useState)(false);
-    const [focusCaseId, setFocusCaseId] = (0, import_react20.useState)(null);
-    const [focusMeetingId, setFocusMeetingId] = (0, import_react20.useState)(null);
-    const [focusExitId, setFocusExitId] = (0, import_react20.useState)(null);
-    const [focusSignalId, setFocusSignalId] = (0, import_react20.useState)(null);
-    const [focusDecisionId, setFocusDecisionId] = (0, import_react20.useState)(null);
-    const [focusInvestigationId, setFocusInvestigationId] = (0, import_react20.useState)(null);
-    const handleNavigate = (0, import_react20.useCallback)((id, ctx) => {
+    const [authed, setAuthed] = (0, import_react21.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
+    const [module, setModule] = (0, import_react21.useState)("home");
+    const [showMore, setShowMore] = (0, import_react21.useState)(false);
+    const [data, setData] = (0, import_react21.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
+    const [toast, setToast] = (0, import_react21.useState)(false);
+    const [loaded, setLoaded] = (0, import_react21.useState)(false);
+    const [focusCaseId, setFocusCaseId] = (0, import_react21.useState)(null);
+    const [focusMeetingId, setFocusMeetingId] = (0, import_react21.useState)(null);
+    const [focusExitId, setFocusExitId] = (0, import_react21.useState)(null);
+    const [focusSignalId, setFocusSignalId] = (0, import_react21.useState)(null);
+    const [focusDecisionId, setFocusDecisionId] = (0, import_react21.useState)(null);
+    const [focusInvestigationId, setFocusInvestigationId] = (0, import_react21.useState)(null);
+    const handleNavigate = (0, import_react21.useCallback)((id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
@@ -14823,7 +15007,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       if (ctx?.focusInvestigationId) setFocusInvestigationId(ctx.focusInvestigationId);
       setModule(id);
     }, []);
-    (0, import_react20.useEffect)(() => {
+    (0, import_react21.useEffect)(() => {
       const defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } };
       const timeout = setTimeout(() => setLoaded(true), 1500);
       Promise.allSettled(
@@ -14881,9 +15065,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     };
-    const [restoreStatus, setRestoreStatus] = (0, import_react20.useState)(null);
-    const [restoreMsg, setRestoreMsg] = (0, import_react20.useState)("");
-    const fileInputRef = (0, import_react20.useRef)(null);
+    const [restoreStatus, setRestoreStatus] = (0, import_react21.useState)(null);
+    const [restoreMsg, setRestoreMsg] = (0, import_react21.useState)("");
+    const fileInputRef = (0, import_react21.useRef)(null);
     const handleRestoreClick = () => fileInputRef.current?.click();
     const handleRestoreFile = async (e) => {
       const file = e.target.files?.[0];
@@ -14915,14 +15099,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         setTimeout(() => setRestoreStatus(null), 4e3);
       }
     };
-    const handleSave = (0, import_react20.useCallback)(async (key, value) => {
+    const handleSave = (0, import_react21.useCallback)(async (key, value) => {
       const skKey = SK[key];
       if (!skKey) return;
       await sSet(skKey, value);
       setData((d) => ({ ...d, [key]: value }));
       showToast();
     }, []);
-    const handleSaveMeeting = (0, import_react20.useCallback)(async (session, caseEntry) => {
+    const handleSaveMeeting = (0, import_react21.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
       const newMeetings = [...data.meetings || [], session];
       await sSet(SK.meetings, newMeetings);
@@ -14952,7 +15136,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       showToast();
     }, [data]);
-    const handleUpdateMeeting = (0, import_react20.useCallback)(async (updatedSession) => {
+    const handleUpdateMeeting = (0, import_react21.useCallback)(async (updatedSession) => {
       const newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
