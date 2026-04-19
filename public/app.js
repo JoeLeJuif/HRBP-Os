@@ -517,7 +517,9 @@ ${LEGAL_GUARDRAIL}`;
         id: c.id,
         type: "case",
         label: c.title || "(cas sans titre)",
-        meta: [c.director, c.employee].filter(Boolean).join(" \xB7 ")
+        meta: [c.director, c.employee].filter(Boolean).join(" \xB7 "),
+        active: c.status === "active" || c.status === "escalated",
+        date: c.savedAt || c.createdAt || c.closedDate || ""
       });
     });
     (data?.meetings || []).forEach((m) => {
@@ -526,7 +528,9 @@ ${LEGAL_GUARDRAIL}`;
         id: m.id,
         type: "meeting",
         label: m.analysis?.meetingTitle || m.title || "(meeting sans titre)",
-        meta: [m.director, m.savedAt].filter(Boolean).join(" \xB7 ")
+        meta: [m.director, m.savedAt].filter(Boolean).join(" \xB7 "),
+        active: false,
+        date: m.savedAt || m.createdAt || ""
       });
     });
     (data?.decisions || []).forEach((d) => {
@@ -535,7 +539,9 @@ ${LEGAL_GUARDRAIL}`;
         id: d.id,
         type: "decision",
         label: d.title || "(d\xE9cision sans titre)",
-        meta: d.decisionDate || d.createdAt || ""
+        meta: d.decisionDate || d.createdAt || "",
+        active: d.status === "draft",
+        date: d.decisionDate || d.createdAt || ""
       });
     });
     (data?.investigations || []).forEach((i) => {
@@ -544,10 +550,35 @@ ${LEGAL_GUARDRAIL}`;
         id: i.id,
         type: "investigation",
         label: i.title || "(enqu\xEAte sans titre)",
-        meta: i.savedAt || i.createdAt || ""
+        meta: i.savedAt || i.createdAt || "",
+        active: i.status === "draft" || i.status === "open",
+        date: i.savedAt || i.createdAt || ""
       });
     });
     return out;
+  }
+  function dateMs(item) {
+    if (!item.date) return 0;
+    const t = Date.parse(item.date);
+    return isNaN(t) ? 0 : t;
+  }
+  function score(item, q) {
+    const label = (item.label || "").toLowerCase();
+    const meta = (item.meta || "").toLowerCase();
+    let s = 0;
+    if (q) {
+      if (label === q) s += 1e3;
+      else if (label.startsWith(q)) s += 500;
+      else if (label.includes(q)) s += 200;
+      if (meta.includes(q)) s += 50;
+    }
+    if (item.active) s += 100;
+    const ms = dateMs(item);
+    if (ms > 0) {
+      const days = (Date.now() - ms) / 864e5;
+      s += Math.max(0, 90 - Math.min(90, days));
+    }
+    return s;
   }
   function Spotlight({ data, onNavigate }) {
     const [open, setOpen] = (0, import_react.useState)(false);
@@ -580,11 +611,8 @@ ${LEGAL_GUARDRAIL}`;
     const items = (0, import_react.useMemo)(() => normalize(data), [data]);
     const results = (0, import_react.useMemo)(() => {
       const q = query.trim().toLowerCase();
-      if (!q) return items.slice(0, 30);
-      return items.filter((it) => {
-        const hay = (it.label + " " + (it.meta || "")).toLowerCase();
-        return hay.includes(q);
-      }).slice(0, 30);
+      const pool = q ? items.filter((it) => (it.label + " " + (it.meta || "")).toLowerCase().includes(q)) : items;
+      return pool.map((it) => ({ it, s: score(it, q), d: dateMs(it) })).sort((a, b) => b.s - a.s || b.d - a.d).slice(0, 30).map((x) => x.it);
     }, [items, query]);
     (0, import_react.useEffect)(() => {
       if (sel >= results.length) setSel(0);
@@ -7157,23 +7185,23 @@ Pr\xE9pare la conversation d'accueil:
       });
     }
     const pScore = (s) => {
-      let score = 0;
-      score += { "Critique": 40, "\xC9lev\xE9": 30, "Eleve": 30, "Mod\xE9r\xE9": 15, "Modere": 15, "Faible": 5 }[s.urgency] || 10;
-      score += { "\xC9lev\xE9e": 10, "Moyenne": 5, "Faible": 0 }[s.confidence] || 0;
+      let score2 = 0;
+      score2 += { "Critique": 40, "\xC9lev\xE9": 30, "Eleve": 30, "Mod\xE9r\xE9": 15, "Modere": 15, "Faible": 5 }[s.urgency] || 10;
+      score2 += { "\xC9lev\xE9e": 10, "Moyenne": 5, "Faible": 0 }[s.confidence] || 0;
       const mgrsCount = (s.context.managers || "").split(",").filter(Boolean).length;
-      score += Math.min(mgrsCount * 4, 12);
-      if (s.id === "weekly_theme") score += 8;
-      if (s.id === "conflict" && s.context.duration?.includes("7")) score += 6;
-      if (s.id === "flight_risk") score += 5;
-      if (s.whyNow?.includes("semaine cons\xE9cutive") || s.whyNow?.includes("2+ radars")) score += 8;
-      if (s.id === "manager_avoidance" || s.id === "performance") score += 5;
-      if (s.id === "integration_risk") score += 6;
-      if (s.id === "brief_pattern") score += 4;
+      score2 += Math.min(mgrsCount * 4, 12);
+      if (s.id === "weekly_theme") score2 += 8;
+      if (s.id === "conflict" && s.context.duration?.includes("7")) score2 += 6;
+      if (s.id === "flight_risk") score2 += 5;
+      if (s.whyNow?.includes("semaine cons\xE9cutive") || s.whyNow?.includes("2+ radars")) score2 += 8;
+      if (s.id === "manager_avoidance" || s.id === "performance") score2 += 5;
+      if (s.id === "integration_risk") score2 += 6;
+      if (s.id === "brief_pattern") score2 += 4;
       const conv = s._leaderConvergence || 0;
-      if (conv >= 5) score += 10;
-      else if (conv >= 3) score += 6;
-      else if (conv >= 2) score += 3;
-      return score;
+      if (conv >= 5) score2 += 10;
+      else if (conv >= 3) score2 += 6;
+      else if (conv >= 2) score2 += 3;
+      return score2;
     };
     return situations.sort((a, b) => pScore(b) - pScore(a));
   }
@@ -8763,7 +8791,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   }
   var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
   function computeFocusScore(autoLeader, meta, todayISO) {
-    let score = 0;
+    let score2 = 0;
     const reasons = [];
     const activeCases = (autoLeader.cases || []).filter((c) => c.status !== "closed" && c.status !== "resolved");
     const lastMeeting = (autoLeader.meetings || [])[0];
@@ -8771,34 +8799,34 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
     const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER2[r] ?? 3)) : 3;
     const overrideOrder = meta.riskOverride ? RISK_ORDER2[meta.riskOverride] ?? 3 : 9;
     const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
-    score += (3 - effectiveOrder) * 30;
+    score2 += (3 - effectiveOrder) * 30;
     if (effectiveOrder === 0) reasons.push("risque critique");
     else if (effectiveOrder === 1) reasons.push("risque \xE9lev\xE9");
     const lastDate = meta.lastInteraction || lastMeeting?.savedAt || null;
     const days = lastDate ? Math.floor((new Date(todayISO) - new Date(lastDate)) / 864e5) : 99;
     if (days > 21) {
-      score += 20;
+      score2 += 20;
       reasons.push(`${days}j sans contact`);
     } else if (days > 14) {
-      score += 10;
+      score2 += 10;
       reasons.push(`${days}j sans contact`);
     }
     if (meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e") {
-      score += 15;
+      score2 += 15;
       reasons.push("pression \xE9lev\xE9e");
     }
     if (meta.type === "\xC9vitant" || meta.type === "Evitant") {
-      score += 10;
+      score2 += 10;
       reasons.push("pattern \xE9vitant");
     }
     if (meta.type === "Surcharg\xE9" || meta.type === "Surcharge") {
-      score += 8;
+      score2 += 8;
       reasons.push("d\xE9bord\xE9");
     }
     if (activeCases.length >= 2) {
-      score += 5;
+      score2 += 5;
     }
-    return { score, reasons: reasons.slice(0, 3), days };
+    return { score: score2, reasons: reasons.slice(0, 3), days };
   }
   function getLastEngineOutput(leaderName, data) {
     if (!leaderName) return null;
@@ -12688,14 +12716,14 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const exits = l.exits || [];
     const linkedSignals = l.signals || [];
     const meetings = sortByDate(l.meetings || [], "savedAt");
-    let score = 0;
+    let score2 = 0;
     const why = [];
     const patterns = /* @__PURE__ */ new Set();
     activeCases.forEach((c) => {
       const rl = normalizeRisk(c.riskLevel || "");
-      if (rl === "Critique") score += 3;
-      else if (rl === "\xC9lev\xE9") score += 2;
-      else if (rl === "Mod\xE9r\xE9") score += 1;
+      if (rl === "Critique") score2 += 3;
+      else if (rl === "\xC9lev\xE9") score2 += 2;
+      else if (rl === "Mod\xE9r\xE9") score2 += 1;
     });
     if (activeCases.length >= 2)
       patterns.add("Dossiers actifs multiples");
@@ -12707,7 +12735,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const diff = (new Date(todayISO) - new Date(e.savedAt)) / 864e5;
       return diff <= 90;
     });
-    score += Math.min(recentRegrettable.length * 2, 4);
+    score2 += Math.min(recentRegrettable.length * 2, 4);
     if (recentRegrettable.length > 0) {
       patterns.add("Risque de r\xE9tention");
       why.push(`${recentRegrettable.length} d\xE9part${recentRegrettable.length > 1 ? "s" : ""} regrettable${recentRegrettable.length > 1 ? "s" : ""} (90 j)`);
@@ -12718,13 +12746,13 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       return s === "N\xE9gatif" || s === "Critique";
     });
     if (negSentiment.length > 0) {
-      score += negSentiment.length;
+      score2 += negSentiment.length;
       patterns.add("Pression manag\xE9riale");
       why.push("Sentiment n\xE9gatif envers la gestion (sortants)");
     }
     const critSigs = linkedSignals.filter((s) => normalizeRisk(s.analysis?.severity || "") === "Critique");
     const elevSigs = linkedSignals.filter((s) => normalizeRisk(s.analysis?.severity || "") === "\xC9lev\xE9");
-    score += critSigs.length * 3 + elevSigs.length * 2;
+    score2 += critSigs.length * 3 + elevSigs.length * 2;
     if (critSigs.length > 0) {
       patterns.add("Signaux critiques");
       why.push(`${critSigs.length} signal${critSigs.length > 1 ? "s" : ""} critique${critSigs.length > 1 ? "s" : ""}`);
@@ -12734,7 +12762,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const recentMtgs = meetings.slice(0, 3);
     const critMtgs = recentMtgs.filter((m) => normalizeRisk(m.analysis?.overallRisk || "") === "Critique");
     const elevMtgs = recentMtgs.filter((m) => normalizeRisk(m.analysis?.overallRisk || "") === "\xC9lev\xE9");
-    score += critMtgs.length * 2 + elevMtgs.length;
+    score2 += critMtgs.length * 2 + elevMtgs.length;
     if (critMtgs.length > 0) {
       patterns.add("Risque contextuel \xE9lev\xE9");
       why.push(`${critMtgs.length} meeting${critMtgs.length > 1 ? "s" : ""} \xE0 risque critique`);
@@ -12745,9 +12773,9 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const activePlans = (l.plans || []).filter((p) => getCurrentPhase(p.startDate).phaseKey !== null);
     if (activePlans.length > 0) patterns.add("Transition(s) en cours");
     let globalRisk;
-    if (score >= 7) globalRisk = "Critique";
-    else if (score >= 4) globalRisk = "\xC9lev\xE9";
-    else if (score >= 2) globalRisk = "Mod\xE9r\xE9";
+    if (score2 >= 7) globalRisk = "Critique";
+    else if (score2 >= 4) globalRisk = "\xC9lev\xE9";
+    else if (score2 >= 2) globalRisk = "Mod\xE9r\xE9";
     else globalRisk = "Faible";
     const actions = [];
     if (globalRisk === "Critique")
@@ -12766,7 +12794,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       actions.push({ delay: "En veille", action: "Maintenir le contact r\xE9gulier \u2014 situation stable, aucune urgence d\xE9tect\xE9e" });
     return {
       globalRisk,
-      score,
+      score: score2,
       patterns: [...patterns],
       why: why.filter(Boolean),
       actions: actions.slice(0, 3)

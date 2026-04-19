@@ -22,6 +22,8 @@ function normalize(data) {
       type: "case",
       label: c.title || "(cas sans titre)",
       meta: [c.director, c.employee].filter(Boolean).join(" · "),
+      active: c.status === "active" || c.status === "escalated",
+      date: c.savedAt || c.createdAt || c.closedDate || "",
     });
   });
   (data?.meetings || []).forEach(m => {
@@ -31,6 +33,8 @@ function normalize(data) {
       type: "meeting",
       label: m.analysis?.meetingTitle || m.title || "(meeting sans titre)",
       meta: [m.director, m.savedAt].filter(Boolean).join(" · "),
+      active: false,
+      date: m.savedAt || m.createdAt || "",
     });
   });
   (data?.decisions || []).forEach(d => {
@@ -40,6 +44,8 @@ function normalize(data) {
       type: "decision",
       label: d.title || "(décision sans titre)",
       meta: d.decisionDate || d.createdAt || "",
+      active: d.status === "draft",
+      date: d.decisionDate || d.createdAt || "",
     });
   });
   (data?.investigations || []).forEach(i => {
@@ -49,9 +55,39 @@ function normalize(data) {
       type: "investigation",
       label: i.title || "(enquête sans titre)",
       meta: i.savedAt || i.createdAt || "",
+      active: i.status === "draft" || i.status === "open",
+      date: i.savedAt || i.createdAt || "",
     });
   });
   return out;
+}
+
+// ── Ranking ────────────────────────────────────────────────────────────────
+// Higher score = better match. Date is parsed once and used as fallback.
+function dateMs(item) {
+  if (!item.date) return 0;
+  const t = Date.parse(item.date);
+  return isNaN(t) ? 0 : t;
+}
+
+function score(item, q) {
+  const label = (item.label || "").toLowerCase();
+  const meta  = (item.meta  || "").toLowerCase();
+  let s = 0;
+  if (q) {
+    if (label === q)            s += 1000;
+    else if (label.startsWith(q)) s += 500;
+    else if (label.includes(q)) s += 200;
+    if (meta.includes(q))       s += 50;
+  }
+  if (item.active) s += 100;
+  // Recency bonus capped at ~90 to stay below match weights.
+  const ms = dateMs(item);
+  if (ms > 0) {
+    const days = (Date.now() - ms) / 86400000;
+    s += Math.max(0, 90 - Math.min(90, days));
+  }
+  return s;
 }
 
 export default function Spotlight({ data, onNavigate }) {
@@ -91,11 +127,14 @@ export default function Spotlight({ data, onNavigate }) {
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return items.slice(0, 30);
-    return items.filter(it => {
-      const hay = (it.label + " " + (it.meta || "")).toLowerCase();
-      return hay.includes(q);
-    }).slice(0, 30);
+    const pool = q
+      ? items.filter(it => (it.label + " " + (it.meta || "")).toLowerCase().includes(q))
+      : items;
+    return pool
+      .map(it => ({ it, s: score(it, q), d: dateMs(it) }))
+      .sort((a, b) => (b.s - a.s) || (b.d - a.d))
+      .slice(0, 30)
+      .map(x => x.it);
   }, [items, query]);
 
   // Keep selection in range
