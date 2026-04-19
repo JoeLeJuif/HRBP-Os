@@ -10,6 +10,7 @@ import { COPILOT_SP } from '../prompts/copilot.js';
 import { callAIText } from '../api/index.js';
 import { fmtDate } from '../utils/format.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
+import { APE_TEMPLATES, detectSituations } from '../utils/situations.js';
 import { C, css } from '../theme.js';
 
 export default function ModuleCopilot({ data }) {
@@ -21,7 +22,11 @@ export default function ModuleCopilot({ data }) {
   const [copied, setCopied]         = useState(false);
   const [contextExpanded, setContextExpanded] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [apeMode, setApeMode] = useState("diagnose"); // diagnose|act|say
   const responseRef = useRef(null);
+
+  // Detected situations — proactive AI surface (AutoPrompt → Copilot fusion)
+  const situations = detectSituations(data).slice(0, 5);
 
   // Build rich context from all OS data
   const buildContext = () => {
@@ -101,21 +106,35 @@ ${prepCtx}
 ${playbooksCtx}`;
   };
 
-  const analyze = async () => {
-    if (!situation.trim()) return;
+  const analyze = async (override) => {
+    // Accept an explicit string override — bypasses React state race when triggered programmatically
+    const sit = (typeof override === "string" ? override : situation).trim();
+    if (!sit) return;
     const ctx = buildContext();
     const _copProv = data.profile?.defaultProvince || "QC";
-    const _copLegal = isLegalSensitive(situation)
+    const _copLegal = isLegalSensitive(sit)
       ? `\n\n## CADRE LEGAL\n\n${buildLegalPromptContext(_copProv)}` : "";
-    const userMsg = `${ctx}${_copLegal}\n\n---\n\n## USER SITUATION\n\n${situation.trim()}`;
+    const userMsg = `${ctx}${_copLegal}\n\n---\n\n## USER SITUATION\n\n${sit}`;
     setLoading(true); setError(""); setResponse(null);
     try {
       const text = await callAIText(COPILOT_SP, userMsg, 4000);
       setResponse(text);
-      setHistory(h => [{ situation: situation.trim(), response: text, ts: new Date().toISOString() }, ...h.slice(0, 9)]);
+      setHistory(h => [{ situation: sit, response: text, ts: new Date().toISOString() }, ...h.slice(0, 9)]);
       setTimeout(() => responseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch(e) { setError("Erreur: " + e.message); }
     finally { setLoading(false); }
+  };
+
+  // Click on a detected situation → pre-fill textarea with the APE template, then auto-analyze.
+  // Falls back across modes if the chosen one is not available for that template.
+  const useDetectedSituation = (sit) => {
+    const tpl = APE_TEMPLATES[sit.template];
+    const fn = tpl?.[apeMode] || tpl?.act || tpl?.diagnose || tpl?.say;
+    const prompt = fn
+      ? fn(sit.context)
+      : `${sit.title}\n\n${sit.reason}${sit.whyNow ? `\n\nWhy now: ${sit.whyNow}` : ""}${sit.bestNextMove ? `\n\nBest next move: ${sit.bestNextMove}` : ""}`;
+    setSituation(prompt);
+    analyze(prompt);
   };
 
   const importCopilotResponse = (text) => {
@@ -231,6 +250,14 @@ ${playbooksCtx}`;
           </div>
         </div>
 
+        {situations.length > 0 && (
+          <div style={{ marginTop:10, padding:"8px 12px",
+            background:C.amber+"12", border:`1px solid ${C.amber}33`,
+            borderRadius:7, fontSize:12, color:C.text, lineHeight:1.5 }}>
+            ⚡ Suggestions automatiques basées sur vos cas actifs
+          </div>
+        )}
+
         {/* Context summary bar */}
         <button onClick={() => setContextExpanded(v => !v)}
           style={{ width:"100%", display:"flex", alignItems:"center", gap:12,
@@ -268,6 +295,74 @@ ${playbooksCtx}`;
           </div>
         )}
       </div>
+
+      {/* Situations détectées — proactive AI surface (AutoPrompt → Copilot fusion) */}
+      {situations.length > 0 && (
+        <div style={{ marginBottom:14 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+              <Mono color={C.amber} size={9}>
+                SITUATIONS DÉTECTÉES — {situations.length} prioritaire{situations.length>1?"s":""}
+              </Mono>
+              <span style={{ background:C.em+"18", border:`1px solid ${C.em}40`,
+                color:C.em, borderRadius:4, padding:"1px 6px",
+                fontSize:9, fontWeight:700, fontFamily:"'DM Mono',monospace",
+                letterSpacing:0.5, textTransform:"uppercase" }}>
+                Recommandé
+              </span>
+            </div>
+            <div style={{ display:"flex", gap:4 }}>
+              {[
+                { id:"diagnose", label:"🔍 Diagnose", color:C.purple },
+                { id:"act",      label:"🎯 Act",      color:C.em },
+                { id:"say",      label:"💬 Say",      color:C.blue },
+              ].map(m => {
+                const active = apeMode === m.id;
+                return (
+                  <button key={m.id} onClick={() => setApeMode(m.id)}
+                    title={`Mode ${m.id} — appliqué au prochain clic sur une situation`}
+                    style={{ padding:"3px 9px", borderRadius:5, fontSize:10,
+                      cursor:"pointer", fontFamily:"'DM Sans',sans-serif",
+                      background: active ? m.color+"22" : C.surfLL,
+                      border:`1px solid ${active ? m.color+"66" : C.border}`,
+                      color: active ? m.color : C.textD, fontWeight: active ? 700 : 500 }}>
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            {situations.map(sit => {
+              const uc = ({"Critique":C.red,"Élevé":C.amber,"Eleve":C.amber,"Modéré":C.blue,"Modere":C.blue}[sit.urgency])||C.textD;
+              return (
+                <button key={sit.id} onClick={() => useDetectedSituation(sit)}
+                  disabled={loading}
+                  style={{ display:"flex", gap:10, alignItems:"flex-start",
+                    padding:"9px 12px", borderRadius:8,
+                    cursor: loading ? "wait" : "pointer", textAlign:"left",
+                    fontFamily:"'DM Sans',sans-serif",
+                    background: C.surfL, border:`1px solid ${C.border}`,
+                    borderLeft:`3px solid ${uc}`,
+                    opacity: loading ? 0.5 : 1 }}>
+                  <span style={{ fontSize:15, flexShrink:0, marginTop:1 }}>{sit.icon}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{sit.title}</div>
+                      <div style={{ background:uc+"18", border:`1px solid ${uc}35`,
+                        borderRadius:4, padding:"1px 6px", fontSize:9, color:uc, fontWeight:700 }}>
+                        {sit.urgency}
+                      </div>
+                    </div>
+                    <div style={{ fontSize:11, color:C.textM, lineHeight:1.5 }}>{sit.reason}</div>
+                  </div>
+                  <span style={{ fontSize:11, color:C.em, flexShrink:0, marginTop:2 }}>⚡ Analyser</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <Card style={{ marginBottom:14, borderLeft:`3px solid ${C.em}` }}>

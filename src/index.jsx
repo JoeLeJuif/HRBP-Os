@@ -66,7 +66,6 @@ function SavedToast({ show }) {
 const NAV_MAIN = [
   { id:"home",      icon:"🏠",  label:"Home",      color:C.em },
   { id:"copilot",   icon:"⚡",  label:"Copilot",   color:C.em },
-  { id:"autoprompt",icon:"🧩",  label:"Prompt AI",  color:C.purple },
   { id:"meetings",  icon:"🎙️", label:"Meetings Hub",   color:C.blue },
   { id:"leaders",   icon:"👤",  label:"Portfolio",  color:C.purple },
   { id:"cases",     icon:"📂",  label:"Case Log",   color:C.blue },
@@ -83,6 +82,8 @@ const NAV_MORE = [
   { id:"convkit",      icon:"💬",  label:"Conv Kit",   color:C.em },
   { id:"knowledge",    icon:"🧠",  label:"Knowledge",  color:C.blue },
   { id:"radar",        icon:"🔭",  label:"Org Radar",  color:C.red },
+  // Déprioritisé — Copilot est maintenant l'entrée principale (situations détectées + templates intégrés).
+  { id:"autoprompt",   icon:"🧩",  label:"Prompt AI",  color:C.purple },
 ];
 
 // ── Auth (Source: HRBP_OS.jsx L.10684-10741) ──────────────────────────────────

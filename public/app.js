@@ -6476,6 +6476,8 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
 
   // src/modules/AutoPrompt.jsx
   var import_react13 = __require("react");
+
+  // src/utils/situations.js
   var APE_TEMPLATES = {
     weekly_intervention: {
       title: "Plan d'intervention hebdomadaire",
@@ -7205,6 +7207,8 @@ Pr\xE9pare la conversation d'accueil:
     };
     return situations.sort((a, b) => pScore(b) - pScore(a));
   }
+
+  // src/modules/AutoPrompt.jsx
   function ModuleAutoPrompt({ data }) {
     const [selected, setSelected] = (0, import_react13.useState)(null);
     const [mode, setMode] = (0, import_react13.useState)(null);
@@ -14245,7 +14249,9 @@ Be sharp, structured, and decisive.`;
     const [copied, setCopied] = (0, import_react19.useState)(false);
     const [contextExpanded, setContextExpanded] = (0, import_react19.useState)(false);
     const [generatedPrompt, setGeneratedPrompt] = (0, import_react19.useState)("");
+    const [apeMode, setApeMode] = (0, import_react19.useState)("diagnose");
     const responseRef = (0, import_react19.useRef)(null);
+    const situations = detectSituations(data).slice(0, 5);
     const buildContext = () => {
       const cases = data.cases || [];
       const meetings = data.meetings || [];
@@ -14308,11 +14314,12 @@ ${prepCtx}
 ## INTERNAL PLAYBOOKS AVAILABLE
 ${playbooksCtx}`;
     };
-    const analyze = async () => {
-      if (!situation.trim()) return;
+    const analyze = async (override) => {
+      const sit = (typeof override === "string" ? override : situation).trim();
+      if (!sit) return;
       const ctx = buildContext();
       const _copProv = data.profile?.defaultProvince || "QC";
-      const _copLegal = isLegalSensitive(situation) ? `
+      const _copLegal = isLegalSensitive(sit) ? `
 
 ## CADRE LEGAL
 
@@ -14323,20 +14330,33 @@ ${buildLegalPromptContext(_copProv)}` : "";
 
 ## USER SITUATION
 
-${situation.trim()}`;
+${sit}`;
       setLoading(true);
       setError("");
       setResponse(null);
       try {
         const text = await callAIText(COPILOT_SP, userMsg, 4e3);
         setResponse(text);
-        setHistory((h) => [{ situation: situation.trim(), response: text, ts: (/* @__PURE__ */ new Date()).toISOString() }, ...h.slice(0, 9)]);
+        setHistory((h) => [{ situation: sit, response: text, ts: (/* @__PURE__ */ new Date()).toISOString() }, ...h.slice(0, 9)]);
         setTimeout(() => responseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
       } catch (e) {
         setError("Erreur: " + e.message);
       } finally {
         setLoading(false);
       }
+    };
+    const useDetectedSituation = (sit) => {
+      const tpl = APE_TEMPLATES[sit.template];
+      const fn = tpl?.[apeMode] || tpl?.act || tpl?.diagnose || tpl?.say;
+      const prompt = fn ? fn(sit.context) : `${sit.title}
+
+${sit.reason}${sit.whyNow ? `
+
+Why now: ${sit.whyNow}` : ""}${sit.bestNextMove ? `
+
+Best next move: ${sit.bestNextMove}` : ""}`;
+      setSituation(prompt);
+      analyze(prompt);
     };
     const importCopilotResponse = (text) => {
       setResponse(text);
@@ -14437,7 +14457,16 @@ ${situation.trim()}`;
       justifyContent: "center",
       fontSize: 18,
       flexShrink: 0
-    } }, "\u26A1"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text } }, "HRBP Copilot"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Intelligence strat\xE9gique avec acc\xE8s complet au contexte du OS"))), /* @__PURE__ */ React.createElement(
+    } }, "\u26A1"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text } }, "HRBP Copilot"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Intelligence strat\xE9gique avec acc\xE8s complet au contexte du OS"))), situations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+      marginTop: 10,
+      padding: "8px 12px",
+      background: C.amber + "12",
+      border: `1px solid ${C.amber}33`,
+      borderRadius: 7,
+      fontSize: 12,
+      color: C.text,
+      lineHeight: 1.5
+    } }, "\u26A1 Suggestions automatiques bas\xE9es sur vos cas actifs"), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => setContextExpanded((v) => !v),
@@ -14486,7 +14515,79 @@ ${situation.trim()}`;
       maxHeight: 280,
       overflowY: "auto",
       whiteSpace: "pre-wrap"
-    } }, buildContext())), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "SITUATION \u2014 D\xE9cris ce qui se passe"), /* @__PURE__ */ React.createElement(
+    } }, buildContext())), situations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "SITUATIONS D\xC9TECT\xC9ES \u2014 ", situations.length, " prioritaire", situations.length > 1 ? "s" : ""), /* @__PURE__ */ React.createElement("span", { style: {
+      background: C.em + "18",
+      border: `1px solid ${C.em}40`,
+      color: C.em,
+      borderRadius: 4,
+      padding: "1px 6px",
+      fontSize: 9,
+      fontWeight: 700,
+      fontFamily: "'DM Mono',monospace",
+      letterSpacing: 0.5,
+      textTransform: "uppercase"
+    } }, "Recommand\xE9")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, [
+      { id: "diagnose", label: "\u{1F50D} Diagnose", color: C.purple },
+      { id: "act", label: "\u{1F3AF} Act", color: C.em },
+      { id: "say", label: "\u{1F4AC} Say", color: C.blue }
+    ].map((m) => {
+      const active = apeMode === m.id;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: m.id,
+          onClick: () => setApeMode(m.id),
+          title: `Mode ${m.id} \u2014 appliqu\xE9 au prochain clic sur une situation`,
+          style: {
+            padding: "3px 9px",
+            borderRadius: 5,
+            fontSize: 10,
+            cursor: "pointer",
+            fontFamily: "'DM Sans',sans-serif",
+            background: active ? m.color + "22" : C.surfLL,
+            border: `1px solid ${active ? m.color + "66" : C.border}`,
+            color: active ? m.color : C.textD,
+            fontWeight: active ? 700 : 500
+          }
+        },
+        m.label
+      );
+    }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, situations.map((sit) => {
+      const uc = { "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue }[sit.urgency] || C.textD;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: sit.id,
+          onClick: () => useDetectedSituation(sit),
+          disabled: loading,
+          style: {
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+            padding: "9px 12px",
+            borderRadius: 8,
+            cursor: loading ? "wait" : "pointer",
+            textAlign: "left",
+            fontFamily: "'DM Sans',sans-serif",
+            background: C.surfL,
+            border: `1px solid ${C.border}`,
+            borderLeft: `3px solid ${uc}`,
+            opacity: loading ? 0.5 : 1
+          }
+        },
+        /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, flexShrink: 0, marginTop: 1 } }, sit.icon),
+        /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, sit.title), /* @__PURE__ */ React.createElement("div", { style: {
+          background: uc + "18",
+          border: `1px solid ${uc}35`,
+          borderRadius: 4,
+          padding: "1px 6px",
+          fontSize: 9,
+          color: uc,
+          fontWeight: 700
+        } }, sit.urgency)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5 } }, sit.reason)),
+        /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em, flexShrink: 0, marginTop: 2 } }, "\u26A1 Analyser")
+      );
+    }))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "SITUATION \u2014 D\xE9cris ce qui se passe"), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         rows: 5,
@@ -14588,7 +14689,6 @@ ${situation.trim()}`;
   var NAV_MAIN = [
     { id: "home", icon: "\u{1F3E0}", label: "Home", color: C.em },
     { id: "copilot", icon: "\u26A1", label: "Copilot", color: C.em },
-    { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple },
     { id: "meetings", icon: "\u{1F399}\uFE0F", label: "Meetings Hub", color: C.blue },
     { id: "leaders", icon: "\u{1F464}", label: "Portfolio", color: C.purple },
     { id: "cases", icon: "\u{1F4C2}", label: "Case Log", color: C.blue },
@@ -14604,7 +14704,9 @@ ${situation.trim()}`;
     { id: "workshop", icon: "\u{1F6E0}\uFE0F", label: "Workshop", color: C.blue },
     { id: "convkit", icon: "\u{1F4AC}", label: "Conv Kit", color: C.em },
     { id: "knowledge", icon: "\u{1F9E0}", label: "Knowledge", color: C.blue },
-    { id: "radar", icon: "\u{1F52D}", label: "Org Radar", color: C.red }
+    { id: "radar", icon: "\u{1F52D}", label: "Org Radar", color: C.red },
+    // Déprioritisé — Copilot est maintenant l'entrée principale (situations détectées + templates intégrés).
+    { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple }
   ];
   var AUTH_KEY = "hrbpos_auth";
   function LoginScreen({ onAuth }) {
