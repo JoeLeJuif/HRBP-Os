@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { C, css, RISK } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
 import { getProvince, fmtDate } from '../utils/format.js';
+import { getCaseTimeBadge } from '../utils/caseStatus.js';
 import { PROVINCES } from '../utils/legal.js';
 import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
@@ -447,7 +448,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
         <RiskBadge level={c.riskLevel}/>
         {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
         {typeObj && <Badge label={`${typeObj.icon} ${typeObj.label}`} color={typeObj.color}/>}
-        {c.urgency && <Badge label={c.urgency} color={URGENCY_C[c.urgency]||C.textD}/>}
+        {(() => { const tb = getCaseTimeBadge(c); return tb ? <Badge label={tb.label} color={tb.tone}/> : null; })()}
         {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD}/>}
         {c.hrPosture && <Badge label={c.hrPosture} color={HR_POSTURE_C[c.hrPosture]||C.textD}/>}
         {c.director && (onNavigate
@@ -654,7 +655,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
                 : <span style={{ fontSize:11, color:C.textM }}>· {c.director}</span>)}
               {c.employee && <span style={{ fontSize:11, color:C.textM }}>· {c.employee}</span>}
               <ProvinceBadge province={getProvince(c, data.profile)}/>
-              {c.urgency && <span style={{ fontSize:10, color:URGENCY_C[c.urgency]||C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:.3, marginLeft:4 }}>{c.urgency}</span>}
+              {(() => { const tb = getCaseTimeBadge(c); return tb ? <span style={{ fontSize:10, color:tb.tone, fontFamily:"'DM Mono',monospace", letterSpacing:.3, marginLeft:4 }}>{tb.label}</span> : null; })()}
               {c.scope && c.scope !== "leader" && (
                 <Badge label={{ individual:"Individuel", team:"Équipe", org:"Org" }[c.scope] || c.scope}
                   color={{ individual:C.blue, team:C.teal, org:C.textD }[c.scope] || C.textD}

@@ -5047,6 +5047,45 @@ ${buildContext()}`, 3500);
   // src/modules/Cases.jsx
   var import_react12 = __require("react");
 
+  // src/utils/caseStatus.js
+  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived", "ferm\xE9", "ferme"];
+  function isCaseInactive(c) {
+    if (!c) return false;
+    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
+    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
+  }
+  function isCaseActive(c) {
+    return !isCaseInactive(c);
+  }
+  function filterActiveCases(cases) {
+    return (cases || []).filter(isCaseActive);
+  }
+  function isDateInCurrentWeek(isoDate) {
+    if (!isoDate) return false;
+    const d = new Date(typeof isoDate === "string" && isoDate.length === 10 ? isoDate + "T00:00:00" : isoDate);
+    if (isNaN(d.getTime())) return false;
+    const now = /* @__PURE__ */ new Date();
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+    const nextMonday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7);
+    return d >= monday && d < nextMonday;
+  }
+  var URGENCY_TONE = { "Immediat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
+  function getCaseTimeBadge(caseItem) {
+    if (!caseItem) return null;
+    if (isCaseInactive(caseItem)) {
+      const closedDate = caseItem.closedDate || caseItem.closedAt || caseItem.dateFermeture;
+      if (closedDate && isDateInCurrentWeek(closedDate)) {
+        return { label: "Ferm\xE9 cette semaine", tone: C.textD };
+      }
+      return null;
+    }
+    const u = caseItem.urgency;
+    if (!u) return null;
+    return { label: u, tone: URGENCY_TONE[u] || C.textD };
+  }
+
   // src/components/CaseBrief.jsx
   var import_react11 = __require("react");
 
@@ -5998,7 +6037,10 @@ ${similarBlock}`;
           style: { ...css.btn(C.red, true), padding: "6px 14px", fontSize: 12 }
         },
         "\u{1F5D1} Supprimer"
-      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: statusObj.label, color: statusObj.color }), typeObj && /* @__PURE__ */ React.createElement(Badge, { label: `${typeObj.icon} ${typeObj.label}`, color: typeObj.color }), c.urgency && /* @__PURE__ */ React.createElement(Badge, { label: c.urgency, color: URGENCY_C[c.urgency] || C.textD }), c.evolution && /* @__PURE__ */ React.createElement(Badge, { label: c.evolution, color: EVO_C[c.evolution] || C.textD }), c.hrPosture && /* @__PURE__ */ React.createElement(Badge, { label: c.hrPosture, color: HR_POSTURE_C[c.hrPosture] || C.textD }), c.director && (onNavigate ? /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: statusObj.label, color: statusObj.color }), typeObj && /* @__PURE__ */ React.createElement(Badge, { label: `${typeObj.icon} ${typeObj.label}`, color: typeObj.color }), (() => {
+        const tb = getCaseTimeBadge(c);
+        return tb ? /* @__PURE__ */ React.createElement(Badge, { label: tb.label, color: tb.tone }) : null;
+      })(), c.evolution && /* @__PURE__ */ React.createElement(Badge, { label: c.evolution, color: EVO_C[c.evolution] || C.textD }), c.hrPosture && /* @__PURE__ */ React.createElement(Badge, { label: c.hrPosture, color: HR_POSTURE_C[c.hrPosture] || C.textD }), c.director && (onNavigate ? /* @__PURE__ */ React.createElement(
         "span",
         {
           onClick: () => {
@@ -6187,7 +6229,10 @@ ${similarBlock}`;
           },
           "\xB7 ",
           c.director
-        ) : /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", c.director)), c.employee && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", c.employee), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.urgency && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: URGENCY_C[c.urgency] || C.textD, fontFamily: "'DM Mono',monospace", letterSpacing: 0.3, marginLeft: 4 } }, c.urgency), c.scope && c.scope !== "leader" && /* @__PURE__ */ React.createElement(
+        ) : /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", c.director)), c.employee && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", c.employee), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), (() => {
+          const tb = getCaseTimeBadge(c);
+          return tb ? /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: tb.tone, fontFamily: "'DM Mono',monospace", letterSpacing: 0.3, marginLeft: 4 } }, tb.label) : null;
+        })(), c.scope && c.scope !== "leader" && /* @__PURE__ */ React.createElement(
           Badge,
           {
             label: { individual: "Individuel", team: "\xC9quipe", org: "Org" }[c.scope] || c.scope,
@@ -7976,20 +8021,6 @@ Pr\xE9pare la conversation d'accueil:
 
   // src/modules/Meetings.jsx
   var import_react17 = __require("react");
-
-  // src/utils/caseStatus.js
-  var INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived"];
-  function isCaseInactive(c) {
-    if (!c) return false;
-    const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
-    return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
-  }
-  function isCaseActive(c) {
-    return !isCaseInactive(c);
-  }
-  function filterActiveCases(cases) {
-    return (cases || []).filter(isCaseActive);
-  }
 
   // src/prompts/meetings.js
   var MEETING_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Analyse le transcript de reunion et reponds UNIQUEMENT en JSON valide.
