@@ -5380,41 +5380,22 @@ ${similarBlock}`;
   function CaseBrief({ caseObj, data }) {
     const cached = briefCache.get(caseObj.id) || null;
     const [text, setText] = (0, import_react11.useState)(cached);
-    const [loading, setLoading] = (0, import_react11.useState)(!cached);
+    const [loading, setLoading] = (0, import_react11.useState)(false);
     const [error, setError] = (0, import_react11.useState)("");
-    const [refreshTick, setRefreshTick] = (0, import_react11.useState)(0);
-    const lastKeyRef = (0, import_react11.useRef)(null);
-    (0, import_react11.useEffect)(() => {
-      const key = `${caseObj.id}::${refreshTick}`;
-      if (lastKeyRef.current === key) return;
-      lastKeyRef.current = key;
-      if (refreshTick === 0 && briefCache.has(caseObj.id)) {
-        setText(briefCache.get(caseObj.id));
-        setLoading(false);
-        setError("");
-        return;
-      }
-      let cancelled = false;
+    const generate = () => {
       setText(null);
       setError("");
       setLoading(true);
       callAIText(CASE_BRIEF_SP, buildBriefUserMsg(caseObj, data), 1e3).then((t) => {
-        if (cancelled) return;
         briefCache.set(caseObj.id, t);
         setText(t);
-      }).catch((e) => {
-        if (!cancelled) setError(e.message || "Erreur brief");
-      }).finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }, [caseObj.id, refreshTick]);
+      }).catch((e) => setError(e.message || "Erreur brief")).finally(() => setLoading(false));
+    };
     const regenerate = () => {
       briefCache.delete(caseObj.id);
-      setRefreshTick((t) => t + 1);
+      generate();
     };
+    const idle = !loading && !text && !error;
     return /* @__PURE__ */ React.createElement("div", { style: {
       background: C.em + "0a",
       border: `1px solid ${C.em}33`,
@@ -5422,7 +5403,25 @@ ${similarBlock}`;
       borderRadius: 8,
       padding: "12px 14px",
       marginBottom: 16
-    } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: loading || error || text ? 10 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u26A1"), /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 10 }, "BRIEF COPILOT (30 SEC)"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 } }, loading && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "G\xE9n\xE9ration\u2026"), !loading && (text || error) && /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: loading || error || text ? 10 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u26A1"), /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 10 }, "BRIEF COPILOT (30 SEC)"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 } }, loading && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "G\xE9n\xE9ration\u2026"), idle && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: generate,
+        title: "G\xE9n\xE9rer le brief Copilot",
+        style: {
+          background: C.em + "1a",
+          border: `1px solid ${C.em}66`,
+          color: C.em,
+          borderRadius: 5,
+          padding: "3px 10px",
+          fontSize: 10,
+          cursor: "pointer",
+          fontFamily: "'DM Mono',monospace",
+          fontWeight: 600
+        }
+      },
+      "\u26A1 G\xE9n\xE9rer le brief"
+    ), !loading && (text || error) && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: regenerate,

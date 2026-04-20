@@ -1,9 +1,9 @@
-// ── CaseBrief — auto-generated 30-sec Copilot brief shown on Case detail open.
-// Triggers a focused callAIText on caseId change. Cached in module-scope to avoid
-// re-calling when the user navigates list ↔ detail. Display only — never writes
-// back to the Case.
+// ── CaseBrief — 30-sec Copilot brief shown on Case detail.
+// On-demand: user clicks "Générer le brief" to trigger callAIText. Cached in
+// module-scope so an already-generated brief re-displays instantly on list ↔ detail
+// navigation. Display only — never writes back to the Case.
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { C } from '../theme.js';
 import Mono from '../components/Mono.jsx';
 import { callAIText } from '../api/index.js';
@@ -106,44 +106,28 @@ function renderBrief(raw) {
 export default function CaseBrief({ caseObj, data }) {
   const cached = briefCache.get(caseObj.id) || null;
   const [text, setText] = useState(cached);
-  const [loading, setLoading] = useState(!cached);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [refreshTick, setRefreshTick] = useState(0);
-  const lastKeyRef = useRef(null);
 
-  useEffect(() => {
-    const key = `${caseObj.id}::${refreshTick}`;
-    if (lastKeyRef.current === key) return;
-    lastKeyRef.current = key;
-
-    if (refreshTick === 0 && briefCache.has(caseObj.id)) {
-      setText(briefCache.get(caseObj.id));
-      setLoading(false);
-      setError("");
-      return;
-    }
-
-    let cancelled = false;
+  const generate = () => {
     setText(null);
     setError("");
     setLoading(true);
-
     callAIText(CASE_BRIEF_SP, buildBriefUserMsg(caseObj, data), 1000)
       .then(t => {
-        if (cancelled) return;
         briefCache.set(caseObj.id, t);
         setText(t);
       })
-      .catch(e => { if (!cancelled) setError(e.message || "Erreur brief"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-
-    return () => { cancelled = true; };
-  }, [caseObj.id, refreshTick]); // eslint-disable-line
+      .catch(e => setError(e.message || "Erreur brief"))
+      .finally(() => setLoading(false));
+  };
 
   const regenerate = () => {
     briefCache.delete(caseObj.id);
-    setRefreshTick(t => t + 1);
+    generate();
   };
+
+  const idle = !loading && !text && !error;
 
   return (
     <div style={{
@@ -162,6 +146,12 @@ export default function CaseBrief({ caseObj, data }) {
             <span style={{ fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" }}>
               Génération…
             </span>
+          )}
+          {idle && (
+            <button onClick={generate} title="Générer le brief Copilot"
+              style={{ background: C.em + "1a", border: `1px solid ${C.em}66`, color: C.em,
+                borderRadius: 5, padding: "3px 10px", fontSize: 10, cursor: "pointer",
+                fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>⚡ Générer le brief</button>
           )}
           {!loading && (text || error) && (
             <button onClick={regenerate} title="Régénérer le brief"

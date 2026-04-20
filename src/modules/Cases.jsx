@@ -471,7 +471,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
         {c.closedDate && <Mono color={C.em}>Fermé: {c.closedDate}</Mono>}
       </div>
 
-      {/* ⚡ Brief Copilot — auto-généré à l'ouverture du dossier (display only) */}
+      {/* ⚡ Brief Copilot — généré sur demande via bouton (display only) */}
       <CaseBrief caseObj={c} data={data} />
 
       <Card>
