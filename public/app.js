@@ -6401,6 +6401,28 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     "Non fond\xE9e": { color: C.em, icon: "\u25CB" },
     "Preuve insuffisante": { color: C.textM, icon: "\u25CC" }
   };
+  var PERSON_ROLES = [
+    { value: "plaignant", label: "Plaignant(e)", color: INV_RED },
+    { value: "mis_en_cause", label: "Mis(e) en cause", color: C.amber },
+    { value: "temoin", label: "T\xE9moin", color: C.blue },
+    { value: "autre", label: "Autre", color: C.textM }
+  ];
+  var PERSON_ROLE_MAP = Object.fromEntries(PERSON_ROLES.map((r) => [r.value, r]));
+  var LEGACY_PERSON_ROLE_MAP = {
+    complainant: "plaignant",
+    respondent: "mis_en_cause",
+    witness: "temoin",
+    other: "autre"
+  };
+  var normalizePersonRole = (r) => LEGACY_PERSON_ROLE_MAP[r] || r || "autre";
+  var migratePeople = (arr) => (arr || []).map((p) => ({ ...p, role: normalizePersonRole(p.role) }));
+  var newPerson = (role = "plaignant") => ({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    role,
+    fullName: "",
+    organization: "",
+    title: ""
+  });
   function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
     const [view, setView] = (0, import_react13.useState)("list");
     const [complaint, setComplaint] = (0, import_react13.useState)("");
@@ -6415,6 +6437,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const [error, setError] = (0, import_react13.useState)("");
     const [saved, setSaved] = (0, import_react13.useState)(false);
     const [gtab, setGtab] = (0, import_react13.useState)("complainant");
+    const [people, setPeople] = (0, import_react13.useState)([]);
     const [openInvId, setOpenInvId] = (0, import_react13.useState)(null);
     const investigations = data.investigations || [];
     const openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null;
@@ -6424,6 +6447,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const target = investigations.find((x) => x.id === focusInvestigationId);
       if (target) {
         setCaseData(target.caseData || {});
+        setPeople(migratePeople(target.people));
         setOpenInvId(target.id);
         setActiveTab("summary");
         setSaved(true);
@@ -6438,10 +6462,14 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       setParties("");
       setPolicy("");
       setEvidence("");
+      setPeople(migratePeople(inv.people));
       setInvProvince(inv.province || data.profile?.defaultProvince || "QC");
       setError("");
       setView("input");
     };
+    const addPerson = () => setPeople((ps) => [...ps, newPerson()]);
+    const updatePerson = (id, patch) => setPeople((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p));
+    const removePerson = (id) => setPeople((ps) => ps.filter((p) => p.id !== id));
     const generate = async () => {
       if (!complaint.trim()) return;
       setError("");
@@ -6496,6 +6524,7 @@ ${evidence}` : ""
             urgencyLevel: caseData.urgencyLevel || existing.urgencyLevel,
             province: invProvince,
             caseData,
+            people,
             status: "complete",
             titleAuto: true,
             enrichedAt: (/* @__PURE__ */ new Date()).toISOString()
@@ -6516,6 +6545,7 @@ ${evidence}` : ""
         urgencyLevel: caseData.urgencyLevel,
         province: invProvince,
         caseData,
+        people,
         title: "",
         titleAuto: true,
         linkedCaseId: null
@@ -6581,6 +6611,7 @@ ${evidence}` : ""
       setParties("");
       setPolicy("");
       setEvidence("");
+      setPeople([]);
       setCaseData(null);
       setOpenInvId(null);
       setView("input");
@@ -6596,6 +6627,7 @@ ${evidence}` : ""
           key: i,
           onClick: () => {
             setCaseData(inv.caseData || {});
+            setPeople(migratePeople(inv.people));
             setOpenInvId(inv.id);
             setActiveTab("summary");
             setSaved(true);
@@ -6632,7 +6664,7 @@ ${evidence}` : ""
             style: { cursor: "pointer", marginLeft: 8, opacity: 0.5, fontSize: 11 }
           },
           "\u270E"
-        )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, isDraft && /* @__PURE__ */ React.createElement(InvTag, { label: "BROUILLON", color: C.amber }), fromMeeting && /* @__PURE__ */ React.createElement(InvTag, { label: "\u{1F4CE} via meeting", color: C.blue }), fc && /* @__PURE__ */ React.createElement(InvTag, { label: inv.caseData?.findings?.overallFinding, color: fc.color }), /* @__PURE__ */ React.createElement(InvTag, { label: `Urgence: ${inv.urgencyLevel}`, color: uc.color }))),
+        )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, isDraft && /* @__PURE__ */ React.createElement(InvTag, { label: "BROUILLON", color: C.amber }), fromMeeting && /* @__PURE__ */ React.createElement(InvTag, { label: "\u{1F4CE} via meeting", color: C.blue }), inv.people?.length > 0 && /* @__PURE__ */ React.createElement(InvTag, { label: `\u{1F464} ${inv.people.length}`, color: C.textM }), fc && /* @__PURE__ */ React.createElement(InvTag, { label: inv.caseData?.findings?.overallFinding, color: fc.color }), /* @__PURE__ */ React.createElement(InvTag, { label: `Urgence: ${inv.urgencyLevel}`, color: uc.color }))),
         /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, display: "flex", gap: 6, alignItems: "center" } }, inv.caseId, " \xB7 ", inv.caseType, " \xB7 ", inv.savedAt, /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(inv, data.profile) })),
         isDraft && /* @__PURE__ */ React.createElement("div", { style: {
           marginTop: 8,
@@ -6781,7 +6813,92 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
         onFocus: (e) => e.target.style.borderColor = INV_RED + "60",
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    )))), error && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: C.red } }, "\u26A0 ", error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, alignItems: "center", marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "0 0 auto" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Province"), /* @__PURE__ */ React.createElement(
+    )))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Personnes impliqu\xE9es \xB7 identit\xE9s r\xE9elles"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 4, lineHeight: 1.5 } }, "Stock\xE9 s\xE9par\xE9ment du narratif, qui reste anonymis\xE9 (r\xF4les g\xE9n\xE9riques).")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: addPerson,
+        style: {
+          background: C.surfLL,
+          border: `1px solid ${C.border}`,
+          borderRadius: 6,
+          padding: "6px 10px",
+          fontSize: 11,
+          color: C.text,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          whiteSpace: "nowrap"
+        }
+      },
+      "+ Ajouter une personne"
+    )), people.length === 0 && /* @__PURE__ */ React.createElement("div", { style: {
+      fontSize: 11,
+      color: C.textD,
+      fontStyle: "italic",
+      marginTop: 10,
+      padding: "10px 12px",
+      background: C.surfL,
+      border: `1px dashed ${C.border}`,
+      borderRadius: 6
+    } }, "Aucune identit\xE9 enregistr\xE9e. Optionnel \u2014 le dossier peut rester enti\xE8rement anonymis\xE9."), people.map((p) => {
+      const rc = PERSON_ROLE_MAP[p.role]?.color || C.textM;
+      return /* @__PURE__ */ React.createElement("div", { key: p.id, style: {
+        display: "grid",
+        gridTemplateColumns: "140px 1.6fr 1fr 1fr 28px",
+        gap: 8,
+        alignItems: "center",
+        marginTop: 8
+      } }, /* @__PURE__ */ React.createElement(
+        "select",
+        {
+          value: p.role,
+          onChange: (e) => updatePerson(p.id, { role: e.target.value }),
+          style: { ...css.select, borderLeft: `3px solid ${rc}` }
+        },
+        PERSON_ROLES.map((r) => /* @__PURE__ */ React.createElement("option", { key: r.value, value: r.value }, r.label))
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: p.fullName,
+          placeholder: "Nom complet",
+          onChange: (e) => updatePerson(p.id, { fullName: e.target.value }),
+          style: { ...css.input }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: p.organization,
+          placeholder: "Firme / organisation",
+          onChange: (e) => updatePerson(p.id, { organization: e.target.value }),
+          style: { ...css.input }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: p.title,
+          placeholder: "Titre / fonction",
+          onChange: (e) => updatePerson(p.id, { title: e.target.value }),
+          style: { ...css.input }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => removePerson(p.id),
+          title: "Retirer",
+          style: {
+            background: "none",
+            border: "none",
+            color: C.textD,
+            cursor: "pointer",
+            fontSize: 14,
+            padding: 4,
+            lineHeight: 1
+          }
+        },
+        "\u2715"
+      ));
+    })), error && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: C.red } }, "\u26A0 ", error), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, alignItems: "center", marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "0 0 auto" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Province"), /* @__PURE__ */ React.createElement(
       ProvinceSelect,
       {
         value: invProvince,
@@ -6875,7 +6992,11 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
       if (ld.length === 0) return null;
       const latest = [...ld].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
       return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { onClick: () => onNavigate("decisions", { focusDecisionId: latest.id }), title: ld.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la d\xE9cision la plus r\xE9cente (${ld.length} li\xE9es)`, style: { cursor: "pointer", fontSize: 10, padding: "3px 8px", background: C.purple + "15", border: `1px solid ${C.purple}40`, borderRadius: 4, color: C.purple, fontFamily: "'DM Sans',sans-serif" } }, "\u2696 ", ld.length === 1 ? "D\xE9cision" : `D\xE9cisions (${ld.length})`));
-    })(), /* @__PURE__ */ React.createElement(InvTimeline, { inv: openInv, data, onNavigate }), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
+    })(), /* @__PURE__ */ React.createElement(InvTimeline, { inv: openInv, data, onNavigate }), openInv?.people?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${INV_RED}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Personnes impliqu\xE9es \xB7 identit\xE9s r\xE9elles (confidentiel)"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginTop: 10 } }, openInv.people.map((p) => {
+      const r = PERSON_ROLE_MAP[normalizePersonRole(p.role)] || PERSON_ROLE_MAP.autre;
+      const meta = [p.title, p.organization].filter(Boolean).join(" \xB7 ");
+      return /* @__PURE__ */ React.createElement("div", { key: p.id, style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(InvTag, { label: r.label, color: r.color }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 500, color: C.text } }, p.fullName || /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontStyle: "italic" } }, "Sans nom")), meta && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, meta));
+    }))), /* @__PURE__ */ React.createElement("div", null, isDraftOpen ? /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "36px 20px", borderStyle: "dashed" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 26, marginBottom: 10 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 } }, "Les sections d\xE9taill\xE9es appara\xEEtront apr\xE8s avoir compl\xE9t\xE9 le dossier. Les badges d'angle et la cr\xE9ation de rencontres restent disponibles depuis la liste.")) : RENDERERS[activeTab] && RENDERERS[activeTab]()));
   }
 
   // src/modules/AutoPrompt.jsx

@@ -211,6 +211,28 @@ const INV_FINDING = {
   "Preuve insuffisante":  { color:C.textM,   icon:"◌" },
 };
 
+// Personnes impliquées — identités réelles stockées séparément du narratif (qui reste anonymisé).
+const PERSON_ROLES = [
+  { value:"plaignant",    label:"Plaignant(e)",    color:INV_RED },
+  { value:"mis_en_cause", label:"Mis(e) en cause", color:C.amber },
+  { value:"temoin",       label:"Témoin",          color:C.blue },
+  { value:"autre",        label:"Autre",           color:C.textM },
+];
+const PERSON_ROLE_MAP = Object.fromEntries(PERSON_ROLES.map(r => [r.value, r]));
+// Backward-compat : anciennes valeurs anglaises → nouvelles valeurs françaises.
+const LEGACY_PERSON_ROLE_MAP = {
+  complainant: "plaignant",
+  respondent:  "mis_en_cause",
+  witness:     "temoin",
+  other:       "autre",
+};
+const normalizePersonRole = (r) => LEGACY_PERSON_ROLE_MAP[r] || r || "autre";
+const migratePeople = (arr) => (arr || []).map(p => ({ ...p, role: normalizePersonRole(p.role) }));
+const newPerson = (role="plaignant") => ({
+  id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+  role, fullName:"", organization:"", title:"",
+});
+
 export default function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
   const [view, setView] = useState("list"); // list | input | loading | case
   const [complaint, setComplaint] = useState("");
@@ -225,6 +247,7 @@ export default function ModuleInvestigation({ data, onSave, onNavigate, focusInv
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [gtab, setGtab] = useState("complainant");
+  const [people, setPeople] = useState([]);
   // Phase 2 — Suivi du dossier en cours d'ouverture pour pouvoir promouvoir
   // un brouillon en place (preserve id, caseId, createdAt, source).
   const [openInvId, setOpenInvId] = useState(null);
@@ -237,7 +260,7 @@ export default function ModuleInvestigation({ data, onSave, onNavigate, focusInv
   useEffect(() => {
     if (!focusInvestigationId) return;
     const target = investigations.find(x => x.id === focusInvestigationId);
-    if (target) { setCaseData(target.caseData||{}); setOpenInvId(target.id); setActiveTab("summary"); setSaved(true); setView("case"); }
+    if (target) { setCaseData(target.caseData||{}); setPeople(migratePeople(target.people)); setOpenInvId(target.id); setActiveTab("summary"); setSaved(true); setView("case"); }
     if (onClearFocus) onClearFocus();
   }, [focusInvestigationId]); // eslint-disable-line
 
@@ -245,10 +268,16 @@ export default function ModuleInvestigation({ data, onSave, onNavigate, focusInv
   const enrichDraft = (inv) => {
     setOpenInvId(inv.id);
     setComplaint(""); setContext(""); setParties(""); setPolicy(""); setEvidence("");
+    setPeople(migratePeople(inv.people));
     setInvProvince(inv.province || data.profile?.defaultProvince || "QC");
     setError("");
     setView("input");
   };
+
+  // People helpers — local edits only, persisted via saveDossier.
+  const addPerson  = () => setPeople(ps => [...ps, newPerson()]);
+  const updatePerson = (id, patch) => setPeople(ps => ps.map(p => p.id === id ? { ...p, ...patch } : p));
+  const removePerson = (id) => setPeople(ps => ps.filter(p => p.id !== id));
 
   const generate = async () => {
     if (!complaint.trim()) return;
@@ -299,6 +328,7 @@ ${evidence}` : "",
           urgencyLevel: caseData.urgencyLevel || existing.urgencyLevel,
           province: invProvince,
           caseData,
+          people,
           status: "complete",
           titleAuto: true,
           enrichedAt: new Date().toISOString(),
@@ -312,7 +342,7 @@ ${evidence}` : "",
     }
     const inv = { id:Date.now().toString(), savedAt:today,
       caseId:caseData.caseId, caseTitle:caseData.caseTitle, caseType:caseData.caseType,
-      urgencyLevel:caseData.urgencyLevel, province:invProvince, caseData,
+      urgencyLevel:caseData.urgencyLevel, province:invProvince, caseData, people,
       title:"", titleAuto:true, linkedCaseId:null };
     inv.title = generateInvestigationTitle(inv);
     onSave("investigations", [...investigations, inv]);
@@ -517,7 +547,7 @@ ${evidence}` : "",
           <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Enquêtes & Investigations</div>
           <div style={{ fontSize:12, color:C.textM }}>{investigations.length} dossier(s) archivé(s) · Standards Rubin Thomlinson</div>
         </div>
-        <button onClick={()=>{ setComplaint(""); setContext(""); setParties(""); setPolicy(""); setEvidence(""); setCaseData(null); setOpenInvId(null); setView("input"); }} style={{ ...css.btn(INV_RED) }}>🔍 Ouvrir un dossier d'enquête</button>
+        <button onClick={()=>{ setComplaint(""); setContext(""); setParties(""); setPolicy(""); setEvidence(""); setPeople([]); setCaseData(null); setOpenInvId(null); setView("input"); }} style={{ ...css.btn(INV_RED) }}>🔍 Ouvrir un dossier d'enquête</button>
       </div>
       {investigations.length === 0 && <Card style={{ textAlign:"center", padding:"40px 20px" }}>
         <div style={{ fontSize:32, marginBottom:12 }}>🔍</div>
@@ -531,7 +561,7 @@ ${evidence}` : "",
           const isDraft = inv.status === "draft";
           const fromMeeting = inv.source === "meeting-engine-express";
           const accent = isDraft ? C.amber : INV_RED;
-          return <button key={i} onClick={()=>{ setCaseData(inv.caseData||{}); setOpenInvId(inv.id); setActiveTab("summary"); setSaved(true); setView("case"); }}
+          return <button key={i} onClick={()=>{ setCaseData(inv.caseData||{}); setPeople(migratePeople(inv.people)); setOpenInvId(inv.id); setActiveTab("summary"); setSaved(true); setView("case"); }}
             style={{ background:C.surfL, border:`1px solid ${accent}28`, borderLeft:`3px solid ${accent}`,
               borderRadius:8, padding:"12px 14px", cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif" }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
@@ -558,6 +588,7 @@ ${evidence}` : "",
               <div style={{ display:"flex", gap:6 }}>
                 {isDraft && <InvTag label="BROUILLON" color={C.amber}/>}
                 {fromMeeting && <InvTag label="📎 via meeting" color={C.blue}/>}
+                {inv.people?.length > 0 && <InvTag label={`👤 ${inv.people.length}`} color={C.textM}/>}
                 {fc&&<InvTag label={inv.caseData?.findings?.overallFinding} color={fc.color}/>}
                 <InvTag label={`Urgence: ${inv.urgencyLevel}`} color={uc.color}/>
               </div>
@@ -682,6 +713,53 @@ ${evidence}` : "",
             onFocus={e=>e.target.style.borderColor=INV_RED+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
         </Card>)}
       </div>
+      <Card style={{ marginBottom:14 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, marginBottom:4 }}>
+          <div>
+            <Mono color={C.textD} size={9}>Personnes impliquées · identités réelles</Mono>
+            <div style={{ fontSize:11, color:C.textD, marginTop:4, lineHeight:1.5 }}>
+              Stocké séparément du narratif, qui reste anonymisé (rôles génériques).
+            </div>
+          </div>
+          <button type="button" onClick={addPerson}
+            style={{ background:C.surfLL, border:`1px solid ${C.border}`, borderRadius:6,
+              padding:"6px 10px", fontSize:11, color:C.text, cursor:"pointer",
+              fontFamily:"'DM Sans',sans-serif", whiteSpace:"nowrap" }}>
+            + Ajouter une personne
+          </button>
+        </div>
+        {people.length === 0 && (
+          <div style={{ fontSize:11, color:C.textD, fontStyle:"italic", marginTop:10,
+            padding:"10px 12px", background:C.surfL, border:`1px dashed ${C.border}`, borderRadius:6 }}>
+            Aucune identité enregistrée. Optionnel — le dossier peut rester entièrement anonymisé.
+          </div>
+        )}
+        {people.map((p) => {
+          const rc = PERSON_ROLE_MAP[p.role]?.color || C.textM;
+          return (
+            <div key={p.id} style={{ display:"grid",
+              gridTemplateColumns:"140px 1.6fr 1fr 1fr 28px",
+              gap:8, alignItems:"center", marginTop:8 }}>
+              <select value={p.role} onChange={e=>updatePerson(p.id, { role: e.target.value })}
+                style={{ ...css.select, borderLeft:`3px solid ${rc}` }}>
+                {PERSON_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+              <input value={p.fullName} placeholder="Nom complet"
+                onChange={e=>updatePerson(p.id, { fullName: e.target.value })}
+                style={{ ...css.input }}/>
+              <input value={p.organization} placeholder="Firme / organisation"
+                onChange={e=>updatePerson(p.id, { organization: e.target.value })}
+                style={{ ...css.input }}/>
+              <input value={p.title} placeholder="Titre / fonction"
+                onChange={e=>updatePerson(p.id, { title: e.target.value })}
+                style={{ ...css.input }}/>
+              <button type="button" onClick={()=>removePerson(p.id)} title="Retirer"
+                style={{ background:"none", border:"none", color:C.textD, cursor:"pointer",
+                  fontSize:14, padding:4, lineHeight:1 }}>✕</button>
+            </div>
+          );
+        })}
+      </Card>
       {error&&<div style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:7, padding:"8px 12px", marginBottom:12, fontSize:12, color:C.red }}>⚠ {error}</div>}
       <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:12 }}>
         <div style={{ flex:"0 0 auto" }}>
@@ -770,6 +848,26 @@ ${evidence}` : "",
         );
       })()}
       <InvTimeline inv={openInv} data={data} onNavigate={onNavigate}/>
+      {(openInv?.people?.length > 0) && (
+        <Card style={{ marginBottom:14, borderLeft:`3px solid ${INV_RED}` }}>
+          <Mono color={C.textD} size={9}>Personnes impliquées · identités réelles (confidentiel)</Mono>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>
+            {openInv.people.map(p => {
+              const r = PERSON_ROLE_MAP[normalizePersonRole(p.role)] || PERSON_ROLE_MAP.autre;
+              const meta = [p.title, p.organization].filter(Boolean).join(" · ");
+              return (
+                <div key={p.id} style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+                  <InvTag label={r.label} color={r.color}/>
+                  <span style={{ fontSize:13, fontWeight:500, color:C.text }}>
+                    {p.fullName || <span style={{ color:C.textD, fontStyle:"italic" }}>Sans nom</span>}
+                  </span>
+                  {meta && <span style={{ fontSize:11, color:C.textM }}>{meta}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
       <div>{isDraftOpen
         ? <Card style={{ textAlign:"center", padding:"36px 20px", borderStyle:"dashed" }}>
             <div style={{ fontSize:26, marginBottom:10 }}>📝</div>
