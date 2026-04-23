@@ -1145,11 +1145,21 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <Card><SecHead icon="📋" label="Résumé exécutif" color={C.blue}/><BulletList items={result.summary} color={C.blue}/></Card>
         </div>
       )}
-      {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="people" && <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        <Card><SecHead icon="📈" label="Performance" color={C.amber}/><BulletList items={result.people?.performance} color={C.amber}/></Card>
-        <Card><SecHead icon="🎙️" label="Leadership" color={C.purple}/><BulletList items={result.people?.leadership} color={C.purple}/></Card>
-        <Card><SecHead icon="💡" label="Engagement" color={C.em}/><BulletList items={result.people?.engagement} color={C.em}/></Card>
-      </div>}
+      {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="people" && (() => {
+        const people = result?.people || result?.participants || {};
+        const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+        const perf = toArr(people.performance);
+        const lead = toArr(people.leadership);
+        const engg = toArr(people.engagement);
+        if (!perf.length && !lead.length && !engg.length) {
+          return <Card><div style={{ fontSize:13, color:C.textM, textAlign:"center", padding:"16px 8px" }}>Aucune donnée People disponible.</div></Card>;
+        }
+        return <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <Card><SecHead icon="📈" label="Performance" color={C.amber}/><BulletList items={perf} color={C.amber}/></Card>
+          <Card><SecHead icon="🎙️" label="Leadership" color={C.purple}/><BulletList items={lead} color={C.purple}/></Card>
+          <Card><SecHead icon="💡" label="Engagement" color={C.em}/><BulletList items={engg} color={C.em}/></Card>
+        </div>;
+      })()}
       {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="signals" && <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {result.signals?.map((s,i) => {
           const BREADTH_C = {"Isolé":C.teal,"Isole":C.teal,"Récurrent":C.amber,"Recurrent":C.amber,"Systémique":C.red,"Systemique":C.red};
