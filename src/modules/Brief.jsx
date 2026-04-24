@@ -200,7 +200,7 @@ CONTEXTE ADDITIONNEL:\n${inputs.other||""}${prevCtx}${caseCtx}`;
               `MEETING [${m.savedAt}] ${m.meetingType?.toUpperCase()||""} — ${m.director||""}`,
               `  Titre: ${a.meetingTitle||""}`,
               `  Risque global: ${a.overallRisk||""} — ${a.overallRiskRationale||""}`,
-              `  Résumé: ${(a.summary||[]).join(" | ")}`,
+              `  Résumé: ${toArray(a.summary).join(" | ")}`,
               actions   ? `  Actions: ${actions}`   : "",
               risks     ? `  Risques: ${risks}`     : "",
               people    ? `  People: ${people}`     : "",
@@ -371,7 +371,7 @@ ${prepsTxt ? `\n=== PRÉPARATIONS 1:1 (${weekPreps.length}) ===\n${prepsTxt}` : 
         .slice(0, 8)
         .map(m => {
           const a = m.analysis || m.output || {};
-          return `- ${a.meetingTitle||m.meetingType||"Meeting"} — ${m.director||""} — Risque: ${a.overallRisk||"?"} — Actions: ${(a.actions||[]).slice(0,2).map(x=>x.action||x).join("; ")||"aucune"}`;
+          return `- ${a.meetingTitle||m.meetingType||"Meeting"} — ${m.director||""} — Risque: ${a.overallRisk||"?"} — Actions: ${toArray(a.actions).slice(0,2).map(x=>x.action||x).join("; ")||"aucune"}`;
         })
         .join("\n");
 

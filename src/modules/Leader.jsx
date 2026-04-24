@@ -682,7 +682,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
   // Signals from meetings — Élevé/Critique, chronological, max 5
   const highSignals = sortedMeetings.slice(0,5).flatMap(m =>
-    (mAna(m).signals||[])
+    toArray(mAna(m).signals)
       .filter(s => s.level==="Élevé" || s.level==="Eleve" || s.level==="Critique")
       .map(s => ({ ...s, _date:m.savedAt, _title:mAna(m).meetingTitle }))
   ).slice(0,5);

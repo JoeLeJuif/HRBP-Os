@@ -9,7 +9,7 @@ import { useState } from "react";
 import { C, css, RISK } from '../theme.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { normKey } from '../utils/format.js';
-import { toArray } from '../utils/meetingModel.js';
+import { toArray, normalizeMeetingOutput } from '../utils/meetingModel.js';
 import { callAI } from '../api/index.js';
 import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
@@ -178,12 +178,12 @@ export default function Module1on1Prep({ data, onSave, onNavigate, level = "gest
   // ── Build history string for AI prompt ───────────────────────────────────
   const buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
     const a = m.analysis || {};
-    const risks    = (a.risks    || []).slice(0,2).map(r => r.risk    || r).join("; ");
-    const actions  = (a.actions  || []).slice(0,3).map(ac => ac.action || ac).join("; ");
-    const questions= (a.questions|| []).slice(0,3).map(q  => q.question|| q).join("; ");
+    const risks    = toArray(a.risks   ).slice(0,2).map(r => r.risk    || r).join("; ");
+    const actions  = toArray(a.actions ).slice(0,3).map(ac => ac.action || ac).join("; ");
+    const questions= toArray(a.questions).slice(0,3).map(q  => q.question|| q).join("; ");
     return `[Meeting ${i+1} — ${m.savedAt}]
 Titre: ${a.meetingTitle||"N/D"} | Risque: ${a.overallRisk||"N/D"}
-Résumé: ${(a.summary||[]).slice(0,2).join(" / ")}
+Résumé: ${toArray(a.summary).slice(0,2).join(" / ")}
 Risques: ${risks}
 Actions: ${actions}
 Questions posées: ${questions}`;
@@ -242,8 +242,8 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
     ) ? `\n${buildLegalPromptContext(_prepProv)}\n` : "";
     const _meetingBlock = (meetingAnalysis.transcript || meetingAnalysis.keyPoints) ? `\n\nANALYSE DU MEETING AVEC CE GESTIONNAIRE :\n${meetingAnalysis.transcript ? `Transcript/Notes : ${meetingAnalysis.transcript}` : ""}${meetingAnalysis.transcript && meetingAnalysis.keyPoints ? "\n" : ""}${meetingAnalysis.keyPoints ? `Points cles observes : ${meetingAnalysis.keyPoints}` : ""}` : "";
     const up = `Gestionnaire: ${ctx.managerName||"N/A"}\nEquipe: ${ctx.team||"N/A"}\nObjectif: ${ctx.purpose||"N/A"}\nContexte: ${ctx.background||"N/A"}${_prepLegalText}${_meetingBlock}\nNotes — Personnes: ${notes.people||"Aucune"}\nNotes — Performance: ${notes.performance||"Aucune"}\nNotes — Risques: ${notes.risks||"Aucune"}\nNotes — Org: ${notes.org||"Aucune"}\nNotes — Leadership: ${notes.leadership||"Aucune"}\nNotes — Actions: ${notes.actions||"Aucune"}\nNotes — Suivis: ${notes.followups||"Aucune"}`;
-    try { const p = await callAI(sp, up); setOutput(p); }
-    catch { setOutput({ executiveSummary:"Rencontre completee. Voir les notes.", overallRisk:"Modere", keySignals:["A completer"], mainRisks:["A identifier"], hrbpFollowups:["Reviser les notes"], nextMeetingContext:"", nextMeetingQuestions:["A definir"], actionPlan:[{action:"Faire le suivi",owner:"HRBP",delay:"7 jours",priority:"Normale"}] }); }
+    try { const p = await callAI(sp, up); setOutput(normalizeMeetingOutput(p)); }
+    catch { setOutput(normalizeMeetingOutput({ executiveSummary:"Rencontre completee. Voir les notes.", overallRisk:"Modere", keySignals:["A completer"], mainRisks:["A identifier"], hrbpFollowups:["Reviser les notes"], nextMeetingContext:"", nextMeetingQuestions:["A definir"], actionPlan:[{action:"Faire le suivi",owner:"HRBP",delay:"7 jours",priority:"Normale"}] })); }
     finally { setOutputLoading(false); }
   };
 
@@ -773,7 +773,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                           {open && (
                             <div style={{padding:"0 13px 12px",
                                           borderTop:`1px solid ${C.border}`}}>
-                              {(a.summary||[]).map((s,j) => (
+                              {toArray(a.summary).map((s,j) => (
                                 <div key={j} style={{display:"flex",gap:8,marginTop:8}}>
                                   <div style={{width:4,height:4,borderRadius:"50%",
                                                 background:C.em,marginTop:7,flexShrink:0}}/>

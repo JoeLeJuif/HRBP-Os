@@ -443,12 +443,12 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   // ── Build history string for AI prompt ───────────────────────────────────
   const buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
     const a = m.analysis || {};
-    const risks    = (a.risks    || []).slice(0,2).map(r => r.risk || r.risque || r).join("; ");
-    const actions  = (a.actions  || []).slice(0,3).map(ac => ac.action || ac).join("; ");
-    const questions= (a.questions|| []).slice(0,3).map(q  => q.question|| q).join("; ");
+    const risks    = toArray(a.risks   ).slice(0,2).map(r => r.risk || r.risque || r).join("; ");
+    const actions  = toArray(a.actions ).slice(0,3).map(ac => ac.action || ac).join("; ");
+    const questions= toArray(a.questions).slice(0,3).map(q  => q.question|| q).join("; ");
     return `[Meeting ${i+1} — ${m.savedAt}]
 Titre: ${a.meetingTitle||"N/D"} | Risque: ${a.overallRisk||"N/D"}
-Resume: ${(a.summary||[]).slice(0,2).join(" / ")}
+Resume: ${toArray(a.summary).slice(0,2).join(" / ")}
 Risques: ${risks}
 Actions: ${actions}
 Questions posees: ${questions}`;
@@ -1299,7 +1299,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                           </button>
                           {open && (
                             <div style={{padding:"0 13px 12px",borderTop:`1px solid ${C.border}`}}>
-                              {(a.summary||[]).map((s,j) => (
+                              {toArray(a.summary).map((s,j) => (
                                 <div key={j} style={{display:"flex",gap:8,marginTop:8}}>
                                   <div style={{width:4,height:4,borderRadius:"50%",background:C.em,marginTop:7,flexShrink:0}}/>
                                   <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{s}</span>

@@ -11,6 +11,7 @@ import { callAIText } from '../api/index.js';
 import { fmtDate } from '../utils/format.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { APE_TEMPLATES, detectSituations } from '../utils/situations.js';
+import { toArray } from '../utils/meetingModel.js';
 import { C, css } from '../theme.js';
 
 export default function ModuleCopilot({ data }) {
@@ -59,14 +60,14 @@ export default function ModuleCopilot({ data }) {
     const meetingsCtx = recentMeetings.length > 0
       ? recentMeetings.map(m => {
           const a = m.analysis || {};
-          const actions = (a.actions||[]).map(x => `${x.action} [${x.owner}/${x.delay}]`).join("; ");
-          return `- [${m.meetingType?.toUpperCase()||"MEETING"}] ${a.meetingTitle||""} — ${m.director||""} (${fmtDate(m.savedAt)})\n  Risk: ${a.overallRisk||""} — ${a.overallRiskRationale||""}\n  Summary: ${(a.summary||[]).join(" | ")}\n  Actions: ${actions||"none"}`;
+          const actions = toArray(a.actions).map(x => `${x.action} [${x.owner}/${x.delay}]`).join("; ");
+          return `- [${m.meetingType?.toUpperCase()||"MEETING"}] ${a.meetingTitle||""} — ${m.director||""} (${fmtDate(m.savedAt)})\n  Risk: ${a.overallRisk||""} — ${a.overallRiskRationale||""}\n  Summary: ${toArray(a.summary).join(" | ")}\n  Actions: ${actions||"none"}`;
         }).join("\n")
       : "No recent meetings.";
 
     // Open actions from meetings
     const openActions = recentMeetings.flatMap(m =>
-      (m.analysis?.actions||[]).map(a => `- ${a.action} [${a.owner} / ${a.delay}] — from meeting: ${m.analysis?.meetingTitle||""} (${fmtDate(m.savedAt)})`)
+      toArray(m.analysis?.actions).map(a => `- ${a.action} [${a.owner} / ${a.delay}] — from meeting: ${m.analysis?.meetingTitle||""} (${fmtDate(m.savedAt)})`)
     );
     const actionsCtx = openActions.length > 0 ? openActions.slice(0, 12).join("\n") : "No tracked open actions.";
 

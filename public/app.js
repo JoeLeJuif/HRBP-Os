@@ -8338,12 +8338,12 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     const histCount = managerHistory.length;
     const buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
       const a = m.analysis || {};
-      const risks = (a.risks || []).slice(0, 2).map((r) => r.risk || r).join("; ");
-      const actions = (a.actions || []).slice(0, 3).map((ac) => ac.action || ac).join("; ");
-      const questions2 = (a.questions || []).slice(0, 3).map((q) => q.question || q).join("; ");
+      const risks = toArray(a.risks).slice(0, 2).map((r) => r.risk || r).join("; ");
+      const actions = toArray(a.actions).slice(0, 3).map((ac) => ac.action || ac).join("; ");
+      const questions2 = toArray(a.questions).slice(0, 3).map((q) => q.question || q).join("; ");
       return `[Meeting ${i + 1} \u2014 ${m.savedAt}]
 Titre: ${a.meetingTitle || "N/D"} | Risque: ${a.overallRisk || "N/D"}
-R\xE9sum\xE9: ${(a.summary || []).slice(0, 2).join(" / ")}
+R\xE9sum\xE9: ${toArray(a.summary).slice(0, 2).join(" / ")}
 Risques: ${risks}
 Actions: ${actions}
 Questions pos\xE9es: ${questions2}`;
@@ -8421,9 +8421,9 @@ Notes \u2014 Actions: ${notes.actions || "Aucune"}
 Notes \u2014 Suivis: ${notes.followups || "Aucune"}`;
       try {
         const p = await callAI(sp, up);
-        setOutput(p);
+        setOutput(normalizeMeetingOutput(p));
       } catch {
-        setOutput({ executiveSummary: "Rencontre completee. Voir les notes.", overallRisk: "Modere", keySignals: ["A completer"], mainRisks: ["A identifier"], hrbpFollowups: ["Reviser les notes"], nextMeetingContext: "", nextMeetingQuestions: ["A definir"], actionPlan: [{ action: "Faire le suivi", owner: "HRBP", delay: "7 jours", priority: "Normale" }] });
+        setOutput(normalizeMeetingOutput({ executiveSummary: "Rencontre completee. Voir les notes.", overallRisk: "Modere", keySignals: ["A completer"], mainRisks: ["A identifier"], hrbpFollowups: ["Reviser les notes"], nextMeetingContext: "", nextMeetingQuestions: ["A definir"], actionPlan: [{ action: "Faire le suivi", owner: "HRBP", delay: "7 jours", priority: "Normale" }] }));
       } finally {
         setOutputLoading(false);
       }
@@ -8936,7 +8936,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       ), open && /* @__PURE__ */ React.createElement("div", { style: {
         padding: "0 13px 12px",
         borderTop: `1px solid ${C.border}`
-      } }, (a.summary || []).map((s, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      } }, toArray(a.summary).map((s, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", { style: {
         width: 4,
         height: 4,
         borderRadius: "50%",
@@ -9989,12 +9989,12 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     const histCount = managerHistory.length;
     const buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
       const a = m.analysis || {};
-      const risks = (a.risks || []).slice(0, 2).map((r) => r.risk || r.risque || r).join("; ");
-      const actions = (a.actions || []).slice(0, 3).map((ac) => ac.action || ac).join("; ");
-      const questions2 = (a.questions || []).slice(0, 3).map((q) => q.question || q).join("; ");
+      const risks = toArray(a.risks).slice(0, 2).map((r) => r.risk || r.risque || r).join("; ");
+      const actions = toArray(a.actions).slice(0, 3).map((ac) => ac.action || ac).join("; ");
+      const questions2 = toArray(a.questions).slice(0, 3).map((q) => q.question || q).join("; ");
       return `[Meeting ${i + 1} \u2014 ${m.savedAt}]
 Titre: ${a.meetingTitle || "N/D"} | Risque: ${a.overallRisk || "N/D"}
-Resume: ${(a.summary || []).slice(0, 2).join(" / ")}
+Resume: ${toArray(a.summary).slice(0, 2).join(" / ")}
 Risques: ${risks}
 Actions: ${actions}
 Questions posees: ${questions2}`;
@@ -10782,7 +10782,7 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         /* @__PURE__ */ React.createElement(RiskBadge4, { level: a.overallRisk || "Faible" }),
         /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt),
         /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontSize: 12, marginLeft: 4 } }, open ? "\u25B2" : "\u25BC")
-      ), open && /* @__PURE__ */ React.createElement("div", { style: { padding: "0 13px 12px", borderTop: `1px solid ${C.border}` } }, (a.summary || []).map((s, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.em, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))));
+      ), open && /* @__PURE__ */ React.createElement("div", { style: { padding: "0 13px 12px", borderTop: `1px solid ${C.border}` } }, toArray(a.summary).map((s, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.em, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))));
     })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setPTab("prep"), style: { ...css.btn(C.em), flex: 1 } }, "\u{1F3AF} G\xE9n\xE9rer les questions avec cet historique \u2192")))), pTab === "prep" && /* @__PURE__ */ React.createElement("div", null, !prep && !prepLoading && /* @__PURE__ */ React.createElement("div", { style: { background: C.surfL, border: `2px dashed ${C.border}`, borderRadius: 12, padding: "32px 24px", textAlign: "center", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 10 } }, "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 } }, "Questions non g\xE9n\xE9r\xE9es"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginBottom: 16, maxWidth: 420, margin: "0 auto 16px" } }, histCount > 0 ? `L'IA va s'appuyer sur les ${histCount} meeting(s) avec ${ctx.managerName || "ce gestionnaire"} pour personnaliser les questions.` : "Remplis le contexte puis g\xE9n\xE8re des questions strat\xE9giques."), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -11889,7 +11889,7 @@ ${inputs.other || ""}${prevCtx}${caseCtx}`;
             `MEETING [${m.savedAt}] ${m.meetingType?.toUpperCase() || ""} \u2014 ${m.director || ""}`,
             `  Titre: ${a.meetingTitle || ""}`,
             `  Risque global: ${a.overallRisk || ""} \u2014 ${a.overallRiskRationale || ""}`,
-            `  R\xE9sum\xE9: ${(a.summary || []).join(" | ")}`,
+            `  R\xE9sum\xE9: ${toArray(a.summary).join(" | ")}`,
             actions ? `  Actions: ${actions}` : "",
             risks ? `  Risques: ${risks}` : "",
             people ? `  People: ${people}` : "",
@@ -12039,7 +12039,7 @@ ${prepsTxt}` : ""}`;
         }).join("\n");
         const recentMeetingsIns = (data.meetings || []).filter((m) => new Date(m.savedAt || m.dateCreated || 0).getTime() > sevenDaysAgo).slice(0, 8).map((m) => {
           const a = m.analysis || m.output || {};
-          return `- ${a.meetingTitle || m.meetingType || "Meeting"} \u2014 ${m.director || ""} \u2014 Risque: ${a.overallRisk || "?"} \u2014 Actions: ${(a.actions || []).slice(0, 2).map((x) => x.action || x).join("; ") || "aucune"}`;
+          return `- ${a.meetingTitle || m.meetingType || "Meeting"} \u2014 ${m.director || ""} \u2014 Risque: ${a.overallRisk || "?"} \u2014 Actions: ${toArray(a.actions).slice(0, 2).map((x) => x.action || x).join("; ") || "aucune"}`;
         }).join("\n");
         const recentPrepsIns = (data.prep1on1 || []).filter((p) => p.kind === "1:1-meeting" && new Date(p.savedAt || 0).getTime() > sevenDaysAgo).slice(0, 5).map((p) => {
           const o = p.output || {};
@@ -13860,7 +13860,7 @@ ${ctx}`, 500);
     };
     const mAna = (m) => m.analysis || m.output || {};
     const highSignals = sortedMeetings.slice(0, 5).flatMap(
-      (m) => (mAna(m).signals || []).filter((s) => s.level === "\xC9lev\xE9" || s.level === "Eleve" || s.level === "Critique").map((s) => ({ ...s, _date: m.savedAt, _title: mAna(m).meetingTitle }))
+      (m) => toArray(mAna(m).signals).filter((s) => s.level === "\xC9lev\xE9" || s.level === "Eleve" || s.level === "Critique").map((s) => ({ ...s, _date: m.savedAt, _title: mAna(m).meetingTitle }))
     ).slice(0, 5);
     const keyMessages = sortedMeetings.filter((m) => mAna(m).hrbpKeyMessage).slice(0, 3).map((m) => ({ msg: mAna(m).hrbpKeyMessage, date: m.savedAt, risk: mAna(m).overallRisk }));
     const lastEngineOut = getLastEngineOutput(l.name, data);
@@ -14688,14 +14688,14 @@ ${ctx}`, 500);
       ).join("\n") : "No recent signals.";
       const meetingsCtx = recentMeetings.length > 0 ? recentMeetings.map((m) => {
         const a = m.analysis || {};
-        const actions = (a.actions || []).map((x) => `${x.action} [${x.owner}/${x.delay}]`).join("; ");
+        const actions = toArray(a.actions).map((x) => `${x.action} [${x.owner}/${x.delay}]`).join("; ");
         return `- [${m.meetingType?.toUpperCase() || "MEETING"}] ${a.meetingTitle || ""} \u2014 ${m.director || ""} (${fmtDate(m.savedAt)})
   Risk: ${a.overallRisk || ""} \u2014 ${a.overallRiskRationale || ""}
-  Summary: ${(a.summary || []).join(" | ")}
+  Summary: ${toArray(a.summary).join(" | ")}
   Actions: ${actions || "none"}`;
       }).join("\n") : "No recent meetings.";
       const openActions = recentMeetings.flatMap(
-        (m) => (m.analysis?.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay}] \u2014 from meeting: ${m.analysis?.meetingTitle || ""} (${fmtDate(m.savedAt)})`)
+        (m) => toArray(m.analysis?.actions).map((a) => `- ${a.action} [${a.owner} / ${a.delay}] \u2014 from meeting: ${m.analysis?.meetingTitle || ""} (${fmtDate(m.savedAt)})`)
       );
       const actionsCtx = openActions.length > 0 ? openActions.slice(0, 12).join("\n") : "No tracked open actions.";
       const coachingCtx = (coaching || []).slice(-3).map(
