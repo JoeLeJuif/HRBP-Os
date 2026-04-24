@@ -5,6 +5,7 @@ import { callAIJson } from '../api/index.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
 import { getProvince, fmtDate } from '../utils/format.js';
 import { INV_SP_1, INV_SP_2 } from '../prompts/investigation.js';
+import { toArray } from '../utils/meetingModel.js';
 import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
@@ -353,6 +354,8 @@ ${evidence}` : "",
   // ── SECTION RENDERERS ──────────────────────────────────────────────────────
   function renderSummary() {
     const s = caseData.caseSummary;
+    const legalFramework = toArray(caseData.legalFramework);
+    const parties        = toArray(s?.parties);
     return <div>
       <InvSection num="01" title="Résumé du dossier"/>
       <div style={{ background:INV_RED+"18", border:`1px solid ${INV_RED}30`,
@@ -361,14 +364,14 @@ ${evidence}` : "",
         <div style={{ fontSize:16, fontWeight:700, color:C.text, margin:"6px 0 10px" }}>{caseData.caseTitle}</div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}><InvTag label={caseData.caseType}/><InvTag label={`Urgence: ${caseData.urgencyLevel}`} color={RISK[caseData.urgencyLevel]?.color||C.amber}/></div>
       </div>
-      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Cadre légal</Mono><div style={{ marginTop:8, display:"flex", gap:6, flexWrap:"wrap" }}>{caseData.legalFramework?.map((l,i)=><InvTag key={i} label={l} color={C.blue}/>)}</div></Card>
+      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Cadre légal</Mono><div style={{ marginTop:8, display:"flex", gap:6, flexWrap:"wrap" }}>{legalFramework.map((l,i)=><InvTag key={i} label={l} color={C.blue}/>)}</div></Card>
       <Card style={{ marginBottom:10, borderLeft:`3px solid ${INV_RED}` }}><Mono color={C.textD} size={9}>Situation — Résumé factuel et neutre</Mono><div style={{ fontSize:13, color:C.text, lineHeight:1.8, marginTop:8, fontStyle:"italic" }}>{s?.situation}</div></Card>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
         <Card><Mono color={C.textD} size={9}>Événement déclencheur</Mono><div style={{ fontSize:12, color:C.textM, marginTop:6, lineHeight:1.7 }}>{s?.triggerEvent}</div></Card>
         <Card><Mono color={C.textD} size={9}>Date / Période du signalement</Mono><div style={{ fontSize:12, color:C.textM, marginTop:6, lineHeight:1.7 }}>{s?.reportedDate}</div></Card>
       </div>
       <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Parties impliquées</Mono>
-        {s?.parties?.map((p,i)=><div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start", marginTop:10, paddingBottom:8, borderBottom:i<s.parties.length-1?`1px solid ${C.border}`:"none" }}><InvTag label={p.role}/><span style={{ fontSize:12, color:C.textM, lineHeight:1.6, flex:1 }}>{p.description}</span></div>)}
+        {parties.map((p,i)=><div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start", marginTop:10, paddingBottom:8, borderBottom:i<parties.length-1?`1px solid ${C.border}`:"none" }}><InvTag label={p.role}/><span style={{ fontSize:12, color:C.textM, lineHeight:1.6, flex:1 }}>{p.description}</span></div>)}
       </Card>
       <Card style={{ borderLeft:`3px solid ${C.textM}` }}><Mono color={C.textD} size={9}>Analyse de la question seuil</Mono><div style={{ fontSize:12, color:C.textM, marginTop:6, lineHeight:1.7 }}>{s?.thresholdAnalysis}</div></Card>
     </div>;
@@ -376,6 +379,10 @@ ${evidence}` : "",
 
   function renderPlan() {
     const p = caseData.investigationPlan;
+    const interimMeasures   = toArray(p?.interimMeasures);
+    const objectives        = toArray(p?.objectives);
+    const interviewOrder    = toArray(p?.interviewOrder);
+    const documentsToReview = toArray(p?.documentsToReview);
     return <div>
       <InvSection num="02" title="Plan d'enquête"/>
       <Card style={{ marginBottom:10, borderLeft:`3px solid ${INV_RED}` }}><Mono color={C.textD} size={9}>Mandat de l'enquêteur</Mono><div style={{ fontSize:13, color:C.text, lineHeight:1.75, marginTop:6 }}>{p?.mandate}</div></Card>
@@ -383,21 +390,21 @@ ${evidence}` : "",
         <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:8 }}><Mono color={C.textD} size={9}>Type d'enquêteur</Mono><InvTag label={p?.investigatorType} color={p?.investigatorType==="Externe"?INV_RED:C.em}/></div>
         <div style={{ fontSize:12, color:C.textM, lineHeight:1.7 }}>{p?.investigatorRationale}</div>
       </Card>
-      {p?.interimMeasures?.length>0&&<Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Mesures intérimaires</Mono>
-        {p.interimMeasures.map((m,i)=><div key={i} style={{ background:C.surfL, border:`1px solid ${C.border}`, borderRadius:7, padding:"10px 13px", marginTop:10 }}>
+      {interimMeasures.length>0&&<Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Mesures intérimaires</Mono>
+        {interimMeasures.map((m,i)=><div key={i} style={{ background:C.surfL, border:`1px solid ${C.border}`, borderRadius:7, padding:"10px 13px", marginTop:10 }}>
           <div style={{ fontSize:13, fontWeight:500, color:C.text, marginBottom:5 }}>{m.measure}</div>
           <div style={{ fontSize:11.5, color:C.textM, marginBottom:5, lineHeight:1.6 }}>↳ {m.rationale}</div>
           <div style={{ fontSize:11, color:C.textM, fontStyle:"italic" }}>⚖ {m.neutralityNote}</div>
         </div>)}
       </Card>}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
-        <Card><Mono color={C.textD} size={9}>Objectifs de l'enquête</Mono>{p?.objectives?.map((o,i)=><div key={i} style={{ display:"flex", gap:8, fontSize:12, color:C.textM, marginTop:6, lineHeight:1.6 }}><span style={{ color:INV_RED }}>→</span>{o}</div>)}</Card>
-        <Card><Mono color={C.textD} size={9}>Ordre des entrevues</Mono>{p?.interviewOrder?.map((item,i)=><div key={i} style={{ display:"flex", gap:9, alignItems:"flex-start", marginTop:8 }}>
+        <Card><Mono color={C.textD} size={9}>Objectifs de l'enquête</Mono>{objectives.map((o,i)=><div key={i} style={{ display:"flex", gap:8, fontSize:12, color:C.textM, marginTop:6, lineHeight:1.6 }}><span style={{ color:INV_RED }}>→</span>{o}</div>)}</Card>
+        <Card><Mono color={C.textD} size={9}>Ordre des entrevues</Mono>{interviewOrder.map((item,i)=><div key={i} style={{ display:"flex", gap:9, alignItems:"flex-start", marginTop:8 }}>
           <div style={{ background:INV_RED, color:"#fff", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontSize:9, flexShrink:0, borderRadius:3 }}>{item.order}</div>
           <div><div style={{ fontSize:12, fontWeight:500, color:C.text }}>{item.party}</div><div style={{ fontSize:11, color:C.textM, lineHeight:1.5 }}>{item.rationale}</div></div>
         </div>)}</Card>
       </div>
-      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Documents à examiner</Mono>{p?.documentsToReview?.map((d,i)=><div key={i} style={{ display:"flex", gap:12, marginTop:8, paddingBottom:8, borderBottom:i<p.documentsToReview.length-1?`1px solid ${C.border}`:"none" }}>
+      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Documents à examiner</Mono>{documentsToReview.map((d,i)=><div key={i} style={{ display:"flex", gap:12, marginTop:8, paddingBottom:8, borderBottom:i<documentsToReview.length-1?`1px solid ${C.border}`:"none" }}>
         <Mono color={C.textD} size={8}>{String(i+1).padStart(2,"0")}</Mono>
         <div><div style={{ fontSize:12, fontWeight:500, color:C.text }}>{d.document}</div><div style={{ fontSize:11, color:C.textM }}>{d.purpose}</div></div>
       </div>)}</Card>
@@ -411,6 +418,11 @@ ${evidence}` : "",
   function renderGuide() {
     const g = caseData.interviewGuide;
     const gtabs = [{id:"complainant",label:"Plaignant(e)"},{id:"respondent",label:"Mise en cause"},{id:"witnesses",label:"Témoins"}];
+    const compDrillDown     = toArray(g?.complainant?.drillDownQuestions);
+    const respAllegations   = toArray(g?.respondent?.allegationResponses);
+    const respMitigating    = toArray(g?.respondent?.mitigatingFactors);
+    const witElimination    = toArray(g?.witnesses?.eliminationQuestions);
+    const witMemoryTriggers = toArray(g?.witnesses?.memoryTriggerQuestions);
     // InvQ is now at module scope
     return <div>
       <InvSection num="03" title="Guide d'entrevue"/>
@@ -425,21 +437,21 @@ ${evidence}` : "",
       </div>
       {gtab==="complainant"&&<div>
         <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Question d'ouverture</Mono><div style={{ fontSize:13, color:C.text, fontStyle:"italic", lineHeight:1.7, marginTop:8 }}>"{g?.complainant?.openingQuestion}"</div></Card>
-        <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Questions de drill-down</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{g?.complainant?.drillDownQuestions?.map((q,i)=><InvQ key={i} q={q} pfx={`Q${i+1}`}/>)}</div></Card>
+        <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Questions de drill-down</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{compDrillDown.map((q,i)=><InvQ key={i} q={q} pfx={`Q${i+1}`}/>)}</div></Card>
         <Card><Mono color={C.textD} size={9}>Question finale de conclusion</Mono><div style={{ fontSize:13, color:C.text, fontStyle:"italic", marginTop:8 }}>"{g?.complainant?.closingQuestion}"</div></Card>
       </div>}
       {gtab==="respondent"&&<div>
         <Card style={{ marginBottom:10, background:C.amber+"0a", borderLeft:`3px solid ${C.amber}` }}><Mono color={C.textD} size={9}>Note sur la divulgation des allégations</Mono><div style={{ fontSize:12, color:C.textM, lineHeight:1.7, marginTop:6 }}>{g?.respondent?.disclosureNote}</div></Card>
         <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Question d'ouverture</Mono><div style={{ fontSize:13, color:C.text, fontStyle:"italic", lineHeight:1.7, marginTop:8 }}>"{g?.respondent?.openingQuestion}"</div></Card>
-        <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Réponses aux allégations</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{g?.respondent?.allegationResponses?.map((q,i)=><InvQ key={i} q={q} pfx={`A${i+1}`} color={C.amber}/>)}</div></Card>
-        <Card><Mono color={C.textD} size={9}>Facteurs atténuants</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{g?.respondent?.mitigatingFactors?.map((q,i)=><InvQ key={i} q={q} pfx={`M${i+1}`} color={C.textM}/>)}</div></Card>
+        <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Réponses aux allégations</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{respAllegations.map((q,i)=><InvQ key={i} q={q} pfx={`A${i+1}`} color={C.amber}/>)}</div></Card>
+        <Card><Mono color={C.textD} size={9}>Facteurs atténuants</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{respMitigating.map((q,i)=><InvQ key={i} q={q} pfx={`M${i+1}`} color={C.textM}/>)}</div></Card>
       </div>}
       {gtab==="witnesses"&&<div>
         <Card style={{ marginBottom:10, borderLeft:`3px solid ${C.textM}` }}><Mono color={C.textD} size={9}>Approche — contacter sans divulguer le contexte</Mono><div style={{ fontSize:12, color:C.textM, lineHeight:1.7, marginTop:6 }}>{g?.witnesses?.approachNote}</div></Card>
         <Card style={{ marginBottom:10, background:C.blue+"08", borderLeft:`3px solid ${C.blue}` }}><Mono color={C.textD} size={9}>Technique Bull's-Eye — application au présent dossier</Mono><div style={{ fontSize:12, color:C.textM, lineHeight:1.7, marginTop:6 }}>{g?.witnesses?.bullseyeApproach}</div></Card>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-          <Card><Mono color={C.textD} size={9}>Questions d'élimination</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{g?.witnesses?.eliminationQuestions?.map((q,i)=><InvQ key={i} q={q} pfx={`E${i+1}`} color={C.textM}/>)}</div></Card>
-          <Card><Mono color={C.textD} size={9}>Déclencheurs de mémoire</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{g?.witnesses?.memoryTriggerQuestions?.map((q,i)=><InvQ key={i} q={q} pfx={`M${i+1}`} color={C.em}/>)}</div></Card>
+          <Card><Mono color={C.textD} size={9}>Questions d'élimination</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{witElimination.map((q,i)=><InvQ key={i} q={q} pfx={`E${i+1}`} color={C.textM}/>)}</div></Card>
+          <Card><Mono color={C.textD} size={9}>Déclencheurs de mémoire</Mono><div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>{witMemoryTriggers.map((q,i)=><InvQ key={i} q={q} pfx={`M${i+1}`} color={C.em}/>)}</div></Card>
         </div>
       </div>}
     </div>;
@@ -448,14 +460,18 @@ ${evidence}` : "",
   function renderEvidence() {
     const ev = caseData.evidenceAnalysis;
     const WC = {"Fort":C.red,"Modéré":C.amber,"Faible":C.textM};
+    const establishedFacts  = toArray(ev?.establishedFacts);
+    const contestedElements = toArray(ev?.contestedElements);
+    const evidenceGaps      = toArray(ev?.evidenceGaps);
+    const hearsayFlags      = toArray(ev?.hearsayFlags);
     return <div>
       <InvSection num="04" title="Analyse de la preuve"/>
       <Card style={{ marginBottom:10, borderLeft:`3px solid ${INV_RED}` }}><Mono color={C.textD} size={9}>Norme de preuve applicable</Mono><div style={{ fontSize:13, color:C.text, lineHeight:1.75, marginTop:6 }}>{ev?.standardOfProof}</div></Card>
-      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Faits établis ou non contestés</Mono>{ev?.establishedFacts?.map((f,i)=><div key={i} style={{ display:"flex", gap:10, marginTop:10, paddingBottom:8, borderBottom:i<ev.establishedFacts.length-1?`1px solid ${C.border}`:"none" }}>
+      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Faits établis ou non contestés</Mono>{establishedFacts.map((f,i)=><div key={i} style={{ display:"flex", gap:10, marginTop:10, paddingBottom:8, borderBottom:i<establishedFacts.length-1?`1px solid ${C.border}`:"none" }}>
         <div style={{ width:3, alignSelf:"stretch", background:WC[f.weight]||C.textM, flexShrink:0, borderRadius:1 }}/>
         <div style={{ flex:1 }}><div style={{ fontSize:13, color:C.text, lineHeight:1.6, marginBottom:3 }}>{f.fact}</div><Mono color={C.textD} size={8}>Source: {f.source} · Poids: {f.weight}</Mono></div>
       </div>)}</Card>
-      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Éléments contestés</Mono>{ev?.contestedElements?.map((e,i)=><div key={i} style={{ background:C.surfL, border:`1px solid ${C.border}`, borderRadius:7, padding:"11px 13px", marginTop:10 }}>
+      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Éléments contestés</Mono>{contestedElements.map((e,i)=><div key={i} style={{ background:C.surfL, border:`1px solid ${C.border}`, borderRadius:7, padding:"11px 13px", marginTop:10 }}>
         <div style={{ fontSize:13, fontWeight:500, color:C.text, marginBottom:9 }}>{e.element}</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:8 }}>
           <div><Mono color={INV_RED} size={8}>Version plaignant(e)</Mono><p style={{ fontSize:11, color:C.textM, lineHeight:1.6, marginTop:4 }}>{e.complainantVersion}</p></div>
@@ -464,8 +480,8 @@ ${evidence}` : "",
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:8, fontSize:11, color:C.textM, lineHeight:1.6 }}><span style={{ color:C.em }}>Résolution → </span>{e.resolution}</div>
       </div>)}</Card>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <Card><Mono color={C.textD} size={9}>Lacunes dans la preuve</Mono>{ev?.evidenceGaps?.map((g,i)=><div key={i} style={{ fontSize:12, color:C.textM, display:"flex", gap:7, marginTop:6 }}><span style={{ color:C.amber }}>!</span>{g}</div>)}</Card>
-        <Card><Mono color={C.textD} size={9}>Alertes ouï-dire</Mono>{ev?.hearsayFlags?.length>0?ev.hearsayFlags.map((h,i)=><div key={i} style={{ fontSize:12, color:C.textM, display:"flex", gap:7, marginTop:6 }}><span style={{ color:C.red }}>⚠</span>{h}</div>):<div style={{ fontSize:12, color:C.textD, fontStyle:"italic", marginTop:6 }}>Aucun ouï-dire identifié</div>}</Card>
+        <Card><Mono color={C.textD} size={9}>Lacunes dans la preuve</Mono>{evidenceGaps.map((g,i)=><div key={i} style={{ fontSize:12, color:C.textM, display:"flex", gap:7, marginTop:6 }}><span style={{ color:C.amber }}>!</span>{g}</div>)}</Card>
+        <Card><Mono color={C.textD} size={9}>Alertes ouï-dire</Mono>{hearsayFlags.length>0?hearsayFlags.map((h,i)=><div key={i} style={{ fontSize:12, color:C.textM, display:"flex", gap:7, marginTop:6 }}><span style={{ color:C.red }}>⚠</span>{h}</div>):<div style={{ fontSize:12, color:C.textD, fontStyle:"italic", marginTop:6 }}>Aucun ouï-dire identifié</div>}</Card>
       </div>
     </div>;
   }
@@ -473,6 +489,7 @@ ${evidence}` : "",
   function renderFindings() {
     const f = caseData.findings;
     const overall = INV_FINDING[f?.overallFinding]||INV_FINDING["Preuve insuffisante"];
+    const allegationByAllegation = toArray(f?.allegationByAllegation);
     return <div>
       <InvSection num="05" title="Conclusions"/>
       <div style={{ background:overall.color+"18", border:`2px solid ${overall.color}40`, borderRadius:10, padding:"18px 22px", marginBottom:14 }}>
@@ -482,7 +499,7 @@ ${evidence}` : "",
         </div>
         <div style={{ fontSize:13, lineHeight:1.8, color:C.text }}>{f?.overallRationale}</div>
       </div>
-      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Analyse par allégation</Mono>{f?.allegationByAllegation?.map((a,i)=>{
+      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Analyse par allégation</Mono>{allegationByAllegation.map((a,i)=>{
         const am = INV_FINDING[a.finding]||INV_FINDING["Preuve insuffisante"];
         return <div key={i} style={{ background:am.color+"10", border:`1px solid ${am.color}30`, borderRadius:7, padding:"12px 14px", borderLeft:`3px solid ${am.color}`, marginTop:10 }}>
           <div style={{ display:"flex", gap:8, alignItems:"flex-start", marginBottom:8 }}>
@@ -502,9 +519,9 @@ ${evidence}` : "",
     // TC and ActionBlock are now at module scope (INV_ACTION_TC / ActionBlock)
     return <div>
       <InvSection num="06" title="Mesures recommandées"/>
-      <ActionBlock items={r?.forRespondent} label="Pour la personne mise en cause"/>
-      <ActionBlock items={r?.forOrganization} label="Mesures organisationnelles"/>
-      <ActionBlock items={r?.forComplainant} label="Soutien au/à la plaignant(e)"/>
+      <ActionBlock items={toArray(r?.forRespondent)} label="Pour la personne mise en cause"/>
+      <ActionBlock items={toArray(r?.forOrganization)} label="Mesures organisationnelles"/>
+      <ActionBlock items={toArray(r?.forComplainant)} label="Soutien au/à la plaignant(e)"/>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
         <Card style={{ borderLeft:`3px solid ${C.em}` }}><Mono color={C.textD} size={9}>Plan de suivi</Mono><div style={{ fontSize:12, color:C.textM, lineHeight:1.7, marginTop:6 }}>{r?.followUp}</div></Card>
         <Card style={{ borderLeft:`3px solid ${C.amber}` }}><Mono color={C.textD} size={9}>Protection contre les représailles</Mono><div style={{ fontSize:12, color:C.textM, lineHeight:1.7, marginTop:6 }}>{r?.reprisalProtection}</div></Card>
@@ -514,9 +531,10 @@ ${evidence}` : "",
 
   function renderReport() {
     const rs = caseData.reportStructure;
+    const sections = toArray(rs?.sections);
     return <div>
       <InvSection num="07" title="Structure du rapport"/>
-      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Sections du rapport</Mono>{rs?.sections?.map((s,i)=><div key={i} style={{ display:"flex", gap:0, borderBottom:i<rs.sections.length-1?`1px solid ${C.border}`:"none" }}>
+      <Card style={{ marginBottom:10 }}><Mono color={C.textD} size={9}>Sections du rapport</Mono>{sections.map((s,i)=><div key={i} style={{ display:"flex", gap:0, borderBottom:i<sections.length-1?`1px solid ${C.border}`:"none" }}>
         <div style={{ width:32, padding:"12px 0", display:"flex", justifyContent:"center", flexShrink:0 }}>
           <div style={{ background:INV_RED, color:"#fff", width:22, height:22, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontSize:9, borderRadius:3 }}>{i+1}</div>
         </div>
