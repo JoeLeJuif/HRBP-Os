@@ -10,6 +10,7 @@ import { BRIEF_SP, RECAP_SP, NEXT_WEEK_LOCK_SP } from '../prompts/brief.js';
 import { callAI, callAIJson } from '../api/index.js';
 import { fmtDate } from '../utils/format.js';
 import { filterActiveCases } from '../utils/caseStatus.js';
+import { toArray } from '../utils/meetingModel.js';
 import { C, css, DELAY_C, RISK } from '../theme.js';
 
 // ── Inline shared helpers ─────────────────────────────────────────────────────
@@ -99,7 +100,7 @@ export default function ModuleBrief({ data, onSave }) {
 
     const meetingsTxt = filteredMeetings.length > 0
       ? filteredMeetings.map(m =>
-          `Meeting ${m.director} (${m.savedAt}): ${m.analysis?.meetingTitle} — Risque ${m.analysis?.overallRisk}. Actions: ${m.analysis?.actions?.map(a=>a.action).join("; ")}`
+          `Meeting ${m.director} (${m.savedAt}): ${m.analysis?.meetingTitle} — Risque ${m.analysis?.overallRisk}. Actions: ${toArray(m.analysis?.actions).map(a=>a.action).join("; ")}`
         ).join("\n")
       : "(Aucun meeting enregistré dans cette période)";
 
@@ -191,10 +192,10 @@ CONTEXTE ADDITIONNEL:\n${inputs.other||""}${prevCtx}${caseCtx}`;
       const meetingsTxt = weekMeetings.length > 0
         ? weekMeetings.map(m => {
             const a = m.analysis || {};
-            const actions   = a.actions?.map(x => x.action).join(" | ") || "";
-            const risks     = a.risks?.map(x => `${x.level}: ${x.risk}`).join(" | ") || "";
-            const people    = [...(a.people?.performance||[]), ...(a.people?.leadership||[]), ...(a.people?.engagement||[])].join(" | ");
-            const taPostes  = a.postes?.map(p => `${p.titre} (${p.etape}) — ${p.statutDetail}`).join(" | ") || "";
+            const actions   = toArray(a.actions).map(x => x.action).join(" | ");
+            const risks     = toArray(a.risks).map(x => `${x.level}: ${x.risk}`).join(" | ");
+            const people    = [...toArray(a.people?.performance), ...toArray(a.people?.leadership), ...toArray(a.people?.engagement)].join(" | ");
+            const taPostes  = toArray(a.postes).map(p => `${p.titre} (${p.etape}) — ${p.statutDetail}`).join(" | ");
             return [
               `MEETING [${m.savedAt}] ${m.meetingType?.toUpperCase()||""} — ${m.director||""}`,
               `  Titre: ${a.meetingTitle||""}`,
@@ -214,7 +215,7 @@ CONTEXTE ADDITIONNEL:\n${inputs.other||""}${prevCtx}${caseCtx}`;
             const a = s.analysis || {};
             return `SIGNAL [${s.savedAt}] ${a.category||""} — ${a.title||""} (${a.severity||""})
   Interprétation: ${a.interpretation||""}
-  Actions: ${a.actions?.map(x=>x.action).join(" | ")||""}`;
+  Actions: ${toArray(a.actions).map(x=>x.action).join(" | ")}`;
           }).join("\n\n")
         : "(Aucun signal dans la période)";
 
@@ -235,8 +236,8 @@ CONTEXTE ADDITIONNEL:\n${inputs.other||""}${prevCtx}${caseCtx}`;
             const o = p.output || {};
             return `PREP 1:1 [${p.savedAt}] ${p.managerName||""}
   Résumé: ${o.executiveSummary||""}
-  Risques: ${o.mainRisks?.join(" | ")||""}
-  Suivis HRBP: ${o.hrbpFollowups?.join(" | ")||""}`;
+  Risques: ${toArray(o.mainRisks).join(" | ")}
+  Suivis HRBP: ${toArray(o.hrbpFollowups).join(" | ")}`;
           }).join("\n\n")
         : "";
 

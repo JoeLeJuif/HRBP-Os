@@ -9,6 +9,7 @@ import { buildLegalPromptContext } from '../utils/legal.js';
 import { filterActiveCases } from '../utils/caseStatus.js';
 import { callAI } from '../api/index.js';
 import { MEETING_SP, DISC_SP, TA_SP, INIT_SP } from '../prompts/meetings.js';
+import { normalizeMeetingOutput, toArray } from '../utils/meetingModel.js';
 import Mono         from '../components/Mono.jsx';
 import Badge        from '../components/Badge.jsx';
 import Card         from '../components/Card.jsx';
@@ -114,7 +115,9 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     });
     if (target) {
       setActiveSession(target);
-      setResult(target.analysis || target.output || null);
+      // Normalize on read to protect against legacy sessions saved pre-contract.
+      const raw = target.analysis || target.output || null;
+      setResult(raw ? normalizeMeetingOutput(raw) : null);
       setTab("summary");
       setView("session");
       if (onClearFocus) onClearFocus();
@@ -166,7 +169,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       const prompt = `TYPE: ${meetingType}\nDIRECTEUR: ${dirName||"Non spécifié"}\n${context?`CONTEXTE: ${context}\n`:""}${_legalInject}${focusNote}\nTRANSCRIPT:\n${t}`;
       const parsed = await callAI(sp, prompt, t.length);
       if (dirName) parsed.director = dirName;
-      setResult(parsed);
+      setResult(normalizeMeetingOutput(parsed));
       setView("result");
     } catch(e) {
       setError("Erreur: " + e.message);
@@ -423,7 +426,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                   {group.slice().reverse().map((m,i) => (
                     <button key={i}
-                      onClick={() => { setActiveSession(m); setResult(m.analysis); setTab("summary"); setView("session"); }}
+                      onClick={() => { setActiveSession(m); setResult(normalizeMeetingOutput(m.analysis)); setTab("summary"); setView("session"); }}
                       style={{ ...css.card, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif",
                         display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
@@ -463,7 +466,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           <div style={{ display:"flex", flexDirection:"column", gap:5, marginTop:8 }}>
             {meetings.slice().reverse().slice(0,5).map((m,i) => (
               <button key={i}
-                onClick={() => { setActiveSession(m); setResult(m.analysis); setTab("summary"); setView("session"); }}
+                onClick={() => { setActiveSession(m); setResult(normalizeMeetingOutput(m.analysis)); setTab("summary"); setView("session"); }}
                 style={{ ...css.card, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif",
                   display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 12px" }}>
                 <span style={{ fontSize:12, color:C.text }}>{m.analysis?.meetingTitle}</span>
@@ -516,7 +519,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     };
     onUpdateMeeting(updated);
     setActiveSession(updated);
-    setResult(updated.analysis);
+    setResult(normalizeMeetingOutput(updated.analysis));
     setEditingMeta(false);
   };
 
@@ -1146,11 +1149,10 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         </div>
       )}
       {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="people" && (() => {
-        const people = result?.people || result?.participants || {};
-        const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
-        const perf = toArr(people.performance);
-        const lead = toArr(people.leadership);
-        const engg = toArr(people.engagement);
+        const people = result?.people || {};
+        const perf = people.performance || [];
+        const lead = people.leadership || [];
+        const engg = people.engagement || [];
         if (!perf.length && !lead.length && !engg.length) {
           return <Card><div style={{ fontSize:13, color:C.textM, textAlign:"center", padding:"16px 8px" }}>Aucune donnée People disponible.</div></Card>;
         }
@@ -1316,7 +1318,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {dm.map((m,i) => { const r=RISK[m.analysis?.overallRisk]||RISK["Faible"]; return (
-          <button key={i} onClick={() => { setActiveSession(m); setResult(m.analysis); setTab("summary"); setView("session"); }}
+          <button key={i} onClick={() => { setActiveSession(m); setResult(normalizeMeetingOutput(m.analysis)); setTab("summary"); setView("session"); }}
             style={{ ...css.card, cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif" }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
               <span style={{ fontSize:13, fontWeight:500, color:C.text }}>{m.analysis?.meetingTitle}</span>
@@ -1324,7 +1326,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
             </div>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
               <Mono color={C.textD} size={8}>{m.savedAt}</Mono>
-              <span style={{ fontSize:11, color:C.textM }}>· {m.analysis?.actions?.length||0} actions · {m.analysis?.questions?.length||0} questions</span>
+              <span style={{ fontSize:11, color:C.textM }}>· {toArray(m.analysis?.actions).length} actions · {toArray(m.analysis?.questions).length} questions</span>
             </div>
           </button>
         );})}

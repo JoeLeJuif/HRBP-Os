@@ -9,6 +9,7 @@ import { normKey } from '../utils/format.js';
 import { emptyMeta, setMeta, getLeadersMap } from '../utils/leaderStore.js';
 import { callAI } from '../api/index.js';
 import { MEETING_ENGINE_SP } from '../prompts/meetingEngine.js';
+import { normalizeMeetingOutput, toArray } from '../utils/meetingModel.js';
 import { generateInvestigationTitle } from './Investigation.jsx';
 import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
@@ -195,12 +196,14 @@ function PrepObsSelector({ label, values }) {
 // ── FALLBACK OUTPUT ──────────────────────────────────────────────────────────
 const FALLBACK_OUTPUT = {
   meetingTitle: "Rencontre completee", director: null,
-  summary: ["Voir les notes manuelles."], people: { performance: "A completer", leadership: "A completer", engagement: "A completer" },
-  signals: [], risks: [], decisions: [], actions: [{ action: "Faire le suivi", owner: "HRBP", delai: "7 jours", priorite: "Normale" }],
+  summary: ["Voir les notes manuelles."],
+  people: { performance: [], leadership: [], engagement: [] },
+  signals: [], risks: [], decisions: [],
+  actions: [{ action: "Faire le suivi", owner: "HRBP", delai: "7 jours", priorite: "Normale" }],
   overallRisk: "Modere", overallRiskRationale: "A evaluer", hrbpKeyMessage: "Completer l analyse manuellement.",
   strategieHRBP: { lectureGestionnaire: { style: "A identifier", forces: "", angle: "" }, santeEquipe: { performance: "Correcte", engagement: "Modere", dynamique: "" }, risqueCle: { nature: "A identifier", niveau: "Modere", rationale: "" }, postureHRBP: { mode: "Coach", rationale: "" }, strategieInfluence: "", objectifRencontre: "" },
-  keySignals: ["A completer"], mainRisks: ["A identifier"], hrbpFollowups: ["Reviser les notes"],
-  nextMeetingContext: "", nextMeetingQuestions: ["A definir"], crossQuestions: [], caseEntry: null,
+  keySignals: [], mainRisks: [], hrbpFollowups: ["Reviser les notes"],
+  nextMeetingContext: "", nextMeetingQuestions: [], crossQuestions: [], caseEntry: null,
 };
 
 // Per-type overrides layered on top of FALLBACK_OUTPUT when the AI call fails.
@@ -568,7 +571,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       `Notes — Actions: ${notes.actions||"Aucune"}`,
       `Notes — Suivis: ${notes.followups||"Aucune"}`,
     ].filter(Boolean).join("\n");
-    try { const p = await callAI(MEETING_ENGINE_SP, up); setOutput(p); }
+    try { const p = await callAI(MEETING_ENGINE_SP, up); setOutput(normalizeMeetingOutput(p)); }
     catch (err) {
       console.warn("[MeetingEngine] generateOutput AI call failed — using fallback:", err?.message);
       // Defensive fallback: enrich placeholders with investigation summary if available
@@ -582,7 +585,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         ].filter(Boolean);
         fb.hrbpKeyMessage = "Generation IA indisponible — completer manuellement a partir du dossier d enquete lie.";
       }
-      setOutput(fb);
+      setOutput(normalizeMeetingOutput(fb));
     }
     finally { setOutputLoading(false); }
   };
@@ -596,11 +599,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     }
     const today = new Date().toISOString().split("T")[0];
     const mtgId = `mtg_${Date.now()}`;
+    // Re-normalize at persist-time so older in-memory outputs land clean in storage too.
+    const normOutput = normalizeMeetingOutput(output);
     const session = {
       id: Date.now().toString(), savedAt: today,
       managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
       engineType, niveau, kind: "1:1-meeting",
-      date: ctx.date, purpose: ctx.purpose, notes, output,
+      date: ctx.date, purpose: ctx.purpose, notes, output: normOutput,
       meetingTranscript: meetingAnalysis.transcript || "",
       meetingKeyPoints: meetingAnalysis.keyPoints || "",
       province: ctx.province || data.profile?.defaultProvince || "QC",
@@ -623,28 +628,28 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         niveau,
         linkedInvestigationId,
         analysis: {
-          meetingTitle: output.meetingTitle || `1:1 — ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
+          meetingTitle: normOutput.meetingTitle || `1:1 — ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
           director: ctx.managerName || "Non assigné",
-          overallRisk: output.overallRisk || "Modéré",
-          overallRiskRationale: output.overallRiskRationale || "",
-          summary: output.summary || [],
-          signals: output.signals || [],
-          decisions: output.decisions || [],
-          risks: output.risks || [],
-          actions: output.actions || [],
-          people: output.people || {},
-          strategieHRBP: output.strategieHRBP || {},
-          hrbpKeyMessage: output.hrbpKeyMessage || "",
-          keySignals: output.keySignals || [],
-          mainRisks: output.mainRisks || [],
-          hrbpFollowups: output.hrbpFollowups || [],
-          crossQuestions: output.crossQuestions || [],
-          caseEntry: output.caseEntry || null,
-          cadreJuridique: output.cadreJuridique || null,
-          sanctions: output.sanctions || [],
-          risquesLegaux: output.risquesLegaux || [],
-          nextMeetingContext: output.nextMeetingContext || "",
-          nextMeetingQuestions: output.nextMeetingQuestions || [],
+          overallRisk: normOutput.overallRisk || "Modéré",
+          overallRiskRationale: normOutput.overallRiskRationale || "",
+          summary: normOutput.summary,
+          signals: normOutput.signals,
+          decisions: normOutput.decisions,
+          risks: normOutput.risks,
+          actions: normOutput.actions,
+          people: normOutput.people,
+          strategieHRBP: normOutput.strategieHRBP || {},
+          hrbpKeyMessage: normOutput.hrbpKeyMessage || "",
+          keySignals: normOutput.keySignals,
+          mainRisks: normOutput.mainRisks,
+          hrbpFollowups: normOutput.hrbpFollowups,
+          crossQuestions: normOutput.crossQuestions,
+          caseEntry: normOutput.caseEntry,
+          cadreJuridique: normOutput.cadreJuridique || null,
+          sanctions: normOutput.sanctions,
+          risquesLegaux: normOutput.risquesLegaux,
+          nextMeetingContext: normOutput.nextMeetingContext || "",
+          nextMeetingQuestions: normOutput.nextMeetingQuestions,
         },
       };
       onSave("meetings", [meetingSession, ...(data.meetings || [])]);
@@ -654,13 +659,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
     // ── Triple save: persist Case Log entry if AI detected one ────────────
     try {
-      const ce = output.caseEntry;
+      const ce = normOutput.caseEntry;
       if (ce && (ce.titre || ce.title)) {
         const newCase = {
           id: `case_${Date.now()}`,
           title: ce.titre || ce.title,
           type: ce.type || "conflict_ee",
-          riskLevel: ce.risque || ce.riskLevel || output.overallRisk || "Modéré",
+          riskLevel: ce.risque || ce.riskLevel || normOutput.overallRisk || "Modéré",
           status: "active",
           director: ctx.managerName || "Non assigné",
           employee: "",
@@ -1237,10 +1242,10 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:12}}>{lastAnalysis.meetingTitle}</div>
 
-                      {(lastAnalysis.risks||[]).length > 0 && (
+                      {toArray(lastAnalysis.risks).length > 0 && (
                         <div style={{marginBottom:12}}>
                           <Mono color={C.red} size={8}>RISQUES IDENTIFIÉS</Mono>
-                          {lastAnalysis.risks.slice(0,3).map((r,i) => (
+                          {toArray(lastAnalysis.risks).slice(0,3).map((r,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:7,padding:"7px 10px",background:C.red+"10",borderRadius:7}}>
                               <span style={{color:C.red,fontFamily:"'DM Mono',monospace",fontSize:10,flexShrink:0,marginTop:2}}>{String(i+1).padStart(2,"0")}</span>
                               <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{r.risk||r.risque||r}</span>
@@ -1249,10 +1254,10 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                         </div>
                       )}
 
-                      {(lastAnalysis.actions||[]).length > 0 && (
+                      {toArray(lastAnalysis.actions).length > 0 && (
                         <div style={{marginBottom:12}}>
                           <Mono color={C.amber} size={8}>ACTIONS — À VÉRIFIER</Mono>
-                          {lastAnalysis.actions.slice(0,4).map((a,i) => (
+                          {toArray(lastAnalysis.actions).slice(0,4).map((a,i) => (
                             <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginTop:6,padding:"7px 10px",background:C.amber+"10",borderRadius:7}}>
                               <span style={{fontSize:12,color:C.textM,flex:1}}>{a.action||a}</span>
                               {(a.delay||a.delai) && <Badge label={a.delay||a.delai} color={C.amber} size={9}/>}
@@ -1262,10 +1267,10 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                         </div>
                       )}
 
-                      {(lastAnalysis.questions||[]).length > 0 && (
+                      {toArray(lastAnalysis.questions).length > 0 && (
                         <div>
                           <Mono color={C.blue} size={8}>QUESTIONS DU DERNIER MEETING</Mono>
-                          {lastAnalysis.questions.slice(0,3).map((q,i) => (
+                          {toArray(lastAnalysis.questions).slice(0,3).map((q,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:6}}>
                               <span style={{color:C.blue,fontFamily:"'DM Mono',monospace",fontSize:10,flexShrink:0,marginTop:2}}>Q{i+1}</span>
                               <span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{q.question||q}</span>

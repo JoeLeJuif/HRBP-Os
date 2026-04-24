@@ -9,6 +9,7 @@ import { useState } from "react";
 import { C, css, RISK } from '../theme.js';
 import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { normKey } from '../utils/format.js';
+import { toArray } from '../utils/meetingModel.js';
 import { callAI } from '../api/index.js';
 import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
@@ -683,10 +684,10 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       </div>
 
                       {/* Key signals from last meeting */}
-                      {(lastAnalysis.risks||[]).length > 0 && (
+                      {toArray(lastAnalysis.risks).length > 0 && (
                         <div style={{marginBottom:12}}>
                           <Mono color={C.red} size={8}>RISQUES IDENTIFIÉS</Mono>
-                          {lastAnalysis.risks.slice(0,3).map((r,i) => (
+                          {toArray(lastAnalysis.risks).slice(0,3).map((r,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:7,
                                                   padding:"7px 10px",
                                                   background:C.red+"10",borderRadius:7}}>
@@ -703,10 +704,10 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       )}
 
                       {/* Actions from last meeting — to follow up on */}
-                      {(lastAnalysis.actions||[]).length > 0 && (
+                      {toArray(lastAnalysis.actions).length > 0 && (
                         <div style={{marginBottom:12}}>
                           <Mono color={C.amber} size={8}>ACTIONS — À VÉRIFIER CE MEETING</Mono>
-                          {lastAnalysis.actions.slice(0,4).map((a,i) => (
+                          {toArray(lastAnalysis.actions).slice(0,4).map((a,i) => (
                             <div key={i} style={{display:"flex",alignItems:"center",
                                                   gap:8,marginTop:6,padding:"7px 10px",
                                                   background:C.amber+"10",borderRadius:7}}>
@@ -721,10 +722,10 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       )}
 
                       {/* Suggested questions from last analysis */}
-                      {(lastAnalysis.questions||[]).length > 0 && (
+                      {toArray(lastAnalysis.questions).length > 0 && (
                         <div>
                           <Mono color={C.blue} size={8}>QUESTIONS DU DERNIER MEETING — À FAIRE ÉVOLUER</Mono>
-                          {lastAnalysis.questions.slice(0,3).map((q,i) => (
+                          {toArray(lastAnalysis.questions).slice(0,3).map((q,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:6}}>
                               <span style={{color:C.blue,fontFamily:"'DM Mono',monospace",
                                              fontSize:10,flexShrink:0,marginTop:2}}>

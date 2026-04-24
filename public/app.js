@@ -8116,6 +8116,73 @@ Reponds UNIQUEMENT en JSON valide. Aucun texte avant ou apres. Aucun backtick. A
 Extrais chaque initiative mentionnee avec son etat d avancement, blocages et prochaines etapes.
 {"meetingTitle":"titre incluant semaine ou date","director":"facilitateur ou null","meetingDate":"date ou null","overallRisk":"Critique|Eleve|Modere|Faible","overallRiskRationale":"1 phrase sur l etat global du portefeuille","summary":["point 1","point 2","point 3"],"initiatives":[{"nom":"nom exact","categorie":"Performance|Talent|Culture|Processus RH|Leadership|Engagement|Technologie|Conformite|Autre","responsable":"nom ou role ou null","statut":"Planifiee|En cours|En attente|Bloquee|Completee|Annulee","avancement":"0-25%|25-50%|50-75%|75-100%|Complete","statutDetail":"ou on en est \u2014 1 phrase","dateDebut":"date ou null","dateCible":"date cible ou null","changementSemaine":"ce qui a avance cette semaine ou null","blocages":["blocage identifie"],"risque":"Eleve|Modere|Faible","risqueDetail":"enjeu principal ou null","prochainePriorite":"prochaine action avec owner","impactOrg":"impact attendu en 1 phrase"}],"blocagesGlobaux":[{"blocage":"description","initiativesConcernees":["nom"],"actionRequise":"action","owner":"HRBP|Direction|Gestionnaire|Externe"}],"decisions":[{"decision":"decision prise ou a prendre","initiative":"nom","echeance":"delai ou null"}],"actions":[{"action":"action concrete","delay":"Immediat|7 jours|30 jours|Continu","owner":"HRBP|Direction|Gestionnaire","initiative":"nom ou null"}],"metriques":{"total":0,"enCours":0,"bloquees":0,"completees":0,"aRisque":0},"questions":[{"question":"question pour prochain meeting","why":"objectif strategique","initiative":"nom ou null"}]}`;
 
+  // src/utils/meetingModel.js
+  var EMPTY_PLACEHOLDERS = /* @__PURE__ */ new Set([
+    "a completer",
+    "\xE0 compl\xE9ter",
+    "a compl\xE9ter",
+    "\xE0 completer",
+    "n/d",
+    "n/a",
+    "none",
+    "aucun",
+    "aucune"
+  ]);
+  function isPlaceholder(s) {
+    return EMPTY_PLACEHOLDERS.has(String(s).trim().toLowerCase());
+  }
+  function toArray(value) {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === void 0) return [];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed || isPlaceholder(trimmed)) return [];
+      return [trimmed];
+    }
+    return [value];
+  }
+  var ARRAY_FIELDS = [
+    "summary",
+    "signals",
+    "risks",
+    "actions",
+    "questions",
+    "decisions",
+    "keySignals",
+    "mainRisks",
+    "hrbpFollowups",
+    "nextMeetingQuestions",
+    "crossQuestions",
+    "postes",
+    "blocages",
+    "blocagesGlobaux",
+    "initiatives",
+    "sanctions",
+    "risquesLegaux",
+    "documentationRequise",
+    "pointsVigilance"
+  ];
+  function normalizeMeetingOutput(raw) {
+    if (!raw || typeof raw !== "object") return raw;
+    const out = { ...raw };
+    ARRAY_FIELDS.forEach((f) => {
+      out[f] = toArray(out[f]);
+    });
+    const peopleSrc = out.people && typeof out.people === "object" ? out.people : raw.participants && typeof raw.participants === "object" ? raw.participants : {};
+    out.people = {
+      ...peopleSrc,
+      performance: toArray(peopleSrc.performance),
+      leadership: toArray(peopleSrc.leadership),
+      engagement: toArray(peopleSrc.engagement)
+    };
+    const ce = out.caseEntry || raw.caseLog || raw.case_log || null;
+    out.caseEntry = ce && typeof ce === "object" && (ce.title || ce.titre) ? ce : null;
+    out.crossQuestions = out.crossQuestions.map(
+      (cq) => cq && typeof cq === "object" ? { ...cq, questions: toArray(cq.questions) } : cq
+    );
+    return out;
+  }
+
   // src/modules/Prep1on1.jsx
   var import_react15 = __require("react");
   function RiskBadge3({ level }) {
@@ -8796,7 +8863,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 10
-    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge3, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), (lastAnalysis.risks || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), lastAnalysis.risks.slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge3, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), toArray(lastAnalysis.risks).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), toArray(lastAnalysis.risks).slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
       display: "flex",
       gap: 8,
       marginTop: 7,
@@ -8809,7 +8876,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       fontSize: 10,
       flexShrink: 0,
       marginTop: 2
-    } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r)))), (lastAnalysis.actions || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER CE MEETING"), lastAnalysis.actions.slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
+    } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r)))), toArray(lastAnalysis.actions).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER CE MEETING"), toArray(lastAnalysis.actions).slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
       display: "flex",
       alignItems: "center",
       gap: 8,
@@ -8817,7 +8884,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       padding: "7px 10px",
       background: C.amber + "10",
       borderRadius: 7
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), a.delay && /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), (lastAnalysis.questions || []).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING \u2014 \xC0 FAIRE \xC9VOLUER"), lastAnalysis.questions.slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), a.delay && /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), toArray(lastAnalysis.questions).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING \u2014 \xC0 FAIRE \xC9VOLUER"), toArray(lastAnalysis.questions).slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
       color: C.blue,
       fontFamily: "'DM Mono',monospace",
       fontSize: 10,
@@ -9707,7 +9774,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     meetingTitle: "Rencontre completee",
     director: null,
     summary: ["Voir les notes manuelles."],
-    people: { performance: "A completer", leadership: "A completer", engagement: "A completer" },
+    people: { performance: [], leadership: [], engagement: [] },
     signals: [],
     risks: [],
     decisions: [],
@@ -9716,11 +9783,11 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     overallRiskRationale: "A evaluer",
     hrbpKeyMessage: "Completer l analyse manuellement.",
     strategieHRBP: { lectureGestionnaire: { style: "A identifier", forces: "", angle: "" }, santeEquipe: { performance: "Correcte", engagement: "Modere", dynamique: "" }, risqueCle: { nature: "A identifier", niveau: "Modere", rationale: "" }, postureHRBP: { mode: "Coach", rationale: "" }, strategieInfluence: "", objectifRencontre: "" },
-    keySignals: ["A completer"],
-    mainRisks: ["A identifier"],
+    keySignals: [],
+    mainRisks: [],
     hrbpFollowups: ["Reviser les notes"],
     nextMeetingContext: "",
-    nextMeetingQuestions: ["A definir"],
+    nextMeetingQuestions: [],
     crossQuestions: [],
     caseEntry: null
   };
@@ -10056,7 +10123,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       ].filter(Boolean).join("\n");
       try {
         const p = await callAI(MEETING_ENGINE_SP, up);
-        setOutput(p);
+        setOutput(normalizeMeetingOutput(p));
       } catch (err) {
         console.warn("[MeetingEngine] generateOutput AI call failed \u2014 using fallback:", err?.message);
         const fb = buildFallbackOutput(engineType);
@@ -10069,7 +10136,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
           ].filter(Boolean);
           fb.hrbpKeyMessage = "Generation IA indisponible \u2014 completer manuellement a partir du dossier d enquete lie.";
         }
-        setOutput(fb);
+        setOutput(normalizeMeetingOutput(fb));
       } finally {
         setOutputLoading(false);
       }
@@ -10082,6 +10149,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       }
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const mtgId = `mtg_${Date.now()}`;
+      const normOutput = normalizeMeetingOutput(output);
       const session = {
         id: Date.now().toString(),
         savedAt: today,
@@ -10094,7 +10162,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         date: ctx.date,
         purpose: ctx.purpose,
         notes,
-        output,
+        output: normOutput,
         meetingTranscript: meetingAnalysis.transcript || "",
         meetingKeyPoints: meetingAnalysis.keyPoints || "",
         province: ctx.province || data.profile?.defaultProvince || "QC",
@@ -10115,28 +10183,28 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
           niveau,
           linkedInvestigationId,
           analysis: {
-            meetingTitle: output.meetingTitle || `1:1 \u2014 ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
+            meetingTitle: normOutput.meetingTitle || `1:1 \u2014 ${ctx.managerName || "?"} (${niveau || "gestionnaire"})`,
             director: ctx.managerName || "Non assign\xE9",
-            overallRisk: output.overallRisk || "Mod\xE9r\xE9",
-            overallRiskRationale: output.overallRiskRationale || "",
-            summary: output.summary || [],
-            signals: output.signals || [],
-            decisions: output.decisions || [],
-            risks: output.risks || [],
-            actions: output.actions || [],
-            people: output.people || {},
-            strategieHRBP: output.strategieHRBP || {},
-            hrbpKeyMessage: output.hrbpKeyMessage || "",
-            keySignals: output.keySignals || [],
-            mainRisks: output.mainRisks || [],
-            hrbpFollowups: output.hrbpFollowups || [],
-            crossQuestions: output.crossQuestions || [],
-            caseEntry: output.caseEntry || null,
-            cadreJuridique: output.cadreJuridique || null,
-            sanctions: output.sanctions || [],
-            risquesLegaux: output.risquesLegaux || [],
-            nextMeetingContext: output.nextMeetingContext || "",
-            nextMeetingQuestions: output.nextMeetingQuestions || []
+            overallRisk: normOutput.overallRisk || "Mod\xE9r\xE9",
+            overallRiskRationale: normOutput.overallRiskRationale || "",
+            summary: normOutput.summary,
+            signals: normOutput.signals,
+            decisions: normOutput.decisions,
+            risks: normOutput.risks,
+            actions: normOutput.actions,
+            people: normOutput.people,
+            strategieHRBP: normOutput.strategieHRBP || {},
+            hrbpKeyMessage: normOutput.hrbpKeyMessage || "",
+            keySignals: normOutput.keySignals,
+            mainRisks: normOutput.mainRisks,
+            hrbpFollowups: normOutput.hrbpFollowups,
+            crossQuestions: normOutput.crossQuestions,
+            caseEntry: normOutput.caseEntry,
+            cadreJuridique: normOutput.cadreJuridique || null,
+            sanctions: normOutput.sanctions,
+            risquesLegaux: normOutput.risquesLegaux,
+            nextMeetingContext: normOutput.nextMeetingContext || "",
+            nextMeetingQuestions: normOutput.nextMeetingQuestions
           }
         };
         onSave("meetings", [meetingSession, ...data.meetings || []]);
@@ -10144,13 +10212,13 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         console.warn("Meeting Engine \u2014 sync Meetings Hub failed:", err);
       }
       try {
-        const ce = output.caseEntry;
+        const ce = normOutput.caseEntry;
         if (ce && (ce.titre || ce.title)) {
           const newCase = {
             id: `case_${Date.now()}`,
             title: ce.titre || ce.title,
             type: ce.type || "conflict_ee",
-            riskLevel: ce.risque || ce.riskLevel || output.overallRisk || "Mod\xE9r\xE9",
+            riskLevel: ce.risque || ce.riskLevel || normOutput.overallRisk || "Mod\xE9r\xE9",
             status: "active",
             director: ctx.managerName || "Non assign\xE9",
             employee: "",
@@ -10699,7 +10767,7 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       borderRadius: 12,
       padding: "48px 24px",
       textAlign: "center"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F550}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun historique"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 360, margin: "0 auto", marginBottom: 16 } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans Meetings Hub alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique.")) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge4, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), (lastAnalysis.risks || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), lastAnalysis.risks.slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 7, padding: "7px 10px", background: C.red + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r.risque || r)))), (lastAnalysis.actions || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER"), lastAnalysis.actions.slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "7px 10px", background: C.amber + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), (a.delay || a.delai) && /* @__PURE__ */ React.createElement(Badge, { label: a.delay || a.delai, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), (lastAnalysis.questions || []).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING"), lastAnalysis.questions.slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, "Q", i + 1), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, q.question || q))))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "TOUS LES MEETINGS (", histCount, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 7 } }, managerHistory.map((m, i) => {
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F550}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun historique"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 360, margin: "0 auto", marginBottom: 16 } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans Meetings Hub alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique.")) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge4, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), toArray(lastAnalysis.risks).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), toArray(lastAnalysis.risks).slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 7, padding: "7px 10px", background: C.red + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r.risque || r)))), toArray(lastAnalysis.actions).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER"), toArray(lastAnalysis.actions).slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "7px 10px", background: C.amber + "10", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), (a.delay || a.delai) && /* @__PURE__ */ React.createElement(Badge, { label: a.delay || a.delai, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), toArray(lastAnalysis.questions).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING"), toArray(lastAnalysis.questions).slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0, marginTop: 2 } }, "Q", i + 1), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, q.question || q))))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "TOUS LES MEETINGS (", histCount, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 7 } }, managerHistory.map((m, i) => {
       const a = m.analysis || {};
       const r = RISK[a.overallRisk] || RISK["Faible"];
       const open = histExp[i];
@@ -10880,7 +10948,8 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       });
       if (target) {
         setActiveSession(target);
-        setResult(target.analysis || target.output || null);
+        const raw = target.analysis || target.output || null;
+        setResult(raw ? normalizeMeetingOutput(raw) : null);
         setTab("summary");
         setView("session");
         if (onClearFocus) onClearFocus();
@@ -10917,7 +10986,7 @@ TRANSCRIPT:
 ${t}`;
         const parsed = await callAI(sp, prompt, t.length);
         if (dirName) parsed.director = dirName;
-        setResult(parsed);
+        setResult(normalizeMeetingOutput(parsed));
         setView("result");
       } catch (e) {
         setError("Erreur: " + e.message);
@@ -11119,7 +11188,7 @@ ${t}`;
               key: i,
               onClick: () => {
                 setActiveSession(m);
-                setResult(m.analysis);
+                setResult(normalizeMeetingOutput(m.analysis));
                 setTab("summary");
                 setView("session");
               },
@@ -11149,7 +11218,7 @@ ${t}`;
           key: i,
           onClick: () => {
             setActiveSession(m);
-            setResult(m.analysis);
+            setResult(normalizeMeetingOutput(m.analysis));
             setTab("summary");
             setView("session");
           },
@@ -11200,7 +11269,7 @@ ${t}`;
       };
       onUpdateMeeting(updated);
       setActiveSession(updated);
-      setResult(updated.analysis);
+      setResult(normalizeMeetingOutput(updated.analysis));
       setEditingMeta(false);
     };
     if ((view === "result" || view === "session") && result) return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
@@ -11427,11 +11496,10 @@ ${t}`;
       const dc = DELAY_C[a.delay] || C.blue;
       return /* @__PURE__ */ React.createElement(Card, { key: i, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: dc, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 4 } }, a.action), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER \xB7 ", a.owner), a.poste && /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "POSTE \xB7 ", a.poste))));
     })), isTAMeeting && tab === "questions" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (result.questions || []).map((q, i) => /* @__PURE__ */ React.createElement(Card, { key: i }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic" } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.why), q.poste && /* @__PURE__ */ React.createElement(Badge, { label: q.poste, color: C.purple, size: 9 }))))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "summary" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, (result.hrbpKeyMessage || result.overallRiskRationale) && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.em}` } }, result.hrbpKeyMessage && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "MESSAGE CL\xC9 HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.text, fontWeight: 600, marginTop: 8, lineHeight: 1.6 } }, result.hrbpKeyMessage)), result.overallRiskRationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: result.hrbpKeyMessage ? 8 : 0 } }, /* @__PURE__ */ React.createElement("span", { style: { color: (RISK[result.overallRisk] || RISK["Mod\xE9r\xE9"]).color } }, "Risque \u2192 "), result.overallRiskRationale)), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead6, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 ex\xE9cutif", color: C.blue }), /* @__PURE__ */ React.createElement(BulletList2, { items: result.summary, color: C.blue }))), !isTAMeeting && !isDiscMeeting && !isInitMeeting && tab === "people" && (() => {
-      const people = result?.people || result?.participants || {};
-      const toArr = (v) => Array.isArray(v) ? v : v ? [v] : [];
-      const perf = toArr(people.performance);
-      const lead = toArr(people.leadership);
-      const engg = toArr(people.engagement);
+      const people = result?.people || {};
+      const perf = people.performance || [];
+      const lead = people.leadership || [];
+      const engg = people.engagement || [];
       if (!perf.length && !lead.length && !engg.length) {
         return /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, textAlign: "center", padding: "16px 8px" } }, "Aucune donn\xE9e People disponible."));
       }
@@ -11554,14 +11622,14 @@ ${t}`;
             key: i,
             onClick: () => {
               setActiveSession(m);
-              setResult(m.analysis);
+              setResult(normalizeMeetingOutput(m.analysis));
               setTab("summary");
               setView("session");
             },
             style: { ...css.card, cursor: "pointer", textAlign: "left", fontFamily: "'DM Sans',sans-serif" }
           },
           /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 500, color: C.text } }, m.analysis?.meetingTitle), /* @__PURE__ */ React.createElement(RiskBadge5, { level: m.analysis?.overallRisk })),
-          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", m.analysis?.actions?.length || 0, " actions \xB7 ", m.analysis?.questions?.length || 0, " questions"))
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, m.savedAt), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "\xB7 ", toArray(m.analysis?.actions).length, " actions \xB7 ", toArray(m.analysis?.questions).length, " questions"))
         );
       })));
     }
@@ -11724,7 +11792,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       const filteredMeetings = allMeetings.filter((m) => inPeriod(m.savedAt));
       const filteredSignals = allSignals.filter((s) => inPeriod(s.savedAt));
       const meetingsTxt = filteredMeetings.length > 0 ? filteredMeetings.map(
-        (m) => `Meeting ${m.director} (${m.savedAt}): ${m.analysis?.meetingTitle} \u2014 Risque ${m.analysis?.overallRisk}. Actions: ${m.analysis?.actions?.map((a) => a.action).join("; ")}`
+        (m) => `Meeting ${m.director} (${m.savedAt}): ${m.analysis?.meetingTitle} \u2014 Risque ${m.analysis?.overallRisk}. Actions: ${toArray(m.analysis?.actions).map((a) => a.action).join("; ")}`
       ).join("\n") : "(Aucun meeting enregistr\xE9 dans cette p\xE9riode)";
       const signalsTxt = filteredSignals.length > 0 ? filteredSignals.map(
         (s) => `Signal ${s.analysis?.category} (${s.savedAt}): ${s.analysis?.title} \u2014 ${s.analysis?.severity}`
@@ -11813,10 +11881,10 @@ ${inputs.other || ""}${prevCtx}${caseCtx}`;
         const weekLabel = periodStart && periodEnd ? `Semaine du ${new Date(periodStart).toLocaleDateString("fr-CA")} au ${new Date(periodEnd).toLocaleDateString("fr-CA")}` : `Semaine du ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`;
         const meetingsTxt = weekMeetings.length > 0 ? weekMeetings.map((m) => {
           const a = m.analysis || {};
-          const actions = a.actions?.map((x) => x.action).join(" | ") || "";
-          const risks = a.risks?.map((x) => `${x.level}: ${x.risk}`).join(" | ") || "";
-          const people = [...a.people?.performance || [], ...a.people?.leadership || [], ...a.people?.engagement || []].join(" | ");
-          const taPostes = a.postes?.map((p) => `${p.titre} (${p.etape}) \u2014 ${p.statutDetail}`).join(" | ") || "";
+          const actions = toArray(a.actions).map((x) => x.action).join(" | ");
+          const risks = toArray(a.risks).map((x) => `${x.level}: ${x.risk}`).join(" | ");
+          const people = [...toArray(a.people?.performance), ...toArray(a.people?.leadership), ...toArray(a.people?.engagement)].join(" | ");
+          const taPostes = toArray(a.postes).map((p) => `${p.titre} (${p.etape}) \u2014 ${p.statutDetail}`).join(" | ");
           return [
             `MEETING [${m.savedAt}] ${m.meetingType?.toUpperCase() || ""} \u2014 ${m.director || ""}`,
             `  Titre: ${a.meetingTitle || ""}`,
@@ -11832,7 +11900,7 @@ ${inputs.other || ""}${prevCtx}${caseCtx}`;
           const a = s.analysis || {};
           return `SIGNAL [${s.savedAt}] ${a.category || ""} \u2014 ${a.title || ""} (${a.severity || ""})
   Interpr\xE9tation: ${a.interpretation || ""}
-  Actions: ${a.actions?.map((x) => x.action).join(" | ") || ""}`;
+  Actions: ${toArray(a.actions).map((x) => x.action).join(" | ")}`;
         }).join("\n\n") : "(Aucun signal dans la p\xE9riode)";
         const casesTxt = activeCases.length > 0 ? activeCases.map(
           (c) => `DOSSIER ACTIF [${c.type || ""}] ${c.title || ""} \u2014 Risque: ${c.riskLevel || ""} \u2014 Statut: ${c.status || ""}
@@ -11845,8 +11913,8 @@ ${inputs.other || ""}${prevCtx}${caseCtx}`;
           const o = p.output || {};
           return `PREP 1:1 [${p.savedAt}] ${p.managerName || ""}
   R\xE9sum\xE9: ${o.executiveSummary || ""}
-  Risques: ${o.mainRisks?.join(" | ") || ""}
-  Suivis HRBP: ${o.hrbpFollowups?.join(" | ") || ""}`;
+  Risques: ${toArray(o.mainRisks).join(" | ")}
+  Suivis HRBP: ${toArray(o.hrbpFollowups).join(" | ")}`;
         }).join("\n\n") : "";
         const prompt = `SEMAINE: ${weekLabel}
 G\xE9n\xE8re un r\xE9cap structur\xE9 pour ma directrice \xE0 partir de tout ce qui s'est pass\xE9 cette semaine.
@@ -13800,10 +13868,10 @@ ${ctx}`, 500);
       keyMessages.push({ msg: lastEngineOut.hrbpKeyMessage, date: lastEngineOut._savedAt, risk: lastEngineOut.overallRisk, source: "engine" });
     }
     const meetingActions = sortedMeetings.slice(0, 4).flatMap(
-      (m) => (mAna(m).actions || []).filter((a) => a.impact === "Eleve" || a.priority === "Critique" || a.priority === "Elev\xE9e" || a.priorite === "Normale" || a.action).map((a) => ({ ...a, _date: m.savedAt }))
+      (m) => toArray(mAna(m).actions).filter((a) => a.impact === "Eleve" || a.priority === "Critique" || a.priority === "Elev\xE9e" || a.priorite === "Normale" || a.action).map((a) => ({ ...a, _date: m.savedAt }))
     ).slice(0, 5);
-    if (meetingActions.length === 0 && lastEngineOut?.actions?.length) {
-      lastEngineOut.actions.slice(0, 5).forEach((a) => {
+    if (meetingActions.length === 0 && toArray(lastEngineOut?.actions).length) {
+      toArray(lastEngineOut?.actions).slice(0, 5).forEach((a) => {
         meetingActions.push({ action: a.action || a, owner: a.owner || "HRBP", delay: a.delai || "", impact: a.priorite || "", _date: lastEngineOut._savedAt });
       });
     }

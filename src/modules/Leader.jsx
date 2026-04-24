@@ -9,6 +9,7 @@ import Card  from '../components/Card.jsx';
 import Mono  from '../components/Mono.jsx';
 import { C, css, RISK, DELAY_C } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
+import { toArray } from '../utils/meetingModel.js';
 import { normKey } from '../utils/format.js';
 import { callAIJson } from '../api/index.js';
 import { PORTFOLIO_ASSESS_SP } from '../prompts/portfolio.js';
@@ -703,14 +704,14 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
   // Actions from meetings — high priority, max 5
   const meetingActions = sortedMeetings.slice(0,4).flatMap(m =>
-    (mAna(m).actions||[])
+    toArray(mAna(m).actions)
       .filter(a => a.impact==="Eleve" || a.priority==="Critique" || a.priority==="Elevée" || a.priorite==="Normale" || a.action)
       .map(a => ({ ...a, _date:m.savedAt }))
   ).slice(0,5);
 
   // If no meeting actions found, fallback to last engine output actions
-  if (meetingActions.length === 0 && lastEngineOut?.actions?.length) {
-    lastEngineOut.actions.slice(0,5).forEach(a => {
+  if (meetingActions.length === 0 && toArray(lastEngineOut?.actions).length) {
+    toArray(lastEngineOut?.actions).slice(0,5).forEach(a => {
       meetingActions.push({ action:a.action||a, owner:a.owner||"HRBP", delay:a.delai||"", impact:a.priorite||"", _date:lastEngineOut._savedAt });
     });
   }
