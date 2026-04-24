@@ -139,6 +139,73 @@ var HRBPOSApp = (() => {
     card: { background: C.surfL, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 18px" }
   };
 
+  // src/utils/meetingModel.js
+  var EMPTY_PLACEHOLDERS = /* @__PURE__ */ new Set([
+    "a completer",
+    "\xE0 compl\xE9ter",
+    "a compl\xE9ter",
+    "\xE0 completer",
+    "n/d",
+    "n/a",
+    "none",
+    "aucun",
+    "aucune"
+  ]);
+  function isPlaceholder(s) {
+    return EMPTY_PLACEHOLDERS.has(String(s).trim().toLowerCase());
+  }
+  function toArray(value) {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === void 0) return [];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed || isPlaceholder(trimmed)) return [];
+      return [trimmed];
+    }
+    return [value];
+  }
+  var ARRAY_FIELDS = [
+    "summary",
+    "signals",
+    "risks",
+    "actions",
+    "questions",
+    "decisions",
+    "keySignals",
+    "mainRisks",
+    "hrbpFollowups",
+    "nextMeetingQuestions",
+    "crossQuestions",
+    "postes",
+    "blocages",
+    "blocagesGlobaux",
+    "initiatives",
+    "sanctions",
+    "risquesLegaux",
+    "documentationRequise",
+    "pointsVigilance"
+  ];
+  function normalizeMeetingOutput(raw) {
+    if (!raw || typeof raw !== "object") return raw;
+    const out = { ...raw };
+    ARRAY_FIELDS.forEach((f) => {
+      out[f] = toArray(out[f]);
+    });
+    const peopleSrc = out.people && typeof out.people === "object" ? out.people : raw.participants && typeof raw.participants === "object" ? raw.participants : {};
+    out.people = {
+      ...peopleSrc,
+      performance: toArray(peopleSrc.performance),
+      leadership: toArray(peopleSrc.leadership),
+      engagement: toArray(peopleSrc.engagement)
+    };
+    const ce = out.caseEntry || raw.caseLog || raw.case_log || null;
+    out.caseEntry = ce && typeof ce === "object" && (ce.title || ce.titre) ? ce : null;
+    out.crossQuestions = out.crossQuestions.map(
+      (cq) => cq && typeof cq === "object" ? { ...cq, questions: toArray(cq.questions) } : cq
+    );
+    return out;
+  }
+
   // src/utils/normalize.js
   function normalizeRisk(r) {
     if (!r) return "Mod\xE9r\xE9";
@@ -6254,73 +6321,6 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
   var INV_SP_2 = `Tu es un expert en enquetes en milieu de travail au Canada et au Quebec, forme selon les standards Rubin Thomlinson.
 Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON. Max 3 items par tableau.
 {"evidenceAnalysis":{"establishedFacts":[{"fact":"fait etabli","source":"source","weight":"Fort|Modere|Faible"}],"contestedElements":[{"element":"element conteste","complainantVersion":"version plaignant","respondentVersion":"version probable mis en cause","resolution":"comment resoudre"}],"credibilityFactors":[{"party":"role","factorsFor":["renforce credibilite"],"factorsAgainst":["fragilise credibilite"],"overallAssessment":"evaluation neutre"}],"evidenceGaps":["information manquante"],"hearsayFlags":["oui-dire a verifier"],"standardOfProof":"preponderance des probabilites \u2014 application au dossier"},"findings":{"allegationByAllegation":[{"allegation":"allegation precise","finding":"Fondee|Partiellement fondee|Non fondee|Preuve insuffisante","basis":"base factuelle","policyAnalysis":"politique ou loi visee si fondee"}],"overallFinding":"Fondee|Partiellement fondee|Non fondee|Preuve insuffisante","overallRationale":"synthese 3-4 phrases","brownvDunnCompliance":"confirmation elements contradictoires soumis aux parties"},"recommendedActions":{"forRespondent":[{"action":"action recommandee","type":"Disciplinaire|Coaching|Formation|Reorganisation|Aucune","rationale":"justification \u2014 proportionnalite","timeline":"delai"}],"forOrganization":[{"action":"mesure org","type":"Politique|Formation|Structure|Suivi","rationale":"pourquoi necessaire","owner":"responsable"}],"forComplainant":[{"action":"soutien ou mesure","rationale":"justification"}],"followUp":"plan de suivi","reprisalProtection":"mesures protection represailles"},"reportStructure":{"sections":[{"section":"nom section","content":"contenu specifique","tips":"conseil redaction"}],"privilegeConsiderations":"considerations privilege legal","distributionList":"a qui remettre","retentionNote":"delai conservation"}}`;
-
-  // src/utils/meetingModel.js
-  var EMPTY_PLACEHOLDERS = /* @__PURE__ */ new Set([
-    "a completer",
-    "\xE0 compl\xE9ter",
-    "a compl\xE9ter",
-    "\xE0 completer",
-    "n/d",
-    "n/a",
-    "none",
-    "aucun",
-    "aucune"
-  ]);
-  function isPlaceholder(s) {
-    return EMPTY_PLACEHOLDERS.has(String(s).trim().toLowerCase());
-  }
-  function toArray(value) {
-    if (Array.isArray(value)) return value;
-    if (value === null || value === void 0) return [];
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed || isPlaceholder(trimmed)) return [];
-      return [trimmed];
-    }
-    return [value];
-  }
-  var ARRAY_FIELDS = [
-    "summary",
-    "signals",
-    "risks",
-    "actions",
-    "questions",
-    "decisions",
-    "keySignals",
-    "mainRisks",
-    "hrbpFollowups",
-    "nextMeetingQuestions",
-    "crossQuestions",
-    "postes",
-    "blocages",
-    "blocagesGlobaux",
-    "initiatives",
-    "sanctions",
-    "risquesLegaux",
-    "documentationRequise",
-    "pointsVigilance"
-  ];
-  function normalizeMeetingOutput(raw) {
-    if (!raw || typeof raw !== "object") return raw;
-    const out = { ...raw };
-    ARRAY_FIELDS.forEach((f) => {
-      out[f] = toArray(out[f]);
-    });
-    const peopleSrc = out.people && typeof out.people === "object" ? out.people : raw.participants && typeof raw.participants === "object" ? raw.participants : {};
-    out.people = {
-      ...peopleSrc,
-      performance: toArray(peopleSrc.performance),
-      leadership: toArray(peopleSrc.leadership),
-      engagement: toArray(peopleSrc.engagement)
-    };
-    const ce = out.caseEntry || raw.caseLog || raw.case_log || null;
-    out.caseEntry = ce && typeof ce === "object" && (ce.title || ce.titre) ? ce : null;
-    out.crossQuestions = out.crossQuestions.map(
-      (cq) => cq && typeof cq === "object" ? { ...cq, questions: toArray(cq.questions) } : cq
-    );
-    return out;
-  }
 
   // src/modules/Investigation.jsx
   function generateInvestigationTitle(inv) {
