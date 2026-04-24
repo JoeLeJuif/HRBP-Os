@@ -14,6 +14,7 @@ import { toISO, fmtDate, getProvince } from './utils/format.js';
 import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
+import { loadCases as supaLoadCases, saveCases as supaSaveCases } from './services/supabaseStore.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
 import Mono          from './components/Mono.jsx';
@@ -203,11 +204,22 @@ export default function HRBPOS() {
         }
         catch { return [k, defaults[k]]; }
       })
-    ).then(results => {
+    ).then(async results => {
       clearTimeout(timeout);
       const entries = results.map(r => r.status === "fulfilled" ? r.value : null).filter(Boolean);
       if (entries.length > 0) setData(d => ({ ...d, ...Object.fromEntries(entries) }));
       setLoaded(true);
+      try {
+        const res = await supaLoadCases();
+        if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          const normalized = res.data.map(normalizeCase).filter(Boolean);
+          if (normalized.length > 0) setData(d => ({ ...d, cases: normalized }));
+        } else if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] loadCases failed:", res.reason, res.error);
+        }
+      } catch (err) {
+        console.warn("[supabase] loadCases threw:", err);
+      }
     }).catch(() => { clearTimeout(timeout); setLoaded(true); });
   }, []);
 
@@ -295,6 +307,15 @@ export default function HRBPOS() {
     await sSet(skKey, toSave);
     setData(d => ({ ...d, [key]: toSave }));
     showToast();
+    if (key === "cases") {
+      supaSaveCases(toSave).then(res => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveCases failed:", res.reason, res.error);
+        }
+      }).catch(err => {
+        console.warn("[supabase] saveCases threw:", err);
+      });
+    }
   }, []);
 
   const handleSaveMeeting = useCallback(async (session, caseEntry) => {
