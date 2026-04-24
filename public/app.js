@@ -20618,8 +20618,14 @@ ${suffix}`;
   function loadCases(userId) {
     return loadTable("cases", userId);
   }
+  function loadMeetings(userId) {
+    return loadTable("meetings", userId);
+  }
   function saveCases(cases, userId) {
     return saveTable("cases", cases, normalizeCase, userId);
+  }
+  function saveMeetings(meetings, userId) {
+    return saveTable("meetings", meetings, normalizeMeetingOutput, userId);
   }
 
   // src/components/Mono.jsx
@@ -35383,6 +35389,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         } catch (err) {
           console.warn("[supabase] loadCases threw:", err);
         }
+        try {
+          const res = await loadMeetings();
+          if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+            setData((d) => ({ ...d, meetings: res.data }));
+          } else if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] loadMeetings failed:", res.reason, res.error);
+          }
+        } catch (err) {
+          console.warn("[supabase] loadMeetings threw:", err);
+        }
       }).catch(() => {
         clearTimeout(timeout);
         setLoaded(true);
@@ -35478,6 +35494,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }).catch((err) => {
           console.warn("[supabase] saveCases threw:", err);
         });
+      } else if (key2 === "meetings") {
+        saveMeetings(toSave).then((res) => {
+          if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
+          }
+        }).catch((err) => {
+          console.warn("[supabase] saveMeetings threw:", err);
+        });
       }
     }, []);
     const handleSaveMeeting = (0, import_react21.useCallback)(async (session, caseEntry) => {
@@ -35485,6 +35509,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       const newMeetings = [...data.meetings || [], session];
       await sSet(SK.meetings, newMeetings);
       setData((d) => ({ ...d, meetings: newMeetings }));
+      saveMeetings(newMeetings).then((res) => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
+        }
+      }).catch((err) => {
+        console.warn("[supabase] saveMeetings threw:", err);
+      });
       if (caseEntry) {
         const newCase = {
           id: Date.now().toString(),
@@ -35517,6 +35548,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       );
       await sSet(SK.meetings, newMeetings);
       setData((d) => ({ ...d, meetings: newMeetings }));
+      saveMeetings(newMeetings).then((res) => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
+        }
+      }).catch((err) => {
+        console.warn("[supabase] saveMeetings threw:", err);
+      });
       showToast();
     }, [data]);
     const allNav = [...NAV_MAIN, ...NAV_MORE];

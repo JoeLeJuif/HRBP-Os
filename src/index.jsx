@@ -14,7 +14,7 @@ import { toISO, fmtDate, getProvince } from './utils/format.js';
 import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
-import { loadCases as supaLoadCases, saveCases as supaSaveCases } from './services/supabaseStore.js';
+import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings } from './services/supabaseStore.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
 import Mono          from './components/Mono.jsx';
@@ -220,6 +220,16 @@ export default function HRBPOS() {
       } catch (err) {
         console.warn("[supabase] loadCases threw:", err);
       }
+      try {
+        const res = await supaLoadMeetings();
+        if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          setData(d => ({ ...d, meetings: res.data }));
+        } else if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] loadMeetings failed:", res.reason, res.error);
+        }
+      } catch (err) {
+        console.warn("[supabase] loadMeetings threw:", err);
+      }
     }).catch(() => { clearTimeout(timeout); setLoaded(true); });
   }, []);
 
@@ -315,6 +325,14 @@ export default function HRBPOS() {
       }).catch(err => {
         console.warn("[supabase] saveCases threw:", err);
       });
+    } else if (key === "meetings") {
+      supaSaveMeetings(toSave).then(res => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
+        }
+      }).catch(err => {
+        console.warn("[supabase] saveMeetings threw:", err);
+      });
     }
   }, []);
 
@@ -323,6 +341,13 @@ export default function HRBPOS() {
     const newMeetings = [...(data.meetings||[]), session];
     await sSet(SK.meetings, newMeetings);
     setData(d => ({ ...d, meetings: newMeetings }));
+    supaSaveMeetings(newMeetings).then(res => {
+      if (res && !res.ok && res.reason !== "no-client") {
+        console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
+      }
+    }).catch(err => {
+      console.warn("[supabase] saveMeetings threw:", err);
+    });
     if (caseEntry) {
       const newCase = {
         id: Date.now().toString(),
@@ -356,6 +381,13 @@ export default function HRBPOS() {
     );
     await sSet(SK.meetings, newMeetings);
     setData(d => ({ ...d, meetings: newMeetings }));
+    supaSaveMeetings(newMeetings).then(res => {
+      if (res && !res.ok && res.reason !== "no-client") {
+        console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
+      }
+    }).catch(err => {
+      console.warn("[supabase] saveMeetings threw:", err);
+    });
     showToast();
   }, [data]);
 
