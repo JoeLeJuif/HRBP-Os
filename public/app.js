@@ -254,6 +254,116 @@ var HRBPOSApp = (() => {
     });
     return clone;
   }
+  function _str(v, fallback = "") {
+    if (v === null || v === void 0) return fallback;
+    if (typeof v === "string") return v;
+    try {
+      return String(v);
+    } catch {
+      return fallback;
+    }
+  }
+  function _pickEnum(v, allowed, fallback) {
+    return allowed.indexOf(v) !== -1 ? v : fallback;
+  }
+  function _isoOrNull(v) {
+    if (!v) return null;
+    if (typeof v === "string") return v;
+    if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString();
+    return null;
+  }
+  var CASE_TYPES = ["performance", "pip", "conflict_ee", "conflict_em", "complaint", "immigration", "retention", "promotion", "return", "reorg", "exit", "investigation"];
+  var CASE_STATUSES = ["open", "active", "pending", "resolved", "closed", "escalated"];
+  var CASE_OWNERS = ["HRBP", "Gestionnaire", "HRBP + Gestionnaire", "Direction"];
+  var CASE_SCOPES = ["leader", "individual", "team", "org"];
+  var CASE_URGENCIES = ["Imm\xE9diat", "Cette semaine", "Ce mois", "En veille"];
+  var CASE_EVOLUTIONS = ["", "Nouveau", "En cours", "Aggrav\xE9", "En am\xE9lioration", "Bloqu\xE9", "R\xE9solu"];
+  var CASE_POSTURES = ["", "Partenaire", "Garant", "Coach", "Neutre", "Enqu\xEAteur"];
+  function normalizeCase(c) {
+    if (c === null || c === void 0) return null;
+    if (typeof c !== "object" || Array.isArray(c)) return null;
+    try {
+      const createdAt = _isoOrNull(c.createdAt) || _isoOrNull(c.dateCreated) || _isoOrNull(c.savedAt) || _isoOrNull(c.openDate) || (/* @__PURE__ */ new Date()).toISOString();
+      const rawUrgency = normalizeDelay(c.urgency);
+      const urgency = rawUrgency === null || rawUrgency === void 0 || rawUrgency === "" ? "" : _pickEnum(rawUrgency, CASE_URGENCIES, rawUrgency);
+      const out = {
+        ...c,
+        id: _str(c.id, "") || String(Date.now()),
+        title: _str(c.title).trim() || "(sans titre)",
+        type: _pickEnum(_str(c.type).toLowerCase(), CASE_TYPES, "performance"),
+        riskLevel: normalizeRisk(c.riskLevel),
+        status: _pickEnum(_str(c.status), CASE_STATUSES, "open"),
+        director: _str(c.director).trim(),
+        employee: _str(c.employee).trim(),
+        department: _str(c.department).trim(),
+        province: _str(c.province).trim().toUpperCase() || "QC",
+        openDate: _isoOrNull(c.openDate),
+        dueDate: _isoOrNull(c.dueDate),
+        closedDate: _isoOrNull(c.closedDate),
+        situation: _str(c.situation),
+        interventionsDone: _str(c.interventionsDone),
+        hrPosition: _str(c.hrPosition),
+        decision: _str(c.decision),
+        nextFollowUp: _str(c.nextFollowUp),
+        notes: _str(c.notes),
+        actions: toArray(c.actions),
+        owner: _pickEnum(_str(c.owner), CASE_OWNERS, "HRBP"),
+        scope: _pickEnum(_str(c.scope), CASE_SCOPES, "leader"),
+        urgency,
+        evolution: _pickEnum(_str(c.evolution), CASE_EVOLUTIONS, ""),
+        hrPosture: _pickEnum(_str(c.hrPosture), CASE_POSTURES, ""),
+        createdAt,
+        dateCreated: _isoOrNull(c.dateCreated) || createdAt,
+        savedAt: _isoOrNull(c.savedAt) || createdAt,
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      if (c.meetingId !== void 0 && c.meetingId !== null) {
+        out.meetingId = _str(c.meetingId);
+      }
+      return out;
+    } catch {
+      return null;
+    }
+  }
+  var INV_STATUSES = ["draft", "complete"];
+  var INV_SOURCES = ["meeting-engine-express", "manual", "other"];
+  function normalizeInvestigation(i) {
+    if (i === null || i === void 0) return null;
+    if (typeof i !== "object" || Array.isArray(i)) return null;
+    try {
+      const createdAt = _isoOrNull(i.createdAt) || _isoOrNull(i.savedAt) || (/* @__PURE__ */ new Date()).toISOString();
+      const caseTitle = _str(i.caseTitle).trim();
+      const title = _str(i.title).trim() || caseTitle;
+      let caseData = i.caseData;
+      if (caseData && typeof caseData === "object") {
+        caseData = normalizeAIData(caseData);
+      } else if (caseData === void 0) {
+        caseData = null;
+      }
+      return {
+        ...i,
+        id: _str(i.id, "") || String(Date.now()),
+        caseId: i.caseId === null || i.caseId === void 0 ? null : _str(i.caseId),
+        caseTitle,
+        caseType: _pickEnum(_str(i.caseType).toLowerCase(), CASE_TYPES, "investigation"),
+        urgencyLevel: normalizeRisk(i.urgencyLevel),
+        province: _str(i.province).trim().toUpperCase() || "QC",
+        caseData,
+        people: toArray(i.people),
+        title,
+        titleAuto: Boolean(i.titleAuto),
+        linkedCaseId: i.linkedCaseId === null || i.linkedCaseId === void 0 ? null : _str(i.linkedCaseId),
+        status: _pickEnum(_str(i.status), INV_STATUSES, "draft"),
+        source: _pickEnum(_str(i.source), INV_SOURCES, "manual"),
+        enrichedAt: _isoOrNull(i.enrichedAt),
+        createdAt,
+        savedAt: _isoOrNull(i.savedAt) || createdAt,
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+    } catch {
+      return null;
+    }
+  }
 
   // src/utils/format.js
   function fmtDate(iso) {
@@ -5560,7 +5670,7 @@ ${similarBlock}`;
     const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: norm, color: r.color });
   }
-  var CASE_TYPES = [
+  var CASE_TYPES2 = [
     { id: "performance", label: "Performance", icon: "\u{1F4C9}", color: C.amber },
     { id: "pip", label: "PIP / Correctif", icon: "\u{1F4CB}", color: C.red },
     { id: "conflict_ee", label: "Conflit EE/EE", icon: "\u26A1", color: C.amber },
@@ -5671,7 +5781,7 @@ ${similarBlock}`;
         )
       ), fl(
         "Type de dossier",
-        /* @__PURE__ */ React.createElement("select", { value: form.type, onChange: SF("type"), style: css.select }, CASE_TYPES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.id, value: t.id }, t.icon, " ", t.label)))
+        /* @__PURE__ */ React.createElement("select", { value: form.type, onChange: SF("type"), style: css.select }, CASE_TYPES2.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.id, value: t.id }, t.icon, " ", t.label)))
       ), fl(
         "Statut",
         /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: SF("status"), style: css.select }, STATUSES.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.id, value: s.id }, s.label)))
@@ -5854,7 +5964,7 @@ ${similarBlock}`;
     const secSep = "\u2500\u2500 ";
     lines.push(`DOSSIER RH \u2014 ${c.title || "Sans titre"}`);
     lines.push(sep);
-    const typeObj = CASE_TYPES.find((t) => t.id === c.type);
+    const typeObj = CASE_TYPES2.find((t) => t.id === c.type);
     const statusObj = STATUSES.find((s) => s.id === c.status);
     if (statusObj) lines.push(`Statut       : ${statusObj.label}`);
     if (c.riskLevel) lines.push(`Risque       : ${c.riskLevel}`);
@@ -6028,7 +6138,7 @@ ${similarBlock}`;
     );
     if (view === "detail" && detail) {
       const c = detail;
-      const typeObj = CASE_TYPES.find((t) => t.id === c.type);
+      const typeObj = CASE_TYPES2.find((t) => t.id === c.type);
       const statusObj = STATUSES.find((s) => s.id === c.status);
       const r = RISK[c.riskLevel] || RISK["Mod\xE9r\xE9"];
       return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, c.title), /* @__PURE__ */ React.createElement(
@@ -6254,7 +6364,7 @@ ${similarBlock}`;
       );
     })), /* @__PURE__ */ React.createElement("select", { value: filterProvince, onChange: (e) => setFilterProvince(e.target.value), style: { ...css.select, maxWidth: 140, fontSize: 11 } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "Province: Toutes"), PROVINCES.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }, p)))), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: 32, color: C.textM, fontSize: 13 } }, "Aucun dossier ne correspond aux filtres."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, filtered.map((c, i) => {
       const r = RISK[c.riskLevel] || RISK["Mod\xE9r\xE9"];
-      const typeObj = CASE_TYPES.find((t) => t.id === c.type);
+      const typeObj = CASE_TYPES2.find((t) => t.id === c.type);
       const statusObj = STATUSES.find((s) => s.id === c.status);
       const isOverdue = c.dueDate && c.dueDate < todayISO && !["resolved", "closed"].includes(c.status);
       const linkedDecisions = (data.decisions || []).filter((d) => d.linkedCaseId === c.id);
@@ -15259,7 +15369,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       Promise.allSettled(
         Object.entries(SK).map(async ([k, sk]) => {
           try {
-            const v = await sGet(sk);
+            let v = await sGet(sk);
+            if (k === "cases" && Array.isArray(v)) v = v.map(normalizeCase).filter(Boolean);
+            else if (k === "investigations" && Array.isArray(v)) v = v.map(normalizeInvestigation).filter(Boolean);
             return [k, v ?? defaults[k]];
           } catch {
             return [k, defaults[k]];

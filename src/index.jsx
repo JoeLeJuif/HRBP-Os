@@ -9,7 +9,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Infrastructure imports (Bloc 1) ──────────────────────────────────────────
 import { C, css, FONTS, DELAY_C, RISK, INV_RED } from './theme.js';
-import { normalizeRisk, normalizeDelay, normalizeAIData } from './utils/normalize.js';
+import { normalizeRisk, normalizeDelay, normalizeAIData, normalizeCase, normalizeInvestigation } from './utils/normalize.js';
 import { toISO, fmtDate, getProvince } from './utils/format.js';
 import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
@@ -195,7 +195,12 @@ export default function HRBPOS() {
     const timeout = setTimeout(() => setLoaded(true), 1500);
     Promise.allSettled(
       Object.entries(SK).map(async ([k, sk]) => {
-        try { const v = await sGet(sk); return [k, v ?? defaults[k]]; }
+        try {
+          let v = await sGet(sk);
+          if (k === "cases" && Array.isArray(v)) v = v.map(normalizeCase).filter(Boolean);
+          else if (k === "investigations" && Array.isArray(v)) v = v.map(normalizeInvestigation).filter(Boolean);
+          return [k, v ?? defaults[k]];
+        }
         catch { return [k, defaults[k]]; }
       })
     ).then(results => {
