@@ -20628,6 +20628,50 @@ ${suffix}`;
     return saveTable("meetings", meetings, normalizeMeetingOutput, userId);
   }
 
+  // src/lib/auth.js
+  var NO_CLIENT2 = { ok: false, reason: "no-client" };
+  async function signIn(email) {
+    if (!supabase) return NO_CLIENT2;
+    if (!email || typeof email !== "string") {
+      return { ok: false, reason: "invalid-email" };
+    }
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: typeof window !== "undefined" ? window.location.origin : void 0 }
+    });
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true, data };
+  }
+  async function signOut() {
+    if (!supabase) return NO_CLIENT2;
+    const { error } = await supabase.auth.signOut();
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true };
+  }
+  async function getSession() {
+    if (!supabase) return NO_CLIENT2;
+    const { data, error } = await supabase.auth.getSession();
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true, session: data?.session ?? null };
+  }
+  function onAuthStateChange(callback) {
+    if (!supabase) return () => {
+    };
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      try {
+        callback(event, session);
+      } catch (err) {
+        console.warn("[auth] callback threw:", err);
+      }
+    });
+    return () => {
+      try {
+        data?.subscription?.unsubscribe();
+      } catch {
+      }
+    };
+  }
+
   // src/components/Mono.jsx
   function Mono({ children, size = 9, color = C.textD }) {
     return /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "'DM Mono',monospace", fontSize: size, color, letterSpacing: 1.5, textTransform: "uppercase" } }, children);
@@ -35339,6 +35383,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function HRBPOS() {
     const [authed, setAuthed] = (0, import_react21.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
+    const [supaSession, setSupaSession] = (0, import_react21.useState)(null);
     const [module, setModule] = (0, import_react21.useState)("home");
     const [showMore, setShowMore] = (0, import_react21.useState)(false);
     const [data, setData] = (0, import_react21.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
@@ -35403,6 +35448,43 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         clearTimeout(timeout);
         setLoaded(true);
       });
+    }, []);
+    (0, import_react21.useEffect)(() => {
+      let cancelled = false;
+      getSession().then((res) => {
+        if (cancelled) return;
+        if (res.ok && res.session) {
+          setSupaSession(res.session);
+          console.log("[auth] existing session for", res.session.user?.email);
+        } else if (res.ok) {
+          console.log("[auth] no session");
+        } else if (res.reason !== "no-client") {
+          console.warn("[auth] getSession failed:", res.reason, res.error);
+        }
+      });
+      const unsubscribe = onAuthStateChange((event, session) => {
+        setSupaSession(session ?? null);
+        if (session) console.log("[auth]", event, "\u2192 authenticated as", session.user?.email);
+        else console.log("[auth]", event, "\u2192 no session");
+      });
+      if (typeof window !== "undefined") {
+        window.login = async (email) => {
+          const res = await signIn(email);
+          if (res.ok) console.log("[auth] magic link sent to", email);
+          else console.warn("[auth] signIn failed:", res.reason, res.error);
+          return res;
+        };
+        window.logout = async () => {
+          const res = await signOut();
+          if (res.ok) console.log("[auth] signed out");
+          else console.warn("[auth] signOut failed:", res.reason, res.error);
+          return res;
+        };
+      }
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
     }, []);
     const showToast = () => {
       setToast(true);

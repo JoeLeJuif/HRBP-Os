@@ -15,6 +15,7 @@ import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings } from './services/supabaseStore.js';
+import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange } from './lib/auth.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
 import Mono          from './components/Mono.jsx';
@@ -167,6 +168,7 @@ function LoginScreen({ onAuth }) {
 // ── Root component (Source: HRBP_OS.jsx L.10743-11097) ────────────────────────
 export default function HRBPOS() {
   const [authed, setAuthed]   = useState(() => localStorage.getItem(AUTH_KEY) === "1");
+  const [supaSession, setSupaSession] = useState(null); // Supabase session — informational only, does not gate UI
   const [module, setModule]   = useState("home");
   const [showMore, setShowMore] = useState(false);
   const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
@@ -231,6 +233,43 @@ export default function HRBPOS() {
         console.warn("[supabase] loadMeetings threw:", err);
       }
     }).catch(() => { clearTimeout(timeout); setLoaded(true); });
+  }, []);
+
+  // Supabase session detection — non-blocking. Logs auth state, exposes
+  // window.login(email)/window.logout() as console-only triggers until UI lands.
+  useEffect(() => {
+    let cancelled = false;
+    supaGetSession().then(res => {
+      if (cancelled) return;
+      if (res.ok && res.session) {
+        setSupaSession(res.session);
+        console.log("[auth] existing session for", res.session.user?.email);
+      } else if (res.ok) {
+        console.log("[auth] no session");
+      } else if (res.reason !== "no-client") {
+        console.warn("[auth] getSession failed:", res.reason, res.error);
+      }
+    });
+    const unsubscribe = supaOnAuthStateChange((event, session) => {
+      setSupaSession(session ?? null);
+      if (session) console.log("[auth]", event, "→ authenticated as", session.user?.email);
+      else console.log("[auth]", event, "→ no session");
+    });
+    if (typeof window !== "undefined") {
+      window.login = async (email) => {
+        const res = await supaSignIn(email);
+        if (res.ok) console.log("[auth] magic link sent to", email);
+        else console.warn("[auth] signIn failed:", res.reason, res.error);
+        return res;
+      };
+      window.logout = async () => {
+        const res = await supaSignOut();
+        if (res.ok) console.log("[auth] signed out");
+        else console.warn("[auth] signOut failed:", res.reason, res.error);
+        return res;
+      };
+    }
+    return () => { cancelled = true; unsubscribe(); };
   }, []);
 
   const showToast = () => { setToast(true); setTimeout(() => setToast(false), 2000); };
