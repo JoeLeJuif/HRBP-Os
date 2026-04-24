@@ -267,8 +267,11 @@ export default function HRBPOS() {
       for (const k of keys) {
         if (restored[k] !== undefined) {
           const skKey = SK[k];
-          if (skKey) await sSet(skKey, restored[k]);
-          updates[k] = restored[k];
+          let value = restored[k];
+          if (k === "cases" && Array.isArray(value)) value = value.map(normalizeCase).filter(Boolean);
+          else if (k === "investigations" && Array.isArray(value)) value = value.map(normalizeInvestigation).filter(Boolean);
+          if (skKey) await sSet(skKey, value);
+          updates[k] = value;
         }
       }
       setData(d => ({ ...d, ...updates }));
@@ -286,8 +289,11 @@ export default function HRBPOS() {
   const handleSave = useCallback(async (key, value) => {
     const skKey = SK[key];
     if (!skKey) return;
-    await sSet(skKey, value);
-    setData(d => ({ ...d, [key]: value }));
+    let toSave = value;
+    if (key === "cases" && Array.isArray(value)) toSave = value.map(normalizeCase).filter(Boolean);
+    else if (key === "investigations" && Array.isArray(value)) toSave = value.map(normalizeInvestigation).filter(Boolean);
+    await sSet(skKey, toSave);
+    setData(d => ({ ...d, [key]: toSave }));
     showToast();
   }, []);
 
@@ -315,7 +321,8 @@ export default function HRBPOS() {
         actions: (session.analysis?.actions||[]).map(a => ({ ...a, done:false })),
         updatedAt: session.savedAt,
       };
-      const newCases = [...(data.cases||[]), newCase];
+      const normalizedNewCase = normalizeCase(newCase);
+      const newCases = normalizedNewCase ? [...(data.cases||[]), normalizedNewCase] : (data.cases||[]);
       await sSet(SK.cases, newCases);
       setData(d => ({ ...d, cases: newCases }));
     }
