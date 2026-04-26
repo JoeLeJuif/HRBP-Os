@@ -14,7 +14,7 @@ import { toISO, fmtDate, getProvince } from './utils/format.js';
 import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
-import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings } from './services/supabaseStore.js';
+import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations } from './services/supabaseStore.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession } from './lib/auth.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
@@ -232,6 +232,17 @@ export default function HRBPOS() {
       } catch (err) {
         console.warn("[supabase] loadMeetings threw:", err);
       }
+      try {
+        const res = await supaLoadInvestigations();
+        if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          const normalized = res.data.map(normalizeInvestigation).filter(Boolean);
+          if (normalized.length > 0) setData(d => ({ ...d, investigations: normalized }));
+        } else if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] loadInvestigations failed:", res.reason, res.error);
+        }
+      } catch (err) {
+        console.warn("[supabase] loadInvestigations threw:", err);
+      }
     }).catch(() => { clearTimeout(timeout); setLoaded(true); });
   }, []);
 
@@ -388,6 +399,14 @@ export default function HRBPOS() {
         }
       }).catch(err => {
         console.warn("[supabase] saveMeetings threw:", err);
+      });
+    } else if (key === "investigations") {
+      supaSaveInvestigations(toSave).then(res => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveInvestigations failed:", res.reason, res.error);
+        }
+      }).catch(err => {
+        console.warn("[supabase] saveInvestigations threw:", err);
       });
     }
   }, []);

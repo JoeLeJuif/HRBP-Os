@@ -20634,11 +20634,17 @@ ${suffix}`;
   function loadCases(userId) {
     return loadTable("cases", userId);
   }
+  function loadInvestigations(userId) {
+    return loadTable("investigations", userId);
+  }
   function loadMeetings(userId) {
     return loadTable("meetings", userId);
   }
   function saveCases(cases, userId) {
     return saveTable("cases", cases, normalizeCase, userId);
+  }
+  function saveInvestigations(investigations, userId) {
+    return saveTable("investigations", investigations, normalizeInvestigation, userId);
   }
   function saveMeetings(meetings, userId) {
     return saveTable("meetings", meetings, normalizeMeetingOutput, userId);
@@ -35466,6 +35472,17 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         } catch (err) {
           console.warn("[supabase] loadMeetings threw:", err);
         }
+        try {
+          const res = await loadInvestigations();
+          if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+            const normalized = res.data.map(normalizeInvestigation).filter(Boolean);
+            if (normalized.length > 0) setData((d) => ({ ...d, investigations: normalized }));
+          } else if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] loadInvestigations failed:", res.reason, res.error);
+          }
+        } catch (err) {
+          console.warn("[supabase] loadInvestigations threw:", err);
+        }
       }).catch(() => {
         clearTimeout(timeout);
         setLoaded(true);
@@ -35617,6 +35634,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           }
         }).catch((err) => {
           console.warn("[supabase] saveMeetings threw:", err);
+        });
+      } else if (key2 === "investigations") {
+        saveInvestigations(toSave).then((res) => {
+          if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] saveInvestigations failed:", res.reason, res.error);
+          }
+        }).catch((err) => {
+          console.warn("[supabase] saveInvestigations threw:", err);
         });
       }
     }, []);
