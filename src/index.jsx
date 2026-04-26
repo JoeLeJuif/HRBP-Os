@@ -16,6 +16,7 @@ import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, i
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations } from './services/supabaseStore.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession } from './lib/auth.js';
+import { hasSupabase } from './lib/supabase.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
 import Mono          from './components/Mono.jsx';
@@ -88,49 +89,33 @@ const NAV_MORE = [
   { id:"autoprompt",   icon:"🧩",  label:"Prompt AI",  color:C.purple },
 ];
 
-// ── Auth (Source: HRBP_OS.jsx L.10684-10741) ──────────────────────────────────
-const AUTH_KEY = "hrbpos_auth";
+// ── Auth — Supabase magic-link login ─────────────────────────────────────────
+function LoginScreen() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+  const [errorMsg, setErrorMsg] = useState("");
 
-function LoginScreen({ onAuth }) {
-  const [pw, setPw] = useState("");
-  const [error, setError] = useState(false);
-  const [shake, setShake] = useState(false);
-  const [checking, setChecking] = useState(false);
-
-  const attempt = async () => {
-    if (!pw || checking) return;
-    setChecking(true);
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: pw }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        localStorage.setItem(AUTH_KEY, "1");
-        onAuth();
-      } else {
-        setError(true);
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setPw("");
-      }
-    } catch {
-      setError(true);
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      setPw("");
-    } finally {
-      setChecking(false);
+  const send = async () => {
+    if (!email || status === "sending") return;
+    setStatus("sending");
+    setErrorMsg("");
+    const res = await supaSignIn(email);
+    if (res.ok) {
+      setStatus("sent");
+    } else {
+      setStatus("error");
+      setErrorMsg(
+        res.reason === "invalid-email" ? "Email invalide."
+        : res.reason === "no-client"   ? "Supabase non configuré."
+        : "Échec de l'envoi du lien."
+      );
     }
   };
 
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
-      <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}`}</style>
-      <div style={{ width:340, animation:shake?"shake .4s ease":undefined }}>
+      <div style={{ width:340 }}>
         <div style={{ textAlign:"center", marginBottom:32 }}>
           <div style={{ width:44, height:44, background:C.em, borderRadius:10,
             display:"inline-flex", alignItems:"center", justifyContent:"center",
@@ -138,27 +123,31 @@ function LoginScreen({ onAuth }) {
           <div style={{ fontWeight:700, fontSize:18, color:C.text }}>HRBP OS</div>
           <div style={{ fontSize:12, color:C.textM, marginTop:4 }}>Samuel Chartrand</div>
         </div>
-        <div style={{ background:C.surf, border:`1px solid ${error?C.red+"66":C.border}`,
-          borderRadius:12, padding:"24px 24px 20px", transition:"border-color .2s" }}>
+        <div style={{ background:C.surf, border:`1px solid ${C.border}`,
+          borderRadius:12, padding:"24px 24px 20px" }}>
           <label style={{ fontSize:11, fontWeight:600, color:C.textM,
             letterSpacing:.8, textTransform:"uppercase", display:"block", marginBottom:6 }}>
-            Mot de passe
+            Email
           </label>
-          <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setError(false);}}
-            onKeyDown={e=>e.key==="Enter"&&attempt()}
+          <input type="email" value={email} onChange={e=>{setEmail(e.target.value);if(status==="error")setStatus("idle");}}
+            onKeyDown={e=>e.key==="Enter"&&send()}
             autoFocus
-            placeholder="••••••••••••"
-            style={{ ...css.input, marginBottom: error?8:16,
-              borderColor: error ? C.red+"66" : C.border }} />
-          {error && (
-            <div style={{ fontSize:11, color:C.red, marginBottom:12 }}>
-              Mot de passe incorrect.
+            placeholder="you@example.com"
+            disabled={status==="sending"||status==="sent"}
+            style={{ ...css.input, marginBottom: 12 }} />
+          <button onClick={send} disabled={status==="sending"||status==="sent"||!email}
+            style={{ ...css.btn(C.em), width:"100%", padding:"11px", fontSize:13,
+              opacity:(status==="sending"||status==="sent"||!email)?.6:1 }}>
+            {status==="sending" ? "Envoi…" : status==="sent" ? "Lien envoyé ✓" : "Send magic link"}
+          </button>
+          {status==="sent" && (
+            <div style={{ fontSize:11, color:C.textM, marginTop:12, lineHeight:1.5 }}>
+              Vérifie ta boîte courriel et clique le lien pour te connecter.
             </div>
           )}
-          <button onClick={attempt} disabled={checking}
-            style={{ ...css.btn(C.em), width:"100%", padding:"11px", fontSize:13, opacity:checking?.6:1 }}>
-            {checking ? "Vérification…" : "Entrer"}
-          </button>
+          {status==="error" && (
+            <div style={{ fontSize:11, color:C.red, marginTop:10 }}>{errorMsg}</div>
+          )}
         </div>
       </div>
     </div>
@@ -167,8 +156,8 @@ function LoginScreen({ onAuth }) {
 
 // ── Root component (Source: HRBP_OS.jsx L.10743-11097) ────────────────────────
 export default function HRBPOS() {
-  const [authed, setAuthed]   = useState(() => localStorage.getItem(AUTH_KEY) === "1");
-  const [supaSession, setSupaSession] = useState(null); // Supabase session — informational only, does not gate UI
+  const [supaSession, setSupaSession] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [module, setModule]   = useState("home");
   const [showMore, setShowMore] = useState(false);
   const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
@@ -281,6 +270,7 @@ export default function HRBPOS() {
       } else if (!res.ok && res.reason !== "no-client") {
         console.warn("[auth] getSession failed:", res.reason, res.error);
       }
+      setSessionChecked(true);
     })();
     const unsubscribe = supaOnAuthStateChange((_event, session) => {
       setSupaSession(session ?? null);
@@ -469,7 +459,11 @@ export default function HRBPOS() {
   const allNav  = [...NAV_MAIN, ...NAV_MORE];
   const activeNav = allNav.find(n => n.id === module);
 
-  if (!authed) return <LoginScreen onAuth={() => setAuthed(true)} />;
+  if (hasSupabase && !sessionChecked) {
+    return <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg }}><AILoader label="Chargement"/></div>;
+  }
+  if (hasSupabase && !supaSession) return <LoginScreen />;
 
   return (
     <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif", color:C.text, overflow:"hidden" }}>
@@ -601,6 +595,22 @@ export default function HRBPOS() {
             </div>
           ))}
         </div>
+
+        {supaSession && (
+          <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.border}`,
+            display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+            <span style={{ fontSize:10, color:C.textD, overflow:"hidden",
+              textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+              {supaSession.user?.email || "session"}
+            </span>
+            <button onClick={async () => { await supaSignOut(); }}
+              style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
+                padding:"4px 8px", fontSize:10, color:C.textM, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
+              Logout
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── MAIN CONTENT ── */}

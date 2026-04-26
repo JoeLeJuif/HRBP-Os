@@ -35316,38 +35316,22 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     // Déprioritisé — Copilot est maintenant l'entrée principale (situations détectées + templates intégrés).
     { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple }
   ];
-  var AUTH_KEY = "hrbpos_auth";
-  function LoginScreen({ onAuth }) {
-    const [pw, setPw] = (0, import_react21.useState)("");
-    const [error, setError] = (0, import_react21.useState)(false);
-    const [shake, setShake] = (0, import_react21.useState)(false);
-    const [checking, setChecking] = (0, import_react21.useState)(false);
-    const attempt = async () => {
-      if (!pw || checking) return;
-      setChecking(true);
-      try {
-        const res = await fetch("/api/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: pw })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          localStorage.setItem(AUTH_KEY, "1");
-          onAuth();
-        } else {
-          setError(true);
-          setShake(true);
-          setTimeout(() => setShake(false), 500);
-          setPw("");
-        }
-      } catch {
-        setError(true);
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setPw("");
-      } finally {
-        setChecking(false);
+  function LoginScreen() {
+    const [email, setEmail] = (0, import_react21.useState)("");
+    const [status, setStatus] = (0, import_react21.useState)("idle");
+    const [errorMsg, setErrorMsg] = (0, import_react21.useState)("");
+    const send = async () => {
+      if (!email || status === "sending") return;
+      setStatus("sending");
+      setErrorMsg("");
+      const res = await signIn(email);
+      if (res.ok) {
+        setStatus("sent");
+      } else {
+        setStatus("error");
+        setErrorMsg(
+          res.reason === "invalid-email" ? "Email invalide." : res.reason === "no-client" ? "Supabase non configur\xE9." : "\xC9chec de l'envoi du lien."
+        );
       }
     };
     return /* @__PURE__ */ React.createElement("div", { style: {
@@ -35357,7 +35341,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       height: "100vh",
       background: C.bg,
       fontFamily: "'DM Sans',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("style", null, `@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}`), /* @__PURE__ */ React.createElement("div", { style: { width: 340, animation: shake ? "shake .4s ease" : void 0 } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginBottom: 32 } }, /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement("div", { style: { width: 340 } }, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginBottom: 32 } }, /* @__PURE__ */ React.createElement("div", { style: {
       width: 44,
       height: 44,
       background: C.em,
@@ -35369,10 +35353,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       marginBottom: 12
     } }, "\u26A1"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 18, color: C.text } }, "HRBP OS"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginTop: 4 } }, "Samuel Chartrand")), /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surf,
-      border: `1px solid ${error ? C.red + "66" : C.border}`,
+      border: `1px solid ${C.border}`,
       borderRadius: 12,
-      padding: "24px 24px 20px",
-      transition: "border-color .2s"
+      padding: "24px 24px 20px"
     } }, /* @__PURE__ */ React.createElement("label", { style: {
       fontSize: 11,
       fontWeight: 600,
@@ -35381,37 +35364,40 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       textTransform: "uppercase",
       display: "block",
       marginBottom: 6
-    } }, "Mot de passe"), /* @__PURE__ */ React.createElement(
+    } }, "Email"), /* @__PURE__ */ React.createElement(
       "input",
       {
-        type: "password",
-        value: pw,
+        type: "email",
+        value: email,
         onChange: (e) => {
-          setPw(e.target.value);
-          setError(false);
+          setEmail(e.target.value);
+          if (status === "error") setStatus("idle");
         },
-        onKeyDown: (e) => e.key === "Enter" && attempt(),
+        onKeyDown: (e) => e.key === "Enter" && send(),
         autoFocus: true,
-        placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
-        style: {
-          ...css.input,
-          marginBottom: error ? 8 : 16,
-          borderColor: error ? C.red + "66" : C.border
-        }
+        placeholder: "you@example.com",
+        disabled: status === "sending" || status === "sent",
+        style: { ...css.input, marginBottom: 12 }
       }
-    ), error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginBottom: 12 } }, "Mot de passe incorrect."), /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: attempt,
-        disabled: checking,
-        style: { ...css.btn(C.em), width: "100%", padding: "11px", fontSize: 13, opacity: checking ? 0.6 : 1 }
+        onClick: send,
+        disabled: status === "sending" || status === "sent" || !email,
+        style: {
+          ...css.btn(C.em),
+          width: "100%",
+          padding: "11px",
+          fontSize: 13,
+          opacity: status === "sending" || status === "sent" || !email ? 0.6 : 1
+        }
       },
-      checking ? "V\xE9rification\u2026" : "Entrer"
-    ))));
+      status === "sending" ? "Envoi\u2026" : status === "sent" ? "Lien envoy\xE9 \u2713" : "Send magic link"
+    ), status === "sent" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginTop: 12, lineHeight: 1.5 } }, "V\xE9rifie ta bo\xEEte courriel et clique le lien pour te connecter."), status === "error" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginTop: 10 } }, errorMsg))));
   }
   function HRBPOS() {
-    const [authed, setAuthed] = (0, import_react21.useState)(() => localStorage.getItem(AUTH_KEY) === "1");
     const [supaSession, setSupaSession] = (0, import_react21.useState)(null);
+    const [sessionChecked, setSessionChecked] = (0, import_react21.useState)(false);
     const [module, setModule] = (0, import_react21.useState)("home");
     const [showMore, setShowMore] = (0, import_react21.useState)(false);
     const [data, setData] = (0, import_react21.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
@@ -35516,6 +35502,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         } else if (!res.ok && res.reason !== "no-client") {
           console.warn("[auth] getSession failed:", res.reason, res.error);
         }
+        setSessionChecked(true);
       })();
       const unsubscribe = onAuthStateChange((_event, session) => {
         setSupaSession(session ?? null);
@@ -35700,7 +35687,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }, [data]);
     const allNav = [...NAV_MAIN, ...NAV_MORE];
     const activeNav = allNav.find((n) => n.id === module);
-    if (!authed) return /* @__PURE__ */ React.createElement(LoginScreen, { onAuth: () => setAuthed(true) });
+    if (hasSupabase && !sessionChecked) {
+      return /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        background: C.bg
+      } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement" }));
+    }
+    if (hasSupabase && !supaSession) return /* @__PURE__ */ React.createElement(LoginScreen, null);
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", height: "100vh", background: C.bg, fontFamily: "'DM Sans',sans-serif", color: C.text, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("style", null, FONTS), /* @__PURE__ */ React.createElement("style", null, `*{box-sizing:border-box}textarea,input,select{outline:none}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}.fadein{animation:fadeIn .2s ease both}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:${C.bg}}::-webkit-scrollbar-thumb{background:${C.borderL};border-radius:4px}`), /* @__PURE__ */ React.createElement("div", { style: {
       width: 200,
       background: C.surf,
@@ -35886,7 +35882,41 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       ["D\xE9parts", (data.exits || []).length, C.textM],
       ["Enqu\xEAtes", (data.investigations || []).length, INV_RED],
       ["Briefs", (data.briefs || []).length, C.amber]
-    ].map(([l, v, col], i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, l), /* @__PURE__ */ React.createElement(Mono, { color: col, size: 8 }, v))))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: {
+    ].map(([l, v, col], i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, l), /* @__PURE__ */ React.createElement(Mono, { color: col, size: 8 }, v)))), supaSession && /* @__PURE__ */ React.createElement("div", { style: {
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: `1px solid ${C.border}`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8
+    } }, /* @__PURE__ */ React.createElement("span", { style: {
+      fontSize: 10,
+      color: C.textD,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      flex: 1
+    } }, supaSession.user?.email || "session"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: async () => {
+          await signOut();
+        },
+        style: {
+          background: "none",
+          border: `1px solid ${C.border}`,
+          borderRadius: 6,
+          padding: "4px 8px",
+          fontSize: 10,
+          color: C.textM,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          flexShrink: 0
+        }
+      },
+      "Logout"
+    ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surf,
       borderBottom: `1px solid ${C.border}`,
       padding: "12px 24px",

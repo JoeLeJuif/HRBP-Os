@@ -1,8 +1,8 @@
-// ── Supabase auth wrapper (lean, magic-link only, non-blocking) ──────────────
+// ── Supabase auth wrapper (lean, magic-link only) ────────────────────────────
 // Thin facade around supabase.auth so callers don't need to know whether the
 // client exists. If env vars are missing, supabase is null and every call
-// short-circuits with { ok:false, reason:"no-client" }. The app is unaffected
-// — local AUTH_KEY login still gates the UI.
+// short-circuits with { ok:false, reason:"no-client" } — callers should fall
+// back to localStorage-only mode.
 
 import { supabase } from "./supabase.js";
 
