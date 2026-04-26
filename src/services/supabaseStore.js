@@ -23,7 +23,6 @@ async function getSessionUserId() {
     const { data, error } = await supabase.auth.getSession();
     if (error) return null;
     const uid = data && data.session && data.session.user && data.session.user.id;
-    console.log("[supabaseStore][debug] session user id:", uid || null); // TEMP DEBUG
     return uid || null;
   } catch {
     return null;
@@ -43,7 +42,6 @@ async function loadTable(table, userId = DEFAULT_USER) {
       .eq("user_id", sessionUserId);
     if (error) return { ok: false, reason: "query-error", error };
     const rows = Array.isArray(data) ? data.map(r => r && r.data ? r.data : null).filter(Boolean) : [];
-    console.log("[supabaseStore][debug] load", table, "rows returned:", rows); // TEMP DEBUG
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, reason: "exception", error };
@@ -67,7 +65,6 @@ async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
     });
   }
   if (rows.length === 0) return { ok: true, count: 0 };
-  console.log("[supabaseStore][debug] save", table, "rows being upserted:", rows); // TEMP DEBUG
   try {
     const { error } = await supabase.from(table).upsert(rows, { onConflict: "id" });
     if (error) return { ok: false, reason: "upsert-error", error };

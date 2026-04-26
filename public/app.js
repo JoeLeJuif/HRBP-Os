@@ -20588,7 +20588,6 @@ ${suffix}`;
       const { data, error } = await supabase.auth.getSession();
       if (error) return null;
       const uid = data && data.session && data.session.user && data.session.user.id;
-      console.log("[supabaseStore][debug] session user id:", uid || null);
       return uid || null;
     } catch {
       return null;
@@ -20602,7 +20601,6 @@ ${suffix}`;
       const { data, error } = await supabase.from(table).select("id, data, created_at, updated_at").eq("user_id", sessionUserId);
       if (error) return { ok: false, reason: "query-error", error };
       const rows = Array.isArray(data) ? data.map((r) => r && r.data ? r.data : null).filter(Boolean) : [];
-      console.log("[supabaseStore][debug] load", table, "rows returned:", rows);
       return { ok: true, data: rows };
     } catch (error) {
       return { ok: false, reason: "exception", error };
@@ -20625,7 +20623,6 @@ ${suffix}`;
       });
     }
     if (rows.length === 0) return { ok: true, count: 0 };
-    console.log("[supabaseStore][debug] save", table, "rows being upserted:", rows);
     try {
       const { error } = await supabase.from(table).upsert(rows, { onConflict: "id" });
       if (error) return { ok: false, reason: "upsert-error", error };
@@ -35449,9 +35446,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         if (entries.length > 0) setData((d) => ({ ...d, ...Object.fromEntries(entries) }));
         setLoaded(true);
         try {
-          console.log("[cases][supabase] loading cases");
           const res = await loadCases();
-          console.log("[cases][supabase] loadCases result:", res);
           if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
             const normalized = res.data.map(normalizeCase).filter(Boolean);
             if (normalized.length > 0) setData((d) => ({ ...d, cases: normalized }));
@@ -35487,9 +35482,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           if (hasAuthParams) {
             const ex = await exchangeCodeForSession(href);
             if (cancelled) return;
-            if (ex.ok && ex.session) {
-              console.log("[auth] session restored \u2014 user id:", ex.session.user?.id);
-            } else if (!ex.ok && ex.reason !== "no-client") {
+            if (!ex.ok && ex.reason !== "no-client") {
               console.warn("[auth] exchangeCodeForSession failed:", ex.reason, ex.error);
             }
             try {
@@ -35503,29 +35496,22 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         if (cancelled) return;
         if (res.ok && res.session) {
           setSupaSession(res.session);
-          console.log("[auth] existing session \u2014 user id:", res.session.user?.id);
-        } else if (res.ok) {
-          console.log("[auth] no session");
-        } else if (res.reason !== "no-client") {
+        } else if (!res.ok && res.reason !== "no-client") {
           console.warn("[auth] getSession failed:", res.reason, res.error);
         }
       })();
-      const unsubscribe = onAuthStateChange((event, session) => {
+      const unsubscribe = onAuthStateChange((_event, session) => {
         setSupaSession(session ?? null);
-        if (session) console.log("[auth]", event, "\u2192 logged in, user id:", session.user?.id);
-        else console.log("[auth]", event, "\u2192 no session");
       });
       if (typeof window !== "undefined") {
         window.login = async (email) => {
           const res = await signIn(email);
-          if (res.ok) console.log("[auth] magic link sent to", email);
-          else console.warn("[auth] signIn failed:", res.reason, res.error);
+          if (!res.ok) console.warn("[auth] signIn failed:", res.reason, res.error);
           return res;
         };
         window.logout = async () => {
           const res = await signOut();
-          if (res.ok) console.log("[auth] signed out");
-          else console.warn("[auth] signOut failed:", res.reason, res.error);
+          if (!res.ok) console.warn("[auth] signOut failed:", res.reason, res.error);
           return res;
         };
       }
@@ -35617,9 +35603,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setData((d) => ({ ...d, [key2]: toSave }));
       showToast();
       if (key2 === "cases") {
-        console.log("[cases][supabase] saving cases", toSave);
         saveCases(toSave).then((res) => {
-          console.log("[cases][supabase] saveCases result:", res);
           if (res && !res.ok && res.reason !== "no-client") {
             console.warn("[supabase] saveCases failed:", res.reason, res.error);
           }
