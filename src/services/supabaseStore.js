@@ -15,18 +15,35 @@ import { normalizeMeetingOutput } from "../utils/meetingModel.js";
 
 const DEFAULT_USER = "demo";
 const NO_CLIENT = { ok: false, reason: "no-client" };
+const NO_SESSION = { ok: false, reason: "no-session" };
+
+async function getSessionUserId() {
+  if (!supabase || !supabase.auth || typeof supabase.auth.getSession !== "function") return null;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) return null;
+    const uid = data && data.session && data.session.user && data.session.user.id;
+    console.log("[supabaseStore][debug] session user id:", uid || null); // TEMP DEBUG
+    return uid || null;
+  } catch {
+    return null;
+  }
+}
 
 // ── internals ────────────────────────────────────────────────────────────────
 
 async function loadTable(table, userId = DEFAULT_USER) {
   if (!supabase) return NO_CLIENT;
+  const sessionUserId = await getSessionUserId();
+  if (!sessionUserId) return NO_SESSION;
   try {
     const { data, error } = await supabase
       .from(table)
       .select("id, data, created_at, updated_at")
-      .eq("user_id", userId);
+      .eq("user_id", sessionUserId);
     if (error) return { ok: false, reason: "query-error", error };
     const rows = Array.isArray(data) ? data.map(r => r && r.data ? r.data : null).filter(Boolean) : [];
+    console.log("[supabaseStore][debug] load", table, "rows returned:", rows); // TEMP DEBUG
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, reason: "exception", error };
@@ -36,18 +53,21 @@ async function loadTable(table, userId = DEFAULT_USER) {
 async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
   if (!supabase) return NO_CLIENT;
   if (!Array.isArray(items)) return { ok: false, reason: "not-array" };
+  const sessionUserId = await getSessionUserId();
+  if (!sessionUserId) return NO_SESSION;
   const rows = [];
   for (const raw of items) {
     const norm = normalizer(raw);
     if (!norm || !norm.id) continue;
     rows.push({
       id: String(norm.id),
-      user_id: userId,
+      user_id: sessionUserId,
       data: norm,
       updated_at: new Date().toISOString(),
     });
   }
   if (rows.length === 0) return { ok: true, count: 0 };
+  console.log("[supabaseStore][debug] save", table, "rows being upserted:", rows); // TEMP DEBUG
   try {
     const { error } = await supabase.from(table).upsert(rows, { onConflict: "id" });
     if (error) return { ok: false, reason: "upsert-error", error };

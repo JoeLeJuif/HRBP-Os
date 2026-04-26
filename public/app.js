@@ -20581,12 +20581,28 @@ ${suffix}`;
   // src/services/supabaseStore.js
   var DEFAULT_USER = "demo";
   var NO_CLIENT = { ok: false, reason: "no-client" };
+  var NO_SESSION = { ok: false, reason: "no-session" };
+  async function getSessionUserId() {
+    if (!supabase || !supabase.auth || typeof supabase.auth.getSession !== "function") return null;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) return null;
+      const uid = data && data.session && data.session.user && data.session.user.id;
+      console.log("[supabaseStore][debug] session user id:", uid || null);
+      return uid || null;
+    } catch {
+      return null;
+    }
+  }
   async function loadTable(table, userId = DEFAULT_USER) {
     if (!supabase) return NO_CLIENT;
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId) return NO_SESSION;
     try {
-      const { data, error } = await supabase.from(table).select("id, data, created_at, updated_at").eq("user_id", userId);
+      const { data, error } = await supabase.from(table).select("id, data, created_at, updated_at").eq("user_id", sessionUserId);
       if (error) return { ok: false, reason: "query-error", error };
       const rows = Array.isArray(data) ? data.map((r) => r && r.data ? r.data : null).filter(Boolean) : [];
+      console.log("[supabaseStore][debug] load", table, "rows returned:", rows);
       return { ok: true, data: rows };
     } catch (error) {
       return { ok: false, reason: "exception", error };
@@ -20595,18 +20611,21 @@ ${suffix}`;
   async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
     if (!supabase) return NO_CLIENT;
     if (!Array.isArray(items)) return { ok: false, reason: "not-array" };
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId) return NO_SESSION;
     const rows = [];
     for (const raw of items) {
       const norm = normalizer(raw);
       if (!norm || !norm.id) continue;
       rows.push({
         id: String(norm.id),
-        user_id: userId,
+        user_id: sessionUserId,
         data: norm,
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       });
     }
     if (rows.length === 0) return { ok: true, count: 0 };
+    console.log("[supabaseStore][debug] save", table, "rows being upserted:", rows);
     try {
       const { error } = await supabase.from(table).upsert(rows, { onConflict: "id" });
       if (error) return { ok: false, reason: "upsert-error", error };
@@ -20651,6 +20670,12 @@ ${suffix}`;
   async function getSession() {
     if (!supabase) return NO_CLIENT2;
     const { data, error } = await supabase.auth.getSession();
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true, session: data?.session ?? null };
+  }
+  async function exchangeCodeForSession(href) {
+    if (!supabase) return NO_CLIENT2;
+    const { data, error } = await supabase.auth.exchangeCodeForSession(href);
     if (error) return { ok: false, reason: "auth-error", error };
     return { ok: true, session: data?.session ?? null };
   }
@@ -35424,7 +35449,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         if (entries.length > 0) setData((d) => ({ ...d, ...Object.fromEntries(entries) }));
         setLoaded(true);
         try {
+          console.log("[cases][supabase] loading cases");
           const res = await loadCases();
+          console.log("[cases][supabase] loadCases result:", res);
           if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
             const normalized = res.data.map(normalizeCase).filter(Boolean);
             if (normalized.length > 0) setData((d) => ({ ...d, cases: normalized }));
@@ -35451,20 +35478,41 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }, []);
     (0, import_react21.useEffect)(() => {
       let cancelled = false;
-      getSession().then((res) => {
+      (async () => {
+        if (typeof window !== "undefined") {
+          const href = window.location.href;
+          const search = window.location.search || "";
+          const hash = window.location.hash || "";
+          const hasAuthParams = /[?&]code=/.test(search) || /[?&]access_token=/.test(search) || /[#&]access_token=/.test(hash);
+          if (hasAuthParams) {
+            const ex = await exchangeCodeForSession(href);
+            if (cancelled) return;
+            if (ex.ok && ex.session) {
+              console.log("[auth] session restored \u2014 user id:", ex.session.user?.id);
+            } else if (!ex.ok && ex.reason !== "no-client") {
+              console.warn("[auth] exchangeCodeForSession failed:", ex.reason, ex.error);
+            }
+            try {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (err) {
+              console.warn("[auth] URL cleanup failed:", err);
+            }
+          }
+        }
+        const res = await getSession();
         if (cancelled) return;
         if (res.ok && res.session) {
           setSupaSession(res.session);
-          console.log("[auth] existing session for", res.session.user?.email);
+          console.log("[auth] existing session \u2014 user id:", res.session.user?.id);
         } else if (res.ok) {
           console.log("[auth] no session");
         } else if (res.reason !== "no-client") {
           console.warn("[auth] getSession failed:", res.reason, res.error);
         }
-      });
+      })();
       const unsubscribe = onAuthStateChange((event, session) => {
         setSupaSession(session ?? null);
-        if (session) console.log("[auth]", event, "\u2192 authenticated as", session.user?.email);
+        if (session) console.log("[auth]", event, "\u2192 logged in, user id:", session.user?.id);
         else console.log("[auth]", event, "\u2192 no session");
       });
       if (typeof window !== "undefined") {
@@ -35569,7 +35617,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setData((d) => ({ ...d, [key2]: toSave }));
       showToast();
       if (key2 === "cases") {
+        console.log("[cases][supabase] saving cases", toSave);
         saveCases(toSave).then((res) => {
+          console.log("[cases][supabase] saveCases result:", res);
           if (res && !res.ok && res.reason !== "no-client") {
             console.warn("[supabase] saveCases failed:", res.reason, res.error);
           }

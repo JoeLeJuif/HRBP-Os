@@ -15,7 +15,7 @@ import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings } from './services/supabaseStore.js';
-import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange } from './lib/auth.js';
+import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession } from './lib/auth.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
 import Mono          from './components/Mono.jsx';
@@ -212,7 +212,9 @@ export default function HRBPOS() {
       if (entries.length > 0) setData(d => ({ ...d, ...Object.fromEntries(entries) }));
       setLoaded(true);
       try {
+        console.log("[cases][supabase] loading cases");
         const res = await supaLoadCases();
+        console.log("[cases][supabase] loadCases result:", res);
         if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
           const normalized = res.data.map(normalizeCase).filter(Boolean);
           if (normalized.length > 0) setData(d => ({ ...d, cases: normalized }));
@@ -239,20 +241,46 @@ export default function HRBPOS() {
   // window.login(email)/window.logout() as console-only triggers until UI lands.
   useEffect(() => {
     let cancelled = false;
-    supaGetSession().then(res => {
+    (async () => {
+      // Magic-link callback: if URL carries Supabase auth params, exchange them
+      // for a session, log it, then strip the params from the address bar.
+      if (typeof window !== "undefined") {
+        const href = window.location.href;
+        const search = window.location.search || "";
+        const hash = window.location.hash || "";
+        const hasAuthParams =
+          /[?&]code=/.test(search) ||
+          /[?&]access_token=/.test(search) ||
+          /[#&]access_token=/.test(hash);
+        if (hasAuthParams) {
+          const ex = await supaExchangeCodeForSession(href);
+          if (cancelled) return;
+          if (ex.ok && ex.session) {
+            console.log("[auth] session restored — user id:", ex.session.user?.id);
+          } else if (!ex.ok && ex.reason !== "no-client") {
+            console.warn("[auth] exchangeCodeForSession failed:", ex.reason, ex.error);
+          }
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (err) {
+            console.warn("[auth] URL cleanup failed:", err);
+          }
+        }
+      }
+      const res = await supaGetSession();
       if (cancelled) return;
       if (res.ok && res.session) {
         setSupaSession(res.session);
-        console.log("[auth] existing session for", res.session.user?.email);
+        console.log("[auth] existing session — user id:", res.session.user?.id);
       } else if (res.ok) {
         console.log("[auth] no session");
       } else if (res.reason !== "no-client") {
         console.warn("[auth] getSession failed:", res.reason, res.error);
       }
-    });
+    })();
     const unsubscribe = supaOnAuthStateChange((event, session) => {
       setSupaSession(session ?? null);
-      if (session) console.log("[auth]", event, "→ authenticated as", session.user?.email);
+      if (session) console.log("[auth]", event, "→ logged in, user id:", session.user?.id);
       else console.log("[auth]", event, "→ no session");
     });
     if (typeof window !== "undefined") {
@@ -357,7 +385,9 @@ export default function HRBPOS() {
     setData(d => ({ ...d, [key]: toSave }));
     showToast();
     if (key === "cases") {
+      console.log("[cases][supabase] saving cases", toSave);
       supaSaveCases(toSave).then(res => {
+        console.log("[cases][supabase] saveCases result:", res);
         if (res && !res.ok && res.reason !== "no-client") {
           console.warn("[supabase] saveCases failed:", res.reason, res.error);
         }

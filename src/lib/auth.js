@@ -35,6 +35,13 @@ export async function getSession() {
   return { ok: true, session: data?.session ?? null };
 }
 
+export async function exchangeCodeForSession(href) {
+  if (!supabase) return NO_CLIENT;
+  const { data, error } = await supabase.auth.exchangeCodeForSession(href);
+  if (error) return { ok: false, reason: "auth-error", error };
+  return { ok: true, session: data?.session ?? null };
+}
+
 export function onAuthStateChange(callback) {
   if (!supabase) return () => {};
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
