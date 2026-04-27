@@ -42,6 +42,27 @@ export async function exchangeCodeForSession(href) {
   return { ok: true, session: data?.session ?? null };
 }
 
+// Backend allow-list check. Queries public.allowed_users via RLS — the row is
+// only readable when its email matches the JWT's email claim, so a returned
+// row both proves access AND that the request was authenticated. Returns:
+//   { ok:true, allowed:true }                  → email is on the list
+//   { ok:true, allowed:false }                 → authenticated but not allowed
+//   { ok:false, reason:"no-client" }           → Supabase not configured (caller should fall back)
+//   { ok:false, reason:"query-error", error }  → query failed (treat as denied)
+export async function isEmailAllowed(email) {
+  if (!supabase) return NO_CLIENT;
+  if (!email || typeof email !== "string") {
+    return { ok: true, allowed: false };
+  }
+  const { data, error } = await supabase
+    .from("allowed_users")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
+  if (error) return { ok: false, reason: "query-error", error };
+  return { ok: true, allowed: !!data };
+}
+
 export function onAuthStateChange(callback) {
   if (!supabase) return () => {};
   const { data } = supabase.auth.onAuthStateChange((event, session) => {

@@ -15,7 +15,7 @@ import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations } from './services/supabaseStore.js';
-import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession } from './lib/auth.js';
+import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
 import { hasSupabase } from './lib/supabase.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
@@ -90,13 +90,8 @@ const NAV_MORE = [
 ];
 
 // ── Auth — Supabase magic-link login ─────────────────────────────────────────
-// Allow-list: only these emails can access the app. Edit to grant access.
-const ALLOWED_EMAILS = [
-  "samuel.chartrand@intelcom.ca",
-  "samuelchartrand99@gmail.com",
-];
-const isEmailAllowed = (email) =>
-  !!email && ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
+// Allow-list lives in Supabase (public.allowed_users) and is enforced via RLS:
+// authenticated users can only read their own email row. See src/lib/auth.js.
 
 function AccessDeniedScreen({ email, onRetry }) {
   return (
@@ -297,21 +292,30 @@ export default function HRBPOS() {
       if (cancelled) return;
       if (res.ok && res.session) {
         const email = res.session.user?.email;
-        if (!isEmailAllowed(email)) {
+        const check = await supaIsEmailAllowed(email);
+        if (cancelled) return;
+        if (check.ok && check.allowed) {
+          setSupaSession(res.session);
+        } else {
+          if (!check.ok && check.reason !== "no-client") {
+            console.warn("[auth] allow-list check failed:", check.reason, check.error);
+          }
           setDenied({ email });
           await supaSignOut();
-        } else {
-          setSupaSession(res.session);
         }
       } else if (!res.ok && res.reason !== "no-client") {
         console.warn("[auth] getSession failed:", res.reason, res.error);
       }
       setSessionChecked(true);
     })();
-    const unsubscribe = supaOnAuthStateChange((_event, session) => {
+    const unsubscribe = supaOnAuthStateChange(async (_event, session) => {
       if (session) {
         const email = session.user?.email;
-        if (!isEmailAllowed(email)) {
+        const check = await supaIsEmailAllowed(email);
+        if (!(check.ok && check.allowed)) {
+          if (!check.ok && check.reason !== "no-client") {
+            console.warn("[auth] allow-list check failed:", check.reason, check.error);
+          }
           setDenied({ email });
           setSupaSession(null);
           supaSignOut();

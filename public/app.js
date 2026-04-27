@@ -20682,6 +20682,15 @@ ${suffix}`;
     if (error) return { ok: false, reason: "auth-error", error };
     return { ok: true, session: data?.session ?? null };
   }
+  async function isEmailAllowed(email) {
+    if (!supabase) return NO_CLIENT2;
+    if (!email || typeof email !== "string") {
+      return { ok: true, allowed: false };
+    }
+    const { data, error } = await supabase.from("allowed_users").select("id").eq("email", email.toLowerCase()).maybeSingle();
+    if (error) return { ok: false, reason: "query-error", error };
+    return { ok: true, allowed: !!data };
+  }
   function onAuthStateChange(callback) {
     if (!supabase) return () => {
     };
@@ -35316,11 +35325,6 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     // Déprioritisé — Copilot est maintenant l'entrée principale (situations détectées + templates intégrés).
     { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple }
   ];
-  var ALLOWED_EMAILS = [
-    "samuel.chartrand@intelcom.ca",
-    "samuelchartrand99@gmail.com"
-  ];
-  var isEmailAllowed = (email) => !!email && ALLOWED_EMAILS.map((e) => e.toLowerCase()).includes(email.toLowerCase());
   function AccessDeniedScreen({ email, onRetry }) {
     return /* @__PURE__ */ React.createElement("div", { style: {
       display: "flex",
@@ -35532,21 +35536,30 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         if (cancelled) return;
         if (res.ok && res.session) {
           const email = res.session.user?.email;
-          if (!isEmailAllowed(email)) {
+          const check = await isEmailAllowed(email);
+          if (cancelled) return;
+          if (check.ok && check.allowed) {
+            setSupaSession(res.session);
+          } else {
+            if (!check.ok && check.reason !== "no-client") {
+              console.warn("[auth] allow-list check failed:", check.reason, check.error);
+            }
             setDenied({ email });
             await signOut();
-          } else {
-            setSupaSession(res.session);
           }
         } else if (!res.ok && res.reason !== "no-client") {
           console.warn("[auth] getSession failed:", res.reason, res.error);
         }
         setSessionChecked(true);
       })();
-      const unsubscribe = onAuthStateChange((_event, session) => {
+      const unsubscribe = onAuthStateChange(async (_event, session) => {
         if (session) {
           const email = session.user?.email;
-          if (!isEmailAllowed(email)) {
+          const check = await isEmailAllowed(email);
+          if (!(check.ok && check.allowed)) {
+            if (!check.ok && check.reason !== "no-client") {
+              console.warn("[auth] allow-list check failed:", check.reason, check.error);
+            }
             setDenied({ email });
             setSupaSession(null);
             signOut();
