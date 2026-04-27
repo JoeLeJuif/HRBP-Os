@@ -52,10 +52,6 @@ async function loadTable(table, userId = DEFAULT_USER) {
     const rows = rawRows
       .map(r => r && r.data ? r.data : null)
       .filter(d => d && d.__deleted !== true);
-    if (table === "cases") {
-      const tombstones = rawRows.filter(r => r && r.data && r.data.__deleted === true).map(r => r.id);
-      console.log("[debug] loadCases:", { totalRows: rawRows.length, liveCount: rows.length, tombstoneIds: tombstones });
-    }
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, reason: "exception", error };
@@ -96,10 +92,10 @@ export function loadMeetings(userId)      { return loadTable("meetings", userId)
 export function loadBriefs(userId)        { return loadTable("briefs", userId); }
 
 export async function saveCases(cases, userId) {
-  if (!supabase) { console.log("[debug] saveCases: no client"); return NO_CLIENT; }
-  if (!Array.isArray(cases)) { console.log("[debug] saveCases: not-array"); return { ok: false, reason: "not-array" }; }
+  if (!supabase) return NO_CLIENT;
+  if (!Array.isArray(cases)) return { ok: false, reason: "not-array" };
   const sessionUserId = await getSessionUserId();
-  if (!sessionUserId) { console.log("[debug] saveCases: no session"); return NO_SESSION; }
+  if (!sessionUserId) return NO_SESSION;
 
   const now = new Date().toISOString();
   const rows = [];
@@ -111,24 +107,18 @@ export async function saveCases(cases, userId) {
     liveIds.add(idStr);
     rows.push({ id: idStr, user_id: sessionUserId, data: norm, updated_at: now });
   }
-  console.log("[debug] saveCases liveIds:", Array.from(liveIds));
 
   // Reconcile deletions: any DB row for this user not in the current list
   // gets marked as a tombstone (RLS has no DELETE policy, only UPDATE).
-  let tombstoneIds = [];
   try {
     const { data: existing, error: selErr } = await supabase
       .from("cases")
       .select("id, data")
       .eq("user_id", sessionUserId);
-    if (selErr) {
-      console.warn("[debug] saveCases select error:", selErr);
-    } else if (Array.isArray(existing)) {
-      console.log("[debug] saveCases existing DB ids:", existing.map(e => ({ id: e?.id, deleted: !!(e?.data && e.data.__deleted === true) })));
+    if (!selErr && Array.isArray(existing)) {
       for (const ex of existing) {
         if (!ex || !ex.id || liveIds.has(ex.id)) continue;
         if (ex.data && ex.data.__deleted === true) continue;
-        tombstoneIds.push(ex.id);
         rows.push({
           id: ex.id,
           user_id: sessionUserId,
@@ -137,22 +127,16 @@ export async function saveCases(cases, userId) {
         });
       }
     }
-  } catch (error) {
-    console.warn("[debug] saveCases select exception:", error);
+  } catch {
+    // best-effort reconciliation
   }
-  console.log("[debug] saveCases tombstones to upsert:", tombstoneIds);
 
-  if (rows.length === 0) { console.log("[debug] saveCases: no rows to upsert"); return { ok: true, count: 0 }; }
+  if (rows.length === 0) return { ok: true, count: 0 };
   try {
-    const { data: upsertData, error } = await supabase.from("cases").upsert(rows, { onConflict: "id" }).select("id");
-    if (error) {
-      console.warn("[debug] saveCases upsert error:", error);
-      return { ok: false, reason: "upsert-error", error };
-    }
-    console.log("[debug] saveCases upsert ok, returned ids:", Array.isArray(upsertData) ? upsertData.map(r => r.id) : upsertData, "rowCount:", rows.length);
+    const { error } = await supabase.from("cases").upsert(rows, { onConflict: "id" });
+    if (error) return { ok: false, reason: "upsert-error", error };
     return { ok: true, count: rows.length };
   } catch (error) {
-    console.warn("[debug] saveCases upsert exception:", error);
     return { ok: false, reason: "exception", error };
   }
 }

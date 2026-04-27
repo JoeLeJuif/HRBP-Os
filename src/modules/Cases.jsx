@@ -346,7 +346,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     if (onClearFocus) onClearFocus();
   }, [focusCaseId]); // eslint-disable-line
 
-  const cases = data.cases || [];
+  const cases = (data.cases || []).filter(c => !c.archived);
   const todayISO = new Date().toISOString().split("T")[0];
   const filtered = cases.filter(c => {
     const q = search.toLowerCase();
@@ -376,9 +376,14 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     setView("list"); setForm({...EMPTY_FORM}); setEditId(null);
   };
 
-  const deleteCase = (id) => {
-    const updated = cases.filter(c => c.id !== id);
-    console.log("[debug] deleteCase id:", id, "type:", typeof id, "before:", cases.length, "after:", updated.length);
+  const archiveCase = (id) => {
+    const now = new Date().toISOString();
+    const updated = (data.cases || []).map(c => c.id === id ? {
+      ...c,
+      archived: true,
+      archivedAt: now,
+      archivedReason: "user_archived",
+    } : c);
     onSave("cases", updated);
     setView("list");
   };
@@ -443,8 +448,8 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           }}
           title="Préparer une rencontre à partir de ce dossier"
           style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🎯 Préparer une rencontre</button>
-        <button onClick={() => { if(window.confirm("Supprimer ce dossier?")) deleteCase(c.id); }}
-          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>🗑 Supprimer</button>
+        <button onClick={() => { if(window.confirm("Archiver ce dossier ?\n\nIl sera retiré des listes actives, mais restera préservé dans l'historique.")) archiveCase(c.id); }}
+          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>📦 Archiver</button>
       </div>
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         <RiskBadge level={c.riskLevel}/>
