@@ -378,6 +378,35 @@ export default function HRBPOS() {
   const [restoreMsg, setRestoreMsg]       = useState("");
   const fileInputRef = useRef(null);
 
+  const [syncStatus, setSyncStatus] = useState(null); // null | loading | success | error
+  const [syncMsg, setSyncMsg]       = useState("");
+
+  const handleSyncAll = async () => {
+    setSyncStatus("loading");
+    setSyncMsg("");
+    try {
+      const [casesRes, meetingsRes, invRes] = await Promise.all([
+        supaSaveCases(data.cases || []),
+        supaSaveMeetings(data.meetings || []),
+        supaSaveInvestigations(data.investigations || []),
+      ]);
+      const fail = [casesRes, meetingsRes, invRes].find(r => r && !r.ok);
+      if (fail) {
+        setSyncStatus("error");
+        setSyncMsg(`Échec: ${fail.reason}`);
+        console.warn("[supabase] sync all failed:", fail);
+      } else {
+        setSyncStatus("success");
+        setSyncMsg(`${casesRes.count} cas, ${meetingsRes.count} meetings, ${invRes.count} enquêtes`);
+      }
+    } catch (err) {
+      setSyncStatus("error");
+      setSyncMsg("Exception — voir console");
+      console.warn("[supabase] sync all threw:", err);
+    }
+    setTimeout(() => setSyncStatus(null), 4000);
+  };
+
   const handleRestoreClick = () => fileInputRef.current?.click();
 
   const handleRestoreFile = async (e) => {
@@ -647,19 +676,43 @@ export default function HRBPOS() {
         </div>
 
         {supaSession && (
-          <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.border}`,
-            display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
-            <span style={{ fontSize:10, color:C.textD, overflow:"hidden",
-              textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
-              {supaSession.user?.email || "session"}
-            </span>
-            <button onClick={async () => { await supaSignOut(); }}
-              style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
-                padding:"4px 8px", fontSize:10, color:C.textM, cursor:"pointer",
-                fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
-              Logout
+          <>
+            <button onClick={handleSyncAll} disabled={syncStatus === "loading"}
+              style={{ width:"100%", marginTop:10, display:"flex", alignItems:"center", gap:8,
+                padding:"8px 12px", background:"none",
+                border:`1px solid ${C.border}`, borderRadius:8, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif", transition:"all .15s",
+                opacity: syncStatus === "loading" ? .6 : 1 }}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=C.purple+"66"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+              <span style={{ fontSize:13 }}>☁️</span>
+              <span style={{ fontSize:12, color:C.textM, fontWeight:500 }}>
+                {syncStatus === "loading" ? "Sync…" : "Sync all data to Supabase"}
+              </span>
             </button>
-          </div>
+            {syncStatus && syncStatus !== "loading" && (
+              <div style={{ margin:"6px 0 0", padding:"7px 10px", borderRadius:7, fontSize:11,
+                background: syncStatus === "success" ? C.em+"15" : C.red+"15",
+                border:`1px solid ${syncStatus === "success" ? C.em+"40" : C.red+"40"}`,
+                color: syncStatus === "success" ? C.em : C.red,
+                lineHeight:1.5 }}>
+                {syncStatus === "success" ? "✓ " : "⚠ "}{syncMsg}
+              </div>
+            )}
+            <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.border}`,
+              display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+              <span style={{ fontSize:10, color:C.textD, overflow:"hidden",
+                textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+                {supaSession.user?.email || "session"}
+              </span>
+              <button onClick={async () => { await supaSignOut(); }}
+                style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
+                  padding:"4px 8px", fontSize:10, color:C.textM, cursor:"pointer",
+                  fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
+                Logout
+              </button>
+            </div>
+          </>
         )}
       </div>
 

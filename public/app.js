@@ -35624,6 +35624,33 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     const [restoreStatus, setRestoreStatus] = (0, import_react21.useState)(null);
     const [restoreMsg, setRestoreMsg] = (0, import_react21.useState)("");
     const fileInputRef = (0, import_react21.useRef)(null);
+    const [syncStatus, setSyncStatus] = (0, import_react21.useState)(null);
+    const [syncMsg, setSyncMsg] = (0, import_react21.useState)("");
+    const handleSyncAll = async () => {
+      setSyncStatus("loading");
+      setSyncMsg("");
+      try {
+        const [casesRes, meetingsRes, invRes] = await Promise.all([
+          saveCases(data.cases || []),
+          saveMeetings(data.meetings || []),
+          saveInvestigations(data.investigations || [])
+        ]);
+        const fail = [casesRes, meetingsRes, invRes].find((r) => r && !r.ok);
+        if (fail) {
+          setSyncStatus("error");
+          setSyncMsg(`\xC9chec: ${fail.reason}`);
+          console.warn("[supabase] sync all failed:", fail);
+        } else {
+          setSyncStatus("success");
+          setSyncMsg(`${casesRes.count} cas, ${meetingsRes.count} meetings, ${invRes.count} enqu\xEAtes`);
+        }
+      } catch (err) {
+        setSyncStatus("error");
+        setSyncMsg("Exception \u2014 voir console");
+        console.warn("[supabase] sync all threw:", err);
+      }
+      setTimeout(() => setSyncStatus(null), 4e3);
+    };
     const handleRestoreClick = () => fileInputRef.current?.click();
     const handleRestoreFile = async (e) => {
       const file = e.target.files?.[0];
@@ -35944,7 +35971,41 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       ["D\xE9parts", (data.exits || []).length, C.textM],
       ["Enqu\xEAtes", (data.investigations || []).length, INV_RED],
       ["Briefs", (data.briefs || []).length, C.amber]
-    ].map(([l, v, col], i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, l), /* @__PURE__ */ React.createElement(Mono, { color: col, size: 8 }, v)))), supaSession && /* @__PURE__ */ React.createElement("div", { style: {
+    ].map(([l, v, col], i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, l), /* @__PURE__ */ React.createElement(Mono, { color: col, size: 8 }, v)))), supaSession && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: handleSyncAll,
+        disabled: syncStatus === "loading",
+        style: {
+          width: "100%",
+          marginTop: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 12px",
+          background: "none",
+          border: `1px solid ${C.border}`,
+          borderRadius: 8,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          transition: "all .15s",
+          opacity: syncStatus === "loading" ? 0.6 : 1
+        },
+        onMouseEnter: (e) => e.currentTarget.style.borderColor = C.purple + "66",
+        onMouseLeave: (e) => e.currentTarget.style.borderColor = C.border
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u2601\uFE0F"),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, fontWeight: 500 } }, syncStatus === "loading" ? "Sync\u2026" : "Sync all data to Supabase")
+    ), syncStatus && syncStatus !== "loading" && /* @__PURE__ */ React.createElement("div", { style: {
+      margin: "6px 0 0",
+      padding: "7px 10px",
+      borderRadius: 7,
+      fontSize: 11,
+      background: syncStatus === "success" ? C.em + "15" : C.red + "15",
+      border: `1px solid ${syncStatus === "success" ? C.em + "40" : C.red + "40"}`,
+      color: syncStatus === "success" ? C.em : C.red,
+      lineHeight: 1.5
+    } }, syncStatus === "success" ? "\u2713 " : "\u26A0 ", syncMsg), /* @__PURE__ */ React.createElement("div", { style: {
       marginTop: 10,
       paddingTop: 10,
       borderTop: `1px solid ${C.border}`,
@@ -35978,7 +36039,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       "Logout"
-    ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: {
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surf,
       borderBottom: `1px solid ${C.border}`,
       padding: "12px 24px",
