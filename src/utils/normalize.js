@@ -6,7 +6,7 @@ import { toArray } from "./meetingModel.js";
 // Normalize risk level strings from AI (unaccented → accented display key)
 export function normalizeRisk(r) {
   if (!r) return "Modéré";
-  const map = { "Critique":"Critique","Eleve":"Élevé","Elevé":"Élevé","Élevé":"Élevé","Eleve":"Élevé",
+  const map = { "Critique":"Critique","Eleve":"Élevé","Elevé":"Élevé","Élevé":"Élevé",
     "Modere":"Modéré","Modéré":"Modéré","Moderé":"Modéré","Faible":"Faible","faible":"Faible" };
   return map[r] || r;
 }
