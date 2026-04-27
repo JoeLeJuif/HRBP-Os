@@ -368,10 +368,12 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const today = new Date().toISOString().split("T")[0];
     const isClosing = form.status === "resolved" || form.status === "closed";
     const closedDate = isClosing ? (form.closedDate || today) : "";
-    const existingCase = editId ? cases.find(c => c.id === editId) : null;
+    const allCases = data.cases || [];
+    const existingCase = editId ? allCases.find(c => c.id === editId) : null;
+    if (editId && existingCase?.archived) { setView("list"); setForm({...EMPTY_FORM}); setEditId(null); return; }
     const newCase = { ...form, closedDate, id: editId || Date.now().toString(), updatedAt: today,
       dateCreated: existingCase?.dateCreated || today };
-    const updated = editId ? cases.map(c => c.id===editId ? newCase : c) : [...cases, newCase];
+    const updated = editId ? allCases.map(c => c.id===editId ? newCase : c) : [...allCases, newCase];
     onSave("cases", updated);
     setView("list"); setForm({...EMPTY_FORM}); setEditId(null);
   };
@@ -388,7 +390,10 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     setView("list");
   };
 
-  const openEdit = (c) => { setForm({...EMPTY_FORM, ...c}); setEditId(c.id); setView("form"); };
+  const openEdit = (c) => {
+    if (c?.archived) return;
+    setForm({...EMPTY_FORM, ...c}); setEditId(c.id); setView("form");
+  };
 
   if (view === "form") return (
     <CaseForm
@@ -406,6 +411,8 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const typeObj = CASE_TYPES.find(t=>t.id===c.type);
     const statusObj = STATUSES.find(s=>s.id===c.status);
     const r = RISK[c.riskLevel]||RISK["Modéré"];
+    const isArchived = c.archived === true;
+    const archivedDate = c.archivedAt ? fmtDate(c.archivedAt) : null;
     return <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
         <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
@@ -418,7 +425,9 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           }}
           style={{ ...css.btn(copied ? C.em : C.textM, true), padding:"6px 14px", fontSize:12 }}>
           {copied ? "✓ Copié !" : "📋 Copier"}</button>
-        <button onClick={() => openEdit(c)} style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12 }}>✏ Modifier</button>
+        <button onClick={() => openEdit(c)} disabled={isArchived}
+          title={isArchived ? "Dossier archivé — édition désactivée" : "Modifier ce dossier"}
+          style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12, opacity:isArchived?.4:1, cursor:isArchived?"not-allowed":"pointer" }}>✏ Modifier</button>
         <button onClick={() => {
             sessionStorage.setItem("hrbpos:pendingDecision", JSON.stringify({
               linkedCaseId: c.id, caseTitle: c.title || "",
@@ -448,9 +457,21 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           }}
           title="Préparer une rencontre à partir de ce dossier"
           style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🎯 Préparer une rencontre</button>
-        <button onClick={() => { if(window.confirm("Archiver ce dossier ?\n\nIl sera retiré des listes actives, mais restera préservé dans l'historique.")) archiveCase(c.id); }}
-          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>📦 Archiver</button>
+        {!isArchived && <button onClick={() => { if(window.confirm("Archiver ce dossier ?\n\nIl sera retiré des listes actives, mais restera préservé dans l'historique.")) archiveCase(c.id); }}
+          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>📦 Archiver</button>}
       </div>
+      {isArchived && (
+        <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", marginBottom:16,
+          background:C.textD+"14", border:`1px solid ${C.textD}44`, borderLeft:`3px solid ${C.textD}`, borderRadius:8 }}>
+          <span style={{ fontSize:14 }}>📦</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:12, fontWeight:600, color:C.text }}>Dossier archivé — lecture seule</div>
+            <Mono color={C.textD} size={9}>
+              {archivedDate ? `Archivé le ${archivedDate}` : "Conservé pour l'historique et l'audit"} · L'édition est désactivée
+            </Mono>
+          </div>
+        </div>
+      )}
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         <RiskBadge level={c.riskLevel}/>
         {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
