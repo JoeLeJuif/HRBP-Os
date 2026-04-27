@@ -337,6 +337,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterProvince, setFilterProvince] = useState("");
+  const [filterArchived, setFilterArchived] = useState("active"); // active | archived | all
 
   // ── Inter-module focus: auto-open a specific case on mount ───────────────────
   useEffect(() => {
@@ -346,7 +347,11 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     if (onClearFocus) onClearFocus();
   }, [focusCaseId]); // eslint-disable-line
 
-  const cases = (data.cases || []).filter(c => !c.archived);
+  const cases = (data.cases || []).filter(c => {
+    if (filterArchived === "archived") return c.archived === true;
+    if (filterArchived === "all") return true;
+    return !c.archived;
+  });
   const todayISO = new Date().toISOString().split("T")[0];
   const filtered = cases.filter(c => {
     const q = search.toLowerCase();
@@ -613,7 +618,9 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
         <div>
           <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Case Log</div>
-          <div style={{ fontSize:12, color:C.textM }}>{cases.length} dossier(s) · {cases.filter(c=>c.status==="active"||c.status==="open").length} actifs</div>
+          <div style={{ fontSize:12, color:C.textM }}>
+            {cases.length} dossier(s){filterArchived !== "archived" ? ` · ${cases.filter(c=>c.status==="active"||c.status==="open").length} actifs` : ""}
+          </div>
         </div>
         <button onClick={() => { setForm({...EMPTY_FORM}); setEditId(null); setView("form"); }} style={css.btn(C.em)}>
           + Nouveau dossier
@@ -642,6 +649,19 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           <option value="">Province: Toutes</option>
           {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
+        <div style={{ display:"flex", gap:4 }}>
+          {[{id:"active",label:"Actifs"},{id:"archived",label:"Archivés"},{id:"all",label:"Tous"}].map(opt => (
+            <button key={opt.id} onClick={() => setFilterArchived(opt.id)}
+              title={opt.id==="archived" ? "Afficher uniquement les dossiers archivés" : opt.id==="all" ? "Afficher tous les dossiers (actifs + archivés)" : "Afficher uniquement les dossiers actifs"}
+              style={{ background:filterArchived===opt.id?C.textD+"22":"none",
+                color:filterArchived===opt.id?C.text:C.textM,
+                border:`1px solid ${filterArchived===opt.id?C.textD+"55":C.border}`,
+                borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif" }}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Cases list */}
