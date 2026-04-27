@@ -24,7 +24,7 @@ export default function ModuleRadar({ data, onSave }) {
   const savedRadars = data.radars || [];
 
   const buildContext = () => {
-    const cases    = (data.cases||[]).filter(c=>c.status==="active"||c.status==="open");
+    const cases    = (data.cases||[]).filter(c=>!c.archived&&(c.status==="active"||c.status==="open"));
     const meetings = (data.meetings||[]).slice().reverse().slice(0,15);
     const signals  = (data.signals||[]).slice().reverse().slice(0,10);
     // Include previous radar pattern counts for trend comparison
@@ -165,7 +165,7 @@ ${signals.map(s=>`- ${s.analysis?.category} ${s.analysis?.title} (${s.analysis?.
       {!displayRadar&&!loading&&(
         <div style={{textAlign:"center",padding:"50px 20px"}}>
           <div style={{fontSize:13,color:C.textM,marginBottom:16}}>
-            Génère ton radar hebdomadaire · {(data.cases||[]).filter(c=>c.status==="active"||c.status==="open").length} cas · {(data.meetings||[]).length} meetings · {(data.signals||[]).length} signaux
+            Génère ton radar hebdomadaire · {(data.cases||[]).filter(c=>!c.archived&&(c.status==="active"||c.status==="open")).length} cas · {(data.meetings||[]).length} meetings · {(data.signals||[]).length} signaux
           </div>
           <button onClick={generate} style={{...css.btn(C.em),padding:"10px 24px",fontSize:13}}>🔭 Générer le Radar</button>
         </div>

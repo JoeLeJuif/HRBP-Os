@@ -266,6 +266,7 @@ function buildLeaderIndex(data) {
   });
 
   (data.cases||[]).forEach(c => {
+    if (c.archived) return;
     // Scope filter: only "leader"-scope cases feed the Leader fiche / 360 / Timeline.
     // Retrocompat: cases saved before the scope field existed have no `scope` →
     // treated as "leader" (safe default — all pre-existing cases were strategic director dossiers).
