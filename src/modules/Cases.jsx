@@ -377,7 +377,9 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
   };
 
   const deleteCase = (id) => {
-    onSave("cases", cases.filter(c => c.id !== id));
+    const updated = cases.filter(c => c.id !== id);
+    console.log("[debug] deleteCase id:", id, "type:", typeof id, "before:", cases.length, "after:", updated.length);
+    onSave("cases", updated);
     setView("list");
   };
 
