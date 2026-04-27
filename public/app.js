@@ -35316,6 +35316,38 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     // Déprioritisé — Copilot est maintenant l'entrée principale (situations détectées + templates intégrés).
     { id: "autoprompt", icon: "\u{1F9E9}", label: "Prompt AI", color: C.purple }
   ];
+  var ALLOWED_EMAILS = [
+    "samuel.chartrand@intelcom.ca",
+    "samuelchartrand99@gmail.com"
+  ];
+  var isEmailAllowed = (email) => !!email && ALLOWED_EMAILS.map((e) => e.toLowerCase()).includes(email.toLowerCase());
+  function AccessDeniedScreen({ email, onRetry }) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100vh",
+      background: C.bg,
+      fontFamily: "'DM Sans',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { width: 340, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      width: 44,
+      height: 44,
+      background: C.red,
+      borderRadius: 10,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      marginBottom: 12
+    } }, "\u26D4"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 6 } }, "Access denied"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 20, lineHeight: 1.5 } }, email ? /* @__PURE__ */ React.createElement(React.Fragment, null, "L'adresse ", /* @__PURE__ */ React.createElement("b", null, email), " n'est pas autoris\xE9e.") : "Cette adresse n'est pas autoris\xE9e."), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onRetry,
+        style: { ...css.btn(C.em), padding: "10px 18px", fontSize: 13 }
+      },
+      "Essayer une autre adresse"
+    )));
+  }
   function LoginScreen() {
     const [email, setEmail] = (0, import_react21.useState)("");
     const [status, setStatus] = (0, import_react21.useState)("idle");
@@ -35398,6 +35430,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   function HRBPOS() {
     const [supaSession, setSupaSession] = (0, import_react21.useState)(null);
     const [sessionChecked, setSessionChecked] = (0, import_react21.useState)(false);
+    const [denied, setDenied] = (0, import_react21.useState)(null);
     const [module, setModule] = (0, import_react21.useState)("home");
     const [showMore, setShowMore] = (0, import_react21.useState)(false);
     const [data, setData] = (0, import_react21.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
@@ -35498,13 +35531,28 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         const res = await getSession();
         if (cancelled) return;
         if (res.ok && res.session) {
-          setSupaSession(res.session);
+          const email = res.session.user?.email;
+          if (!isEmailAllowed(email)) {
+            setDenied({ email });
+            await signOut();
+          } else {
+            setSupaSession(res.session);
+          }
         } else if (!res.ok && res.reason !== "no-client") {
           console.warn("[auth] getSession failed:", res.reason, res.error);
         }
         setSessionChecked(true);
       })();
       const unsubscribe = onAuthStateChange((_event, session) => {
+        if (session) {
+          const email = session.user?.email;
+          if (!isEmailAllowed(email)) {
+            setDenied({ email });
+            setSupaSession(null);
+            signOut();
+            return;
+          }
+        }
         setSupaSession(session ?? null);
       });
       if (typeof window !== "undefined") {
@@ -35687,6 +35735,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }, [data]);
     const allNav = [...NAV_MAIN, ...NAV_MORE];
     const activeNav = allNav.find((n) => n.id === module);
+    if (hasSupabase && denied) return /* @__PURE__ */ React.createElement(AccessDeniedScreen, { email: denied.email, onRetry: () => setDenied(null) });
     if (hasSupabase && !sessionChecked) {
       return /* @__PURE__ */ React.createElement("div", { style: {
         display: "flex",
