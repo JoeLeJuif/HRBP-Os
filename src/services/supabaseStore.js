@@ -48,7 +48,11 @@ async function loadTable(table, userId = DEFAULT_USER) {
       .select("id, data, created_at, updated_at")
       .eq("user_id", sessionUserId);
     if (error) return { ok: false, reason: "query-error", error };
-    const rows = Array.isArray(data) ? data.map(r => r && r.data ? r.data : null).filter(Boolean) : [];
+    const rows = Array.isArray(data)
+      ? data
+          .map(r => r && r.data ? r.data : null)
+          .filter(d => d && d.__deleted !== true)
+      : [];
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, reason: "exception", error };
@@ -88,8 +92,55 @@ export function loadInvestigations(userId){ return loadTable("investigations", u
 export function loadMeetings(userId)      { return loadTable("meetings", userId); }
 export function loadBriefs(userId)        { return loadTable("briefs", userId); }
 
-export function saveCases(cases, userId) {
-  return saveTable("cases", cases, normalizeCase, userId);
+export async function saveCases(cases, userId) {
+  if (!supabase) return NO_CLIENT;
+  if (!Array.isArray(cases)) return { ok: false, reason: "not-array" };
+  const sessionUserId = await getSessionUserId();
+  if (!sessionUserId) return NO_SESSION;
+
+  const now = new Date().toISOString();
+  const rows = [];
+  const liveIds = new Set();
+  for (const raw of cases) {
+    const norm = normalizeCase(raw);
+    if (!norm || !norm.id) continue;
+    const idStr = String(norm.id);
+    liveIds.add(idStr);
+    rows.push({ id: idStr, user_id: sessionUserId, data: norm, updated_at: now });
+  }
+
+  // Reconcile deletions: any DB row for this user not in the current list
+  // gets marked as a tombstone (RLS has no DELETE policy, only UPDATE).
+  try {
+    const { data: existing, error: selErr } = await supabase
+      .from("cases")
+      .select("id, data")
+      .eq("user_id", sessionUserId);
+    if (selErr) return { ok: false, reason: "select-error", error: selErr };
+    if (Array.isArray(existing)) {
+      for (const ex of existing) {
+        if (!ex || !ex.id || liveIds.has(ex.id)) continue;
+        if (ex.data && ex.data.__deleted === true) continue;
+        rows.push({
+          id: ex.id,
+          user_id: sessionUserId,
+          data: { id: ex.id, __deleted: true, deleted_at: now },
+          updated_at: now,
+        });
+      }
+    }
+  } catch (error) {
+    return { ok: false, reason: "exception", error };
+  }
+
+  if (rows.length === 0) return { ok: true, count: 0 };
+  try {
+    const { error } = await supabase.from("cases").upsert(rows, { onConflict: "id" });
+    if (error) return { ok: false, reason: "upsert-error", error };
+    return { ok: true, count: rows.length };
+  } catch (error) {
+    return { ok: false, reason: "exception", error };
+  }
 }
 export function saveInvestigations(investigations, userId) {
   return saveTable("investigations", investigations, normalizeInvestigation, userId);

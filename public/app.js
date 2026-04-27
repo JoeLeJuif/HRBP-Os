@@ -20606,7 +20606,7 @@ ${suffix}`;
     try {
       const { data, error } = await supabase.from(table).select("id, data, created_at, updated_at").eq("user_id", sessionUserId);
       if (error) return { ok: false, reason: "query-error", error };
-      const rows = Array.isArray(data) ? data.map((r) => r && r.data ? r.data : null).filter(Boolean) : [];
+      const rows = Array.isArray(data) ? data.map((r) => r && r.data ? r.data : null).filter((d) => d && d.__deleted !== true) : [];
       return { ok: true, data: rows };
     } catch (error) {
       return { ok: false, reason: "exception", error };
@@ -20649,8 +20649,47 @@ ${suffix}`;
   function loadBriefs(userId) {
     return loadTable("briefs", userId);
   }
-  function saveCases(cases, userId) {
-    return saveTable("cases", cases, normalizeCase, userId);
+  async function saveCases(cases, userId) {
+    if (!supabase) return NO_CLIENT;
+    if (!Array.isArray(cases)) return { ok: false, reason: "not-array" };
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId) return NO_SESSION;
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const rows = [];
+    const liveIds = /* @__PURE__ */ new Set();
+    for (const raw of cases) {
+      const norm = normalizeCase(raw);
+      if (!norm || !norm.id) continue;
+      const idStr = String(norm.id);
+      liveIds.add(idStr);
+      rows.push({ id: idStr, user_id: sessionUserId, data: norm, updated_at: now });
+    }
+    try {
+      const { data: existing, error: selErr } = await supabase.from("cases").select("id, data").eq("user_id", sessionUserId);
+      if (selErr) return { ok: false, reason: "select-error", error: selErr };
+      if (Array.isArray(existing)) {
+        for (const ex of existing) {
+          if (!ex || !ex.id || liveIds.has(ex.id)) continue;
+          if (ex.data && ex.data.__deleted === true) continue;
+          rows.push({
+            id: ex.id,
+            user_id: sessionUserId,
+            data: { id: ex.id, __deleted: true, deleted_at: now },
+            updated_at: now
+          });
+        }
+      }
+    } catch (error) {
+      return { ok: false, reason: "exception", error };
+    }
+    if (rows.length === 0) return { ok: true, count: 0 };
+    try {
+      const { error } = await supabase.from("cases").upsert(rows, { onConflict: "id" });
+      if (error) return { ok: false, reason: "upsert-error", error };
+      return { ok: true, count: rows.length };
+    } catch (error) {
+      return { ok: false, reason: "exception", error };
+    }
   }
   function saveInvestigations(investigations, userId) {
     return saveTable("investigations", investigations, normalizeInvestigation, userId);
