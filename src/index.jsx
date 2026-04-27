@@ -648,7 +648,7 @@ export default function HRBPOS() {
         {/* Footer stats */}
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginTop:8 }}>
           {[
-            ["Cas actifs", (data.cases||[]).filter(c=>c.status==="active"||c.status==="open").length, C.em],
+            ["Cas actifs", (data.cases||[]).filter(c=>!c.archived&&(c.status==="active"||c.status==="open")).length, C.em],
             ["Meetings",   (data.meetings||[]).length,       C.blue],
             ["Signaux",    (data.signals||[]).length,        C.purple],
             ["Stratégies", (data.decisions||[]).length,      C.red],
@@ -689,7 +689,7 @@ export default function HRBPOS() {
           <span style={{ fontSize:16 }}>{activeNav?.icon}</span>
           <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav?.label}</span>
           <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
-            {(data.cases||[]).filter(c=>(c.riskLevel==="Critique"||c.riskLevel==="Élevé")&&(c.status==="active"||c.status==="open")).slice(0,3).map((c,i) => (
+            {(data.cases||[]).filter(c=>!c.archived&&(c.riskLevel==="Critique"||c.riskLevel==="Élevé")&&(c.status==="active"||c.status==="open")).slice(0,3).map((c,i) => (
               <button key={i} onClick={()=>setModule("cases")}
                 style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:5,
                   padding:"3px 10px", fontSize:10, color:C.red, cursor:"pointer",
