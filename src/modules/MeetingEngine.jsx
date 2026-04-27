@@ -474,7 +474,8 @@ Questions posees: ${questions}`;
     setPrepLoading(true);
     const histCtx = buildHistCtx();
     const openCases = (data.cases || []).filter(c =>
-      c.status !== "closed" && c.status !== "resolved"
+      !c.archived
+      && c.status !== "closed" && c.status !== "resolved"
       && c.director && normKey(c.director) === normKey(ctx.managerName)
     );
     const openCasesCtx = openCases.map(c =>

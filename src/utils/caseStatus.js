@@ -9,6 +9,7 @@ export const INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived",
 
 export function isCaseInactive(c) {
   if (!c) return false;
+  if (c.archived === true) return true;
   const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
   return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
 }

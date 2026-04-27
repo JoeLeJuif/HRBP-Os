@@ -274,7 +274,7 @@ export function detectSituations(data) {
   const situations = [];
   // Filtre cas par statut + priorité (statuts réels: open/active/pending/resolved/closed/escalated)
   // Exclus: resolved, closed. Priorité: escalated > active/open > pending (conditionnel)
-  const _allCases = data.cases || [];
+  const _allCases = (data.cases || []).filter(c => !c.archived);
   const _escalated = _allCases.filter(c => c.status === "escalated");
   const _active    = _allCases.filter(c => c.status === "active" || c.status === "open");
   const _pending   = _allCases.filter(c => {

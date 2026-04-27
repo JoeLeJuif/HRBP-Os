@@ -31,7 +31,7 @@ export default function ModuleCopilot({ data }) {
 
   // Build rich context from all OS data
   const buildContext = () => {
-    const cases      = data.cases      || [];
+    const cases      = (data.cases || []).filter(c => !c.archived);
     const meetings   = data.meetings   || [];
     const signals    = data.signals    || [];
     const decisions  = data.decisions  || [];
@@ -233,7 +233,7 @@ ${playbooksCtx}`;
   };
 
   // Counts for context summary
-  const activeCasesCount  = (data.cases||[]).filter(c => c.status==="active"||c.status==="open").length;
+  const activeCasesCount  = (data.cases||[]).filter(c => !c.archived && (c.status==="active"||c.status==="open")).length;
   const meetingsCount     = (data.meetings||[]).length;
   const signalsCount      = (data.signals||[]).length;
   const total             = activeCasesCount + meetingsCount + signalsCount;
