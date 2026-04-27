@@ -20579,6 +20579,12 @@ ${suffix}`;
   var hasSupabase = Boolean(supabase);
 
   // src/services/supabaseStore.js
+  function normalizeBrief(b) {
+    if (!b || typeof b !== "object") return null;
+    const id = b.id != null ? String(b.id) : null;
+    if (!id) return null;
+    return { ...b, id };
+  }
   var DEFAULT_USER = "demo";
   var NO_CLIENT = { ok: false, reason: "no-client" };
   var NO_SESSION = { ok: false, reason: "no-session" };
@@ -20640,6 +20646,9 @@ ${suffix}`;
   function loadMeetings(userId) {
     return loadTable("meetings", userId);
   }
+  function loadBriefs(userId) {
+    return loadTable("briefs", userId);
+  }
   function saveCases(cases, userId) {
     return saveTable("cases", cases, normalizeCase, userId);
   }
@@ -20648,6 +20657,9 @@ ${suffix}`;
   }
   function saveMeetings(meetings, userId) {
     return saveTable("meetings", meetings, normalizeMeetingOutput, userId);
+  }
+  function saveBriefs(briefs, userId) {
+    return saveTable("briefs", briefs, normalizeBrief, userId);
   }
 
   // src/lib/auth.js
@@ -35506,6 +35518,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         } catch (err) {
           console.warn("[supabase] loadInvestigations threw:", err);
         }
+        try {
+          const res = await loadBriefs();
+          if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+            setData((d) => ({ ...d, briefs: res.data }));
+          } else if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] loadBriefs failed:", res.reason, res.error);
+          }
+        } catch (err) {
+          console.warn("[supabase] loadBriefs threw:", err);
+        }
       }).catch(() => {
         clearTimeout(timeout);
         setLoaded(true);
@@ -35630,19 +35652,20 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setSyncStatus("loading");
       setSyncMsg("");
       try {
-        const [casesRes, meetingsRes, invRes] = await Promise.all([
+        const [casesRes, meetingsRes, invRes, briefsRes] = await Promise.all([
           saveCases(data.cases || []),
           saveMeetings(data.meetings || []),
-          saveInvestigations(data.investigations || [])
+          saveInvestigations(data.investigations || []),
+          saveBriefs(data.briefs || [])
         ]);
-        const fail = [casesRes, meetingsRes, invRes].find((r) => r && !r.ok);
+        const fail = [casesRes, meetingsRes, invRes, briefsRes].find((r) => r && !r.ok);
         if (fail) {
           setSyncStatus("error");
           setSyncMsg(`\xC9chec: ${fail.reason}`);
           console.warn("[supabase] sync all failed:", fail);
         } else {
           setSyncStatus("success");
-          setSyncMsg(`${casesRes.count} cas, ${meetingsRes.count} meetings, ${invRes.count} enqu\xEAtes`);
+          setSyncMsg(`${casesRes.count} cas, ${meetingsRes.count} meetings, ${invRes.count} enqu\xEAtes, ${briefsRes.count} briefs`);
         }
       } catch (err) {
         setSyncStatus("error");
@@ -35717,6 +35740,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           }
         }).catch((err) => {
           console.warn("[supabase] saveInvestigations threw:", err);
+        });
+      } else if (key2 === "briefs") {
+        saveBriefs(toSave).then((res) => {
+          if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] saveBriefs failed:", res.reason, res.error);
+          }
+        }).catch((err) => {
+          console.warn("[supabase] saveBriefs threw:", err);
         });
       }
     }, []);

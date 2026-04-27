@@ -14,7 +14,7 @@ import { toISO, fmtDate, getProvince } from './utils/format.js';
 import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
-import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations } from './services/supabaseStore.js';
+import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations, loadBriefs as supaLoadBriefs, saveBriefs as supaSaveBriefs } from './services/supabaseStore.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
 import { hasSupabase } from './lib/supabase.js';
 
@@ -257,6 +257,16 @@ export default function HRBPOS() {
       } catch (err) {
         console.warn("[supabase] loadInvestigations threw:", err);
       }
+      try {
+        const res = await supaLoadBriefs();
+        if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          setData(d => ({ ...d, briefs: res.data }));
+        } else if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] loadBriefs failed:", res.reason, res.error);
+        }
+      } catch (err) {
+        console.warn("[supabase] loadBriefs threw:", err);
+      }
     }).catch(() => { clearTimeout(timeout); setLoaded(true); });
   }, []);
 
@@ -385,19 +395,20 @@ export default function HRBPOS() {
     setSyncStatus("loading");
     setSyncMsg("");
     try {
-      const [casesRes, meetingsRes, invRes] = await Promise.all([
+      const [casesRes, meetingsRes, invRes, briefsRes] = await Promise.all([
         supaSaveCases(data.cases || []),
         supaSaveMeetings(data.meetings || []),
         supaSaveInvestigations(data.investigations || []),
+        supaSaveBriefs(data.briefs || []),
       ]);
-      const fail = [casesRes, meetingsRes, invRes].find(r => r && !r.ok);
+      const fail = [casesRes, meetingsRes, invRes, briefsRes].find(r => r && !r.ok);
       if (fail) {
         setSyncStatus("error");
         setSyncMsg(`Échec: ${fail.reason}`);
         console.warn("[supabase] sync all failed:", fail);
       } else {
         setSyncStatus("success");
-        setSyncMsg(`${casesRes.count} cas, ${meetingsRes.count} meetings, ${invRes.count} enquêtes`);
+        setSyncMsg(`${casesRes.count} cas, ${meetingsRes.count} meetings, ${invRes.count} enquêtes, ${briefsRes.count} briefs`);
       }
     } catch (err) {
       setSyncStatus("error");
@@ -475,6 +486,14 @@ export default function HRBPOS() {
         }
       }).catch(err => {
         console.warn("[supabase] saveInvestigations threw:", err);
+      });
+    } else if (key === "briefs") {
+      supaSaveBriefs(toSave).then(res => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveBriefs failed:", res.reason, res.error);
+        }
+      }).catch(err => {
+        console.warn("[supabase] saveBriefs threw:", err);
       });
     }
   }, []);

@@ -6,12 +6,19 @@
 //   load*() → { ok: true, data: [...] } | { ok: false, reason: string, error? }
 //   save*() → { ok: true, count: number } | { ok: false, reason: string, error? }
 //
-// Tables: cases, investigations, meetings (see supabase/schema.sql)
+// Tables: cases, investigations, meetings, briefs (see supabase/schema.sql)
 // Rows:   { id text, user_id text, data jsonb, created_at, updated_at }
 
 import { supabase } from "../lib/supabase.js";
 import { normalizeCase, normalizeInvestigation } from "../utils/normalize.js";
 import { normalizeMeetingOutput } from "../utils/meetingModel.js";
+
+function normalizeBrief(b) {
+  if (!b || typeof b !== "object") return null;
+  const id = b.id != null ? String(b.id) : null;
+  if (!id) return null;
+  return { ...b, id };
+}
 
 const DEFAULT_USER = "demo";
 const NO_CLIENT = { ok: false, reason: "no-client" };
@@ -79,6 +86,7 @@ async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
 export function loadCases(userId)         { return loadTable("cases", userId); }
 export function loadInvestigations(userId){ return loadTable("investigations", userId); }
 export function loadMeetings(userId)      { return loadTable("meetings", userId); }
+export function loadBriefs(userId)        { return loadTable("briefs", userId); }
 
 export function saveCases(cases, userId) {
   return saveTable("cases", cases, normalizeCase, userId);
@@ -88,4 +96,7 @@ export function saveInvestigations(investigations, userId) {
 }
 export function saveMeetings(meetings, userId) {
   return saveTable("meetings", meetings, normalizeMeetingOutput, userId);
+}
+export function saveBriefs(briefs, userId) {
+  return saveTable("briefs", briefs, normalizeBrief, userId);
 }
