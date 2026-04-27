@@ -70,7 +70,8 @@ const EMPTY_FORM = { title:"", type:"conflict_ee", riskLevel:"Modéré", status:
   province:"QC",
   situation:"", interventionsDone:"", hrPosition:"", decision:"", nextFollowUp:"",
   notes:"", actions:[],
-  scope:"leader", owner:"HRBP", dueDate:"", urgency:"Cette semaine", evolution:"", hrPosture:"", closedDate:"" };
+  scope:"leader", owner:"HRBP", dueDate:"", urgency:"Cette semaine", evolution:"", hrPosture:"", closedDate:"",
+  closure:"open" };
 
 // Field wrapper — plain function (NOT a React component).
 // Called as fl("label", <input/>) so its output is part of CaseForm's own fiber tree.
@@ -395,6 +396,26 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     setView("list");
   };
 
+  const setClosure = (id, closure) => {
+    const now = new Date().toISOString();
+    const today = now.split("T")[0];
+    const updated = (data.cases || []).map(c => c.id === id ? {
+      ...c,
+      closure,
+      closedAtTs: closure === "closed" ? now : (c.closedAtTs || null),
+      reopenedAt: closure === "open" && c.closure === "closed" ? now : (c.reopenedAt || null),
+      updatedAt: today,
+    } : c);
+    onSave("cases", updated);
+    setDetail(prev => prev && prev.id === id ? {
+      ...prev,
+      closure,
+      closedAtTs: closure === "closed" ? now : (prev.closedAtTs || null),
+      reopenedAt: closure === "open" && prev.closure === "closed" ? now : (prev.reopenedAt || null),
+      updatedAt: today,
+    } : prev);
+  };
+
   const openEdit = (c) => {
     if (c?.archived) return;
     setForm({...EMPTY_FORM, ...c}); setEditId(c.id); setView("form");
@@ -418,6 +439,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const r = RISK[c.riskLevel]||RISK["Modéré"];
     const isArchived = c.archived === true;
     const archivedDate = c.archivedAt ? fmtDate(c.archivedAt) : null;
+    const isClosed = c.closure === "closed";
     return <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
         <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
@@ -462,6 +484,15 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           }}
           title="Préparer une rencontre à partir de ce dossier"
           style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🎯 Préparer une rencontre</button>
+        {!isArchived && (
+          isClosed
+            ? <button onClick={() => setClosure(c.id, "open")}
+                title="Rouvrir ce dossier (le marquer comme actif)"
+                style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🔓 Réouvrir</button>
+            : <button onClick={() => setClosure(c.id, "closed")}
+                title="Marquer ce dossier comme fermé (n'archive pas)"
+                style={{ ...css.btn(C.textD, true), padding:"6px 14px", fontSize:12 }}>🔒 Marquer comme fermé</button>
+        )}
         {!isArchived && <button onClick={() => { if(window.confirm("Archiver ce dossier ?\n\nIl sera retiré des listes actives, mais restera préservé dans l'historique.")) archiveCase(c.id); }}
           style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>📦 Archiver</button>}
       </div>
@@ -480,6 +511,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         <RiskBadge level={c.riskLevel}/>
         {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
+        {isClosed && <Badge label="🔒 Fermé" color={C.textD}/>}
         {typeObj && <Badge label={`${typeObj.icon} ${typeObj.label}`} color={typeObj.color}/>}
         {(() => { const tb = getCaseTimeBadge(c); return tb ? <Badge label={tb.label} color={tb.tone}/> : null; })()}
         {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD}/>}
@@ -687,6 +719,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
               <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
                 <RiskBadge level={c.riskLevel}/>
                 {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
+                {c.closure === "closed" && <Badge label="🔒 Fermé" color={C.textD} size={9}/>}
                 {latestLinkedDecision && (onNavigate
                   ? <span onClick={(e)=>{e.stopPropagation();onNavigate("decisions",{focusDecisionId:latestLinkedDecision.id});}} style={{ cursor:"pointer" }} title={linkedDecisions.length === 1 ? "Ouvrir la décision liée" : `Ouvrir la plus récente (${linkedDecisions.length} liées)`}>
                       <Badge label={linkedDecisions.length === 1 ? "⚖ Décision" : `⚖ Décisions (${linkedDecisions.length})`} color={C.purple} size={9}/>
