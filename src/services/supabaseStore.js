@@ -36,6 +36,31 @@ async function getSessionUserId() {
   }
 }
 
+// Cached per-session profile.organization_id lookup. The org rarely changes
+// inside a session, so we read once and reuse. Returns null on any failure
+// (no client, no session, no profile, no org assigned) — callers must treat
+// null as "leave organization_id unset on the row".
+let _cachedOrgUserId = null;
+let _cachedOrgId = null;
+async function getSessionOrgId(sessionUserId) {
+  if (!supabase) return null;
+  if (!sessionUserId) return null;
+  if (_cachedOrgUserId === sessionUserId) return _cachedOrgId;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", sessionUserId)
+      .maybeSingle();
+    if (error) return null;
+    _cachedOrgUserId = sessionUserId;
+    _cachedOrgId = data && data.organization_id ? data.organization_id : null;
+    return _cachedOrgId;
+  } catch {
+    return null;
+  }
+}
+
 // ── internals ────────────────────────────────────────────────────────────────
 
 async function loadTable(table, userId = DEFAULT_USER) {
@@ -51,6 +76,32 @@ async function loadTable(table, userId = DEFAULT_USER) {
     const rawRows = Array.isArray(data) ? data : [];
     const rows = rawRows
       .map(r => r && r.data ? r.data : null)
+      .filter(d => d && d.__deleted !== true);
+    return { ok: true, data: rows };
+  } catch (error) {
+    return { ok: false, reason: "exception", error };
+  }
+}
+
+async function loadCasesTable(userId = DEFAULT_USER) {
+  if (!supabase) return NO_CLIENT;
+  const sessionUserId = await getSessionUserId();
+  if (!sessionUserId) return NO_SESSION;
+  try {
+    const { data, error } = await supabase
+      .from("cases")
+      .select("id, data, organization_id, created_at, updated_at")
+      .eq("user_id", sessionUserId);
+    if (error) return { ok: false, reason: "query-error", error };
+    const rawRows = Array.isArray(data) ? data : [];
+    const rows = rawRows
+      .map(r => {
+        if (!r || !r.data) return null;
+        if (r.organization_id && r.data.organization_id == null) {
+          return { ...r.data, organization_id: r.organization_id };
+        }
+        return r.data;
+      })
       .filter(d => d && d.__deleted !== true);
     return { ok: true, data: rows };
   } catch (error) {
@@ -86,7 +137,7 @@ async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
 
 // ── public API ───────────────────────────────────────────────────────────────
 
-export function loadCases(userId)         { return loadTable("cases", userId); }
+export function loadCases(userId)         { return loadCasesTable(userId); }
 export function loadInvestigations(userId){ return loadTable("investigations", userId); }
 export function loadMeetings(userId)      { return loadTable("meetings", userId); }
 export function loadBriefs(userId)        { return loadTable("briefs", userId); }
@@ -96,6 +147,7 @@ export async function saveCases(cases, userId) {
   if (!Array.isArray(cases)) return { ok: false, reason: "not-array" };
   const sessionUserId = await getSessionUserId();
   if (!sessionUserId) return NO_SESSION;
+  const sessionOrgId = await getSessionOrgId(sessionUserId);
 
   const now = new Date().toISOString();
   const rows = [];
@@ -105,7 +157,14 @@ export async function saveCases(cases, userId) {
     if (!norm || !norm.id) continue;
     const idStr = String(norm.id);
     liveIds.add(idStr);
-    rows.push({ id: idStr, user_id: sessionUserId, data: norm, updated_at: now });
+    const orgId = norm.organization_id || sessionOrgId || null;
+    rows.push({
+      id: idStr,
+      user_id: sessionUserId,
+      data: norm,
+      organization_id: orgId,
+      updated_at: now,
+    });
   }
 
   // Reconcile deletions: any DB row for this user not in the current list
@@ -113,7 +172,7 @@ export async function saveCases(cases, userId) {
   try {
     const { data: existing, error: selErr } = await supabase
       .from("cases")
-      .select("id, data")
+      .select("id, data, organization_id")
       .eq("user_id", sessionUserId);
     if (!selErr && Array.isArray(existing)) {
       for (const ex of existing) {
@@ -123,6 +182,7 @@ export async function saveCases(cases, userId) {
           id: ex.id,
           user_id: sessionUserId,
           data: { id: ex.id, __deleted: true, deleted_at: now },
+          organization_id: ex.organization_id || null,
           updated_at: now,
         });
       }
