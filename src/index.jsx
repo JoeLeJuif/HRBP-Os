@@ -16,6 +16,7 @@ import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, i
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations, loadBriefs as supaLoadBriefs, saveBriefs as supaSaveBriefs } from './services/supabaseStore.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
+import { fetchOrCreateProfile } from './lib/profile.js';
 import { hasSupabase } from './lib/supabase.js';
 import { isCaseActive } from './utils/caseStatus.js';
 
@@ -53,6 +54,7 @@ import ModuleBrief     from './modules/Brief.jsx';
 import ModuleHome      from './modules/Home.jsx';
 import ModuleLeader    from './modules/Leader.jsx';
 import ModuleCopilot   from './modules/Copilot.jsx';
+import ModuleAdmin     from './modules/Admin.jsx';
 
 // ── Prompts (filled in at Bloc 2) — imported per module ───────────────────────
 // (each module file imports its own prompts directly)
@@ -93,6 +95,30 @@ const NAV_MORE = [
 // ── Auth — Supabase magic-link login ─────────────────────────────────────────
 // Allow-list lives in Supabase (public.allowed_users) and is enforced via RLS:
 // authenticated users can only read their own email row. See src/lib/auth.js.
+
+function PendingApprovalScreen({ email, onSignOut }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ width:360, textAlign:"center" }}>
+        <div style={{ width:44, height:44, background:C.amber, borderRadius:10,
+          display:"inline-flex", alignItems:"center", justifyContent:"center",
+          fontSize:20, marginBottom:12 }}>⏳</div>
+        <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>
+          Votre accès est en attente d’approbation
+        </div>
+        <div style={{ fontSize:12, color:C.textM, marginBottom:20, lineHeight:1.5 }}>
+          {email ? <>Un administrateur doit approuver <b>{email}</b> avant que vous puissiez utiliser HRBP OS.</>
+                 : "Un administrateur doit approuver votre compte avant que vous puissiez utiliser HRBP OS."}
+        </div>
+        <button onClick={onSignOut}
+          style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
+          Se déconnecter
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function AccessDeniedScreen({ email, onRetry }) {
   return (
@@ -184,6 +210,8 @@ export default function HRBPOS() {
   const [supaSession, setSupaSession] = useState(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [denied, setDenied] = useState(null); // { email } when login email is not in allow-list
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileChecked, setProfileChecked] = useState(false);
   const [module, setModule]   = useState("home");
   const [showMore, setShowMore] = useState(false);
   const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
@@ -349,6 +377,38 @@ export default function HRBPOS() {
     }
     return () => { cancelled = true; unsubscribe(); };
   }, []);
+
+  // Fetch the current user's profile after session is established. If no row
+  // exists in public.profiles, fetchOrCreateProfile inserts one with defaults
+  // (status:"pending", role:"viewer"). Falls back to in-memory pending if the
+  // insert fails so the UI never gets stuck.
+  useEffect(() => {
+    if (!hasSupabase) { setProfileChecked(true); return; }
+    if (!supaSession) {
+      setUserProfile(null);
+      setProfileChecked(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await fetchOrCreateProfile(supaSession.user);
+      if (cancelled) return;
+      if (res.ok) {
+        setUserProfile(res.profile);
+      } else {
+        console.warn("[profile] fetchOrCreateProfile failed:", res.reason, res.error);
+        setUserProfile({
+          id: supaSession.user?.id ?? null,
+          email: supaSession.user?.email ?? null,
+          status: "pending",
+          role: "viewer",
+          organization_id: null,
+        });
+      }
+      setProfileChecked(true);
+    })();
+    return () => { cancelled = true; };
+  }, [supaSession]);
 
   const showToast = () => { setToast(true); setTimeout(() => setToast(false), 2000); };
 
@@ -524,15 +584,29 @@ export default function HRBPOS() {
     showToast();
   }, [data]);
 
-  const allNav  = [...NAV_MAIN, ...NAV_MORE];
-  const activeNav = allNav.find(n => n.id === module);
-
   if (hasSupabase && denied) return <AccessDeniedScreen email={denied.email} onRetry={() => setDenied(null)} />;
   if (hasSupabase && !sessionChecked) {
     return <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", background:C.bg }}><AILoader label="Chargement"/></div>;
   }
   if (hasSupabase && !supaSession) return <LoginScreen />;
+  if (hasSupabase && supaSession && !profileChecked) {
+    return <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg }}><AILoader label="Chargement"/></div>;
+  }
+  if (hasSupabase && supaSession && userProfile && userProfile.status !== "approved") {
+    return <PendingApprovalScreen
+      email={userProfile.email || supaSession.user?.email}
+      onSignOut={async () => { await supaSignOut(); }} />;
+  }
+
+  const isAdmin = !!(userProfile && userProfile.status === "approved" && userProfile.role === "admin");
+  const ADMIN_NAV_ENTRY = { id:"admin", icon:"🛡️", label:"Admin", color:C.amber };
+  const navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE;
+  const allNav  = [...NAV_MAIN, ...navMore];
+  const activeNav = allNav.find(n => n.id === module);
+  // Defense-in-depth: if a non-admin somehow lands on the admin route, bounce home.
+  const safeModule = (module === "admin" && !isAdmin) ? "home" : module;
 
   return (
     <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif", color:C.text, overflow:"hidden" }}>
@@ -581,7 +655,7 @@ export default function HRBPOS() {
             <span style={{ fontSize:10, color:C.textD }}>{showMore?"▲":"▼"}</span>
           </button>
 
-          {showMore && NAV_MORE.map(n => (
+          {showMore && navMore.map(n => (
             <button key={n.id} onClick={() => setModule(n.id)}
               style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px",
                 background:module===n.id ? n.color+"18":"none",
@@ -707,24 +781,25 @@ export default function HRBPOS() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
               <AILoader label="Chargement du système"/>
             </div>
-          ) : module === "home"         ? <ModuleHome data={data} onNavigate={handleNavigate}/>
-          : module === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
-          : module === "copilot"        ? <ModuleCopilot data={data}/>
-          : module === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={handleNavigate} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
-          : module === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={handleNavigate}/>
-          : module === "cases"          ? <ModuleCases data={data} onSave={handleSave} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
-          : module === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
-          : module === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
-          : module === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave} onNavigate={handleNavigate} focusDecisionId={focusDecisionId} onClearFocus={() => setFocusDecisionId(null)}/>
-          : module === "coaching"       ? <ModuleCoaching data={data} onSave={handleSave}/>
-          : module === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={handleNavigate} focusInvestigationId={focusInvestigationId} onClearFocus={() => setFocusInvestigationId(null)}/>
-          : module === "exit"           ? <ModuleExit data={data} onSave={handleSave} focusExitId={focusExitId} onClearFocus={() => setFocusExitId(null)}/>
-          : module === "workshop"       ? <ModuleWorkshop />
-          : module === "autoprompt"     ? <ModuleAutoPrompt data={data}/>
-          : module === "convkit"        ? <ModuleConvKit />
-          : module === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
-          : module === "knowledge"      ? <ModuleKnowledge />
-          : module === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
+          ) : safeModule === "home"         ? <ModuleHome data={data} onNavigate={handleNavigate}/>
+          : safeModule === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
+          : safeModule === "copilot"        ? <ModuleCopilot data={data}/>
+          : safeModule === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={handleNavigate} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
+          : safeModule === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={handleNavigate}/>
+          : safeModule === "cases"          ? <ModuleCases data={data} onSave={handleSave} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
+          : safeModule === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
+          : safeModule === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
+          : safeModule === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave} onNavigate={handleNavigate} focusDecisionId={focusDecisionId} onClearFocus={() => setFocusDecisionId(null)}/>
+          : safeModule === "coaching"       ? <ModuleCoaching data={data} onSave={handleSave}/>
+          : safeModule === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={handleNavigate} focusInvestigationId={focusInvestigationId} onClearFocus={() => setFocusInvestigationId(null)}/>
+          : safeModule === "exit"           ? <ModuleExit data={data} onSave={handleSave} focusExitId={focusExitId} onClearFocus={() => setFocusExitId(null)}/>
+          : safeModule === "workshop"       ? <ModuleWorkshop />
+          : safeModule === "autoprompt"     ? <ModuleAutoPrompt data={data}/>
+          : safeModule === "convkit"        ? <ModuleConvKit />
+          : safeModule === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
+          : safeModule === "knowledge"      ? <ModuleKnowledge />
+          : safeModule === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
+          : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile}/> : null)
           : null}
         </div>
       </div>
