@@ -67,36 +67,18 @@ async function loadTable(table, userId = DEFAULT_USER) {
   if (!supabase) return NO_CLIENT;
   const sessionUserId = await getSessionUserId();
   if (!sessionUserId) return NO_SESSION;
-  try {
-    const { data, error } = await supabase
-      .from(table)
-      .select("id, data, created_at, updated_at")
-      .eq("user_id", sessionUserId);
-    if (error) return { ok: false, reason: "query-error", error };
-    const rawRows = Array.isArray(data) ? data : [];
-    const rows = rawRows
-      .map(r => r && r.data ? r.data : null)
-      .filter(d => d && d.__deleted !== true);
-    return { ok: true, data: rows };
-  } catch (error) {
-    return { ok: false, reason: "exception", error };
-  }
-}
-
-async function loadCasesTable(userId = DEFAULT_USER) {
-  if (!supabase) return NO_CLIENT;
-  const sessionUserId = await getSessionUserId();
-  if (!sessionUserId) return NO_SESSION;
   const sessionOrgId = await getSessionOrgId(sessionUserId);
   try {
     const { data, error } = await supabase
-      .from("cases")
+      .from(table)
       .select("id, data, organization_id, created_at, updated_at")
       .eq("user_id", sessionUserId);
     if (error) return { ok: false, reason: "query-error", error };
     const rawRows = Array.isArray(data) ? data : [];
-    // Org-scoped read: keep rows for the user's org, plus legacy rows where
-    // organization_id is null. Drops anything tagged to a different org.
+    // Org-scoped read: rows are already constrained to the current auth user
+    // via .eq("user_id"). On top of that, keep rows whose organization_id
+    // matches the user's org, plus legacy rows where organization_id is null
+    // (current-user legacy fallback). Drop anything tagged to a different org.
     const rows = rawRows
       .filter(r => r && (r.organization_id == null || r.organization_id === sessionOrgId))
       .map(r => {
@@ -118,14 +100,18 @@ async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
   if (!Array.isArray(items)) return { ok: false, reason: "not-array" };
   const sessionUserId = await getSessionUserId();
   if (!sessionUserId) return NO_SESSION;
+  const sessionOrgId = await getSessionOrgId(sessionUserId);
+  const orgId = sessionOrgId || null;
   const rows = [];
   for (const raw of items) {
     const norm = normalizer(raw);
     if (!norm || !norm.id) continue;
+    norm.organization_id = orgId;
     rows.push({
       id: String(norm.id),
       user_id: sessionUserId,
       data: norm,
+      organization_id: orgId,
       updated_at: new Date().toISOString(),
     });
   }
@@ -141,7 +127,7 @@ async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
 
 // ── public API ───────────────────────────────────────────────────────────────
 
-export function loadCases(userId)         { return loadCasesTable(userId); }
+export function loadCases(userId)         { return loadTable("cases", userId); }
 export function loadInvestigations(userId){ return loadTable("investigations", userId); }
 export function loadMeetings(userId)      { return loadTable("meetings", userId); }
 export function loadBriefs(userId)        { return loadTable("briefs", userId); }

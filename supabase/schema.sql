@@ -43,33 +43,49 @@ alter table public.cases
 create index if not exists cases_org_idx on public.cases(organization_id);
 
 create table if not exists public.investigations (
-  id          text primary key,
-  user_id     text not null default 'demo',
-  data        jsonb not null,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id              text primary key,
+  user_id         text not null default 'demo',
+  data            jsonb not null,
+  organization_id uuid references public.organizations(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
+
+alter table public.investigations
+  add column if not exists organization_id uuid references public.organizations(id) on delete set null;
 
 create table if not exists public.meetings (
-  id          text primary key,
-  user_id     text not null default 'demo',
-  data        jsonb not null,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id              text primary key,
+  user_id         text not null default 'demo',
+  data            jsonb not null,
+  organization_id uuid references public.organizations(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
 
+alter table public.meetings
+  add column if not exists organization_id uuid references public.organizations(id) on delete set null;
+
 create table if not exists public.briefs (
-  id          text primary key,
-  user_id     text not null default 'demo',
-  data        jsonb not null,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id              text primary key,
+  user_id         text not null default 'demo',
+  data            jsonb not null,
+  organization_id uuid references public.organizations(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
+
+alter table public.briefs
+  add column if not exists organization_id uuid references public.organizations(id) on delete set null;
 
 create index if not exists cases_user_idx          on public.cases(user_id);
 create index if not exists investigations_user_idx on public.investigations(user_id);
 create index if not exists meetings_user_idx       on public.meetings(user_id);
 create index if not exists briefs_user_idx         on public.briefs(user_id);
+
+create index if not exists investigations_org_idx on public.investigations(organization_id);
+create index if not exists meetings_org_idx       on public.meetings(organization_id);
+create index if not exists briefs_org_idx         on public.briefs(organization_id);
 
 -- ── RLS ──────────────────────────────────────────────────────────────────────
 
