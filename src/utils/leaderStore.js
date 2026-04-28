@@ -4,6 +4,7 @@
 // Auto-migrates legacy data.portfolio[] on first read.
 
 import { normKey } from './format.js';
+import { isCaseActive } from './caseStatus.js';
 
 export const MANAGER_TYPES = ["Solide","Évitant","Surchargé","Micromanager","Politique","En développement"];
 export const PRESSURE_LEVELS = ["Elevee","Moderee","Faible"];
@@ -84,7 +85,7 @@ export function computeFocusScore(autoLeader, meta, todayISO) {
   const reasons = [];
 
   // Risk weight — prefer override, fallback to worst auto risk
-  const activeCases = (autoLeader.cases || []).filter(c => c.status !== "closed" && c.status !== "resolved");
+  const activeCases = (autoLeader.cases || []).filter(isCaseActive);
   const lastMeeting = (autoLeader.meetings || [])[0];
   const autoRisks = [...activeCases.map(c => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
   const minOrder = autoRisks.length ? Math.min(...autoRisks.map(r => RISK_ORDER[r] ?? 3)) : 3;

@@ -15,6 +15,7 @@ import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
 import AILoader      from '../components/AILoader.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
+import { isCaseActive } from '../utils/caseStatus.js';
 
 // ── Inline shared helper ──────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -474,8 +475,7 @@ Questions posees: ${questions}`;
     setPrepLoading(true);
     const histCtx = buildHistCtx();
     const openCases = (data.cases || []).filter(c =>
-      !c.archived
-      && c.status !== "closed" && c.status !== "resolved"
+      isCaseActive(c)
       && c.director && normKey(c.director) === normKey(ctx.managerName)
     );
     const openCasesCtx = openCases.map(c =>

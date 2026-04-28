@@ -13,6 +13,7 @@ import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { APE_TEMPLATES, detectSituations } from '../utils/situations.js';
 import { toArray } from '../utils/meetingModel.js';
 import { C, css } from '../theme.js';
+import { isCaseActive } from '../utils/caseStatus.js';
 
 export default function ModuleCopilot({ data }) {
   const [situation, setSituation]   = useState("");
@@ -233,7 +234,7 @@ ${playbooksCtx}`;
   };
 
   // Counts for context summary
-  const activeCasesCount  = (data.cases||[]).filter(c => !c.archived && (c.status==="active"||c.status==="open")).length;
+  const activeCasesCount  = (data.cases||[]).filter(isCaseActive).length;
   const meetingsCount     = (data.meetings||[]).length;
   const signalsCount      = (data.signals||[]).length;
   const total             = activeCasesCount + meetingsCount + signalsCount;

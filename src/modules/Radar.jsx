@@ -9,6 +9,7 @@ import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
 import AILoader from '../components/AILoader.jsx';
+import { isCaseActive } from '../utils/caseStatus.js';
 
 export default function ModuleRadar({ data, onSave }) {
   const [radar, setRadar]     = useState(() => (data.radars||[])[0]?.radar || null);
@@ -24,7 +25,7 @@ export default function ModuleRadar({ data, onSave }) {
   const savedRadars = data.radars || [];
 
   const buildContext = () => {
-    const cases    = (data.cases||[]).filter(c=>!c.archived&&(c.status==="active"||c.status==="open"));
+    const cases    = (data.cases||[]).filter(isCaseActive);
     const meetings = (data.meetings||[]).slice().reverse().slice(0,15);
     const signals  = (data.signals||[]).slice().reverse().slice(0,10);
     // Include previous radar pattern counts for trend comparison
@@ -165,7 +166,7 @@ ${signals.map(s=>`- ${s.analysis?.category} ${s.analysis?.title} (${s.analysis?.
       {!displayRadar&&!loading&&(
         <div style={{textAlign:"center",padding:"50px 20px"}}>
           <div style={{fontSize:13,color:C.textM,marginBottom:16}}>
-            Génère ton radar hebdomadaire · {(data.cases||[]).filter(c=>!c.archived&&(c.status==="active"||c.status==="open")).length} cas · {(data.meetings||[]).length} meetings · {(data.signals||[]).length} signaux
+            Génère ton radar hebdomadaire · {(data.cases||[]).filter(isCaseActive).length} cas · {(data.meetings||[]).length} meetings · {(data.signals||[]).length} signaux
           </div>
           <button onClick={generate} style={{...css.btn(C.em),padding:"10px 24px",fontSize:13}}>🔭 Générer le Radar</button>
         </div>

@@ -15,6 +15,7 @@ import { callAIJson } from '../api/index.js';
 import { PORTFOLIO_ASSESS_SP } from '../prompts/portfolio.js';
 import { getLeadersMap, getMeta, setMeta, topFocusLeaders, computeFocusScore, getLastEngineOutput,
          MANAGER_TYPES, PRESSURE_LEVELS, RISK_LEVELS, TYPE_ICON, PRESSURE_EMOJI } from '../utils/leaderStore.js';
+import { isCaseActive } from '../utils/caseStatus.js';
 
 // ── Inline helpers ─────────────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -116,7 +117,7 @@ const sortByDate = (arr, field) =>
 // Returns { globalRisk, score, patterns[], why[], actions[] }
 // Called in detail view after todayISO + leader data are available.
 function buildLeader360(l, todayISO) {
-  const activeCases   = l.cases.filter(c => c.status !== "closed" && c.status !== "resolved");
+  const activeCases   = l.cases.filter(isCaseActive);
   const exits         = l.exits   || [];
   const linkedSignals = l.signals || [];
   const meetings      = sortByDate(l.meetings || [], "savedAt");
@@ -550,7 +551,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10 }}>
               {group.leaders.map(l => {
-                const activeCases = l.cases.filter(c => c.status!=="closed" && c.status!=="resolved");
+                const activeCases = l.cases.filter(isCaseActive);
                 const lastMeeting = sortByDate(l.meetings,"savedAt")[0];
                 const lMeta = getMeta(l.name, leadersMap);
                 const globalRisk  = lMeta.riskOverride || worstRisk([
@@ -600,7 +601,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
   if (!l) { setSelected(null); return null; }
 
   const todayISO       = new Date().toISOString().split("T")[0];
-  const activeCases    = l.cases.filter(c => c.status!=="closed" && c.status!=="resolved");
+  const activeCases    = l.cases.filter(isCaseActive);
   const sortedMeetings = sortByDate(l.meetings, "savedAt");
   const sortedPreps    = sortByDate(l.preps,    "savedAt");
   const lastMeeting    = sortedMeetings[0] || null;

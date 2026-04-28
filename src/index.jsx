@@ -17,6 +17,7 @@ import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations, loadBriefs as supaLoadBriefs, saveBriefs as supaSaveBriefs } from './services/supabaseStore.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
 import { hasSupabase } from './lib/supabase.js';
+import { isCaseActive } from './utils/caseStatus.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
 import Mono          from './components/Mono.jsx';
@@ -648,7 +649,7 @@ export default function HRBPOS() {
         {/* Footer stats */}
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginTop:8 }}>
           {[
-            ["Cas actifs", (data.cases||[]).filter(c=>!c.archived&&(c.status==="active"||c.status==="open")).length, C.em],
+            ["Cas actifs", (data.cases||[]).filter(isCaseActive).length, C.em],
             ["Meetings",   (data.meetings||[]).length,       C.blue],
             ["Signaux",    (data.signals||[]).length,        C.purple],
             ["Stratégies", (data.decisions||[]).length,      C.red],
@@ -689,7 +690,7 @@ export default function HRBPOS() {
           <span style={{ fontSize:16 }}>{activeNav?.icon}</span>
           <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav?.label}</span>
           <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
-            {(data.cases||[]).filter(c=>!c.archived&&(c.riskLevel==="Critique"||c.riskLevel==="Élevé")&&(c.status==="active"||c.status==="open")).slice(0,3).map((c,i) => (
+            {(data.cases||[]).filter(c=>isCaseActive(c)&&(c.riskLevel==="Critique"||c.riskLevel==="Élevé")).slice(0,3).map((c,i) => (
               <button key={i} onClick={()=>setModule("cases")}
                 style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:5,
                   padding:"3px 10px", fontSize:10, color:C.red, cursor:"pointer",
