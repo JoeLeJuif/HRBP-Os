@@ -87,6 +87,7 @@ async function loadCasesTable(userId = DEFAULT_USER) {
   if (!supabase) return NO_CLIENT;
   const sessionUserId = await getSessionUserId();
   if (!sessionUserId) return NO_SESSION;
+  const sessionOrgId = await getSessionOrgId(sessionUserId);
   try {
     const { data, error } = await supabase
       .from("cases")
@@ -94,9 +95,12 @@ async function loadCasesTable(userId = DEFAULT_USER) {
       .eq("user_id", sessionUserId);
     if (error) return { ok: false, reason: "query-error", error };
     const rawRows = Array.isArray(data) ? data : [];
+    // Org-scoped read: keep rows for the user's org, plus legacy rows where
+    // organization_id is null. Drops anything tagged to a different org.
     const rows = rawRows
+      .filter(r => r && (r.organization_id == null || r.organization_id === sessionOrgId))
       .map(r => {
-        if (!r || !r.data) return null;
+        if (!r.data) return null;
         if (r.organization_id && r.data.organization_id == null) {
           return { ...r.data, organization_id: r.organization_id };
         }
@@ -152,12 +156,15 @@ export async function saveCases(cases, userId) {
   const now = new Date().toISOString();
   const rows = [];
   const liveIds = new Set();
+  // Authoritative org tag: every saved case is stamped with the current
+  // user's organization_id (null if the user is not assigned to one).
+  const orgId = sessionOrgId || null;
   for (const raw of cases) {
     const norm = normalizeCase(raw);
     if (!norm || !norm.id) continue;
     const idStr = String(norm.id);
     liveIds.add(idStr);
-    const orgId = norm.organization_id || sessionOrgId || null;
+    norm.organization_id = orgId;
     rows.push({
       id: idStr,
       user_id: sessionUserId,
