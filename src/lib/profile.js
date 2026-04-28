@@ -1,11 +1,18 @@
 // ── Profile fetch + admin operations ─────────────────────────────────────────
-// Reads/writes public.profiles. RLS is currently OFF on profiles, so the
-// publishable key can perform these operations directly until RLS lands.
+// Reads/writes public.profiles + public.organizations. RLS is currently OFF
+// on both tables, so the publishable key can perform these operations directly
+// until RLS lands.
 //
 // Return shapes:
-//   fetchOrCreateProfile(user) → { ok:true, profile } | { ok:false, reason, error? }
-//   listPendingProfiles()      → { ok:true, profiles:[...] } | { ok:false, reason, error? }
-//   updateProfile(id, patch)   → { ok:true, profile } | { ok:false, reason, error? }
+//   fetchOrCreateProfile(user)       → { ok:true, profile } | { ok:false, reason, error? }
+//   listProfilesByStatus(status)     → { ok:true, profiles:[...] } | { ok:false, reason, error? }
+//   listAllProfiles()                → { ok:true, profiles:[...] } | { ok:false, reason, error? }
+//   listPendingProfiles()            → alias of listProfilesByStatus("pending")
+//   updateProfile(id, patch)         → { ok:true, profile } | { ok:false, reason, error? }
+//   listOrganizations()              → { ok:true, organizations:[...] } | { ok:false, reason, error? }
+//
+// updateProfile accepts patch keys: status, role, organization_id (null clears).
+// Status transitions are NOT enforced here; the Admin UI gates them.
 //
 // The "fallback" profile is always materialized in the DB so admins can see
 // new sign-ups in the pending list. If the insert fails (race, network), we
@@ -14,6 +21,8 @@
 import { supabase } from "./supabase.js";
 
 const NO_CLIENT = { ok: false, reason: "no-client" };
+
+const PROFILE_COLS = "id, email, status, role, organization_id, created_at, updated_at";
 
 const FALLBACK = (user) => ({
   id: user?.id ?? null,
@@ -29,7 +38,7 @@ export async function fetchOrCreateProfile(user) {
 
   const { data: existing, error: selErr } = await supabase
     .from("profiles")
-    .select("id, email, status, role, organization_id")
+    .select(PROFILE_COLS)
     .eq("id", user.id)
     .maybeSingle();
 
@@ -49,7 +58,7 @@ export async function fetchOrCreateProfile(user) {
   const { data: inserted, error: insErr } = await supabase
     .from("profiles")
     .insert(seed)
-    .select("id, email, status, role, organization_id")
+    .select(PROFILE_COLS)
     .maybeSingle();
 
   if (insErr) {
@@ -59,15 +68,29 @@ export async function fetchOrCreateProfile(user) {
   return { ok: true, profile: inserted ?? FALLBACK(user) };
 }
 
-export async function listPendingProfiles() {
+export async function listProfilesByStatus(status) {
   if (!supabase) return NO_CLIENT;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, status, role, organization_id, created_at")
-    .eq("status", "pending")
+    .select(PROFILE_COLS)
+    .eq("status", status)
     .order("created_at", { ascending: true });
   if (error) return { ok: false, reason: "query-error", error };
   return { ok: true, profiles: data ?? [] };
+}
+
+export async function listAllProfiles() {
+  if (!supabase) return NO_CLIENT;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PROFILE_COLS)
+    .order("created_at", { ascending: true });
+  if (error) return { ok: false, reason: "query-error", error };
+  return { ok: true, profiles: data ?? [] };
+}
+
+export async function listPendingProfiles() {
+  return listProfilesByStatus("pending");
 }
 
 export async function updateProfile(id, patch) {
@@ -75,8 +98,9 @@ export async function updateProfile(id, patch) {
   if (!id) return { ok: false, reason: "invalid-id" };
   const allowed = {};
   if (patch && typeof patch === "object") {
-    if (patch.status !== undefined) allowed.status = patch.status;
-    if (patch.role   !== undefined) allowed.role   = patch.role;
+    if (patch.status !== undefined)          allowed.status          = patch.status;
+    if (patch.role   !== undefined)          allowed.role            = patch.role;
+    if (patch.organization_id !== undefined) allowed.organization_id = patch.organization_id || null;
   }
   if (Object.keys(allowed).length === 0) return { ok: false, reason: "empty-patch" };
   allowed.updated_at = new Date().toISOString();
@@ -84,8 +108,18 @@ export async function updateProfile(id, patch) {
     .from("profiles")
     .update(allowed)
     .eq("id", id)
-    .select("id, email, status, role, organization_id")
+    .select(PROFILE_COLS)
     .maybeSingle();
   if (error) return { ok: false, reason: "query-error", error };
   return { ok: true, profile: data };
+}
+
+export async function listOrganizations() {
+  if (!supabase) return NO_CLIENT;
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("id, name, created_at")
+    .order("name", { ascending: true });
+  if (error) return { ok: false, reason: "query-error", error };
+  return { ok: true, organizations: data ?? [] };
 }
