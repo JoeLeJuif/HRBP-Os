@@ -256,6 +256,94 @@ function buildFallbackOutput(engineType) {
   return { ...FALLBACK_OUTPUT, ...(FALLBACK_BY_TYPE[engineType] || {}) };
 }
 
+// ── Case candidate detection ────────────────────────────────────────────────
+// Maps engine types to default Case Log type ids (see Cases.jsx CASE_TYPES).
+const ENGINE_TO_CASE_TYPE = {
+  "1on1":          "conflict_ee",
+  disciplinaire:   "investigation",
+  performance:     "performance",
+  coaching:        "retention",
+  recadrage:       "performance",
+  mediation:       "conflict_ee",
+  enquete:         "investigation",
+  suivi:           "conflict_ee",
+  transition:      "reorg",
+};
+
+const HIGH_RISK_TOKENS = ["élev", "eleve", "critique", "high", "critical"];
+const isHighRisk = (lvl) => {
+  const s = String(lvl || "").toLowerCase();
+  return HIGH_RISK_TOKENS.some(t => s.includes(t));
+};
+
+// Detect case candidates from a normalized AI output. Returns up to N items
+// with shape: { id, title, type, riskLevel, summary, source }.
+function detectCaseCandidates(output, engineType, meetingId) {
+  if (!output) return [];
+  const items = [];
+  const seen = new Set();
+  const fallbackType = ENGINE_TO_CASE_TYPE[engineType] || "conflict_ee";
+  const overallRisk = output.overallRisk || "Modéré";
+
+  const push = (cand) => {
+    const key = String(cand.title || "").toLowerCase().trim();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    items.push(cand);
+  };
+
+  // 1) Primary: AI-suggested caseEntry (always include if present)
+  const ce = output.caseEntry;
+  if (ce && (ce.titre || ce.title)) {
+    push({
+      id: `cand_${meetingId}_main`,
+      title: ce.titre || ce.title,
+      type: ce.type || fallbackType,
+      riskLevel: ce.risque || ce.riskLevel || overallRisk,
+      summary: ce.situation || ce.notes || "",
+      source: "caseEntry",
+    });
+  }
+
+  // 2) Legal risks (always treated as high signal)
+  toArray(output.risquesLegaux).forEach((rl, i) => {
+    const text = typeof rl === "string"
+      ? rl
+      : (rl?.risque || rl?.risk || rl?.titre || rl?.title || rl?.description || "");
+    if (!text) return;
+    push({
+      id: `cand_${meetingId}_legal_${i}`,
+      title: String(text).slice(0, 90),
+      type: "investigation",
+      riskLevel: (rl && (rl.severite || rl.severity)) || "Élevé",
+      summary: (rl && (rl.description || rl.mitigation)) || String(text),
+      source: "legal-risk",
+    });
+  });
+
+  // 3) High-priority risks from risks / mainRisks
+  const riskItems = [...toArray(output.risks), ...toArray(output.mainRisks)];
+  riskItems.forEach((r, i) => {
+    const obj = (r && typeof r === "object") ? r : null;
+    const text = obj
+      ? (obj.risque || obj.risk || obj.titre || obj.title || obj.description || "")
+      : String(r || "");
+    if (!text) return;
+    const lvl = obj ? (obj.niveau || obj.level || obj.priorite || obj.priority) : null;
+    if (!isHighRisk(lvl) && !isHighRisk(overallRisk)) return;
+    push({
+      id: `cand_${meetingId}_risk_${i}`,
+      title: String(text).slice(0, 90),
+      type: fallbackType,
+      riskLevel: typeof lvl === "string" ? lvl : "Élevé",
+      summary: obj ? (obj.description || obj.mitigation || text) : text,
+      source: "risk",
+    });
+  });
+
+  return items.slice(0, 6);
+}
+
 // ── Build investigation context block for AI prompt enrichment ──────────────
 // Pulls from inv.caseData (caseSummary, plan, findings) — only what is set.
 function buildInvestigationCtxBlock(inv) {
@@ -359,6 +447,11 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   const [sigExp, setSigExp]       = useState({});
   const [histExp, setHistExp]     = useState({});
   const [linkedInvestigationId, setLinkedInvestigationId] = useState(null);
+  // Case candidate review (post-archive)
+  const [caseCandidates, setCaseCandidates] = useState([]);
+  const [candidateActions, setCandidateActions] = useState({}); // id -> "created" | "ignored"
+  const [showCandidatesModal, setShowCandidatesModal] = useState(false);
+  const [archivedMeetingId, setArchivedMeetingId] = useState(null);
 
   // ── Phase 0 — Unification Meeting ↔ Enquête ─────────────────────────────
   // Règle : un meeting de type "enquete" doit toujours être rattaché à un
@@ -658,33 +751,20 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       console.warn("Meeting Engine — sync Meetings Hub failed:", err);
     }
 
-    // ── Triple save: persist Case Log entry if AI detected one ────────────
+    // ── Detect case candidates (review modal — no auto-create) ────────────
     try {
-      const ce = normOutput.caseEntry;
-      if (ce && (ce.titre || ce.title)) {
-        const newCase = {
-          id: `case_${Date.now()}`,
-          title: ce.titre || ce.title,
-          type: ce.type || "conflict_ee",
-          riskLevel: ce.risque || ce.riskLevel || normOutput.overallRisk || "Modéré",
-          status: "active",
-          director: ctx.managerName || "Non assigné",
-          employee: "",
-          department: ctx.team || "",
-          openDate: today,
-          situation: ce.situation || "",
-          notes: ce.notes || "",
-          province: ctx.province || data.profile?.defaultProvince || "QC",
-          meetingId: mtgId,
-          source: "meeting-engine",
-          updatedAt: today,
-        };
-        onSave("cases", [...(data.cases || []), newCase]);
+      const candidates = detectCaseCandidates(normOutput, engineType, mtgId);
+      setArchivedMeetingId(mtgId);
+      if (candidates.length > 0) {
+        setCaseCandidates(candidates);
+        setCandidateActions({});
+        setShowCandidatesModal(true);
+        console.info("[MeetingEngine] case candidates detected:", candidates.length);
       } else {
-        console.log("[MeetingEngine] no caseEntry in output — Case Log skipped");
+        console.log("[MeetingEngine] no case candidates detected");
       }
     } catch (err) {
-      console.warn("Meeting Engine — sync Case Log failed:", err);
+      console.warn("Meeting Engine — case candidate detection failed:", err);
     }
 
     // ── Sync Portfolio ────────────────────────────────────────────────────
@@ -720,6 +800,59 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     } catch (err) {
       console.warn("Meeting Engine — sync Portfolio failed:", err);
     }
+  };
+
+  // ── Case candidate handlers ───────────────────────────────────────────────
+  const buildCaseFromCandidate = (cand, today) => ({
+    id: `case_${Date.now()}_${String(cand.id).slice(-6)}`,
+    title: cand.title,
+    type: cand.type || "conflict_ee",
+    riskLevel: cand.riskLevel || "Modéré",
+    status: "active",
+    director: ctx.managerName || "Non assigné",
+    employee: "",
+    department: ctx.team || "",
+    openDate: today,
+    situation: cand.summary || "",
+    notes: "",
+    province: ctx.province || data.profile?.defaultProvince || "QC",
+    meetingId: archivedMeetingId,
+    source: "meeting",
+    source_id: archivedMeetingId,
+    updatedAt: today,
+  });
+
+  const createCaseFromCandidate = (cand) => {
+    if (candidateActions[cand.id]) return;
+    const today = new Date().toISOString().split("T")[0];
+    onSave("cases", [...(data.cases || []), buildCaseFromCandidate(cand, today)]);
+    setCandidateActions(prev => ({ ...prev, [cand.id]: "created" }));
+  };
+
+  const ignoreCandidate = (cand) => {
+    if (candidateActions[cand.id]) return;
+    setCandidateActions(prev => ({ ...prev, [cand.id]: "ignored" }));
+  };
+
+  const createAllCandidates = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const pending = caseCandidates.filter(c => !candidateActions[c.id]);
+    if (pending.length === 0) return;
+    const newCases = pending.map(c => buildCaseFromCandidate(c, today));
+    onSave("cases", [...(data.cases || []), ...newCases]);
+    const next = { ...candidateActions };
+    pending.forEach(c => { next[c.id] = "created"; });
+    setCandidateActions(next);
+  };
+
+  const ignoreAllCandidates = () => {
+    const next = { ...candidateActions };
+    caseCandidates.forEach(c => { if (!next[c.id]) next[c.id] = "ignored"; });
+    setCandidateActions(next);
+  };
+
+  const closeCandidatesModal = () => {
+    setShowCandidatesModal(false);
   };
 
   // ── Start next cycle ─────────────────────────────────────────────────────
@@ -830,6 +963,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
+    <>
     <div style={{ display:"flex", height:"calc(100vh - 112px)", overflow:"hidden",
                   borderRadius:10, border:`1px solid ${C.border}` }}>
 
@@ -2063,5 +2197,108 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         </div>{/* end body */}
       </div>{/* end main */}
     </div>
+
+    {/* ── CASE CANDIDATES REVIEW MODAL ── */}
+    {showCandidatesModal && caseCandidates.length > 0 && (() => {
+      const pendingCount = caseCandidates.filter(c => !candidateActions[c.id]).length;
+      const allDone = pendingCount === 0;
+      return (
+        <div role="dialog" aria-modal="true"
+             style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      zIndex:1000, padding:20 }}
+             onClick={closeCandidatesModal}>
+          <div onClick={e => e.stopPropagation()}
+               style={{ background:C.surf, border:`1px solid ${C.border}`, borderRadius:12,
+                        width:"min(720px, 100%)", maxHeight:"85vh", display:"flex",
+                        flexDirection:"column", boxShadow:"0 20px 60px rgba(0,0,0,0.4)" }}>
+            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}` }}>
+              <Mono color={C.em} size={9}>MEETING ENGINE — CANDIDATS</Mono>
+              <div style={{ fontSize:15, fontWeight:700, color:C.text, marginTop:4 }}>
+                📂 Candidats de cas RH détectés
+              </div>
+              <div style={{ fontSize:11, color:C.textD, marginTop:4 }}>
+                Aucun cas n'est créé automatiquement. Choisissez les candidats à transformer en dossiers.
+              </div>
+            </div>
+
+            <div style={{ flex:1, overflowY:"auto", padding:"14px 20px" }}>
+              {caseCandidates.map(cand => {
+                const action = candidateActions[cand.id];
+                const riskColor = RISK_C[cand.riskLevel] || C.textD;
+                return (
+                  <div key={cand.id}
+                       style={{ ...css.card, marginBottom:10,
+                                borderLeft:`3px solid ${action==="created"?C.em:action==="ignored"?C.textD:C.blue}`,
+                                opacity: action ? 0.7 : 1 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", gap:12, alignItems:"flex-start" }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:6 }}>
+                          {cand.title}
+                        </div>
+                        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:6 }}>
+                          {cand.type && <Badge label={cand.type} color={C.blue} size={9}/>}
+                          {cand.riskLevel && <Badge label={cand.riskLevel} color={riskColor} size={9}/>}
+                          {cand.source && <Badge label={cand.source} color={C.textD} size={9}/>}
+                        </div>
+                        {cand.summary && (
+                          <div style={{ fontSize:12, color:C.textM, lineHeight:1.5 }}>
+                            {cand.summary}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+                        {action === "created" ? (
+                          <span style={{ fontSize:11, color:C.em, fontWeight:600 }}>✓ Créé</span>
+                        ) : action === "ignored" ? (
+                          <span style={{ fontSize:11, color:C.textD, fontWeight:600 }}>✕ Ignoré</span>
+                        ) : (
+                          <>
+                            <button onClick={() => createCaseFromCandidate(cand)}
+                                    style={{ ...css.btn(C.em), padding:"6px 12px", fontSize:11 }}>
+                              Créer le case
+                            </button>
+                            <button onClick={() => ignoreCandidate(cand)}
+                                    style={{ ...css.btn(C.textD, true), padding:"6px 12px", fontSize:11 }}>
+                              Ignorer
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ padding:"12px 20px", borderTop:`1px solid ${C.border}`,
+                          display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+              <button onClick={createAllCandidates} disabled={allDone}
+                      style={{ ...css.btn(C.em), padding:"8px 14px", fontSize:12,
+                               opacity: allDone ? 0.5 : 1,
+                               cursor: allDone ? "not-allowed" : "pointer" }}>
+                Créer tous
+              </button>
+              <button onClick={ignoreAllCandidates} disabled={allDone}
+                      style={{ ...css.btn(C.textD, true), padding:"8px 14px", fontSize:12,
+                               opacity: allDone ? 0.5 : 1,
+                               cursor: allDone ? "not-allowed" : "pointer" }}>
+                Ignorer tous
+              </button>
+              <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+                <span style={{ fontSize:11, color:C.textD }}>
+                  {pendingCount > 0 ? `${pendingCount} à traiter` : "Tous traités"}
+                </span>
+                <button onClick={closeCandidatesModal}
+                        style={{ ...css.btn(C.blue, true), padding:"8px 14px", fontSize:12 }}>
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+    </>
   );
 }
