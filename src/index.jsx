@@ -120,6 +120,30 @@ function PendingApprovalScreen({ email, onSignOut }) {
   );
 }
 
+function DisabledAccessScreen({ email, onSignOut }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ width:380, textAlign:"center" }}>
+        <div style={{ width:44, height:44, background:C.red, borderRadius:10,
+          display:"inline-flex", alignItems:"center", justifyContent:"center",
+          fontSize:20, marginBottom:12 }}>⛔</div>
+        <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>
+          Accès désactivé
+        </div>
+        <div style={{ fontSize:12, color:C.textM, marginBottom:20, lineHeight:1.5 }}>
+          Votre accès à HRBP OS a été désactivé. Veuillez contacter un administrateur.
+          {email && <div style={{ marginTop:6, color:C.textD }}>{email}</div>}
+        </div>
+        <button onClick={onSignOut}
+          style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
+          Se déconnecter
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AccessDeniedScreen({ email, onRetry }) {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
@@ -380,7 +404,7 @@ export default function HRBPOS() {
 
   // Fetch the current user's profile after session is established. If no row
   // exists in public.profiles, fetchOrCreateProfile inserts one with defaults
-  // (status:"pending", role:"viewer"). Falls back to in-memory pending if the
+  // (status:"pending", role:"hrbp"). Falls back to in-memory pending if the
   // insert fails so the UI never gets stuck.
   useEffect(() => {
     if (!hasSupabase) { setProfileChecked(true); return; }
@@ -401,7 +425,7 @@ export default function HRBPOS() {
           id: supaSession.user?.id ?? null,
           email: supaSession.user?.email ?? null,
           status: "pending",
-          role: "viewer",
+          role: "hrbp",
           organization_id: null,
         });
       }
@@ -594,13 +618,19 @@ export default function HRBPOS() {
     return <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", background:C.bg }}><AILoader label="Chargement"/></div>;
   }
+  if (hasSupabase && supaSession && userProfile && userProfile.status === "disabled") {
+    return <DisabledAccessScreen
+      email={userProfile.email || supaSession.user?.email}
+      onSignOut={async () => { await supaSignOut(); }} />;
+  }
   if (hasSupabase && supaSession && userProfile && userProfile.status !== "approved") {
     return <PendingApprovalScreen
       email={userProfile.email || supaSession.user?.email}
       onSignOut={async () => { await supaSignOut(); }} />;
   }
 
-  const isAdmin = !!(userProfile && userProfile.status === "approved" && userProfile.role === "admin");
+  const isAdmin = !!(userProfile && userProfile.status === "approved"
+    && (userProfile.role === "admin" || userProfile.role === "super_admin"));
   const ADMIN_NAV_ENTRY = { id:"admin", icon:"🛡️", label:"Admin", color:C.amber };
   const navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE;
   const allNav  = [...NAV_MAIN, ...navMore];

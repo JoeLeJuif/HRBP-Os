@@ -1,7 +1,7 @@
 // ── Profile fetch + admin operations ─────────────────────────────────────────
-// Reads/writes public.profiles + public.organizations. RLS is currently OFF
-// on both tables, so the publishable key can perform these operations directly
-// until RLS lands.
+// Reads/writes public.profiles + public.organizations. RLS is enabled on both;
+// the privileged-fields trigger blocks self-edits to status/role/organization_id,
+// and admin-only operations route through SECURITY DEFINER RPCs.
 //
 // Return shapes:
 //   fetchOrCreateProfile(user)       → { ok:true, profile } | { ok:false, reason, error? }
@@ -9,10 +9,14 @@
 //   listAllProfiles()                → { ok:true, profiles:[...] } | { ok:false, reason, error? }
 //   listPendingProfiles()            → alias of listProfilesByStatus("pending")
 //   updateProfile(id, patch)         → { ok:true, profile } | { ok:false, reason, error? }
+//   revokeUserAccess(id)             → { ok:true, profile } | { ok:false, reason, error? }
+//   restoreUserAccess(id)            → { ok:true, profile } | { ok:false, reason, error? }
 //   listOrganizations()              → { ok:true, organizations:[...] } | { ok:false, reason, error? }
 //
 // updateProfile accepts patch keys: status, role, organization_id (null clears).
-// Status transitions are NOT enforced here; the Admin UI gates them.
+// Status transitions for revoke/restore should go through the RPCs to capture
+// the audit fields (disabled_at, disabled_by); updateProfile is reserved for
+// approval (pending → approved with role/org) and role/org changes.
 //
 // The "fallback" profile is always materialized in the DB so admins can see
 // new sign-ups in the pending list. If the insert fails (race, network), we
@@ -22,13 +26,13 @@ import { supabase } from "./supabase.js";
 
 const NO_CLIENT = { ok: false, reason: "no-client" };
 
-const PROFILE_COLS = "id, email, status, role, organization_id, created_at, updated_at";
+const PROFILE_COLS = "id, email, status, role, organization_id, disabled_at, disabled_by, created_at, updated_at";
 
 const FALLBACK = (user) => ({
   id: user?.id ?? null,
   email: user?.email ?? null,
   status: "pending",
-  role: "viewer",
+  role: "hrbp",
   organization_id: null,
 });
 
@@ -53,7 +57,7 @@ export async function fetchOrCreateProfile(user) {
     id: user.id,
     email: user.email ?? null,
     status: "pending",
-    role: "viewer",
+    role: "hrbp",
   };
   const { data: inserted, error: insErr } = await supabase
     .from("profiles")
@@ -112,6 +116,55 @@ export async function updateProfile(id, patch) {
     .maybeSingle();
   if (error) return { ok: false, reason: "query-error", error };
   return { ok: true, profile: data };
+}
+
+// Admin-only RPC: flips status to 'disabled' and stamps disabled_at/disabled_by.
+// Server enforces admin role + approved status, blocks self-revoke, errors if
+// target profile does not exist. Errors surface as { ok:false, reason }.
+export async function revokeUserAccess(targetUserId) {
+  if (!supabase) return NO_CLIENT;
+  if (!targetUserId) return { ok: false, reason: "invalid-id" };
+  const { data, error } = await supabase
+    .rpc("revoke_user_access", { target_user_id: targetUserId });
+  if (error) return { ok: false, reason: rpcReason(error), error };
+  return { ok: true, profile: data };
+}
+
+// Admin-only RPC: flips status to 'approved' and clears disabled_at/disabled_by.
+export async function restoreUserAccess(targetUserId) {
+  if (!supabase) return NO_CLIENT;
+  if (!targetUserId) return { ok: false, reason: "invalid-id" };
+  const { data, error } = await supabase
+    .rpc("restore_user_access", { target_user_id: targetUserId });
+  if (error) return { ok: false, reason: rpcReason(error), error };
+  return { ok: true, profile: data };
+}
+
+// super_admin-only RPC: assigns role ∈ {super_admin, admin, hrbp} to a target.
+// Server enforces caller is super_admin AND approved, validates the role value,
+// and refuses caller self-demotion. Errors normalized to { ok:false, reason }.
+export const ROLES = ["super_admin", "admin", "hrbp"];
+
+export async function setUserRole(targetUserId, newRole) {
+  if (!supabase) return NO_CLIENT;
+  if (!targetUserId) return { ok: false, reason: "invalid-id" };
+  if (!ROLES.includes(newRole)) return { ok: false, reason: "invalid-role" };
+  const { data, error } = await supabase
+    .rpc("set_user_role", { target_user_id: targetUserId, new_role: newRole });
+  if (error) return { ok: false, reason: rpcReason(error), error };
+  return { ok: true, profile: data };
+}
+
+function rpcReason(error) {
+  const msg = (error?.message || "").toLowerCase();
+  if (msg.includes("super_admin only")) return "not-super-admin";
+  if (msg.includes("admin only")) return "not-admin";
+  if (msg.includes("admins cannot revoke their own access")) return "self-revoke";
+  if (msg.includes("cannot demote yourself")) return "self-demote";
+  if (msg.includes("invalid role")) return "invalid-role";
+  if (msg.includes("authentication required")) return "not-authenticated";
+  if (msg.includes("not found")) return "profile-not-found";
+  return "rpc-error";
 }
 
 export async function listOrganizations() {

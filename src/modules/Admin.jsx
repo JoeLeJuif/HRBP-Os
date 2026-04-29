@@ -14,9 +14,26 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { C, css } from "../theme.js";
-import { listAllProfiles, listOrganizations, updateProfile } from "../lib/profile.js";
+import {
+  listAllProfiles, listOrganizations, updateProfile,
+  revokeUserAccess, restoreUserAccess, setUserRole,
+} from "../lib/profile.js";
 
-const ROLES = ["admin", "hrbp", "viewer"];
+const ROLES = ["super_admin", "admin", "hrbp"];
+
+const ROLE_LABEL = {
+  super_admin: "Super Admin",
+  admin:       "Admin",
+  hrbp:        "HRBP",
+};
+
+// Background / border / text — picked from theme colors so badges read at a
+// glance without introducing new palette entries.
+const ROLE_STYLE = {
+  super_admin: { bg: C.red    + "18", border: C.red    + "55", color: C.red    },
+  admin:       { bg: C.amber  + "18", border: C.amber  + "55", color: C.amber  },
+  hrbp:        { bg: C.surfL,          border: C.border,        color: C.textM  },
+};
 
 export default function ModuleAdmin({ currentProfile }) {
   const [profiles, setProfiles]         = useState([]);
@@ -26,6 +43,9 @@ export default function ModuleAdmin({ currentProfile }) {
   const [pendingRoleById, setPendingRoleById] = useState({});
   const [pendingOrgById,  setPendingOrgById]  = useState({});
   const [busyById,        setBusyById]        = useState({});
+
+  const isSuperAdmin = currentProfile?.role === "super_admin"
+    && currentProfile?.status === "approved";
 
   const refresh = useCallback(async () => {
     setStatus("loading");
@@ -81,10 +101,51 @@ export default function ModuleAdmin({ currentProfile }) {
   };
 
   const approve = async (profile) => {
-    const role = pendingRoleById[profile.id] || profile.role || "viewer";
+    const role = pendingRoleById[profile.id] || profile.role || "hrbp";
     const orgRaw = pendingOrgById[profile.id];
     const orgVal = orgRaw === undefined ? profile.organization_id : (orgRaw || null);
+    // Approval may carry a role change. If a non-super_admin tries to grant
+    // 'super_admin' here, the privileged-fields trigger will reject it (42501).
     await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "Échec d'approbation");
+  };
+
+  // Route role changes through the super_admin-only RPC so the server-side
+  // checks (caller is super_admin, valid role, no self-demotion) run.
+  const changeRole = async (profile, newRole) => {
+    if (newRole === profile.role) return;
+    setBusy(profile.id, true);
+    const res = await setUserRole(profile.id, newRole);
+    setBusy(profile.id, false);
+    if (res.ok && res.profile) {
+      setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, ...res.profile } : p));
+      return;
+    }
+    const detail =
+      res.reason === "not-super-admin"   ? "rôle super_admin requis" :
+      res.reason === "self-demote"       ? "vous ne pouvez pas vous rétrograder" :
+      res.reason === "invalid-role"      ? "rôle invalide" :
+      res.reason === "profile-not-found" ? "profil introuvable" :
+      res.reason === "not-authenticated" ? "session expirée" :
+      (res.reason || "erreur");
+    setErrorMsg(`Échec du changement de rôle pour ${profile.email || profile.id}: ${detail}`);
+  };
+
+  const callRpc = async (profile, rpc, errorLabel) => {
+    setBusy(profile.id, true);
+    const res = await rpc(profile.id);
+    setBusy(profile.id, false);
+    if (res.ok && res.profile) {
+      setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, ...res.profile } : p));
+      return true;
+    }
+    const detail =
+      res.reason === "self-revoke"        ? "vous ne pouvez pas révoquer votre propre accès" :
+      res.reason === "not-admin"          ? "droits administrateur requis" :
+      res.reason === "profile-not-found"  ? "profil introuvable" :
+      res.reason === "not-authenticated"  ? "session expirée" :
+      (res.reason || "erreur");
+    setErrorMsg(`${errorLabel} pour ${profile.email || profile.id}: ${detail}`);
+    return false;
   };
 
   const disable = async (profile) => {
@@ -92,11 +153,11 @@ export default function ModuleAdmin({ currentProfile }) {
       setErrorMsg("Vous ne pouvez pas désactiver votre propre compte.");
       return;
     }
-    await applyPatch(profile, { status: "disabled" }, "Échec de désactivation");
+    await callRpc(profile, revokeUserAccess, "Échec de désactivation");
   };
 
   const reenable = async (profile) => {
-    await applyPatch(profile, { status: "approved" }, "Échec de réactivation");
+    await callRpc(profile, restoreUserAccess, "Échec de réactivation");
   };
 
   const assignOrg = async (profile, organization_id) => {
@@ -140,17 +201,21 @@ export default function ModuleAdmin({ currentProfile }) {
             {buckets.pending.length === 0 ? (
               <Empty>Aucune demande en attente.</Empty>
             ) : buckets.pending.map(p => {
-              const selectedRole = pendingRoleById[p.id] ?? (p.role || "viewer");
+              const selectedRole = pendingRoleById[p.id] ?? (p.role || "hrbp");
               const selectedOrg  = pendingOrgById[p.id]  ?? (p.organization_id || "");
               const busy = !!busyById[p.id];
+              // Non-super_admin viewers can only assign 'admin' or 'hrbp' here:
+              // attempting to grant 'super_admin' would be rejected by the
+              // privileged-fields trigger; hide the option to avoid surprises.
+              const roleOptions = isSuperAdmin ? ROLES : ROLES.filter(r => r !== "super_admin");
               return (
                 <Row key={p.id} profile={p} orgNameById={orgNameById}>
                   <select value={selectedRole}
                     onChange={e => setRoleFor(p.id, e.target.value)}
                     disabled={busy}
                     title="Rôle"
-                    style={{ ...css.select, width: 100, padding:"6px 8px", fontSize: 12 }}>
-                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    style={{ ...css.select, width: 130, padding:"6px 8px", fontSize: 12 }}>
+                    {roleOptions.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                   </select>
                   <OrgSelect organizations={organizations} value={selectedOrg}
                     onChange={v => setOrgFor(p.id, v)} disabled={busy}/>
@@ -173,11 +238,9 @@ export default function ModuleAdmin({ currentProfile }) {
               const isSelf = p.id === currentProfile?.id;
               return (
                 <Row key={p.id} profile={p} orgNameById={orgNameById}>
-                  <span style={{ fontSize: 11, color: C.textM, fontWeight: 500,
-                    padding:"3px 8px", background: C.surfL, borderRadius: 4,
-                    border: `1px solid ${C.border}` }}>
-                    {p.role || "viewer"}
-                  </span>
+                  <RoleControl profile={p} isSuperAdmin={isSuperAdmin}
+                    busy={busy} isSelf={isSelf}
+                    onChange={role => changeRole(p, role)}/>
                   <OrgSelect organizations={organizations} value={p.organization_id || ""}
                     onChange={v => assignOrg(p, v)} disabled={busy}/>
                   <button onClick={() => disable(p)} disabled={busy || isSelf}
@@ -199,12 +262,9 @@ export default function ModuleAdmin({ currentProfile }) {
             ) : buckets.disabled.map(p => {
               const busy = !!busyById[p.id];
               return (
-                <Row key={p.id} profile={p} orgNameById={orgNameById}>
-                  <span style={{ fontSize: 11, color: C.textM, fontWeight: 500,
-                    padding:"3px 8px", background: C.surfL, borderRadius: 4,
-                    border: `1px solid ${C.border}` }}>
-                    {p.role || "viewer"}
-                  </span>
+                <Row key={p.id} profile={p} orgNameById={orgNameById}
+                  badge={<RevokedBadge disabledAt={p.disabled_at}/>}>
+                  <RoleBadge role={p.role}/>
                   <OrgSelect organizations={organizations} value={p.organization_id || ""}
                     onChange={v => assignOrg(p, v)} disabled={busy}/>
                   <button onClick={() => reenable(p)} disabled={busy}
@@ -261,15 +321,18 @@ function Empty({ children }) {
   );
 }
 
-function Row({ profile, orgNameById, children }) {
+function Row({ profile, orgNameById, badge, children }) {
   const orgName = profile.organization_id ? (orgNameById[profile.organization_id] || "—") : null;
   return (
     <div style={{ display:"flex", alignItems:"center", gap: 10, padding:"10px 12px",
       background: C.surf, border:`1px solid ${C.border}`, borderRadius: 8 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, color: C.text, fontWeight: 500,
-          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-          {profile.email || <em style={{ color: C.textD }}>(sans email)</em>}
+        <div style={{ display:"flex", alignItems:"center", gap: 8, flexWrap:"wrap" }}>
+          <div style={{ fontSize: 13, color: C.text, fontWeight: 500,
+            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            {profile.email || <em style={{ color: C.textD }}>(sans email)</em>}
+          </div>
+          {badge}
         </div>
         <div style={{ fontSize: 10, color: C.textD, fontFamily:"'DM Mono',monospace",
           display:"flex", gap: 8, flexWrap:"wrap" }}>
@@ -279,6 +342,58 @@ function Row({ profile, orgNameById, children }) {
       </div>
       {children}
     </div>
+  );
+}
+
+function RevokedBadge({ disabledAt }) {
+  let suffix = "";
+  if (disabledAt) {
+    const d = new Date(disabledAt);
+    if (!Number.isNaN(d.getTime())) suffix = ` · ${d.toLocaleDateString("fr-CA")}`;
+  }
+  return (
+    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: .4, textTransform: "uppercase",
+      padding: "2px 7px", borderRadius: 4, background: C.red + "18",
+      border: `1px solid ${C.red}55`, color: C.red, whiteSpace: "nowrap" }}
+      title={disabledAt ? `Désactivé le ${disabledAt}` : "Accès révoqué"}>
+      Accès révoqué{suffix}
+    </span>
+  );
+}
+
+function RoleBadge({ role }) {
+  const r = ROLES.includes(role) ? role : "hrbp";
+  const s = ROLE_STYLE[r];
+  return (
+    <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: .3,
+      padding: "3px 8px", borderRadius: 4,
+      background: s.bg, border: `1px solid ${s.border}`, color: s.color,
+      whiteSpace: "nowrap", textAlign: "center", minWidth: 90 }}>
+      {ROLE_LABEL[r]}
+    </span>
+  );
+}
+
+// Approved-row role control: super_admin sees a dropdown that fires the RPC,
+// everyone else sees a read-only badge. We block self-demotion in the UI to
+// match the RPC's server-side check (the RPC would reject anyway).
+function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
+  const role = ROLES.includes(profile.role) ? profile.role : "hrbp";
+  if (!isSuperAdmin) return <RoleBadge role={role}/>;
+  return (
+    <select value={role}
+      onChange={e => onChange(e.target.value)}
+      disabled={busy}
+      title={isSelf ? "Vous ne pouvez pas vous rétrograder" : "Rôle"}
+      style={{ ...css.select, width: 130, padding:"6px 8px", fontSize: 12,
+        opacity: busy ? .6 : 1 }}>
+      {ROLES.map(r => (
+        <option key={r} value={r}
+          disabled={isSelf && r !== "super_admin"}>
+          {ROLE_LABEL[r]}
+        </option>
+      ))}
+    </select>
   );
 }
 
