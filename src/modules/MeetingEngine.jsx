@@ -951,6 +951,16 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
   const questions  = prep || PREP_QUESTIONS_DB;
   const activeEngine = ENGINE_TYPES.find(t => t.id === engineType);
 
+  // ── Cases liés au meeting courant (créés depuis ce meeting) ───────────────
+  const linkedCases = archivedMeetingId
+    ? (data.cases || []).filter(c => c && c.source === "meeting" && c.source_id === archivedMeetingId)
+    : [];
+
+  const openLinkedCase = (cid) => {
+    if (!cid || typeof onNavigate !== "function") return;
+    onNavigate("cases", { focusCaseId: cid });
+  };
+
   // ── FLOW STEPS ────────────────────────────────────────────────────────────
   const flowSteps = [
     { n:"1", label:"Contexte",           done:!!ctx.managerName,       tab:"context"  },
@@ -2158,6 +2168,45 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                           {(output.caseEntry.risque || output.caseEntry.riskLevel) && <Badge label={output.caseEntry.risque || output.caseEntry.riskLevel} color={RISK_C[output.caseEntry.risque||output.caseEntry.riskLevel]||C.textD} size={10}/>}
                         </div>
                         <div style={{fontSize:12,color:C.textM,lineHeight:1.6}}>{output.caseEntry.situation}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Cases liés (créés depuis ce meeting) ── */}
+                  {linkedCases.length > 0 && (
+                    <div style={{...css.card, borderLeft:`3px solid ${C.em}`, background:C.em+"06"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <Mono color={C.em} size={9}>📎 CASES LIÉS</Mono>
+                        <span style={{fontSize:10,color:C.textD}}>{linkedCases.length}</span>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {linkedCases.map(lc => {
+                          const riskColor = RISK_C[lc.riskLevel] || C.textD;
+                          const clickable = typeof onNavigate === "function";
+                          return (
+                            <div key={lc.id}
+                              onClick={clickable ? () => openLinkedCase(lc.id) : undefined}
+                              role={clickable ? "button" : undefined}
+                              tabIndex={clickable ? 0 : undefined}
+                              onKeyDown={clickable ? (e => { if (e.key === "Enter" || e.key === " ") openLinkedCase(lc.id); }) : undefined}
+                              style={{
+                                background:C.surfL, border:`1px solid ${C.border}`, borderRadius:7,
+                                padding:"8px 12px", display:"flex", alignItems:"center", gap:10,
+                                cursor: clickable ? "pointer" : "default", transition:"border-color .15s",
+                              }}
+                              onMouseEnter={clickable ? (e => { e.currentTarget.style.borderColor = C.em; }) : undefined}
+                              onMouseLeave={clickable ? (e => { e.currentTarget.style.borderColor = C.border; }) : undefined}>
+                              <div style={{flex:1, minWidth:0}}>
+                                <div style={{fontSize:12,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                                  {lc.title || "Sans titre"}
+                                </div>
+                              </div>
+                              {lc.type && <Badge label={lc.type} color={C.blue} size={9}/>}
+                              {lc.riskLevel && <Badge label={lc.riskLevel} color={riskColor} size={9}/>}
+                              {clickable && <span style={{fontSize:11,color:C.em,fontWeight:600}}>→</span>}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
