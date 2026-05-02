@@ -2,8 +2,13 @@
 -- Mirror of applied state on project dhemuvqwqtkrfmzflghx.
 --
 -- RLS is ENABLED on cases, meetings, investigations, briefs. Each table has
--- SELECT / INSERT / UPDATE policies for the `authenticated` role keyed
--- on auth.uid()::text = user_id. There is no DELETE policy.
+-- SELECT / INSERT / UPDATE / DELETE policies for the `authenticated` role
+-- keyed on private.has_org_access(organization_id) — super_admin sees all
+-- orgs, admin/hrbp see their own org (active only), disabled see none.
+-- Cutover from per-user (auth.uid()::text = user_id) policies happened in
+-- migration `hrbp_os_role_org_scoped_rls` (2026-04-29). user_id is still
+-- written by supabaseStore for last-writer/audit purposes but no longer
+-- gates visibility.
 --
 -- RLS is INTENTIONALLY OFF on profiles and organizations — filtering
 -- enforcement comes in a later step.
@@ -118,73 +123,112 @@ alter table public.investigations enable row level security;
 alter table public.meetings       enable row level security;
 alter table public.briefs         enable row level security;
 
--- cases
+-- cases — org-scoped via private.has_org_access (cutover migration
+-- `hrbp_os_role_org_scoped_rls`, 2026-04-29). The legacy `cases_*_own`
+-- policies were dropped by that migration; the drops are repeated here so
+-- a fresh schema apply lands in the right state regardless of starting point.
 drop policy if exists cases_select_own on public.cases;
-create policy cases_select_own on public.cases
-  for select to authenticated
-  using (auth.uid()::text = user_id);
-
 drop policy if exists cases_insert_own on public.cases;
-create policy cases_insert_own on public.cases
-  for insert to authenticated
-  with check (auth.uid()::text = user_id);
-
 drop policy if exists cases_update_own on public.cases;
-create policy cases_update_own on public.cases
-  for update to authenticated
-  using (auth.uid()::text = user_id)
-  with check (auth.uid()::text = user_id);
 
--- investigations
+drop policy if exists cases_select_org on public.cases;
+create policy cases_select_org on public.cases
+  for select to authenticated
+  using (private.has_org_access(organization_id));
+
+drop policy if exists cases_insert_org on public.cases;
+create policy cases_insert_org on public.cases
+  for insert to authenticated
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists cases_update_org on public.cases;
+create policy cases_update_org on public.cases
+  for update to authenticated
+  using (private.has_org_access(organization_id))
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists cases_delete_org on public.cases;
+create policy cases_delete_org on public.cases
+  for delete to authenticated
+  using (private.has_org_access(organization_id));
+
+-- investigations — same org-scoped cutover as cases.
 drop policy if exists investigations_select_own on public.investigations;
-create policy investigations_select_own on public.investigations
-  for select to authenticated
-  using (auth.uid()::text = user_id);
-
 drop policy if exists investigations_insert_own on public.investigations;
-create policy investigations_insert_own on public.investigations
-  for insert to authenticated
-  with check (auth.uid()::text = user_id);
-
 drop policy if exists investigations_update_own on public.investigations;
-create policy investigations_update_own on public.investigations
-  for update to authenticated
-  using (auth.uid()::text = user_id)
-  with check (auth.uid()::text = user_id);
 
--- meetings
+drop policy if exists investigations_select_org on public.investigations;
+create policy investigations_select_org on public.investigations
+  for select to authenticated
+  using (private.has_org_access(organization_id));
+
+drop policy if exists investigations_insert_org on public.investigations;
+create policy investigations_insert_org on public.investigations
+  for insert to authenticated
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists investigations_update_org on public.investigations;
+create policy investigations_update_org on public.investigations
+  for update to authenticated
+  using (private.has_org_access(organization_id))
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists investigations_delete_org on public.investigations;
+create policy investigations_delete_org on public.investigations
+  for delete to authenticated
+  using (private.has_org_access(organization_id));
+
+-- meetings — same org-scoped cutover as cases.
 drop policy if exists meetings_select_own on public.meetings;
-create policy meetings_select_own on public.meetings
-  for select to authenticated
-  using (auth.uid()::text = user_id);
-
 drop policy if exists meetings_insert_own on public.meetings;
-create policy meetings_insert_own on public.meetings
-  for insert to authenticated
-  with check (auth.uid()::text = user_id);
-
 drop policy if exists meetings_update_own on public.meetings;
-create policy meetings_update_own on public.meetings
-  for update to authenticated
-  using (auth.uid()::text = user_id)
-  with check (auth.uid()::text = user_id);
 
--- briefs
-drop policy if exists briefs_select_own on public.briefs;
-create policy briefs_select_own on public.briefs
+drop policy if exists meetings_select_org on public.meetings;
+create policy meetings_select_org on public.meetings
   for select to authenticated
-  using (auth.uid()::text = user_id);
+  using (private.has_org_access(organization_id));
 
-drop policy if exists briefs_insert_own on public.briefs;
-create policy briefs_insert_own on public.briefs
+drop policy if exists meetings_insert_org on public.meetings;
+create policy meetings_insert_org on public.meetings
   for insert to authenticated
-  with check (auth.uid()::text = user_id);
+  with check (private.has_org_access(organization_id));
 
-drop policy if exists briefs_update_own on public.briefs;
-create policy briefs_update_own on public.briefs
+drop policy if exists meetings_update_org on public.meetings;
+create policy meetings_update_org on public.meetings
   for update to authenticated
-  using (auth.uid()::text = user_id)
-  with check (auth.uid()::text = user_id);
+  using (private.has_org_access(organization_id))
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists meetings_delete_org on public.meetings;
+create policy meetings_delete_org on public.meetings
+  for delete to authenticated
+  using (private.has_org_access(organization_id));
+
+-- briefs — same org-scoped cutover as cases.
+drop policy if exists briefs_select_own on public.briefs;
+drop policy if exists briefs_insert_own on public.briefs;
+drop policy if exists briefs_update_own on public.briefs;
+
+drop policy if exists briefs_select_org on public.briefs;
+create policy briefs_select_org on public.briefs
+  for select to authenticated
+  using (private.has_org_access(organization_id));
+
+drop policy if exists briefs_insert_org on public.briefs;
+create policy briefs_insert_org on public.briefs
+  for insert to authenticated
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists briefs_update_org on public.briefs;
+create policy briefs_update_org on public.briefs
+  for update to authenticated
+  using (private.has_org_access(organization_id))
+  with check (private.has_org_access(organization_id));
+
+drop policy if exists briefs_delete_org on public.briefs;
+create policy briefs_delete_org on public.briefs
+  for delete to authenticated
+  using (private.has_org_access(organization_id));
 
 -- ── Auth → profile bootstrap ─────────────────────────────────────────────────
 -- Every new auth.users row gets a profile with status='pending', role='viewer'.
@@ -810,3 +854,51 @@ drop policy if exists audit_logs_insert_org on public.audit_logs;
 create policy audit_logs_insert_org on public.audit_logs
   as permissive for insert to authenticated
   with check ( private.has_org_access(organization_id) );
+
+-- ── case_templates (migration `hrbp_os_case_templates_table`) ────────────────
+-- Predefined case shells an HRBP can instantiate from. organization_id NULL
+-- means "global template" (cross-org, read-only for non-super); a non-null
+-- value scopes the template to that org. RLS:
+--   super_admin → all rows, full CRUD
+--   admin/hrbp  → SELECT own-org rows + globals; INSERT/UPDATE/DELETE only on
+--                 own-org rows (has_org_access(NULL) is false for non-super,
+--                 so policies reject mutations to globals server-side).
+--   disabled    → no rows
+create table if not exists public.case_templates (
+  id              uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) on delete cascade,
+  name            text not null,
+  default_data    jsonb not null default '{}'::jsonb,
+  default_tasks   jsonb not null default '[]'::jsonb,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists case_templates_org_idx  on public.case_templates(organization_id);
+create index if not exists case_templates_name_idx on public.case_templates(name);
+
+alter table public.case_templates enable row level security;
+
+drop policy if exists case_templates_select_org on public.case_templates;
+create policy case_templates_select_org on public.case_templates
+  as permissive for select to authenticated
+  using (
+    private.has_org_access(organization_id)
+    or (organization_id is null and private.is_active())
+    or (organization_id is null and private.is_super_admin())
+  );
+
+drop policy if exists case_templates_insert_org on public.case_templates;
+create policy case_templates_insert_org on public.case_templates
+  as permissive for insert to authenticated
+  with check ( private.has_org_access(organization_id) );
+
+drop policy if exists case_templates_update_org on public.case_templates;
+create policy case_templates_update_org on public.case_templates
+  as permissive for update to authenticated
+  using      ( private.has_org_access(organization_id) )
+  with check ( private.has_org_access(organization_id) );
+
+drop policy if exists case_templates_delete_org on public.case_templates;
+create policy case_templates_delete_org on public.case_templates
+  as permissive for delete to authenticated
+  using ( private.has_org_access(organization_id) );
