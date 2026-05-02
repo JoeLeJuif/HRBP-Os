@@ -12,6 +12,7 @@
 import { supabase } from "../lib/supabase.js";
 import { normalizeCase, normalizeInvestigation } from "../utils/normalize.js";
 import { normalizeMeetingOutput } from "../utils/meetingModel.js";
+import { bestEffortAudit, AUDIT_ACTIONS } from "./auditLog.js";
 
 function normalizeBrief(b) {
   if (!b || typeof b !== "object") return null;
@@ -58,6 +59,42 @@ async function getSessionOrgId(sessionUserId) {
     return _cachedOrgId;
   } catch {
     return null;
+  }
+}
+
+// Emit a per-case audit event by diffing the new normalized case against
+// its prior persisted row. Best-effort (fire-and-forget). No-op when the
+// case is unchanged.
+function emitCaseAudit(idStr, prev, norm) {
+  const prevData = prev && prev.data ? prev.data : null;
+  const prevTombstoned = prevData && prevData.__deleted === true;
+  if (!prev || prevTombstoned) {
+    void bestEffortAudit({
+      action: AUDIT_ACTIONS.CASE_CREATED,
+      entity_type: "case",
+      entity_id: idStr,
+      metadata: { status: norm.status },
+    });
+    return;
+  }
+  const prevStatus = prevData ? prevData.status : null;
+  if (prevStatus !== norm.status) {
+    void bestEffortAudit({
+      action: norm.status === "archived"
+        ? AUDIT_ACTIONS.CASE_ARCHIVED
+        : AUDIT_ACTIONS.CASE_STATUS_CHANGED,
+      entity_type: "case",
+      entity_id: idStr,
+      metadata: { prev_status: prevStatus, new_status: norm.status },
+    });
+    return;
+  }
+  if (JSON.stringify(prevData) !== JSON.stringify(norm)) {
+    void bestEffortAudit({
+      action: AUDIT_ACTIONS.CASE_UPDATED,
+      entity_type: "case",
+      entity_id: idStr,
+    });
   }
 }
 
@@ -145,6 +182,25 @@ export async function saveCases(cases, userId) {
   // Authoritative org tag: every saved case is stamped with the current
   // user's organization_id (null if the user is not assigned to one).
   const orgId = sessionOrgId || null;
+
+  // Pre-fetch existing rows for both deletion reconciliation AND audit diff.
+  // Single round-trip serves both purposes.
+  let prevById = new Map();
+  try {
+    const { data: existing, error: selErr } = await supabase
+      .from("cases")
+      .select("id, data, organization_id")
+      .eq("user_id", sessionUserId);
+    if (!selErr && Array.isArray(existing)) {
+      for (const ex of existing) {
+        if (ex && ex.id) prevById.set(ex.id, ex);
+      }
+    }
+  } catch {
+    // best-effort reconciliation; treat all incoming as "new" if read failed
+  }
+
+  // First loop: process incoming cases — build rows + emit per-case audit.
   for (const raw of cases) {
     const norm = normalizeCase(raw);
     if (!norm || !norm.id) continue;
@@ -155,33 +211,36 @@ export async function saveCases(cases, userId) {
       id: idStr,
       user_id: sessionUserId,
       data: norm,
+      // Top-level mirror of data.status for indexed queries. Canonical because
+      // normalizeCase guarantees norm.status is one of CASE_STATUSES.
+      status: norm.status,
       organization_id: orgId,
       updated_at: now,
     });
+    emitCaseAudit(idStr, prevById.get(idStr), norm);
   }
 
-  // Reconcile deletions: any DB row for this user not in the current list
-  // gets marked as a tombstone (RLS has no DELETE policy, only UPDATE).
-  try {
-    const { data: existing, error: selErr } = await supabase
-      .from("cases")
-      .select("id, data, organization_id")
-      .eq("user_id", sessionUserId);
-    if (!selErr && Array.isArray(existing)) {
-      for (const ex of existing) {
-        if (!ex || !ex.id || liveIds.has(ex.id)) continue;
-        if (ex.data && ex.data.__deleted === true) continue;
-        rows.push({
-          id: ex.id,
-          user_id: sessionUserId,
-          data: { id: ex.id, __deleted: true, deleted_at: now },
-          organization_id: ex.organization_id || null,
-          updated_at: now,
-        });
-      }
-    }
-  } catch {
-    // best-effort reconciliation
+  // Second loop: process deletions — build tombstones + emit case.archived.
+  // RLS has no DELETE policy, only UPDATE, so we soft-delete via __deleted.
+  for (const ex of prevById.values()) {
+    if (!ex || !ex.id || liveIds.has(ex.id)) continue;
+    if (ex.data && ex.data.__deleted === true) continue;
+    rows.push({
+      id: ex.id,
+      user_id: sessionUserId,
+      data: { id: ex.id, __deleted: true, deleted_at: now },
+      // Tombstones get 'archived' so the indexed column never carries
+      // an 'open'-looking value for a row the client has dropped.
+      status: "archived",
+      organization_id: ex.organization_id || null,
+      updated_at: now,
+    });
+    void bestEffortAudit({
+      action: AUDIT_ACTIONS.CASE_ARCHIVED,
+      entity_type: "case",
+      entity_id: ex.id,
+      metadata: { reason: "removed_from_client" },
+    });
   }
 
   if (rows.length === 0) return { ok: true, count: 0 };

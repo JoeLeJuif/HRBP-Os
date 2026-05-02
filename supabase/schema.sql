@@ -772,3 +772,41 @@ drop policy if exists employees_delete_org on public.employees;
 create policy employees_delete_org on public.employees
   as permissive for delete to authenticated
   using ( private.has_org_access(organization_id) );
+
+-- ── audit_logs (migration `hrbp_os_audit_logs_table`) ────────────────────────
+-- Append-only event log for case/task/employee mutations. Same RLS pattern
+-- as employees/case_tasks built on private.has_org_access(organization_id):
+--   super_admin → all rows
+--   admin/hrbp  → rows in their org (and active)
+--   disabled    → no rows
+-- Append-only: only SELECT and INSERT policies. No UPDATE/DELETE policy →
+-- RLS denies by default, so audit rows can't be tampered with from the
+-- client. organization_id is NOT NULL — every event belongs to an org.
+
+create table if not exists public.audit_logs (
+  id              uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  actor_id        uuid references auth.users(id) on delete set null,
+  action          text not null,
+  entity_type     text not null,
+  entity_id       text not null,
+  metadata        jsonb not null default '{}'::jsonb,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists audit_logs_org_idx        on public.audit_logs(organization_id);
+create index if not exists audit_logs_actor_idx      on public.audit_logs(actor_id);
+create index if not exists audit_logs_entity_idx     on public.audit_logs(entity_type, entity_id);
+create index if not exists audit_logs_created_at_idx on public.audit_logs(created_at desc);
+
+alter table public.audit_logs enable row level security;
+
+drop policy if exists audit_logs_select_org on public.audit_logs;
+create policy audit_logs_select_org on public.audit_logs
+  as permissive for select to authenticated
+  using ( private.has_org_access(organization_id) );
+
+drop policy if exists audit_logs_insert_org on public.audit_logs;
+create policy audit_logs_insert_org on public.audit_logs
+  as permissive for insert to authenticated
+  with check ( private.has_org_access(organization_id) );

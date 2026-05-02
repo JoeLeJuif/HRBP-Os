@@ -19,6 +19,7 @@
 // caseTasks. No module imports this file.
 
 import { supabase } from "../lib/supabase.js";
+import { bestEffortAudit, AUDIT_ACTIONS } from "./auditLog.js";
 
 const NO_CLIENT = { ok: false, reason: "no-client" };
 
@@ -130,6 +131,11 @@ export async function createEmployee(input) {
     .select(EMPLOYEE_COLS)
     .maybeSingle();
   if (error) return { ok: false, reason: "insert-error", error };
+  void bestEffortAudit({
+    action: AUDIT_ACTIONS.EMPLOYEE_CREATED,
+    entity_type: "employee",
+    entity_id: data && data.id ? data.id : "",
+  });
   return { ok: true, employee: data };
 }
 
@@ -169,6 +175,11 @@ export async function updateEmployee(id, patch) {
     .select(EMPLOYEE_COLS)
     .maybeSingle();
   if (error) return { ok: false, reason: "update-error", error };
+  void bestEffortAudit({
+    action: AUDIT_ACTIONS.EMPLOYEE_UPDATED,
+    entity_type: "employee",
+    entity_id: id,
+  });
   return { ok: true, employee: data };
 }
 
