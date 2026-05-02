@@ -272,19 +272,18 @@ Prépare la conversation d'accueil:
 // ── Situation detection engine ────────────────────────────────────────────────
 export function detectSituations(data) {
   const situations = [];
-  // Filtre cas par statut + priorité (statuts réels: open/active/pending/resolved/closed/escalated)
-  // Exclus: resolved, closed. Priorité: escalated > active/open > pending (conditionnel)
+  // Filtre cas par statut + priorité (statuts canoniques: open/in_progress/waiting/closed/archived).
+  // Exclus: closed, archived. Priorité: in_progress/open > waiting (conditionnel).
   const _allCases = (data.cases || []).filter(c => !c.archived);
-  const _escalated = _allCases.filter(c => c.status === "escalated");
-  const _active    = _allCases.filter(c => c.status === "active" || c.status === "open");
-  const _pending   = _allCases.filter(c => {
-    if (c.status !== "pending") return false;
+  const _active    = _allCases.filter(c => c.status === "open" || c.status === "in_progress");
+  const _waiting   = _allCases.filter(c => {
+    if (c.status !== "waiting") return false;
     const updatedRecently = c.updatedAt &&
       (Date.now() - new Date(c.updatedAt).getTime()) < 14 * 24 * 60 * 60 * 1000;
     const highImportance = c.riskLevel === "Critique" || c.riskLevel === "Élevé" || c.riskLevel === "Eleve";
     return updatedRecently || highImportance;
   });
-  const cases = [..._escalated, ..._active, ..._pending];
+  const cases = [..._active, ..._waiting];
   const meetings = (data.meetings||[]).slice().reverse().slice(0,10);
   const signals  = (data.signals||[]).slice().reverse().slice(0,8);
   const radar    = (data.radars||[])[0]?.radar;

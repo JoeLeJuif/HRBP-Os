@@ -1,6 +1,14 @@
 // ── AI API HELPERS ────────────────────────────────────────────────────────────
 // Source: HRBP_OS.jsx L.266-344
 import { normalizeAIData } from '../utils/normalize.js';
+import { getLang } from '../lib/i18n.js';
+
+// Centralized: appended to every system prompt so every AI call respects the user's UI language.
+function buildLanguageDirective() {
+  const lang = getLang();
+  const langName = lang === "fr" ? "French" : "English";
+  return `\n\n---\n\n## RESPONSE LANGUAGE\n\nAlways respond in the user's selected language.\nCurrent language: ${langName}.\nDo not translate employee names, case notes, job titles, or user-entered content unless explicitly asked.`;
+}
 
 // Core fetch — calls /api/chat (Vercel proxy with API key)
 export async function _apiFetch(system, userContent, maxTokens) {
@@ -12,7 +20,7 @@ export async function _apiFetch(system, userContent, maxTokens) {
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        system: system,
+        system: (system || "") + buildLanguageDirective(),
         max_tokens: maxTokens || 2000,
         messages: [{ role: "user", content: userContent }],
       }),

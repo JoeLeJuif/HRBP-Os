@@ -12,12 +12,15 @@ import Divider from '../components/Divider.jsx';
 import ProvinceBadge from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import CaseBrief from '../components/CaseBrief.jsx';
+import { useT, t as tFn } from '../lib/i18n.js';
+import { tStatus, tRisk, tDecisionStatus, tDecisionRisk } from '../lib/i18nEnums.js';
 
 // Inline shared helper (used in multiple modules, to be reviewed at Bloc 7)
 function RiskBadge({ level }) {
+  const { t } = useT();
   const norm = normalizeRisk(level);
   const r = RISK[norm] || RISK["Modéré"];
-  return <Badge label={norm} color={r.color} />;
+  return <Badge label={tRisk(t, norm)} color={r.color} />;
 }
 
 // Inline data constants (Source: L.1742-1768)
@@ -36,13 +39,14 @@ const CASE_TYPES = [
   {id:"investigation",label:"Enquête",icon:"⚖",color:"#7a1e2e"},
 ];
 const STATUSES = [
-  {id:"open",label:"Ouvert",color:C.blue},
-  {id:"active",label:"Actif",color:C.amber},
-  {id:"pending",label:"En attente",color:C.purple},
-  {id:"resolved",label:"Résolu",color:C.em},
-  {id:"closed",label:"Fermé",color:C.textD},
-  {id:"escalated",label:"Escaladé",color:C.red},
+  {id:"open",        label:"Ouvert",     color:C.blue},
+  {id:"in_progress", label:"En cours",   color:C.amber},
+  {id:"waiting",     label:"En attente", color:C.purple},
+  {id:"closed",      label:"Fermé",      color:C.textD},
+  {id:"archived",    label:"Archivé",    color:C.textD},
 ];
+const ACTIVE_STATUSES = ["open","in_progress","waiting"];
+const INACTIVE_STATUSES = ["closed","archived"];
 const URGENCY_C    = {"Immediat":C.red,"Cette semaine":C.amber,"Ce mois":C.blue,"En veille":C.textD};
 const EVO_C        = {"Nouveau":C.blue,"En cours":C.amber,"Aggravé":C.red,"En amélioration":C.teal,"Bloqué":C.red,"Résolu":C.em};
 const HR_POSTURE_C = {"Partenaire":C.blue,"Garant":C.red,"Coach":C.teal,"Neutre":C.textD,"Enquêteur":"#7a1e2e"};
@@ -65,7 +69,7 @@ const CASE_TO_ENGINE = {
 };
 const mapCaseTypeToEngineType = (caseType) => CASE_TO_ENGINE[caseType] || "1on1";
 
-const EMPTY_FORM = { title:"", type:"conflict_ee", riskLevel:"Modéré", status:"active",
+const EMPTY_FORM = { title:"", type:"conflict_ee", riskLevel:"Modéré", status:"open",
   director:"", employee:"", department:"", openDate:new Date().toISOString().split("T")[0],
   province:"QC",
   situation:"", interventionsDone:"", hrPosition:"", decision:"", nextFollowUp:"",
@@ -92,6 +96,7 @@ function fl(label, child) {
 // When typing in the form, React sees <CaseForm>→<CaseForm>: same type →
 // reconcile only → inputs keep their DOM nodes → focus is preserved.
 function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) {
+  const { t } = useT();
   const SF = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const FO = { onFocus:e=>e.target.style.borderColor=C.em+"60", onBlur:e=>e.target.style.borderColor=C.border };
 
@@ -101,63 +106,63 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
     <form autoComplete="off" onSubmit={e => e.preventDefault()} style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
         <button type="button" onClick={onCancel}
-          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← {t("common.back")}</button>
         <div style={{ fontSize:17, fontWeight:700, color:C.text }}>
-          {editId ? "Modifier le dossier" : "Nouveau dossier"}
+          {editId ? t("case.form.heading.edit") : t("case.form.heading.new")}
         </div>
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        {fl("Titre du dossier *",
+        {fl(t("case.form.title"),
           <input value={form.title} onChange={SF("title")}
-            placeholder="Ex: Conflit infra Nolan-Laroche" style={css.input}
+            placeholder={t("case.form.ph.title")} style={css.input}
             autoComplete="off" {...FO}/>
         )}
-        {fl("Date d'ouverture",
+        {fl(t("case.form.openDate"),
           <input value={form.openDate} onChange={SF("openDate")}
             style={css.input} autoComplete="off" {...FO}/>
         )}
-        {fl("Type de dossier",
+        {fl(t("case.form.type"),
           <select value={form.type} onChange={SF("type")} style={css.select}>
             {CASE_TYPES.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
           </select>
         )}
-        {fl("Statut",
+        {fl(t("case.form.status"),
           <select value={form.status} onChange={SF("status")} style={css.select}>
-            {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {STATUSES.map(s => <option key={s.id} value={s.id}>{tStatus(t, s.id)}</option>)}
           </select>
         )}
-        {fl("Niveau de risque",
+        {fl(t("case.form.risk"),
           <select value={form.riskLevel} onChange={SF("riskLevel")} style={css.select}>
-            {["Critique","Élevé","Modéré","Faible"].map(r => <option key={r} value={r}>{r}</option>)}
+            {["Critique","Élevé","Modéré","Faible"].map(r => <option key={r} value={r}>{tRisk(t, r)}</option>)}
           </select>
         )}
-        {fl("Directeur concerné",
+        {fl(t("case.form.director"),
           <input value={form.director} onChange={SF("director")}
-            placeholder="Nom du directeur" style={css.input}
+            placeholder={t("case.form.ph.director")} style={css.input}
             autoComplete="off" {...FO}/>
         )}
-        {fl("Employé / Groupe concerné",
+        {fl(t("case.form.employee"),
           <input value={form.employee} onChange={SF("employee")}
-            placeholder="Prénom, rôle ou groupe" style={css.input}
+            placeholder={t("case.form.ph.employee")} style={css.input}
             autoComplete="off" {...FO}/>
         )}
-        {fl("Département / Équipe",
+        {fl(t("case.form.department"),
           <input value={form.department} onChange={SF("department")}
-            placeholder="Ex: IT Infrastructure" style={css.input}
+            placeholder={t("case.form.ph.department")} style={css.input}
             autoComplete="off" {...FO}/>
         )}
-        {fl("Province",
+        {fl(t("common.province"),
           <ProvinceSelect
             value={form.province||defaultProvince||"QC"}
             onChange={e=>setForm(f=>({...f,province:e.target.value}))}/>
         )}
-        {fl("Responsable (owner)",
+        {fl(t("case.form.owner"),
           <select value={form.owner||"HRBP"} onChange={SF("owner")} style={css.select}>
             {["HRBP","Gestionnaire","HRBP + Gestionnaire","Direction"].map(o=><option key={o} value={o}>{o}</option>)}
           </select>
         )}
-        {fl("Portée du dossier",
+        {fl(t("case.form.scope"),
           <select value={form.scope||"leader"} onChange={SF("scope")} style={css.select}>
             <option value="leader">Leader / Gestionnaire</option>
             <option value="individual">Employé / Individuel</option>
@@ -165,18 +170,18 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
             <option value="org">Organisation / Projet</option>
           </select>
         )}
-        {fl("Urgence",
+        {fl(t("case.form.urgency"),
           <select value={form.urgency||"Cette semaine"} onChange={SF("urgency")} style={css.select}>
             {["Immediat","Cette semaine","Ce mois","En veille"].map(u=><option key={u} value={u}>{u}</option>)}
           </select>
         )}
-        {fl("Évolution (optionnel)",
+        {fl(t("case.form.evolution"),
           <select value={form.evolution||""} onChange={SF("evolution")} style={css.select}>
             <option value="">— Non renseignée</option>
             {["Nouveau","En cours","Aggravé","En amélioration","Bloqué","Résolu"].map(ev=><option key={ev} value={ev}>{ev}</option>)}
           </select>
         )}
-        {fl("Posture RH (optionnel)",
+        {fl(t("case.form.hrPosture"),
           <select value={form.hrPosture||""} onChange={SF("hrPosture")} style={css.select}>
             <option value="">— Non renseignée</option>
             {["Partenaire","Garant","Coach","Neutre","Enquêteur"].map(p=><option key={p} value={p}>{p}</option>)}
@@ -184,49 +189,49 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
         )}
       </div>
 
-      {fl("Description de la situation",
+      {fl(t("case.form.situation"),
         <textarea rows={3} value={form.situation} onChange={SF("situation")}
-          placeholder="Description factuelle et concise de la situation…" style={css.textarea}
+          placeholder={t("case.form.ph.situation")} style={css.textarea}
           autoComplete="off" {...FO}/>
       )}
-      {fl("Interventions / Actions faites",
+      {fl(t("case.form.interventions"),
         <textarea rows={2} value={form.interventionsDone} onChange={SF("interventionsDone")}
-          placeholder="Interventions, conversations, documents produits…" style={css.textarea}
+          placeholder={t("case.form.ph.interventions")} style={css.textarea}
           autoComplete="off" {...FO}/>
       )}
-      {fl("Position RH recommandée",
+      {fl(t("case.form.hrPosition"),
         <textarea rows={2} value={form.hrPosition} onChange={SF("hrPosition")}
-          placeholder="Recommandation formelle ou en cours…" style={css.textarea}
+          placeholder={t("case.form.ph.hrPosition")} style={css.textarea}
           autoComplete="off" {...FO}/>
       )}
-      {fl("Décision prise",
+      {fl(t("case.form.decision"),
         <textarea rows={2} value={form.decision||""} onChange={SF("decision")}
-          placeholder="Décision formelle prise ou en attente…" style={css.textarea}
+          placeholder={t("case.form.ph.decision")} style={css.textarea}
           autoComplete="off" {...FO}/>
       )}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        {fl("Prochain suivi (libre)",
+        {fl(t("case.form.nextFollowUp"),
           <input value={form.nextFollowUp} onChange={SF("nextFollowUp")}
-            placeholder="Ex: 16 mars 2026" style={css.input}
+            placeholder={t("case.form.ph.nextFollowUp")} style={css.input}
             autoComplete="off" {...FO}/>
         )}
-        {fl("Échéance (date)",
+        {fl(t("case.form.dueDate"),
           <input type="date" value={form.dueDate||""} onChange={SF("dueDate")}
             style={css.input} {...FO}/>
         )}
       </div>
-      {fl("Notes HRBP",
+      {fl(t("case.form.notes"),
         <textarea rows={2} value={form.notes} onChange={SF("notes")}
-          placeholder="Patterns organisationnels, liens avec d'autres dossiers…" style={css.textarea}
+          placeholder={t("case.form.ph.notes")} style={css.textarea}
           autoComplete="off" {...FO}/>
       )}
 
       <div style={{ display:"flex", gap:10, marginTop:8 }}>
         <button type="button" onClick={onSave} disabled={!form.title}
           style={{ ...css.btn(C.em), flex:1, opacity:form.title?1:.4 }}>
-          {editId ? "💾 Mettre à jour" : "💾 Créer le dossier"}
+          {editId ? `💾 ${t("common.update")}` : `💾 ${t("common.create")}`}
         </button>
-        <button type="button" onClick={onCancel} style={{ ...css.btn(C.textM, true) }}>Annuler</button>
+        <button type="button" onClick={onCancel} style={{ ...css.btn(C.textM, true) }}>{t("common.cancel")}</button>
       </div>
     </form>
   );
@@ -273,7 +278,7 @@ function formatCaseForClipboard(c, data) {
   if (linkedDecs.length > 0) {
     lines.push(""); lines.push(`${secSep}DÉCISIONS LIÉES (${linkedDecs.length})`);
     linkedDecs.forEach(d => {
-      const statusLabel = d.status ? {draft:"Brouillon",decided:"Décidé",reviewed:"Révisé",archived:"Archivé"}[d.status] || "" : "";
+      const statusLabel = d.status ? tDecisionStatus(tFn, d.status) : "";
       lines.push(`• ${d.title || "Décision RH"}${statusLabel ? ` [${statusLabel}]` : ""}${d.decisionDate ? ` — ${d.decisionDate}` : ""}`);
       if (d.decisionRationale) lines.push(`  Justification : ${d.decisionRationale}`);
       if (d.selectedOption)    lines.push(`  Option retenue : ${d.selectedOption}`);
@@ -285,9 +290,8 @@ function formatCaseForClipboard(c, data) {
   const tlEvents = [];
   const created = c.createdAt || c.savedAt || c.openDate;
   if (created) tlEvents.push({ date: created, label: "Dossier ouvert" });
-  if ((c.status === "resolved" || c.status === "closed") && (c.closedDate || c.savedAt))
-    tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "resolved" ? "Dossier résolu" : "Dossier fermé" });
-  if (c.status === "escalated") tlEvents.push({ date: c.savedAt || created, label: "Dossier escaladé" });
+  if ((c.status === "closed" || c.status === "archived") && (c.closedDate || c.savedAt))
+    tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "archived" ? "Dossier archivé" : "Dossier fermé" });
   if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "Échéance" + (c.nextFollowUp ? ` — ${c.nextFollowUp}` : "") });
   linkedDecs.forEach(d => {
     tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: `⚖ ${d.title || "Décision RH"}`, sub: d.summary || d.rationale || "" });
@@ -330,6 +334,7 @@ function formatCaseForClipboard(c, data) {
 }
 
 export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
+  const { t } = useT();
   const [view, setView] = useState("list"); // list | form | detail
   const [form, setForm] = useState({...EMPTY_FORM});
   const [editId, setEditId] = useState(null);
@@ -372,7 +377,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
 
   const save = () => {
     const today = new Date().toISOString().split("T")[0];
-    const isClosing = form.status === "resolved" || form.status === "closed";
+    const isClosing = form.status === "closed" || form.status === "archived";
     const closedDate = isClosing ? (form.closedDate || today) : "";
     const allCases = data.cases || [];
     const existingCase = editId ? allCases.find(c => c.id === editId) : null;
@@ -389,6 +394,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const updated = (data.cases || []).map(c => c.id === id ? {
       ...c,
       archived: true,
+      status: "archived",
       archivedAt: now,
       archivedReason: "user_archived",
     } : c);
@@ -442,7 +448,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const isClosed = c.closure === "closed";
     return <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
-        <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+        <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← {t("common.back")}</button>
         <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{c.title}</div>
         <button onClick={async () => {
             const text = formatCaseForClipboard(c, data);
@@ -451,10 +457,10 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
             setCopied(true); setTimeout(() => setCopied(false), 2000);
           }}
           style={{ ...css.btn(copied ? C.em : C.textM, true), padding:"6px 14px", fontSize:12 }}>
-          {copied ? "✓ Copié !" : "📋 Copier"}</button>
+          {copied ? `✓ ${t("common.copied")}` : `📋 ${t("common.copy")}`}</button>
         <button onClick={() => openEdit(c)} disabled={isArchived}
-          title={isArchived ? "Dossier archivé — édition désactivée" : "Modifier ce dossier"}
-          style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12, opacity:isArchived?.4:1, cursor:isArchived?"not-allowed":"pointer" }}>✏ Modifier</button>
+          title={isArchived ? t("case.detail.editArchivedTooltip") : t("case.detail.editTooltip")}
+          style={{ ...css.btn(C.blue, true), padding:"6px 14px", fontSize:12, opacity:isArchived?.4:1, cursor:isArchived?"not-allowed":"pointer" }}>✏ {t("common.edit")}</button>
         <button onClick={() => {
             sessionStorage.setItem("hrbpos:pendingDecision", JSON.stringify({
               linkedCaseId: c.id, caseTitle: c.title || "",
@@ -488,30 +494,30 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           isClosed
             ? <button onClick={() => setClosure(c.id, "open")}
                 title="Rouvrir ce dossier (le marquer comme actif)"
-                style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🔓 Réouvrir</button>
+                style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🔓 {t("case.action.reopen")}</button>
             : <button onClick={() => setClosure(c.id, "closed")}
                 title="Marquer ce dossier comme fermé (n'archive pas)"
-                style={{ ...css.btn(C.textD, true), padding:"6px 14px", fontSize:12 }}>🔒 Marquer comme fermé</button>
+                style={{ ...css.btn(C.textD, true), padding:"6px 14px", fontSize:12 }}>🔒 {t("case.action.markClosed")}</button>
         )}
-        {!isArchived && <button onClick={() => { if(window.confirm("Archiver ce dossier ?\n\nIl sera retiré des listes actives, mais restera préservé dans l'historique.")) archiveCase(c.id); }}
-          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>📦 Archiver</button>}
+        {!isArchived && <button onClick={() => { if(window.confirm(t("case.confirm.archive"))) archiveCase(c.id); }}
+          style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize:12 }}>📦 {t("case.action.archive")}</button>}
       </div>
       {isArchived && (
         <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", marginBottom:16,
           background:C.textD+"14", border:`1px solid ${C.textD}44`, borderLeft:`3px solid ${C.textD}`, borderRadius:8 }}>
           <span style={{ fontSize:14 }}>📦</span>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:12, fontWeight:600, color:C.text }}>Dossier archivé — lecture seule</div>
+            <div style={{ fontSize:12, fontWeight:600, color:C.text }}>{t("case.detail.archivedBanner")}</div>
             <Mono color={C.textD} size={9}>
-              {archivedDate ? `Archivé le ${archivedDate}` : "Conservé pour l'historique et l'audit"} · L'édition est désactivée
+              {archivedDate ? t("case.detail.archivedAt").replace("{date}", archivedDate) : t("case.detail.archivedKept")} · {t("case.detail.editingDisabled")}
             </Mono>
           </div>
         </div>
       )}
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         <RiskBadge level={c.riskLevel}/>
-        {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
-        {isClosed && <Badge label="🔒 Fermé" color={C.textD}/>}
+        {statusObj && <Badge label={tStatus(t, statusObj.id)} color={statusObj.color}/>}
+        {isClosed && <Badge label={`🔒 ${tStatus(t, "closed")}`} color={C.textD}/>}
         {typeObj && <Badge label={`${typeObj.icon} ${typeObj.label}`} color={typeObj.color}/>}
         {(() => { const tb = getCaseTimeBadge(c); return tb ? <Badge label={tb.label} color={tb.tone}/> : null; })()}
         {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD}/>}
@@ -556,19 +562,18 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
         const events = [];
         // Case creation
         const created = c.createdAt || c.savedAt || c.openDate;
-        if (created) events.push({ date: created, type:"case", icon:"📂", label:"Dossier ouvert", sub: c.title || "", color: C.blue });
+        if (created) events.push({ date: created, type:"case", icon:"📂", label:t("case.timeline.opened"), sub: c.title || "", color: C.blue });
         // Status changes
-        if (c.status === "resolved" || c.status === "closed") {
+        if (c.status === "closed" || c.status === "archived") {
           const closedD = c.closedDate || c.savedAt;
-          if (closedD) events.push({ date: closedD, type:"status", icon: c.status === "resolved" ? "✅" : "🔒",
-            label: c.status === "resolved" ? "Dossier résolu" : "Dossier fermé", sub:"", color: c.status === "resolved" ? C.em : C.textD });
+          if (closedD) events.push({ date: closedD, type:"status", icon: c.status === "archived" ? "📦" : "🔒",
+            label: c.status === "archived" ? t("case.timeline.archived") : t("case.timeline.closed"), sub:"", color: C.textD });
         }
-        if (c.status === "escalated") events.push({ date: c.savedAt || created, type:"status", icon:"🚨", label:"Dossier escaladé", sub:"", color: C.red });
         // Due date
-        if (c.dueDate) events.push({ date: c.dueDate, type:"deadline", icon:"⏰", label:"Échéance", sub: c.nextFollowUp || "", color: C.amber });
+        if (c.dueDate) events.push({ date: c.dueDate, type:"deadline", icon:"⏰", label:t("case.timeline.deadline"), sub: c.nextFollowUp || "", color: C.amber });
         // Linked decisions (B-05.2: enriched + clickable)
         (data.decisions || []).filter(d => d.linkedCaseId === c.id).forEach(d => {
-          const statusLabel = d.status ? {draft:"Brouillon",decided:"Décidé",reviewed:"Révisé",archived:"Archivé"}[d.status] || "" : "";
+          const statusLabel = d.status ? tDecisionStatus(t, d.status) : "";
           const excerpt = d.decisionRationale || d.selectedOption || d.background || "";
           events.push({ date: d.savedAt || d.decisionDate || d.createdAt, type:"decision", icon:"⚖",
             label: d.title || "Décision RH", sub: excerpt.length > 120 ? excerpt.slice(0,117)+"…" : excerpt, color: C.purple,
@@ -602,7 +607,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
         if (sorted.length === 0) return null;
         return (
           <Card style={{ marginTop: 14 }}>
-            <Mono color={C.textD} size={9} style={{ marginBottom: 12, display:"block" }}>TIMELINE</Mono>
+            <Mono color={C.textD} size={9} style={{ marginBottom: 12, display:"block" }}>{t("case.timeline.heading")}</Mono>
             <div style={{ position:"relative", paddingLeft:20 }}>
               {sorted.length > 1 && <div style={{ position:"absolute", left:5, top:4, bottom:4, width:2, background:C.border, borderRadius:1 }}/>}
               {sorted.map((ev, i) => {
@@ -624,17 +629,15 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
                       <span style={{ fontSize:11 }}>{ev.icon}</span>
                       <span style={{ fontSize:12, fontWeight:600, color: isDecision ? C.purple : C.text }}>{ev.label}</span>
-                      <Badge label={ev.type === "decision" ? "Décision" : ev.type === "deadline" ? "Échéance"
-                        : ev.type === "meeting" ? "Meeting" : ev.type === "signal" ? "Signal"
-                        : ev.type === "status" ? "Statut" : "Dossier"} color={ev.color} size={8}/>
+                      <Badge label={t(`case.timeline.badge.${ev.type === "status" ? "status" : ev.type}`) || t("case.timeline.badge.case")} color={ev.color} size={8}/>
                       {ev.decisionStatus && <Mono color={C.textM} size={8}>{ev.decisionStatus}</Mono>}
-                      {ev.decisionRisk && <RiskBadge level={({low:"Faible",medium:"Modéré",high:"Élevé"})[ev.decisionRisk]||ev.decisionRisk}/>}
+                      {ev.decisionRisk && <Badge label={tDecisionRisk(t, ev.decisionRisk)} color={({low:C.em, medium:C.amber, high:C.red})[ev.decisionRisk] || C.textD} size={9}/>}
                       <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", marginLeft:"auto" }}>
                         {fmtDate(ev.date)}
                       </span>
                     </div>
                     {ev.sub && <div style={{ fontSize:11, color:C.textM, lineHeight:1.4 }}>{ev.sub}</div>}
-                    {isDecision && <div style={{ fontSize:10, color:C.purple+"88", marginTop:2 }}>Cliquer pour ouvrir →</div>}
+                    {isDecision && <div style={{ fontSize:10, color:C.purple+"88", marginTop:2 }}>{t("case.detail.openDecisionHint")}</div>}
                   </Wrapper>
                 );
               })}
@@ -649,20 +652,20 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     <div style={{ maxWidth:860, margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Case Log</div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>{t("case.title")}</div>
           <div style={{ fontSize:12, color:C.textM }}>
-            {cases.length} dossier(s){filterArchived !== "archived" ? ` · ${cases.filter(c=>c.status==="active"||c.status==="open").length} actifs` : ""}
+            {cases.length} dossier(s){filterArchived !== "archived" ? ` · ${cases.filter(c=>ACTIVE_STATUSES.includes(c.status)).length} actifs` : ""}
           </div>
         </div>
         <button onClick={() => { setForm({...EMPTY_FORM}); setEditId(null); setView("form"); }} style={css.btn(C.em)}>
-          + Nouveau dossier
+          {t("case.new")}
         </button>
       </div>
 
       {/* Filters */}
       <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
         <input value={search} onChange={e=>setSearch(e.target.value)}
-          placeholder="🔍 Rechercher..." style={{ ...css.input, maxWidth:240 }}
+          placeholder={`🔍 ${t("common.search")}`} style={{ ...css.input, maxWidth:240 }}
           onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
         <div style={{ display:"flex", gap:4 }}>
           {["all",...STATUSES.map(s=>s.id)].map(s => {
@@ -673,16 +676,16 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
                 border:`1px solid ${filterStatus===s?(so?.color||C.em)+"44":C.border}`,
                 borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer",
                 fontFamily:"'DM Sans',sans-serif" }}>
-              {s==="all" ? "Tous" : so?.label}
+              {s==="all" ? t("common.all") : tStatus(t, so.id)}
             </button>;
           })}
         </div>
         <select value={filterProvince} onChange={e => setFilterProvince(e.target.value)} style={{ ...css.select, maxWidth:140, fontSize:11 }}>
-          <option value="">Province: Toutes</option>
+          <option value="">{t("common.province")}: {t("common.all")}</option>
           {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
         <div style={{ display:"flex", gap:4 }}>
-          {[{id:"active",label:"Actifs"},{id:"archived",label:"Archivés"},{id:"all",label:"Tous"}].map(opt => (
+          {[{id:"active",label:t("case.filter.active")},{id:"archived",label:t("case.filter.archived")},{id:"all",label:t("case.filter.all")}].map(opt => (
             <button key={opt.id} onClick={() => setFilterArchived(opt.id)}
               title={opt.id==="archived" ? "Afficher uniquement les dossiers archivés" : opt.id==="all" ? "Afficher tous les dossiers (actifs + archivés)" : "Afficher uniquement les dossiers actifs"}
               style={{ background:filterArchived===opt.id?C.textD+"22":"none",
@@ -697,13 +700,13 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
       </div>
 
       {/* Cases list */}
-      {filtered.length === 0 && <div style={{ textAlign:"center", padding:32, color:C.textM, fontSize:13 }}>Aucun dossier ne correspond aux filtres.</div>}
+      {filtered.length === 0 && <div style={{ textAlign:"center", padding:32, color:C.textM, fontSize:13 }}>{t("case.empty.noFilter")}</div>}
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {filtered.map((c,i) => {
           const r = RISK[c.riskLevel]||RISK["Modéré"];
           const typeObj = CASE_TYPES.find(t=>t.id===c.type);
           const statusObj = STATUSES.find(s=>s.id===c.status);
-          const isOverdue = c.dueDate && c.dueDate < todayISO && !["resolved","closed"].includes(c.status);
+          const isOverdue = c.dueDate && c.dueDate < todayISO && !INACTIVE_STATUSES.includes(c.status);
           const linkedDecisions = (data.decisions||[]).filter(d => d.linkedCaseId === c.id);
           const latestLinkedDecision = linkedDecisions.length > 0 ? [...linkedDecisions].sort((a,b) => (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||""))[0] : null;
           return <button key={c.id||i} onClick={() => { setDetail(c); setView("detail"); }}
@@ -718,8 +721,8 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
               </span>
               <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
                 <RiskBadge level={c.riskLevel}/>
-                {statusObj && <Badge label={statusObj.label} color={statusObj.color}/>}
-                {c.closure === "closed" && <Badge label="🔒 Fermé" color={C.textD} size={9}/>}
+                {statusObj && <Badge label={tStatus(t, statusObj.id)} color={statusObj.color}/>}
+                {c.closure === "closed" && <Badge label={`🔒 ${tStatus(t, "closed")}`} color={C.textD} size={9}/>}
                 {latestLinkedDecision && (onNavigate
                   ? <span onClick={(e)=>{e.stopPropagation();onNavigate("decisions",{focusDecisionId:latestLinkedDecision.id});}} style={{ cursor:"pointer" }} title={linkedDecisions.length === 1 ? "Ouvrir la décision liée" : `Ouvrir la plus récente (${linkedDecisions.length} liées)`}>
                       <Badge label={linkedDecisions.length === 1 ? "⚖ Décision" : `⚖ Décisions (${linkedDecisions.length})`} color={C.purple} size={9}/>
@@ -747,7 +750,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           </button>;
         })}
         {filtered.length === 0 && <div style={{ textAlign:"center", padding:"40px 20px", color:C.textD, fontSize:13 }}>
-          {search ? "Aucun résultat" : "Aucun dossier. Créez le premier ↑"}
+          {search ? t("case.empty.noResults") : t("case.empty.noCases")}
         </div>}
       </div>
     </div>

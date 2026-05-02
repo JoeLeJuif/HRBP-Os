@@ -18,7 +18,7 @@ function findSimilarCase(caseObj, allCases) {
   return (allCases || []).find(c =>
     c.id !== caseObj.id &&
     c.type === caseObj.type &&
-    (c.status === "resolved" || c.status === "closed")
+    (c.status === "closed" || c.status === "archived")
   ) || null;
 }
 

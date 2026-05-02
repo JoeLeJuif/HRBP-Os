@@ -583,7 +583,8 @@ export default function HRBPOS() {
 
       {/* ── SIDEBAR ── */}
       <div style={{ width:200, background:C.surf, borderRight:`1px solid ${C.border}`,
-        display:"flex", flexDirection:"column", flexShrink:0, padding:"16px 10px" }}>
+        display:"flex", flexDirection:"column", flexShrink:0, padding:"16px 10px",
+        height:"100vh", overflowY:"auto" }}>
 
         {/* Logo */}
         <div style={{ padding:"8px 10px", marginBottom:20 }}>

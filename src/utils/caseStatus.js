@@ -5,7 +5,10 @@
 
 import { C } from '../theme.js';
 
-export const INACTIVE_CASE_STATUSES = ["closed", "resolved", "done", "archived", "fermé", "ferme"];
+// Canonical inactive set is { closed, archived }. Legacy values stay listed so
+// that any case bypassing normalizeCase (e.g. raw Supabase row) is still classified
+// correctly until it next round-trips through normalize.
+export const INACTIVE_CASE_STATUSES = ["closed", "archived", "resolved", "done", "fermé", "ferme"];
 
 export function isCaseInactive(c) {
   if (!c) return false;

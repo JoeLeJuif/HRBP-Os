@@ -18,14 +18,8 @@ import {
   listAllProfiles, listOrganizations, updateProfile,
   revokeUserAccess, restoreUserAccess, setUserRole,
 } from "../lib/profile.js";
-
-const ROLES = ["super_admin", "admin", "hrbp"];
-
-const ROLE_LABEL = {
-  super_admin: "Super Admin",
-  admin:       "Admin",
-  hrbp:        "HRBP",
-};
+import { useT } from "../lib/i18n.js";
+import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
 
 // Background / border / text — picked from theme colors so badges read at a
 // glance without introducing new palette entries.
@@ -36,6 +30,7 @@ const ROLE_STYLE = {
 };
 
 export default function ModuleAdmin({ currentProfile }) {
+  const { t } = useT();
   const [profiles, setProfiles]         = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [status, setStatus]             = useState("loading"); // loading | ready | error
@@ -168,11 +163,11 @@ export default function ModuleAdmin({ currentProfile }) {
     <div style={{ maxWidth: 980 }}>
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-          Administration
+          {t("admin.title")}
         </div>
         <div style={{ fontSize: 12, color: C.textM }}>
-          Approuver, désactiver et assigner les organisations.
-          {currentProfile?.email && <> · Connecté : <b>{currentProfile.email}</b></>}
+          {t("admin.subtitle")}
+          {currentProfile?.email && <> · {t("admin.connectedAs")} : <b>{currentProfile.email}</b></>}
         </div>
       </div>
 
@@ -184,7 +179,7 @@ export default function ModuleAdmin({ currentProfile }) {
         <button onClick={refresh} disabled={status === "loading"}
           style={{ ...css.btn(C.em, true), padding:"6px 12px", fontSize:11,
             opacity: status === "loading" ? .6 : 1 }}>
-          {status === "loading" ? "Chargement…" : "Rafraîchir"}
+          {status === "loading" ? t("common.loading") : t("common.refresh")}
         </button>
       </div>
 
@@ -197,9 +192,9 @@ export default function ModuleAdmin({ currentProfile }) {
       {status === "ready" && (
         <>
           {/* ── PENDING ────────────────────────────────────────────────── */}
-          <Section title="Demandes en attente" count={buckets.pending.length} color={C.amber}>
+          <Section title={t("admin.section.pending")} count={buckets.pending.length} color={C.amber}>
             {buckets.pending.length === 0 ? (
-              <Empty>Aucune demande en attente.</Empty>
+              <Empty>{t("admin.empty.pending")}</Empty>
             ) : buckets.pending.map(p => {
               const selectedRole = pendingRoleById[p.id] ?? (p.role || "hrbp");
               const selectedOrg  = pendingOrgById[p.id]  ?? (p.organization_id || "");
@@ -215,14 +210,14 @@ export default function ModuleAdmin({ currentProfile }) {
                     disabled={busy}
                     title="Rôle"
                     style={{ ...css.select, width: 130, padding:"6px 8px", fontSize: 12 }}>
-                    {roleOptions.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                    {roleOptions.map(r => <option key={r} value={r}>{tRole(t, r)}</option>)}
                   </select>
                   <OrgSelect organizations={organizations} value={selectedOrg}
                     onChange={v => setOrgFor(p.id, v)} disabled={busy}/>
                   <button onClick={() => approve(p)} disabled={busy}
                     style={{ ...css.btn(C.em), padding:"6px 14px", fontSize: 12,
                       opacity: busy ? .6 : 1 }}>
-                    {busy ? "…" : "Approuver"}
+                    {busy ? "…" : t("admin.action.approve")}
                   </button>
                 </Row>
               );
@@ -230,9 +225,9 @@ export default function ModuleAdmin({ currentProfile }) {
           </Section>
 
           {/* ── APPROVED ───────────────────────────────────────────────── */}
-          <Section title="Utilisateurs approuvés" count={buckets.approved.length} color={C.em}>
+          <Section title={t("admin.section.approved")} count={buckets.approved.length} color={C.em}>
             {buckets.approved.length === 0 ? (
-              <Empty>Aucun utilisateur approuvé.</Empty>
+              <Empty>{t("admin.empty.approved")}</Empty>
             ) : buckets.approved.map(p => {
               const busy = !!busyById[p.id];
               const isSelf = p.id === currentProfile?.id;
@@ -248,7 +243,7 @@ export default function ModuleAdmin({ currentProfile }) {
                     style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize: 12,
                       opacity: (busy || isSelf) ? .5 : 1,
                       cursor: (busy || isSelf) ? "not-allowed" : "pointer" }}>
-                    {busy ? "…" : "Désactiver"}
+                    {busy ? "…" : t("admin.action.disable")}
                   </button>
                 </Row>
               );
@@ -256,9 +251,9 @@ export default function ModuleAdmin({ currentProfile }) {
           </Section>
 
           {/* ── DISABLED ───────────────────────────────────────────────── */}
-          <Section title="Utilisateurs désactivés" count={buckets.disabled.length} color={C.textM}>
+          <Section title={t("admin.section.disabled")} count={buckets.disabled.length} color={C.textM}>
             {buckets.disabled.length === 0 ? (
-              <Empty>Aucun utilisateur désactivé.</Empty>
+              <Empty>{t("admin.empty.disabled")}</Empty>
             ) : buckets.disabled.map(p => {
               const busy = !!busyById[p.id];
               return (
@@ -270,7 +265,7 @@ export default function ModuleAdmin({ currentProfile }) {
                   <button onClick={() => reenable(p)} disabled={busy}
                     style={{ ...css.btn(C.em), padding:"6px 14px", fontSize: 12,
                       opacity: busy ? .6 : 1 }}>
-                    {busy ? "…" : "Réactiver"}
+                    {busy ? "…" : t("admin.action.reenable")}
                   </button>
                 </Row>
               );
@@ -278,7 +273,7 @@ export default function ModuleAdmin({ currentProfile }) {
           </Section>
 
           {buckets.other.length > 0 && (
-            <Section title="Autres" count={buckets.other.length} color={C.textD}>
+            <Section title={t("admin.section.other")} count={buckets.other.length} color={C.textD}>
               {buckets.other.map(p => (
                 <Row key={p.id} profile={p} orgNameById={orgNameById}>
                   <span style={{ fontSize: 11, color: C.textD }}>status: {p.status || "—"}</span>
@@ -346,6 +341,7 @@ function Row({ profile, orgNameById, badge, children }) {
 }
 
 function RevokedBadge({ disabledAt }) {
+  const { t } = useT();
   let suffix = "";
   if (disabledAt) {
     const d = new Date(disabledAt);
@@ -355,13 +351,14 @@ function RevokedBadge({ disabledAt }) {
     <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: .4, textTransform: "uppercase",
       padding: "2px 7px", borderRadius: 4, background: C.red + "18",
       border: `1px solid ${C.red}55`, color: C.red, whiteSpace: "nowrap" }}
-      title={disabledAt ? `Désactivé le ${disabledAt}` : "Accès révoqué"}>
-      Accès révoqué{suffix}
+      title={disabledAt ? `Désactivé le ${disabledAt}` : t("admin.revokedBadge")}>
+      {t("admin.revokedBadge")}{suffix}
     </span>
   );
 }
 
 function RoleBadge({ role }) {
+  const { t } = useT();
   const r = ROLES.includes(role) ? role : "hrbp";
   const s = ROLE_STYLE[r];
   return (
@@ -369,7 +366,7 @@ function RoleBadge({ role }) {
       padding: "3px 8px", borderRadius: 4,
       background: s.bg, border: `1px solid ${s.border}`, color: s.color,
       whiteSpace: "nowrap", textAlign: "center", minWidth: 90 }}>
-      {ROLE_LABEL[r]}
+      {tRole(t, r)}
     </span>
   );
 }
@@ -378,6 +375,7 @@ function RoleBadge({ role }) {
 // everyone else sees a read-only badge. We block self-demotion in the UI to
 // match the RPC's server-side check (the RPC would reject anyway).
 function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
+  const { t } = useT();
   const role = ROLES.includes(profile.role) ? profile.role : "hrbp";
   if (!isSuperAdmin) return <RoleBadge role={role}/>;
   return (
@@ -390,7 +388,7 @@ function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
       {ROLES.map(r => (
         <option key={r} value={r}
           disabled={isSelf && r !== "super_admin"}>
-          {ROLE_LABEL[r]}
+          {tRole(t, r)}
         </option>
       ))}
     </select>
@@ -398,10 +396,11 @@ function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
 }
 
 function OrgSelect({ organizations, value, onChange, disabled }) {
+  const { t } = useT();
   if (!organizations || organizations.length === 0) {
     return (
       <span style={{ fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" }}>
-        aucune organisation
+        {t("admin.noOrganization")}
       </span>
     );
   }
@@ -411,7 +410,7 @@ function OrgSelect({ organizations, value, onChange, disabled }) {
       disabled={disabled}
       title="Organisation"
       style={{ ...css.select, width: 180, padding:"6px 8px", fontSize: 12 }}>
-      <option value="">— aucune —</option>
+      <option value="">{t("common.none")}</option>
       {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
     </select>
   );

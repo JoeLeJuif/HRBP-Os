@@ -22,7 +22,7 @@ function normalize(data) {
       type: "case",
       label: c.title || "(cas sans titre)",
       meta: [c.director, c.employee].filter(Boolean).join(" · "),
-      active: c.status === "active" || c.status === "escalated",
+      active: c.status === "open" || c.status === "in_progress",
       date: c.savedAt || c.createdAt || c.closedDate || "",
     });
   });

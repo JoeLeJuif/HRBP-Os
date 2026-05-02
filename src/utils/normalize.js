@@ -58,7 +58,26 @@ function _isoOrNull(v) {
 }
 
 const CASE_TYPES = ["performance","pip","conflict_ee","conflict_em","complaint","immigration","retention","promotion","return","reorg","exit","investigation"];
-const CASE_STATUSES = ["open","active","pending","resolved","closed","escalated"];
+// Canonical case statuses. `archived` doubles as a status value AND a boolean
+// flag (`c.archived === true`) for back-compat with the existing archive flow.
+export const CASE_STATUSES = ["open","in_progress","waiting","closed","archived"];
+export const CASE_STATUS_DEFAULT = "open";
+// Legacy → canonical migration. Applied in normalizeCase so old rows hydrate
+// to a valid value without a separate backfill script. Anything not in the
+// map and not already canonical falls back to the default.
+const LEGACY_STATUS_MAP = {
+  active: "in_progress",
+  pending: "waiting",
+  resolved: "closed",
+  escalated: "in_progress",
+};
+function _migrateStatus(s, archivedFlag) {
+  if (archivedFlag === true) return "archived";
+  const raw = typeof s === "string" ? s.trim().toLowerCase() : "";
+  if (!raw) return CASE_STATUS_DEFAULT;
+  if (CASE_STATUSES.indexOf(raw) !== -1) return raw;
+  return LEGACY_STATUS_MAP[raw] || CASE_STATUS_DEFAULT;
+}
 const CASE_OWNERS = ["HRBP","Gestionnaire","HRBP + Gestionnaire","Direction"];
 const CASE_SCOPES = ["leader","individual","team","org"];
 const CASE_URGENCIES = ["Immédiat","Cette semaine","Ce mois","En veille"];
@@ -88,7 +107,7 @@ export function normalizeCase(c) {
       title: _str(c.title).trim() || "(sans titre)",
       type: _pickEnum(_str(c.type).toLowerCase(), CASE_TYPES, "performance"),
       riskLevel: normalizeRisk(c.riskLevel),
-      status: _pickEnum(_str(c.status), CASE_STATUSES, "open"),
+      status: _migrateStatus(c.status, c.archived === true),
       director: _str(c.director).trim(),
       employee: _str(c.employee).trim(),
       department: _str(c.department).trim(),

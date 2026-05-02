@@ -6,6 +6,11 @@ import { C, css, RISK } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
 import { fmtDate } from '../utils/format.js';
 import { filterActiveCases } from '../utils/caseStatus.js';
+import { useT, plural } from '../lib/i18n.js';
+import { tDecisionStatus, tDecisionType, tDecisionRisk } from '../lib/i18nEnums.js';
+
+// Tiny replace-all interpolator for {placeholders} in translated strings.
+const interp = (s, vars) => Object.entries(vars).reduce((acc, [k, v]) => acc.replaceAll(`{${k}}`, v), s);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const DAY = 86400000;
@@ -45,10 +50,7 @@ function Empty({ msg }) {
 const URGENCY_C = { "Immediat":C.red, "Immédiat":C.red, "Cette semaine":C.amber, "Ce mois":C.blue, "En veille":C.textD };
 const SEV_C     = { "Critique":C.red, "Élevé":C.amber, "Eleve":C.amber, "Modéré":C.blue, "Modere":C.blue, "Faible":C.em };
 const DEC_RISK_C = { low:C.em, medium:C.amber, high:C.red };
-const DEC_RISK_L = { low:"Faible", medium:"Modéré", high:"Élevé" };
 const DEC_STATUS_C = { draft:C.textM, decided:C.em, reviewed:C.blue, archived:C.textD };
-const DEC_STATUS_L = { draft:"Brouillon", decided:"Décidé", reviewed:"Révisé", archived:"Archivé" };
-const DEC_TYPE_L = { discipline:"Discipline", performance:"Performance", organizational:"Organisationnel", talent:"Talent", legal:"Légal", other:"Autre" };
 
 // ── Brief source helpers ─────────────────────────────────────────────────────
 const BRIEF_URGENCY_C = { "Immediat":C.red, "Immédiat":C.red, "Cette semaine":C.amber, "Semaine prochaine":C.blue };
@@ -73,6 +75,7 @@ function buildNav(item) {
 
 // ── Module ────────────────────────────────────────────────────────────────────
 export default function ModuleHome({ data, onNavigate }) {
+  const { t } = useT();
   const goTo = (item) => {
     const { destination, ctx } = buildNav(item);
     onNavigate(destination, ctx);
@@ -116,10 +119,10 @@ export default function ModuleHome({ data, onNavigate }) {
 
   // ── KPIs ───────────────────────────────────────────────────────────────────
   const kpis = [
-    { label:"Active Cases",    value:activeCases.length,     color:C.blue,  sub:"en cours", nav:"cases" },
-    { label:"Overdue Reviews", value:overdueReviews.length,  color:overdueReviews.length>0?C.red:C.textD, sub:overdueReviews.length>0?"⚠ à revoir":"aucun", nav:"decisions" },
-    { label:"Urgent Items",    value:overdueCases.length + highRiskDecisions.length, color:(overdueCases.length+highRiskDecisions.length)>0?C.red:C.textD, sub:"high risk / overdue", nav:"cases" },
-    { label:"Pending Signals", value:pendingSignals.length,  color:pendingSignals.length>0?C.amber:C.textD, sub:"non traités", nav:"signals" },
+    { label:t("home.kpi.activeCases"),    value:activeCases.length,     color:C.blue,  sub:t("home.kpi.sub.inProgress"), nav:"cases" },
+    { label:t("home.kpi.overdueReviews"), value:overdueReviews.length,  color:overdueReviews.length>0?C.red:C.textD, sub:overdueReviews.length>0?t("home.kpi.sub.toReview"):t("home.kpi.sub.none"), nav:"decisions" },
+    { label:t("home.kpi.urgentItems"),    value:overdueCases.length + highRiskDecisions.length, color:(overdueCases.length+highRiskDecisions.length)>0?C.red:C.textD, sub:t("home.kpi.sub.highRisk"), nav:"cases" },
+    { label:t("home.kpi.pendingSignals"), value:pendingSignals.length,  color:pendingSignals.length>0?C.amber:C.textD, sub:t("home.kpi.sub.notHandled"), nav:"signals" },
   ];
 
   // ── Focus Today (brief-first, then fallback) ──────────────────────────────
@@ -139,15 +142,15 @@ export default function ModuleHome({ data, onNavigate }) {
 
   const fallbackFocusItems = [];
   if (highRiskDecisions.length > 0)
-    fallbackFocusItems.push({ icon:"⚖", text:`${highRiskDecisions.length} décision${highRiskDecisions.length>1?"s":""} à risque élevé à revoir`, color:C.red, nav:"decisions" });
+    fallbackFocusItems.push({ icon:"⚖", text:interp(plural(t, highRiskDecisions.length, "home.fallback.highRiskDec"), {n:highRiskDecisions.length}), color:C.red, nav:"decisions" });
   if (agedSignals.length > 0)
-    fallbackFocusItems.push({ icon:"📡", text:`${agedSignals.length} signal${agedSignals.length>1?"aux":""} non traité${agedSignals.length>1?"s":""} depuis plus de 7 jours`, color:C.amber, nav:"signals" });
+    fallbackFocusItems.push({ icon:"📡", text:interp(plural(t, agedSignals.length, "home.fallback.agedSignals"), {n:agedSignals.length}), color:C.amber, nav:"signals" });
   if (agedCases.length > 0)
-    fallbackFocusItems.push({ icon:"📂", text:`${agedCases.length} dossier${agedCases.length>1?"s":""} actif${agedCases.length>1?"s":""} depuis plus de 14 jours`, color:C.amber, nav:"cases" });
+    fallbackFocusItems.push({ icon:"📂", text:interp(plural(t, agedCases.length, "home.fallback.agedCases"), {n:agedCases.length}), color:C.amber, nav:"cases" });
   if (overdueReviews.length > 0)
-    fallbackFocusItems.push({ icon:"🔄", text:`${overdueReviews.length} suivi${overdueReviews.length>1?"s":""} en retard sur le Decision Log`, color:C.red, nav:"decisions" });
+    fallbackFocusItems.push({ icon:"🔄", text:interp(plural(t, overdueReviews.length, "home.fallback.overdueRev"), {n:overdueReviews.length}), color:C.red, nav:"decisions" });
   if (overdueCases.length > 0)
-    fallbackFocusItems.push({ icon:"⏰", text:`${overdueCases.length} dossier${overdueCases.length>1?"s":""} avec échéance dépassée`, color:C.red, nav:"cases" });
+    fallbackFocusItems.push({ icon:"⏰", text:interp(plural(t, overdueCases.length, "home.fallback.overdueCases"), {n:overdueCases.length}), color:C.red, nav:"cases" });
 
   const focusItems = briefFocusItems.length > 0 ? briefFocusItems : fallbackFocusItems;
   const topFocus = focusItems.slice(0, 4);
@@ -155,8 +158,8 @@ export default function ModuleHome({ data, onNavigate }) {
 
   const calmState = topFocus.length === 0
     ? (activeCases.length > 0
-        ? `Aucun point critique aujourd'hui. ${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""} à suivre cette semaine.`
-        : "Aucun point critique aujourd'hui.")
+        ? interp(plural(t, activeCases.length, "home.fallback.calmActive"), {n:activeCases.length})
+        : t("home.empty.noCritical"))
     : null;
 
   // ── Attention Required (brief-first, then fallback) ────────────────────────
@@ -198,7 +201,7 @@ export default function ModuleHome({ data, onNavigate }) {
     // insights risques systémiques
     if (li && li.risquesSystemiques) {
       briefAttentionItems.push({
-        sortKey: 3, type:"insight", id:"br_ins", title: "Risque systémique identifié",
+        sortKey: 3, type:"insight", id:"br_ins", title: t("home.badge.systemicRisk"),
         sub: typeof li.risquesSystemiques === "string" ? li.risquesSystemiques.substring(0, 120) : "",
         badge: { label: li.riskLevel || "Insight", color: BRIEF_RISK_C[li.riskLevel] || C.purple },
         nav: "brief",
@@ -208,7 +211,7 @@ export default function ModuleHome({ data, onNavigate }) {
     if (Array.isArray(lb.watchList) && lb.watchList.length > 0) {
       const existingTitlesLc = new Set(briefAttentionItems.map(it => it.title.toLowerCase()));
       const WATCH_CLASS_C = { activeRisk:C.amber, latentSignal:C.blue };
-      const WATCH_CLASS_L = { activeRisk:"Risque actif", latentSignal:"Signal latent" };
+      const WATCH_CLASS_L = { activeRisk:t("home.badge.activeRisk"), latentSignal:t("home.badge.latentSignal") };
       let wlCount = 0;
       for (const w of lb.watchList) {
         if (wlCount >= 2) break;
@@ -245,14 +248,14 @@ export default function ModuleHome({ data, onNavigate }) {
   }));
   highRiskDecisions.filter(d => !overdueReviews.includes(d)).forEach(d => fallbackAttentionItems.push({
     sortKey:2, type:"decision", id:d.id, title:d.title||"(décision)",
-    sub:[DEC_TYPE_L[d.decisionType]||d.decisionType, d.managerName].filter(Boolean).join(" · "),
-    badge:{ label:"Risque élevé", color:C.red }, nav:"decisions",
+    sub:[tDecisionType(t, d.decisionType), d.managerName].filter(Boolean).join(" · "),
+    badge:{ label:t("home.badge.highRisk"), color:C.red }, nav:"decisions",
   }));
   agedSignals.slice(0, 4).forEach(s => fallbackAttentionItems.push({
     sortKey:3, type:"signal", id:s.id, sourceId:s.id,
     title:s.analysis?.title || (s.signal||"Signal").substring(0, 60),
     sub:[s.analysis?.category, s.savedAt && `il y a ${daysBetween(todayISO, s.savedAt)}j`].filter(Boolean).join(" · "),
-    badge:{ label:s.analysis?.severity||"En attente", color:SEV_C[s.analysis?.severity]||C.amber }, nav:"signals",
+    badge:{ label:s.analysis?.severity || t("home.badge.pending"), color:SEV_C[s.analysis?.severity]||C.amber }, nav:"signals",
   }));
   agedCases.filter(c => !overdueCases.includes(c)).slice(0, 3).forEach(c => {
     const age = c.createdAt || c.savedAt;
@@ -320,15 +323,15 @@ export default function ModuleHome({ data, onNavigate }) {
 
   const fallbackReco = [];
   if (draftDecisions.length > 0)
-    fallbackReco.push({ icon:"⚖", label:`Compléter ${draftDecisions.length} décision${draftDecisions.length>1?"s":""} en brouillon`, color:C.red, nav:"decisions" });
+    fallbackReco.push({ icon:"⚖", label:interp(plural(t, draftDecisions.length, "home.fallback.completeDrafts"), {n:draftDecisions.length}), color:C.red, nav:"decisions" });
   if (pendingSignals.length > 0)
-    fallbackReco.push({ icon:"📡", label:`Traiter ${pendingSignals.length} signal${pendingSignals.length>1?"aux":""} en attente`, color:C.purple, nav:"signals" });
+    fallbackReco.push({ icon:"📡", label:interp(plural(t, pendingSignals.length, "home.fallback.handleSignals"), {n:pendingSignals.length}), color:C.purple, nav:"signals" });
   if (overdueCases.length > 0)
-    fallbackReco.push({ icon:"📂", label:`Relancer ${overdueCases.length} dossier${overdueCases.length>1?"s":""} en retard`, color:C.amber, nav:"cases" });
+    fallbackReco.push({ icon:"📂", label:interp(plural(t, overdueCases.length, "home.fallback.followCases"), {n:overdueCases.length}), color:C.amber, nav:"cases" });
   if (prep1on1.length === 0 || !prep1on1.some(p => p.date && p.date >= todayISO))
-    fallbackReco.push({ icon:"🗂️", label:"Préparer un prochain 1:1", color:C.blue, nav:"prep1on1" });
-  fallbackReco.push({ icon:"📊", label:"Générer un Weekly Brief", color:C.em, nav:"brief" });
-  fallbackReco.push({ icon:"🎙️", label:"Analyser une réunion", color:C.blue, nav:"meetings" });
+    fallbackReco.push({ icon:"🗂️", label:t("home.fallback.prepNext1on1"), color:C.blue, nav:"prep1on1" });
+  fallbackReco.push({ icon:"📊", label:t("home.fallback.weeklyBrief"), color:C.em, nav:"brief" });
+  fallbackReco.push({ icon:"🎙️", label:t("home.fallback.analyzeMeeting"), color:C.blue, nav:"meetings" });
 
   const reco = briefReco.length > 0 ? briefReco : fallbackReco;
   const recommended = reco.slice(0, 6);
@@ -339,12 +342,12 @@ export default function ModuleHome({ data, onNavigate }) {
   const headline = lb && lb.executiveSummary
     ? lb.executiveSummary
     : criticalCount > 0
-      ? `${criticalCount} item${criticalCount>1?"s":""} critique${criticalCount>1?"s":""} — ${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""}`
-      : `${activeCases.length} dossier${activeCases.length>1?"s":""} actif${activeCases.length>1?"s":""} · ${pendingSignals.length} signal${pendingSignals.length>1?"aux":""} en attente`;
+      ? interp(plural(t, criticalCount, "home.fallback.headlineCritical"), {cn:criticalCount, an:activeCases.length})
+      : interp(t("home.fallback.headlineCalm"), {ac:activeCases.length, ps:pendingSignals.length});
 
   // ── Brief source indicator ─────────────────────────────────────────────────
   const briefSourceLabel = lb
-    ? `📊 Brief ${lb.weekOf || fmtDate(latestBriefEntry.savedAt) || ""}`
+    ? `${t("home.brief.label")} ${lb.weekOf || fmtDate(latestBriefEntry.savedAt) || ""}`
     : null;
   const briefAgeMs = latestBriefEntry ? Date.now() - new Date(latestBriefEntry.savedAt || 0).getTime() : 0;
   const briefAgeDays = Math.floor(briefAgeMs / DAY);
@@ -368,13 +371,13 @@ export default function ModuleHome({ data, onNavigate }) {
             {briefIsStale && (
               <span style={{ fontSize:8, fontFamily:"'DM Mono',monospace", letterSpacing:.5,
                 color:C.amber, background:C.amber+"14", padding:"2px 6px", borderRadius:3 }}>
-                {briefAgeDays}j ancien
+                {interp(t("home.briefAgeDays"), {n:briefAgeDays})}
               </span>
             )}
             {lb.riskLevel && (
               <span style={{ fontSize:9, fontFamily:"'DM Mono',monospace", letterSpacing:.4,
                 color:BRIEF_RISK_C[lb.riskLevel]||C.textD, background:(BRIEF_RISK_C[lb.riskLevel]||C.textD)+"18",
-                padding:"2px 8px", borderRadius:4 }}>Risque {lb.riskLevel}</span>
+                padding:"2px 8px", borderRadius:4 }}>{t("home.briefRiskLabel")} {lb.riskLevel}</span>
             )}
           </div>
         )}
@@ -398,7 +401,7 @@ export default function ModuleHome({ data, onNavigate }) {
 
       {/* ── Focus Today ──────────────────────────────────────────────────── */}
       <Card style={{ marginBottom:14, borderLeft:`3px solid ${topFocus.length>0?C.red:C.em}` }}>
-        <SH icon="🎯" label="FOCUS TODAY" color={topFocus.length>0?C.red:C.em}
+        <SH icon="🎯" label={t("home.section.focusToday")} color={topFocus.length>0?C.red:C.em}
           sub={focusFromBrief ? "via brief" : ""}/>
         {calmState && <div style={{ fontSize:13, color:C.text, lineHeight:1.5 }}>{calmState}</div>}
         {topFocus.length > 0 && (
@@ -422,11 +425,11 @@ export default function ModuleHome({ data, onNavigate }) {
 
         {/* Left : Attention Required */}
         <Card>
-          <SH icon="⚠" label="ATTENTION REQUIRED" color={C.amber}
+          <SH icon="⚠" label={t("home.section.attentionRequired")} color={C.amber}
             sub={attentionTop.length > 0
-              ? `${attentionTop.length} item${attentionTop.length>1?"s":""}${attentionFromBrief?" · via brief":""}`
+              ? `${attentionTop.length} item${attentionTop.length>1?"s":""}${attentionFromBrief?t("home.viaBriefSuffix"):""}`
               : ""}/>
-          {attentionTop.length === 0 && <Empty msg="Aucun point critique aujourd'hui."/>}
+          {attentionTop.length === 0 && <Empty msg={t("home.empty.noCritical")}/>}
           {attentionTop.map((it,i) => (
             <Row key={it.type+it.id+i}
               onClick={()=>goTo(it)}
@@ -439,20 +442,20 @@ export default function ModuleHome({ data, onNavigate }) {
 
         {/* Right : Recent Decisions */}
         <Card>
-          <SH icon="⚖" label="RECENT DECISIONS" color={C.purple}
-            action={decisions.length>0 && <button onClick={()=>onNavigate("decisions")} style={{ background:"none", border:"none", color:C.purple, fontSize:10, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>VOIR TOUT →</button>}/>
-          {recentDecisions.length === 0 && <Empty msg="Aucune décision récente à afficher."/>}
+          <SH icon="⚖" label={t("home.section.recentDecisions")} color={C.purple}
+            action={decisions.length>0 && <button onClick={()=>onNavigate("decisions")} style={{ background:"none", border:"none", color:C.purple, fontSize:10, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>{t("home.viewAll")}</button>}/>
+          {recentDecisions.length === 0 && <Empty msg={t("home.empty.noDecisions")}/>}
           {recentDecisions.map((d,i) => {
             const isReviewDue = d.reviewDate && d.reviewDate < todayISO;
             const isReviewSoon = reviewDueSoon.includes(d);
             return <Row key={d.id||i}
               onClick={()=>onNavigate("decisions", { focusDecisionId: d.id })}
               left={d.title||"(sans titre)"}
-              sub={[DEC_TYPE_L[d.decisionType]||d.decisionType, d.managerName, d.decisionDate && fmtDate(d.decisionDate)].filter(Boolean).join(" · ")}
+              sub={[tDecisionType(t, d.decisionType), d.managerName, d.decisionDate && fmtDate(d.decisionDate)].filter(Boolean).join(" · ")}
               right={
                 <div style={{ display:"flex", gap:4 }}>
-                  <Badge label={DEC_RISK_L[d.riskLevel]||"—"} color={DEC_RISK_C[d.riskLevel]||C.textD} size={9}/>
-                  <Badge label={DEC_STATUS_L[d.status]||d.status} color={DEC_STATUS_C[d.status]||C.textD} size={9}/>
+                  <Badge label={tDecisionRisk(t, d.riskLevel) || "—"} color={DEC_RISK_C[d.riskLevel]||C.textD} size={9}/>
+                  <Badge label={tDecisionStatus(t, d.status)} color={DEC_STATUS_C[d.status]||C.textD} size={9}/>
                   {isReviewDue && <Badge label="Review due" color={C.red} size={9}/>}
                   {!isReviewDue && isReviewSoon && <Badge label="Review 7j" color={C.amber} size={9}/>}
                 </div>
@@ -466,7 +469,7 @@ export default function ModuleHome({ data, onNavigate }) {
       {/* ── Suivi récent (resolved watchList items) ──────────────────────── */}
       {resolvedItems.length > 0 && (
         <Card style={{ marginBottom:14, opacity:0.85 }}>
-          <SH icon="✅" label="SUIVI RÉCENT" color={C.textD} sub={`${resolvedItems.length} résolu${resolvedItems.length>1?"s":""}`}/>
+          <SH icon="✅" label={t("home.section.suiviRecent")} color={C.textD} sub={`${resolvedItems.length} résolu${resolvedItems.length>1?"s":""}`}/>
           {resolvedItems.map((w, i) => (
             <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"6px 0",
               borderBottom: i < resolvedItems.length - 1 ? `1px solid ${C.border}` : "none" }}>
@@ -483,14 +486,14 @@ export default function ModuleHome({ data, onNavigate }) {
       {/* ── Managers to Watch ────────────────────────────────────────────── */}
       {managers.length > 0 && (
         <Card style={{ marginBottom:14 }}>
-          <SH icon="👥" label="MANAGERS TO WATCH" color={C.blue}
-            action={<button onClick={()=>onNavigate("leaders")} style={{ background:"none", border:"none", color:C.blue, fontSize:10, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>LEADERS →</button>}/>
+          <SH icon="👥" label={t("home.section.managersToWatch")} color={C.blue}
+            action={<button onClick={()=>onNavigate("leaders")} style={{ background:"none", border:"none", color:C.blue, fontSize:10, cursor:"pointer", fontFamily:"'DM Mono',monospace", letterSpacing:1 }}>{t("home.viewAll")}</button>}/>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:8 }}>
             {managers.map((m,i) => {
-              const reason = m.highRisk > 0 ? `${m.highRisk} décision${m.highRisk>1?"s":""} à risque élevé`
-                : m.cases >= 2 ? `${m.cases} dossiers actifs`
-                : m.signals >= 2 ? `${m.signals} signaux en attente`
-                : `${m.total} items actifs`;
+              const reason = m.highRisk > 0 ? interp(plural(t, m.highRisk, "home.mgr.reason.highRisk"), {n:m.highRisk})
+                : m.cases >= 2 ? interp(t("home.mgr.reason.activeCases"), {n:m.cases})
+                : m.signals >= 2 ? interp(t("home.mgr.reason.pendingSignals"), {n:m.signals})
+                : interp(t("home.mgr.reason.activeItems"), {n:m.total});
               const accent = m.highRisk > 0 ? C.red : m.cases >= 2 ? C.amber : C.blue;
               return (
                 <button key={i} onClick={()=>{ sessionStorage.setItem("hrbpos:pendingLeader", m.name); onNavigate("leaders"); }} style={{
@@ -516,9 +519,9 @@ export default function ModuleHome({ data, onNavigate }) {
       {/* ── Recommended Actions ──────────────────────────────────────────── */}
       <div style={{ marginBottom:16 }}>
         <div style={{ marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
-          <Mono size={9} color={C.textD}>RECOMMENDED ACTIONS</Mono>
+          <Mono size={9} color={C.textD}>{t("home.section.recommendedActions")}</Mono>
           {recoFromBrief && <span style={{ fontSize:8, fontFamily:"'DM Mono',monospace",
-            color:C.em, letterSpacing:.5, background:C.em+"14", padding:"1px 6px", borderRadius:3 }}>VIA BRIEF</span>}
+            color:C.em, letterSpacing:.5, background:C.em+"14", padding:"1px 6px", borderRadius:3 }}>{t("home.viaBrief")}</span>}
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {recommended.map((q,i) => (

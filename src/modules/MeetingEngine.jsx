@@ -808,7 +808,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     title: cand.title,
     type: cand.type || "conflict_ee",
     riskLevel: cand.riskLevel || "Modéré",
-    status: "active",
+    status: "open",
     director: ctx.managerName || "Non assigné",
     employee: "",
     department: ctx.team || "",

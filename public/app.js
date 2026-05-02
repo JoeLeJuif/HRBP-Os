@@ -38032,7 +38032,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       display: "flex",
       flexDirection: "column",
       flexShrink: 0,
-      padding: "16px 10px"
+      padding: "16px 10px",
+      height: "100vh",
+      overflowY: "auto"
     } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "8px 10px", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } }, /* @__PURE__ */ React.createElement("div", { style: {
       width: 26,
       height: 26,
