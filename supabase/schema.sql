@@ -34,14 +34,32 @@ alter table public.profiles
 
 create index if not exists profiles_org_idx on public.profiles(organization_id);
 
+-- `data` is a jsonb blob holding the case payload; see src/utils/normalize.js
+-- for the full schema. Canonical case statuses (data->>'status'):
+--   'open' | 'in_progress' | 'waiting' | 'closed' | 'archived'
+-- Default for new cases is 'open'. Legacy values (active, pending, resolved,
+-- escalated) are migrated on read by normalizeCase. No DDL CHECK here because
+-- status validation lives in the JS layer.
+--
+-- `status` is a top-level mirror of data->>'status' for indexed queries.
+-- supabaseStore.saveCases stamps it on every upsert from norm.status, so
+-- column and jsonb stay in sync. data.status remains the source of truth.
 create table if not exists public.cases (
   id              text primary key,
   user_id         text not null default 'demo',
   data            jsonb not null,
+  status          text not null default 'open',
   organization_id uuid references public.organizations(id) on delete set null,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+-- Migration `hrbp_os_cases_status_column` (2026-05-01): adds the column +
+-- backfills legacy data->>'status' values to canonical, then indexes.
+alter table public.cases
+  add column if not exists status text not null default 'open';
+
+create index if not exists cases_status_idx on public.cases(status);
 
 alter table public.cases
   add column if not exists organization_id uuid references public.organizations(id) on delete set null;
@@ -627,3 +645,130 @@ $$;
 
 revoke execute on function public.set_user_role(uuid, text) from public, anon;
 grant  execute on function public.set_user_role(uuid, text) to authenticated;
+
+-- ── case_tasks (migration `hrbp_os_case_tasks_table`) ────────────────────────
+-- Per-case action items. Org-scoped via private.has_org_access(organization_id),
+-- same pattern as cases/meetings/investigations/briefs:
+--   super_admin → all rows
+--   admin/hrbp  → rows where organization_id matches caller's org (and active)
+--   disabled    → no rows (private.is_active() returns false)
+
+create table if not exists public.case_tasks (
+  id              uuid primary key default gen_random_uuid(),
+  case_id         text not null references public.cases(id) on delete cascade,
+  organization_id uuid references public.organizations(id) on delete set null,
+  title           text not null,
+  assigned_to     uuid references auth.users(id) on delete set null,
+  due_date        date,
+  status          text not null default 'open'
+                    check (status in ('open','done','cancelled')),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists case_tasks_case_idx     on public.case_tasks(case_id);
+create index if not exists case_tasks_org_idx      on public.case_tasks(organization_id);
+create index if not exists case_tasks_assigned_idx on public.case_tasks(assigned_to);
+create index if not exists case_tasks_status_idx   on public.case_tasks(status);
+
+alter table public.case_tasks enable row level security;
+
+drop policy if exists case_tasks_select_org on public.case_tasks;
+create policy case_tasks_select_org on public.case_tasks
+  as permissive for select to authenticated
+  using ( private.has_org_access(organization_id) );
+
+drop policy if exists case_tasks_insert_org on public.case_tasks;
+create policy case_tasks_insert_org on public.case_tasks
+  as permissive for insert to authenticated
+  with check ( private.has_org_access(organization_id) );
+
+drop policy if exists case_tasks_update_org on public.case_tasks;
+create policy case_tasks_update_org on public.case_tasks
+  as permissive for update to authenticated
+  using      ( private.has_org_access(organization_id) )
+  with check ( private.has_org_access(organization_id) );
+
+drop policy if exists case_tasks_delete_org on public.case_tasks;
+create policy case_tasks_delete_org on public.case_tasks
+  as permissive for delete to authenticated
+  using ( private.has_org_access(organization_id) );
+
+-- ── case_tasks org-pin trigger (migration `hrbp_os_case_tasks_org_pin_trigger`) ─
+-- Pins case_tasks.organization_id to the parent case's organization_id on every
+-- INSERT and UPDATE. SECURITY DEFINER so the lookup always sees the parent row
+-- regardless of caller visibility; RLS WITH CHECK on case_tasks then evaluates
+-- the authoritative org_id against has_org_access(), so cross-org inserts are
+-- rejected. Direct UPDATE attempts to change organization_id are silently
+-- overridden back to the parent's value, so case_id and organization_id can
+-- never diverge.
+
+create or replace function private.set_case_task_org()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  select organization_id into new.organization_id
+  from public.cases
+  where id = new.case_id;
+  return new;
+end;
+$$;
+
+revoke execute on function private.set_case_task_org() from public, anon;
+
+drop trigger if exists case_tasks_set_org on public.case_tasks;
+create trigger case_tasks_set_org
+  before insert or update on public.case_tasks
+  for each row execute function private.set_case_task_org();
+
+-- ── employees (migration `hrbp_os_employees_table`) ──────────────────────────
+-- Org-scoped HR roster. Same RLS pattern as cases/meetings/case_tasks built on
+-- private.has_org_access(organization_id):
+--   super_admin → all rows
+--   admin/hrbp  → rows in their org (and active)
+--   disabled    → no rows
+-- organization_id is NOT NULL because employees always belong to an org —
+-- there are no legacy per-user rows here, unlike cases.
+
+create table if not exists public.employees (
+  id                uuid primary key default gen_random_uuid(),
+  organization_id   uuid not null references public.organizations(id) on delete cascade,
+  employee_number   text,
+  full_name         text not null,
+  job_title         text,
+  department        text,
+  manager_name      text,
+  location          text,
+  employment_status text not null default 'active'
+    check (employment_status in ('active', 'on_leave', 'terminated')),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index if not exists employees_org_idx        on public.employees(organization_id);
+create index if not exists employees_status_idx     on public.employees(employment_status);
+create index if not exists employees_department_idx on public.employees(department);
+
+alter table public.employees enable row level security;
+
+drop policy if exists employees_select_org on public.employees;
+create policy employees_select_org on public.employees
+  as permissive for select to authenticated
+  using ( private.has_org_access(organization_id) );
+
+drop policy if exists employees_insert_org on public.employees;
+create policy employees_insert_org on public.employees
+  as permissive for insert to authenticated
+  with check ( private.has_org_access(organization_id) );
+
+drop policy if exists employees_update_org on public.employees;
+create policy employees_update_org on public.employees
+  as permissive for update to authenticated
+  using      ( private.has_org_access(organization_id) )
+  with check ( private.has_org_access(organization_id) );
+
+drop policy if exists employees_delete_org on public.employees;
+create policy employees_delete_org on public.employees
+  as permissive for delete to authenticated
+  using ( private.has_org_access(organization_id) );
