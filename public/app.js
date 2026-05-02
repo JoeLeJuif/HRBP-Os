@@ -37876,76 +37876,6 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setToast(true);
       setTimeout(() => setToast(false), 2e3);
     };
-    const handleBackup = () => {
-      const now = /* @__PURE__ */ new Date();
-      const dateStr = now.toLocaleDateString("fr-CA");
-      const backup = {
-        backup_date: dateStr,
-        backup_time: now.toLocaleTimeString("fr-CA"),
-        version: "HRBP_OS",
-        counts: {
-          cases: (data.cases || []).length,
-          meetings: (data.meetings || []).length,
-          signals: (data.signals || []).length,
-          decisions: (data.decisions || []).length,
-          coaching: (data.coaching || []).length,
-          exits: (data.exits || []).length,
-          investigations: (data.investigations || []).length,
-          briefs: (data.briefs || []).length,
-          prep1on1: (data.prep1on1 || []).length,
-          sentRecaps: (data.sentRecaps || []).length
-        },
-        data
-      };
-      const json = JSON.stringify(backup, null, 2);
-      const blob = new Blob([json], { type: "application/json" });
-      const url2 = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url2;
-      a.download = `HRBP_OS_backup_${dateStr}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url2);
-    };
-    const [restoreStatus, setRestoreStatus] = (0, import_react23.useState)(null);
-    const [restoreMsg, setRestoreMsg] = (0, import_react23.useState)("");
-    const fileInputRef = (0, import_react23.useRef)(null);
-    const handleRestoreClick = () => fileInputRef.current?.click();
-    const handleRestoreFile = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      e.target.value = "";
-      setRestoreStatus("loading");
-      setRestoreMsg("");
-      try {
-        const text = await file.text();
-        const parsed = JSON.parse(text);
-        const restored = parsed.data || parsed;
-        const keys = ["cases", "meetings", "signals", "decisions", "coaching", "exits", "investigations", "briefs", "prep1on1", "sentRecaps", "plans306090", "profile", "leaders"];
-        const updates = {};
-        for (const k of keys) {
-          if (restored[k] !== void 0) {
-            const skKey = SK[k];
-            let value = restored[k];
-            if (k === "cases" && Array.isArray(value)) value = value.map(normalizeCase).filter(Boolean);
-            else if (k === "investigations" && Array.isArray(value)) value = value.map(normalizeInvestigation).filter(Boolean);
-            if (skKey) await sSet(skKey, value);
-            updates[k] = value;
-          }
-        }
-        setData((d) => ({ ...d, ...updates }));
-        const total = Object.values(updates).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 0), 0);
-        setRestoreStatus("success");
-        const msg = parsed.backup_date ? t2("restore.successWithDate").replace("{count}", total).replace("{date}", parsed.backup_date) : t2("restore.success").replace("{count}", total);
-        setRestoreMsg(msg);
-        setTimeout(() => setRestoreStatus(null), 4e3);
-      } catch (err) {
-        setRestoreStatus("error");
-        setRestoreMsg(t2("restore.invalid"));
-        setTimeout(() => setRestoreStatus(null), 4e3);
-      }
-    };
     const handleSave = (0, import_react23.useCallback)(async (key2, value) => {
       const skKey = SK[key2];
       if (!skKey) return;
@@ -38236,71 +38166,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       l
-    ))), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: handleBackup,
-        style: {
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 12px",
-          background: "none",
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          marginBottom: 6,
-          transition: "all .15s"
-        },
-        onMouseEnter: (e) => e.currentTarget.style.borderColor = C.em + "66",
-        onMouseLeave: (e) => e.currentTarget.style.borderColor = C.border
-      },
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u{1F4BE}"),
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, fontWeight: 500 } }, t2("common.backupJson"))
-    ), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        ref: fileInputRef,
-        type: "file",
-        accept: ".json",
-        onChange: handleRestoreFile,
-        style: { display: "none" }
-      }
-    ), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: handleRestoreClick,
-        style: {
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 12px",
-          background: "none",
-          border: `1px solid ${C.border}`,
-          borderRadius: 8,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          marginBottom: 8,
-          transition: "all .15s"
-        },
-        onMouseEnter: (e) => e.currentTarget.style.borderColor = C.blue + "66",
-        onMouseLeave: (e) => e.currentTarget.style.borderColor = C.border
-      },
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u{1F4C2}"),
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, fontWeight: 500 } }, restoreStatus === "loading" ? t2("common.loading") : t2("common.loadBackup"))
-    ), restoreStatus && restoreStatus !== "loading" && /* @__PURE__ */ React.createElement("div", { style: {
-      margin: "0 0 8px",
-      padding: "7px 10px",
-      borderRadius: 7,
-      fontSize: 11,
-      background: restoreStatus === "success" ? C.em + "15" : C.red + "15",
-      border: `1px solid ${restoreStatus === "success" ? C.em + "40" : C.red + "40"}`,
-      color: restoreStatus === "success" ? C.em : C.red,
-      lineHeight: 1.5
-    } }, restoreStatus === "success" ? "\u2713 " : "\u26A0 ", restoreMsg), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 } }, [
+    ))), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 } }, [
       [t2("sidebar.stat.activeCases"), (data.cases || []).filter(isCaseActive).length, C.em],
       [t2("sidebar.stat.meetings"), (data.meetings || []).length, C.blue],
       [t2("sidebar.stat.signals"), (data.signals || []).length, C.purple],

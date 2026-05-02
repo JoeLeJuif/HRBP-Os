@@ -445,82 +445,6 @@ export default function HRBPOS() {
 
   const showToast = () => { setToast(true); setTimeout(() => setToast(false), 2000); };
 
-  const handleBackup = () => {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("fr-CA");
-    const backup = {
-      backup_date: dateStr,
-      backup_time: now.toLocaleTimeString("fr-CA"),
-      version: "HRBP_OS",
-      counts: {
-        cases:         (data.cases||[]).length,
-        meetings:      (data.meetings||[]).length,
-        signals:       (data.signals||[]).length,
-        decisions:     (data.decisions||[]).length,
-        coaching:      (data.coaching||[]).length,
-        exits:         (data.exits||[]).length,
-        investigations:(data.investigations||[]).length,
-        briefs:        (data.briefs||[]).length,
-        prep1on1:      (data.prep1on1||[]).length,
-        sentRecaps:    (data.sentRecaps||[]).length,
-      },
-      data,
-    };
-    const json = JSON.stringify(backup, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `HRBP_OS_backup_${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const [restoreStatus, setRestoreStatus] = useState(null);
-  const [restoreMsg, setRestoreMsg]       = useState("");
-  const fileInputRef = useRef(null);
-
-  const handleRestoreClick = () => fileInputRef.current?.click();
-
-  const handleRestoreFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setRestoreStatus("loading");
-    setRestoreMsg("");
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const restored = parsed.data || parsed;
-      const keys = ["cases","meetings","signals","decisions","coaching","exits","investigations","briefs","prep1on1","sentRecaps","plans306090","profile","leaders"];
-      const updates = {};
-      for (const k of keys) {
-        if (restored[k] !== undefined) {
-          const skKey = SK[k];
-          let value = restored[k];
-          if (k === "cases" && Array.isArray(value)) value = value.map(normalizeCase).filter(Boolean);
-          else if (k === "investigations" && Array.isArray(value)) value = value.map(normalizeInvestigation).filter(Boolean);
-          if (skKey) await sSet(skKey, value);
-          updates[k] = value;
-        }
-      }
-      setData(d => ({ ...d, ...updates }));
-      const total = Object.values(updates).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 0), 0);
-      setRestoreStatus("success");
-      const msg = parsed.backup_date
-        ? t("restore.successWithDate").replace("{count}", total).replace("{date}", parsed.backup_date)
-        : t("restore.success").replace("{count}", total);
-      setRestoreMsg(msg);
-      setTimeout(() => setRestoreStatus(null), 4000);
-    } catch(err) {
-      setRestoreStatus("error");
-      setRestoreMsg(t("restore.invalid"));
-      setTimeout(() => setRestoreStatus(null), 4000);
-    }
-  };
-
   const handleSave = useCallback(async (key, value) => {
     const skKey = SK[key];
     if (!skKey) return;
@@ -743,43 +667,6 @@ export default function HRBPOS() {
             </button>
           ))}
         </div>
-
-        {/* Backup / Restore */}
-        <button onClick={handleBackup}
-          style={{ width:"100%", display:"flex", alignItems:"center", gap:8,
-            padding:"8px 12px", background:"none",
-            border:`1px solid ${C.border}`, borderRadius:8, cursor:"pointer",
-            fontFamily:"'DM Sans',sans-serif", marginBottom:6, transition:"all .15s" }}
-          onMouseEnter={e=>e.currentTarget.style.borderColor=C.em+"66"}
-          onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-          <span style={{ fontSize:13 }}>💾</span>
-          <span style={{ fontSize:12, color:C.textM, fontWeight:500 }}>{t("common.backupJson")}</span>
-        </button>
-
-        <input ref={fileInputRef} type="file" accept=".json" onChange={handleRestoreFile}
-          style={{ display:"none" }}/>
-        <button onClick={handleRestoreClick}
-          style={{ width:"100%", display:"flex", alignItems:"center", gap:8,
-            padding:"8px 12px", background:"none",
-            border:`1px solid ${C.border}`, borderRadius:8, cursor:"pointer",
-            fontFamily:"'DM Sans',sans-serif", marginBottom:8, transition:"all .15s" }}
-          onMouseEnter={e=>e.currentTarget.style.borderColor=C.blue+"66"}
-          onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-          <span style={{ fontSize:13 }}>📂</span>
-          <span style={{ fontSize:12, color:C.textM, fontWeight:500 }}>
-            {restoreStatus === "loading" ? t("common.loading") : t("common.loadBackup")}
-          </span>
-        </button>
-
-        {restoreStatus && restoreStatus !== "loading" && (
-          <div style={{ margin:"0 0 8px", padding:"7px 10px", borderRadius:7, fontSize:11,
-            background: restoreStatus === "success" ? C.em+"15" : C.red+"15",
-            border:`1px solid ${restoreStatus === "success" ? C.em+"40" : C.red+"40"}`,
-            color: restoreStatus === "success" ? C.em : C.red,
-            lineHeight:1.5 }}>
-            {restoreStatus === "success" ? "✓ " : "⚠ "}{restoreMsg}
-          </div>
-        )}
 
         {/* Footer stats */}
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginTop:8 }}>
