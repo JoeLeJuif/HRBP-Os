@@ -18,6 +18,7 @@ import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
 import { fetchOrCreateProfile } from './lib/profile.js';
 import { hasSupabase } from './lib/supabase.js';
+import { useT, SUPPORTED_LANGS } from './lib/i18n.js';
 import { isCaseActive } from './utils/caseStatus.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
@@ -60,11 +61,12 @@ import ModuleAdmin     from './modules/Admin.jsx';
 // (each module file imports its own prompts directly)
 
 function SavedToast({ show }) {
+  const { t } = useT();
   if (!show) return null;
   return <div style={{ position:"fixed", bottom:20, right:20, background:C.em, color:C.bg,
     borderRadius:8, padding:"8px 16px", fontSize:12, fontWeight:700, zIndex:9999,
     fontFamily:"'DM Sans',sans-serif", boxShadow:"0 4px 20px #10b98140" }}>
-    ✓ Sauvegardé
+    {t("common.savedToast")}
   </div>;
 }
 
@@ -97,6 +99,7 @@ const NAV_MORE = [
 // authenticated users can only read their own email row. See src/lib/auth.js.
 
 function PendingApprovalScreen({ email, onSignOut }) {
+  const { t } = useT();
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
@@ -105,15 +108,15 @@ function PendingApprovalScreen({ email, onSignOut }) {
           display:"inline-flex", alignItems:"center", justifyContent:"center",
           fontSize:20, marginBottom:12 }}>⏳</div>
         <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>
-          Votre accès est en attente d’approbation
+          {t("auth.pending.title")}
         </div>
         <div style={{ fontSize:12, color:C.textM, marginBottom:20, lineHeight:1.5 }}>
-          {email ? <>Un administrateur doit approuver <b>{email}</b> avant que vous puissiez utiliser HRBP OS.</>
-                 : "Un administrateur doit approuver votre compte avant que vous puissiez utiliser HRBP OS."}
+          {email ? <>{t("auth.pending.bodyEmailPrefix")}<b>{email}</b>{t("auth.pending.bodyEmailSuffix")}</>
+                 : t("auth.pending.bodyAnon")}
         </div>
         <button onClick={onSignOut}
           style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
-          Se déconnecter
+          {t("auth.signOut")}
         </button>
       </div>
     </div>
@@ -121,6 +124,7 @@ function PendingApprovalScreen({ email, onSignOut }) {
 }
 
 function DisabledAccessScreen({ email, onSignOut }) {
+  const { t } = useT();
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
@@ -129,15 +133,15 @@ function DisabledAccessScreen({ email, onSignOut }) {
           display:"inline-flex", alignItems:"center", justifyContent:"center",
           fontSize:20, marginBottom:12 }}>⛔</div>
         <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>
-          Accès désactivé
+          {t("auth.disabled.title")}
         </div>
         <div style={{ fontSize:12, color:C.textM, marginBottom:20, lineHeight:1.5 }}>
-          Votre accès à HRBP OS a été désactivé. Veuillez contacter un administrateur.
+          {t("auth.disabled.body")}
           {email && <div style={{ marginTop:6, color:C.textD }}>{email}</div>}
         </div>
         <button onClick={onSignOut}
           style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
-          Se déconnecter
+          {t("auth.signOut")}
         </button>
       </div>
     </div>
@@ -145,6 +149,7 @@ function DisabledAccessScreen({ email, onSignOut }) {
 }
 
 function AccessDeniedScreen({ email, onRetry }) {
+  const { t } = useT();
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
@@ -152,13 +157,13 @@ function AccessDeniedScreen({ email, onRetry }) {
         <div style={{ width:44, height:44, background:C.red, borderRadius:10,
           display:"inline-flex", alignItems:"center", justifyContent:"center",
           fontSize:20, marginBottom:12 }}>⛔</div>
-        <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>Access denied</div>
+        <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>{t("auth.denied.title")}</div>
         <div style={{ fontSize:12, color:C.textM, marginBottom:20, lineHeight:1.5 }}>
-          {email ? <>L'adresse <b>{email}</b> n'est pas autorisée.</> : "Cette adresse n'est pas autorisée."}
+          {email ? <>{t("auth.denied.bodyEmailPrefix")}<b>{email}</b>{t("auth.denied.bodyEmailSuffix")}</> : t("auth.denied.bodyAnon")}
         </div>
         <button onClick={onRetry}
           style={{ ...css.btn(C.em), padding:"10px 18px", fontSize:13 }}>
-          Essayer une autre adresse
+          {t("auth.tryAnother")}
         </button>
       </div>
     </div>
@@ -166,26 +171,29 @@ function AccessDeniedScreen({ email, onRetry }) {
 }
 
 function LoginScreen() {
+  const { t } = useT();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
-  const [errorMsg, setErrorMsg] = useState("");
+  const [errorReason, setErrorReason] = useState("");
 
   const send = async () => {
     if (!email || status === "sending") return;
     setStatus("sending");
-    setErrorMsg("");
+    setErrorReason("");
     const res = await supaSignIn(email);
     if (res.ok) {
       setStatus("sent");
     } else {
       setStatus("error");
-      setErrorMsg(
-        res.reason === "invalid-email" ? "Email invalide."
-        : res.reason === "no-client"   ? "Supabase non configuré."
-        : "Échec de l'envoi du lien."
-      );
+      setErrorReason(res.reason || "send-failed");
     }
   };
+
+  const errorMsg =
+    errorReason === "invalid-email" ? t("auth.login.errInvalid")
+    : errorReason === "no-client"   ? t("auth.login.errNoClient")
+    : errorReason ? t("auth.login.errSendFailed")
+    : "";
 
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
@@ -195,29 +203,29 @@ function LoginScreen() {
           <div style={{ width:44, height:44, background:C.em, borderRadius:10,
             display:"inline-flex", alignItems:"center", justifyContent:"center",
             fontSize:20, marginBottom:12 }}>⚡</div>
-          <div style={{ fontWeight:700, fontSize:18, color:C.text }}>HRBP OS</div>
-          <div style={{ fontSize:12, color:C.textM, marginTop:4 }}>Samuel Chartrand</div>
+          <div style={{ fontWeight:700, fontSize:18, color:C.text }}>{t("auth.login.brand")}</div>
+          <div style={{ fontSize:12, color:C.textM, marginTop:4 }}>{t("auth.login.subtitle")}</div>
         </div>
         <div style={{ background:C.surf, border:`1px solid ${C.border}`,
           borderRadius:12, padding:"24px 24px 20px" }}>
           <label style={{ fontSize:11, fontWeight:600, color:C.textM,
             letterSpacing:.8, textTransform:"uppercase", display:"block", marginBottom:6 }}>
-            Email
+            {t("auth.login.emailLabel")}
           </label>
           <input type="email" value={email} onChange={e=>{setEmail(e.target.value);if(status==="error")setStatus("idle");}}
             onKeyDown={e=>e.key==="Enter"&&send()}
             autoFocus
-            placeholder="you@example.com"
+            placeholder={t("auth.login.emailPh")}
             disabled={status==="sending"||status==="sent"}
             style={{ ...css.input, marginBottom: 12 }} />
           <button onClick={send} disabled={status==="sending"||status==="sent"||!email}
             style={{ ...css.btn(C.em), width:"100%", padding:"11px", fontSize:13,
               opacity:(status==="sending"||status==="sent"||!email)?.6:1 }}>
-            {status==="sending" ? "Envoi…" : status==="sent" ? "Lien envoyé ✓" : "Send magic link"}
+            {status==="sending" ? t("auth.login.sending") : status==="sent" ? t("auth.login.sent") : t("auth.login.send")}
           </button>
           {status==="sent" && (
             <div style={{ fontSize:11, color:C.textM, marginTop:12, lineHeight:1.5 }}>
-              Vérifie ta boîte courriel et clique le lien pour te connecter.
+              {t("auth.login.checkInbox")}
             </div>
           )}
           {status==="error" && (
@@ -231,6 +239,7 @@ function LoginScreen() {
 
 // ── Root component (Source: HRBP_OS.jsx L.10743-11097) ────────────────────────
 export default function HRBPOS() {
+  const { t, lang, setLang } = useT();
   const [supaSession, setSupaSession] = useState(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [denied, setDenied] = useState(null); // { email } when login email is not in allow-list
@@ -500,11 +509,14 @@ export default function HRBPOS() {
       setData(d => ({ ...d, ...updates }));
       const total = Object.values(updates).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 0), 0);
       setRestoreStatus("success");
-      setRestoreMsg(`${total} entrées restaurées${parsed.backup_date ? ` (backup du ${parsed.backup_date})` : ""}`);
+      const msg = parsed.backup_date
+        ? t("restore.successWithDate").replace("{count}", total).replace("{date}", parsed.backup_date)
+        : t("restore.success").replace("{count}", total);
+      setRestoreMsg(msg);
       setTimeout(() => setRestoreStatus(null), 4000);
     } catch(err) {
       setRestoreStatus("error");
-      setRestoreMsg("Fichier invalide — vérifie que c'est un backup HRBP OS.");
+      setRestoreMsg(t("restore.invalid"));
       setTimeout(() => setRestoreStatus(null), 4000);
     }
   };
@@ -571,7 +583,7 @@ export default function HRBPOS() {
         title: caseEntry.title || session.analysis?.meetingTitle,
         type: "conflict_ee",
         riskLevel: caseEntry.riskLevel || session.analysis?.overallRisk,
-        status: "active",
+        status: "open",
         director: session.director,
         employee: "",
         department: "",
@@ -635,6 +647,8 @@ export default function HRBPOS() {
   const navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE;
   const allNav  = [...NAV_MAIN, ...navMore];
   const activeNav = allNav.find(n => n.id === module);
+  // Falls back to the nav entry's literal label when no translation exists for that id.
+  const navLabel = (n) => { const k = `nav.${n.id}`; const v = t(k); return v === k ? n.label : v; };
   // Defense-in-depth: if a non-admin somehow lands on the admin route, bounce home.
   const safeModule = (module === "admin" && !isAdmin) ? "home" : module;
 
@@ -670,7 +684,7 @@ export default function HRBPOS() {
                 fontFamily:"'DM Sans',sans-serif", transition:"all .15s" }}>
               <span style={{ fontSize:14, lineHeight:1 }}>{n.icon}</span>
               <span style={{ fontSize:13, fontWeight:module===n.id?600:400,
-                color:module===n.id ? n.color : C.textM }}>{n.label}</span>
+                color:module===n.id ? n.color : C.textM }}>{navLabel(n)}</span>
             </button>
           ))}
 
@@ -681,7 +695,7 @@ export default function HRBPOS() {
             style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 12px",
               background:"none", border:`1px solid ${C.border}`, borderRadius:8, cursor:"pointer",
               fontFamily:"'DM Sans',sans-serif", width:"100%", marginBottom:4 }}>
-            <span style={{ fontSize:12, color:C.textM }}>Plus</span>
+            <span style={{ fontSize:12, color:C.textM }}>{t("common.more")}</span>
             <span style={{ fontSize:10, color:C.textD }}>{showMore?"▲":"▼"}</span>
           </button>
 
@@ -694,7 +708,7 @@ export default function HRBPOS() {
                 fontFamily:"'DM Sans',sans-serif", transition:"all .15s" }}>
               <span style={{ fontSize:13 }}>{n.icon}</span>
               <span style={{ fontSize:12, fontWeight:module===n.id?600:400,
-                color:module===n.id ? n.color : C.textM }}>{n.label}</span>
+                color:module===n.id ? n.color : C.textM }}>{navLabel(n)}</span>
             </button>
           ))}
         </div>
@@ -703,7 +717,7 @@ export default function HRBPOS() {
         <div style={{ display:"flex", alignItems:"center", gap:8,
           padding:"7px 12px", marginBottom:8,
           background:C.surfL, borderRadius:8, border:`1px solid ${C.border}` }}>
-          <span style={{ fontSize:11, color:C.textM, flex:1, fontWeight:500 }}>Province</span>
+          <span style={{ fontSize:11, color:C.textM, flex:1, fontWeight:500 }}>{t("common.province")}</span>
           <ProvinceSelect
             value={data.profile?.defaultProvince||"QC"}
             onChange={e => {
@@ -711,6 +725,23 @@ export default function HRBPOS() {
               handleSave("profile", updated);
             }}
             style={{ padding:"4px 6px", fontSize:11, borderRadius:5 }}/>
+        </div>
+
+        {/* Language switcher */}
+        <div style={{ display:"flex", alignItems:"center", gap:4,
+          padding:"6px 8px", marginBottom:8,
+          background:C.surfL, borderRadius:8, border:`1px solid ${C.border}` }}>
+          {SUPPORTED_LANGS.map(l => (
+            <button key={l} onClick={() => setLang(l)}
+              style={{ flex:1, padding:"4px 6px", fontSize:11, fontWeight:600,
+                background: lang===l ? C.em+"22" : "none",
+                border:`1px solid ${lang===l ? C.em+"55" : "transparent"}`,
+                borderRadius:5, cursor:"pointer",
+                color: lang===l ? C.em : C.textM,
+                fontFamily:"'DM Sans',sans-serif", textTransform:"uppercase" }}>
+              {l}
+            </button>
+          ))}
         </div>
 
         {/* Backup / Restore */}
@@ -722,7 +753,7 @@ export default function HRBPOS() {
           onMouseEnter={e=>e.currentTarget.style.borderColor=C.em+"66"}
           onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
           <span style={{ fontSize:13 }}>💾</span>
-          <span style={{ fontSize:12, color:C.textM, fontWeight:500 }}>Backup JSON</span>
+          <span style={{ fontSize:12, color:C.textM, fontWeight:500 }}>{t("common.backupJson")}</span>
         </button>
 
         <input ref={fileInputRef} type="file" accept=".json" onChange={handleRestoreFile}
@@ -736,7 +767,7 @@ export default function HRBPOS() {
           onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
           <span style={{ fontSize:13 }}>📂</span>
           <span style={{ fontSize:12, color:C.textM, fontWeight:500 }}>
-            {restoreStatus === "loading" ? "Chargement…" : "Charger backup"}
+            {restoreStatus === "loading" ? t("common.loading") : t("common.loadBackup")}
           </span>
         </button>
 
@@ -753,14 +784,14 @@ export default function HRBPOS() {
         {/* Footer stats */}
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginTop:8 }}>
           {[
-            ["Cas actifs", (data.cases||[]).filter(isCaseActive).length, C.em],
-            ["Meetings",   (data.meetings||[]).length,       C.blue],
-            ["Signaux",    (data.signals||[]).length,        C.purple],
-            ["Stratégies", (data.decisions||[]).length,      C.red],
-            ["Coaching",   (data.coaching||[]).length,       C.teal],
-            ["Départs",    (data.exits||[]).length,          C.textM],
-            ["Enquêtes",   (data.investigations||[]).length, INV_RED],
-            ["Briefs",     (data.briefs||[]).length,         C.amber],
+            [t("sidebar.stat.activeCases"),    (data.cases||[]).filter(isCaseActive).length, C.em],
+            [t("sidebar.stat.meetings"),       (data.meetings||[]).length,       C.blue],
+            [t("sidebar.stat.signals"),        (data.signals||[]).length,        C.purple],
+            [t("sidebar.stat.decisions"),      (data.decisions||[]).length,      C.red],
+            [t("sidebar.stat.coaching"),       (data.coaching||[]).length,       C.teal],
+            [t("sidebar.stat.exits"),          (data.exits||[]).length,          C.textM],
+            [t("sidebar.stat.investigations"), (data.investigations||[]).length, INV_RED],
+            [t("sidebar.stat.briefs"),         (data.briefs||[]).length,         C.amber],
           ].map(([l,v,col],i) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
               <Mono color={C.textD} size={8}>{l}</Mono>
@@ -780,7 +811,7 @@ export default function HRBPOS() {
               style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
                 padding:"4px 8px", fontSize:10, color:C.textM, cursor:"pointer",
                 fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
-              Logout
+              {t("common.logout")}
             </button>
           </div>
         )}
@@ -792,7 +823,7 @@ export default function HRBPOS() {
         <div style={{ background:C.surf, borderBottom:`1px solid ${C.border}`,
           padding:"12px 24px", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
           <span style={{ fontSize:16 }}>{activeNav?.icon}</span>
-          <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav?.label}</span>
+          <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav ? navLabel(activeNav) : ""}</span>
           <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
             {(data.cases||[]).filter(c=>isCaseActive(c)&&(c.riskLevel==="Critique"||c.riskLevel==="Élevé")).slice(0,3).map((c,i) => (
               <button key={i} onClick={()=>setModule("cases")}
