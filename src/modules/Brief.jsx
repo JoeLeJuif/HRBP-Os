@@ -12,6 +12,7 @@ import { fmtDate } from '../utils/format.js';
 import { filterActiveCases } from '../utils/caseStatus.js';
 import { toArray } from '../utils/meetingModel.js';
 import { C, css, DELAY_C, RISK } from '../theme.js';
+import { useT } from '../lib/i18n.js';
 
 // ── Inline shared helpers ─────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -29,6 +30,7 @@ function SecHead({ icon, label, color=C.em }) {
 
 // ── Module ────────────────────────────────────────────────────────────────────
 export default function ModuleBrief({ data, onSave }) {
+  const { t } = useT();
   const [view, setView] = useState("new");
   const [briefTab, setBriefTab] = useState("brief"); // brief | recap
   const [inputs, setInputs] = useState({ meetings:"", signals:"", cases:"", kpi:"", other:"", weekOf:"" });
@@ -336,9 +338,9 @@ ${prepsTxt ? `\n=== PRÉPARATIONS 1:1 (${weekPreps.length}) ===\n${prepsTxt}` : 
 
   // ── BRIEF TABS (shown when result exists)
   const BRIEF_RESULT_TABS = [
-    { id:"brief", label:"📊 Intelligence Brief" },
-    { id:"recap", label:"📋 Récap directrice" },
-    { id:"insights", label:"🔍 Insights" },
+    { id:"brief", label:t("brief.tab.intel") },
+    { id:"recap", label:t("brief.tab.recap") },
+    { id:"insights", label:t("brief.tab.insights") },
   ];
 
   // ── Insights cross-modules state ──────────────────────────────────────────
@@ -506,17 +508,17 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
     <div style={{ maxWidth:860, margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Weekly Intelligence Brief</div>
-          <div style={{ fontSize:12, color:C.textM }}>{briefs.length} brief(s) archivé(s)</div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>{t("brief.title")}</div>
+          <div style={{ fontSize:12, color:C.textM }}>{briefs.length}</div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
           {briefs.length > 0 && <button onClick={() => setView(view==="archive"?"new":"archive")}
             style={{ ...css.btn(C.blue, true), padding:"8px 14px", fontSize:12 }}>
-            {view==="archive"?"← Nouveau brief":"📚 Archive"}
+            {view==="archive"?t("brief.newBrief"):t("brief.archive")}
           </button>}
           {view==="new" && <button onClick={autoFill}
             style={{ ...css.btn(C.purple, true), padding:"8px 14px", fontSize:12 }}>
-            ⚡ Remplir depuis mes données
+            {t("brief.autofill")}
           </button>}
         </div>
       </div>
@@ -542,10 +544,10 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
         <div>
           {/* Period */}
           <Card style={{ marginBottom:14 }}>
-            <SecHead icon="📅" label="Période couverte" color={C.blue}/>
+            <SecHead icon="📅" label={t("brief.period")} color={C.blue}/>
             <div style={{ display:"flex", gap:16, alignItems:"flex-end", flexWrap:"wrap" }}>
               <div>
-                <Mono color={C.textD} size={9}>Du</Mono>
+                <Mono color={C.textD} size={9}>{t("brief.from")}</Mono>
                 <input type="date" value={periodStart} onChange={e=>{
                   setPeriodStart(e.target.value);
                   const end = new Date(e.target.value); end.setDate(end.getDate()+6);
@@ -555,7 +557,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   background:C.surfL, color:C.text, outline:"none" }}/>
               </div>
               <div>
-                <Mono color={C.textD} size={9}>Au</Mono>
+                <Mono color={C.textD} size={9}>{t("brief.to")}</Mono>
                 <input type="date" value={periodEnd} onChange={e=>setPeriodEnd(e.target.value)}
                   style={{ display:"block", marginTop:4, padding:"7px 10px", borderRadius:7,
                     border:`1px solid ${C.border}`, fontSize:12, fontFamily:"inherit",
@@ -571,14 +573,14 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
 
           {/* Tab switcher for input sections */}
           <div style={{ display:"flex", gap:2, borderBottom:`1px solid ${C.border}`, marginBottom:14 }}>
-            {[{id:"brief",label:"📊 Intelligence Brief"},{id:"recap",label:"📋 Récap directrice"},{id:"nwl",label:"🔒 Next Week Lock"}].map(t => (
-              <button key={t.id} onClick={() => setBriefTab(t.id)}
+            {[{id:"brief",label:t("brief.tab.intel")},{id:"recap",label:t("brief.tab.recap")},{id:"nwl",label:t("brief.tab.nwl")}].map(tt => (
+              <button key={tt.id} onClick={() => setBriefTab(tt.id)}
                 style={{ background:"none", border:"none", cursor:"pointer", padding:"8px 16px",
-                  fontSize:12, fontWeight:briefTab===t.id?700:400,
-                  color:briefTab===t.id?(t.id==="nwl"?C.purple:C.em):C.textM,
-                  borderBottom:`2px solid ${briefTab===t.id?(t.id==="nwl"?C.purple:C.em):"transparent"}`,
+                  fontSize:12, fontWeight:briefTab===tt.id?700:400,
+                  color:briefTab===tt.id?(tt.id==="nwl"?C.purple:C.em):C.textM,
+                  borderBottom:`2px solid ${briefTab===tt.id?(tt.id==="nwl"?C.purple:C.em):"transparent"}`,
                   marginBottom:-1, fontFamily:"'DM Sans',sans-serif" }}>
-                {t.label}
+                {tt.label}
               </button>
             ))}
           </div>
@@ -587,7 +589,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
           {briefTab === "brief" && (
             <div>
               <Card style={{ marginBottom:14 }}>
-                <SecHead icon="📊" label="Inputs de la semaine" color={C.amber}/>
+                <SecHead icon="📊" label={t("brief.inputs.heading")} color={C.amber}/>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                   {[
                     ["meetings","⚡ Meetings de la semaine","Résumé ou points clés de chaque meeting..."],
@@ -602,7 +604,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   </div>)}
                 </div>
                 <div style={{ marginTop:12 }}>
-                  <Mono color={C.textD} size={9}>Contexte additionnel</Mono>
+                  <Mono color={C.textD} size={9}>{t("brief.inputs.context")}</Mono>
                   <input value={inputs.other} onChange={e=>setInputs(f=>({...f,other:e.target.value}))}
                     placeholder="Ex: annonce RH, réorg prévue, contexte corporatif..." style={{ ...css.input, marginTop:6 }}
                     onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
@@ -612,10 +614,10 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
               {error && <div style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:7,
                 padding:"10px 14px", marginBottom:12, fontSize:12, color:C.red }}>⚠ {error}</div>}
 
-              {loading ? <AILoader label="Génération du brief"/> : (
+              {loading ? <AILoader label={t("brief.generating")}/> : (
                 <button onClick={generate} style={{ ...css.btn(C.amber), width:"100%", padding:"13px", fontSize:14,
                   boxShadow:`0 4px 20px ${C.amber}30` }}>
-                  📊 Générer le Weekly Brief
+                  {t("brief.generate")}
                 </button>
               )}
             </div>
@@ -625,9 +627,9 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
             const sentRecaps = data.sentRecaps || [];
             const lastSent = sentRecaps.length > 0 ? sentRecaps[sentRecaps.length - 1] : null;
             const subTabs = [
-              { id:"generate", label:"⚡ Générer" },
-              { id:"sent",     label:"📤 Récap envoyé" },
-              { id:"history",  label:`📚 Historique${sentRecaps.length > 0 ? ` (${sentRecaps.length})` : ""}` },
+              { id:"generate", label:t("brief.recap.gen") },
+              { id:"sent",     label:t("brief.recap.sent") },
+              { id:"history",  label:`${t("brief.recap.history")}${sentRecaps.length > 0 ? ` (${sentRecaps.length})` : ""}` },
             ];
             return (
               <div>
@@ -650,14 +652,14 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <div>
                     <div style={{ background:C.blue+"10", border:`1px solid ${C.blue}25`, borderRadius:8,
                       padding:"10px 14px", marginBottom:14, fontSize:12, color:C.textM }}>
-                      📅 Généré automatiquement depuis tous tes meetings, signaux, dossiers et preps 1:1 de la période sélectionnée.
+                      {t("brief.recap.banner")}
                     </div>
                     {recapError && <div style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:7,
                       padding:"10px 14px", marginBottom:12, fontSize:12, color:C.red }}>⚠ {recapError}</div>}
-                    {recapLoading ? <AILoader label="Génération du récap depuis l'historique"/> : (
+                    {recapLoading ? <AILoader label={t("brief.recap.generating")}/> : (
                       !recapResult && <button onClick={generateRecap} style={{ ...css.btn(C.blue), width:"100%", padding:"13px", fontSize:14,
                         boxShadow:`0 4px 20px ${C.blue}30` }}>
-                        📋 Générer le récap directrice
+                        {t("brief.recap.generate")}
                       </button>
                     )}
                   {recapResult && (
@@ -665,17 +667,17 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
                         <div style={{ fontSize:14, fontWeight:700, color:C.text }}>📋 {recapResult.weekLabel}</div>
                         <div style={{ display:"flex", gap:8 }}>
-                          <button onClick={() => setRecapResult(null)} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>↺ Regénérer</button>
+                          <button onClick={() => setRecapResult(null)} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>{t("brief.recap.regen")}</button>
                           <button onClick={copyRecap} style={{ ...css.btn(copied?C.em:C.blue), padding:"8px 14px", fontSize:12 }}>
-                            {copied ? "✓ Copié !" : "📋 Copier"}
+                            {copied ? t("copilot.copied") + " !" : t("copilot.copy")}
                           </button>
                         </div>
                       </div>
                       {(recapResult.recrutement?.embauches?.length>0||recapResult.recrutement?.processus?.length>0||recapResult.recrutement?.ouvertures?.length>0) && (
                         <Card style={{ marginBottom:10 }}>
-                          <SecHead icon="🎯" label="Recrutement" color={C.blue}/>
+                          <SecHead icon="🎯" label={t("brief.recap.recrutement")} color={C.blue}/>
                           {recapResult.recrutement?.embauches?.length>0 && <div style={{ marginBottom:10 }}>
-                            <Mono color={C.em} size={9}>EMBAUCHES CONFIRMÉES</Mono>
+                            <Mono color={C.em} size={9}>{t("brief.recap.embauches")}</Mono>
                             {recapResult.recrutement.embauches.map((i,idx) => (
                               <div key={idx} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
                                 <span style={{ color:C.em, fontSize:12, flexShrink:0 }}>✓</span>
@@ -684,7 +686,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             ))}
                           </div>}
                           {recapResult.recrutement?.processus?.length>0 && <div style={{ marginBottom:10 }}>
-                            <Mono color={C.blue} size={9}>PROCESSUS EN COURS</Mono>
+                            <Mono color={C.blue} size={9}>{t("brief.recap.processus")}</Mono>
                             {recapResult.recrutement.processus.map((i,idx) => (
                               <div key={idx} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
                                 <span style={{ color:C.blue, fontSize:12, flexShrink:0 }}>→</span>
@@ -693,7 +695,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             ))}
                           </div>}
                           {recapResult.recrutement?.ouvertures?.length>0 && <div>
-                            <Mono color={C.textD} size={9}>OUVERTURES DE POSTE</Mono>
+                            <Mono color={C.textD} size={9}>{t("brief.recap.ouvertures")}</Mono>
                             {recapResult.recrutement.ouvertures.map((i,idx) => (
                               <div key={idx} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
                                 <span style={{ color:C.textD, fontSize:12, flexShrink:0 }}>+</span>
@@ -704,11 +706,11 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                         </Card>
                       )}
                       {[
-                        {key:"promotions", icon:"⬆", label:"Promotions",                        color:C.purple},
-                        {key:"fins_emploi",icon:"🚪", label:"Fins d'emploi",                    color:C.textM},
-                        {key:"performance",icon:"⚖",  label:"Performance / Plaintes / Enquêtes",color:C.red},
-                        {key:"projets_rh", icon:"🔧", label:"Processus et Projets RH",          color:C.teal},
-                        {key:"divers",     icon:"📎", label:"Divers",                           color:C.textD},
+                        {key:"promotions", icon:"⬆", label:t("brief.recap.promotions"),                        color:C.purple},
+                        {key:"fins_emploi",icon:"🚪", label:t("brief.recap.endings"),                    color:C.textM},
+                        {key:"performance",icon:"⚖",  label:t("brief.recap.performance"),color:C.red},
+                        {key:"projets_rh", icon:"🔧", label:t("brief.recap.hrProjects"),          color:C.teal},
+                        {key:"divers",     icon:"📎", label:t("brief.recap.divers"),                           color:C.textD},
                       ].map(({key,icon,label,color}) => recapResult[key]?.length>0 && (
                         <Card key={key} style={{ marginBottom:10, borderLeft:`3px solid ${color}` }}>
                           <SecHead icon={icon} label={label} color={color}/>
@@ -730,12 +732,12 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <div>
                     <div style={{ background:C.em+"10", border:`1px solid ${C.em}25`, borderRadius:8,
                       padding:"10px 14px", marginBottom:14, fontSize:12, color:C.textM }}>
-                      📤 Colle ici le récap final que tu as envoyé à ta directrice. Il sera archivé avec la date et consultable les semaines suivantes.
+                      {t("brief.sent.banner")}
                     </div>
-                    <Mono color={C.textD} size={9}>RÉCAP FINAL ENVOYÉ</Mono>
+                    <Mono color={C.textD} size={9}>{t("brief.sent.label")}</Mono>
                     <textarea rows={14} value={sentRecapText}
                       onChange={e => { setSentRecapText(e.target.value); setSentRecapSaved(false); }}
-                      placeholder={"Colle ton récap final ici — tel qu'envoyé à ta directrice..."}
+                      placeholder={t("brief.sent.placeholder")}
                       style={{ ...css.textarea, marginTop:6, fontFamily:"monospace", fontSize:12, lineHeight:1.7 }}
                       onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
                     <div style={{ display:"flex", gap:10, marginTop:10 }}>
@@ -744,13 +746,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       </div>
                       <button onClick={saveSentRecap} disabled={!sentRecapText.trim() || sentRecapSaved}
                         style={{ ...css.btn(sentRecapSaved ? C.textD : C.em), padding:"9px 20px", fontSize:13 }}>
-                        {sentRecapSaved ? "✓ Archivé" : "💾 Archiver ce récap"}
+                        {sentRecapSaved ? t("brief.sent.archived") : t("brief.sent.archive")}
                       </button>
                     </div>
                     {sentRecapSaved && (
                       <div style={{ marginTop:12, padding:"10px 14px", background:C.em+"12", border:`1px solid ${C.em}30`,
                         borderRadius:7, fontSize:12, color:C.em }}>
-                        ✓ Récap archivé — consultable dans Historique la semaine prochaine.
+                        {t("brief.sent.archivedConfirm")}
                       </div>
                     )}
                   </div>
@@ -761,7 +763,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <div>
                     {sentRecaps.length === 0 ? (
                       <div style={{ textAlign:"center", padding:"40px 20px", color:C.textD, fontSize:13 }}>
-                        Aucun récap archivé. Archive ton premier récap dans l'onglet Récap envoyé.
+                        {t("brief.history.empty")}
                       </div>
                     ) : (
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -770,13 +772,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                               <div>
                                 <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{r.weekLabel}</div>
-                                <Mono color={C.textD} size={9}>Archivé le {r.savedAt}</Mono>
+                                <Mono color={C.textD} size={9}>{t("brief.history.archivedAt")} {r.savedAt}</Mono>
                               </div>
                               <button onClick={() => {
                                 setSentRecapText(r.sentText);
                                 setRecapSubTab("sent");
                               }} style={{ ...css.btn(C.textM, true), padding:"5px 10px", fontSize:11 }}>
-                                Consulter
+                                {t("brief.history.view")}
                               </button>
                             </div>
                             <div style={{ fontSize:12, color:C.textM, background:C.surfLL, borderRadius:7,
@@ -803,20 +805,20 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                 {sentList.length === 0 ? (
                   <div style={{ textAlign:"center", padding:"50px 20px" }}>
                     <div style={{ fontSize:32, marginBottom:12 }}>🔒</div>
-                    <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>Aucun récap archivé</div>
+                    <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>{t("brief.nwl.empty.title")}</div>
                     <div style={{ fontSize:12, color:C.textD, maxWidth:340, margin:"0 auto" }}>
-                      Archive un récap dans Récap directrice → Récap envoyé. Ce module le transforme en plan d'exécution pour la semaine suivante.
+                      {t("brief.nwl.empty.body")}
                     </div>
                     <button onClick={() => { setBriefTab("recap"); setRecapSubTab("sent"); }}
                       style={{ ...css.btn(C.purple, true), marginTop:16, padding:"8px 18px", fontSize:12 }}>
-                      → Archiver un récap
+                      {t("brief.nwl.empty.cta")}
                     </button>
                   </div>
                 ) : (
                   <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                     {/* Source selector */}
                     <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-                      <Mono color={C.textD} size={8}>SOURCE</Mono>
+                      <Mono color={C.textD} size={8}>{t("brief.nwl.source")}</Mono>
                       <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
                         {sentList.slice(0,5).map((r,i) => (
                           <button key={r.id||i} onClick={() => { setNwlSourceIdx(i); setNwlResult(null); setNwlSaved(false); }}
@@ -834,9 +836,9 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                         <button onClick={generateNWL}
                           style={{ ...css.btn(C.purple), padding:"7px 18px", fontSize:12, marginLeft:"auto",
                             boxShadow:`0 4px 16px ${C.purple}30` }}>
-                          ⚡ {nwlResult ? "Régénérer" : "Générer la semaine suivante"}
+                          ⚡ {nwlResult ? t("brief.nwl.regen") : t("brief.nwl.generate")}
                         </button>
-                      ) : <AILoader label="Analyse du récap…"/>}
+                      ) : <AILoader label={t("brief.nwl.analyzing")}/>}
                     </div>
 
                     {nwlError && <div style={{ background:C.red+"15", border:`1px solid ${C.red}33`,
@@ -860,13 +862,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                           <div style={{ padding:"18px 20px",
                             background:`linear-gradient(135deg,${C.purple}15,${C.blue}08)`,
                             borderBottom:`1px solid ${C.purple}25` }}>
-                            <Mono color={C.purple} size={8} style={{ display:"block", marginBottom:8 }}>THÈME DE LA SEMAINE</Mono>
+                            <Mono color={C.purple} size={8} style={{ display:"block", marginBottom:8 }}>{t("brief.nwl.theme")}</Mono>
                             <div style={{ fontSize:22, fontWeight:800, color:C.text, lineHeight:1.2, marginBottom:8 }}>{r.theme}</div>
                             <div style={{ fontSize:13, color:C.textM, lineHeight:1.65 }}>{r.why}</div>
                           </div>
                           {/* Priorities */}
                           <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}` }}>
-                            <Mono color={C.em} size={8} style={{ display:"block", marginBottom:10 }}>TOP 2 PRIORITÉS</Mono>
+                            <Mono color={C.em} size={8} style={{ display:"block", marginBottom:10 }}>{t("brief.nwl.priorities")}</Mono>
                             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                               {(r.priorities||[]).map((p,i) => (
                                 <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
@@ -883,7 +885,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                           </div>
                           {/* Manager focus */}
                           <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}` }}>
-                            <Mono color={C.blue} size={8} style={{ display:"block", marginBottom:8 }}>MANAGER FOCUS</Mono>
+                            <Mono color={C.blue} size={8} style={{ display:"block", marginBottom:8 }}>{t("brief.nwl.managerFocus")}</Mono>
                             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                               {(r.managerFocus||[]).map((m,i) => (
                                 <div key={i} style={{ display:"flex", gap:8, alignItems:"baseline", flexWrap:"wrap" }}>
@@ -895,13 +897,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                           </div>
                           {/* Structural action */}
                           <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`, background:C.em+"06" }}>
-                            <Mono color={C.em} size={8} style={{ display:"block", marginBottom:8 }}>ACTION STRUCTURANTE</Mono>
+                            <Mono color={C.em} size={8} style={{ display:"block", marginBottom:8 }}>{t("brief.nwl.structuralAction")}</Mono>
                             <div style={{ fontSize:13, color:C.text, fontWeight:600, marginBottom:4 }}>{r.structuralAction?.action}</div>
                             <div style={{ fontSize:12, color:C.em }}>Impact: {r.structuralAction?.impact}</div>
                           </div>
                           {/* Leadership message */}
                           <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}` }}>
-                            <Mono color={C.textD} size={8} style={{ display:"block", marginBottom:8 }}>MESSAGE LEADERSHIP</Mono>
+                            <Mono color={C.textD} size={8} style={{ display:"block", marginBottom:8 }}>{t("brief.nwl.leadershipMessage")}</Mono>
                             <div style={{ fontSize:13, color:C.text, lineHeight:1.75, fontStyle:"italic",
                               padding:"10px 14px", background:C.surfLL, borderRadius:8,
                               borderLeft:`3px solid ${C.purple}` }}>
@@ -916,12 +918,12 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             </span>
                             <button onClick={copyNWL}
                               style={{ ...css.btn(nwlCopied?C.em:C.textM, true), padding:"6px 14px", fontSize:11 }}>
-                              {nwlCopied ? "✓ Copié" : "📋 Copier"}
+                              {nwlCopied ? t("copilot.copied") : t("copilot.copy")}
                             </button>
                             <button onClick={saveNWL} disabled={nwlSaved}
                               style={{ ...css.btn(nwlSaved?C.textD:C.purple), padding:"6px 14px", fontSize:11,
                                 opacity:nwlSaved?0.5:1 }}>
-                              {nwlSaved ? "✓ Archivé" : "💾 Archiver"}
+                              {nwlSaved ? t("brief.archived") : t("brief.archiveBtn")}
                             </button>
                             <button onClick={() => { setNwlResult(null); setNwlSaved(false); generateNWL(); }}
                               style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>↺</button>
@@ -967,7 +969,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                     {result.orgPulse?.overall && <Badge label={result.orgPulse.overall} color={C.blue}/>}
                     <button onClick={saveBrief} disabled={saved}
                       style={{ ...css.btn(saved?C.textD:C.em), padding:"6px 14px", fontSize:11 }}>
-                      {saved?"✓ Archivé":"💾 Archiver"}
+                      {saved?t("brief.archived"):t("brief.archiveBtn")}
                     </button>
                   </div>
                 </div>
@@ -976,7 +978,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
 
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                 <Card>
-                  <SecHead icon="🎯" label="Top priorités" color={C.red}/>
+                  <SecHead icon="🎯" label={t("brief.brief.priorities")} color={C.red}/>
                   {result.topPriorities?.map((p,i) => {
                     const EVO_C = {"Aggrave":C.red,"Persistant":C.amber,"Nouveau":C.blue,"En amelioration":C.teal,"Resolu":C.textD};
                     const ec = p.evolution ? (EVO_C[p.evolution]||C.textD) : null;
@@ -993,7 +995,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   })}
                 </Card>
                 <Card>
-                  <SecHead icon="⚠" label="Risques clés" color={C.amber}/>
+                  <SecHead icon="⚠" label={t("brief.brief.risks")} color={C.amber}/>
                   {result.keyRisks?.map((r,i) => {
                     const EVO_C = {"Aggrave":C.red,"Persistant":C.amber,"Nouveau":C.blue,"En amelioration":C.teal,"Resolu":C.textD};
                     const ec = r.evolution ? (EVO_C[r.evolution]||C.textD) : null;
@@ -1008,7 +1010,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   })}
                 </Card>
                 <Card>
-                  <SecHead icon="👁" label="Leadership Watch" color={C.purple}/>
+                  <SecHead icon="👁" label={t("brief.brief.leadershipWatch")} color={C.purple}/>
                   {result.leadershipWatch?.map((l,i) => {
                     const EVO_C = {"Aggrave":C.red,"Persistant":C.amber,"Nouveau":C.blue,"En amelioration":C.teal,"Resolu":C.textD};
                     const ec = l.evolution ? (EVO_C[l.evolution]||C.textD) : null;
@@ -1024,7 +1026,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   })}
                 </Card>
                 <Card>
-                  <SecHead icon="✈" label="Retention Watch" color={C.red}/>
+                  <SecHead icon="✈" label={t("brief.brief.retentionWatch")} color={C.red}/>
                   {result.retentionWatch?.map((r,i) => {
                     const EVO_C = {"Aggrave":C.red,"Persistant":C.amber,"Nouveau":C.blue,"En amelioration":C.teal,"Resolu":C.textD};
                     const ec = r.evolution ? (EVO_C[r.evolution]||C.textD) : null;
@@ -1043,7 +1045,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
               </div>
 
               <Card style={{ marginTop:12 }}>
-                <SecHead icon="📅" label="Actions de la semaine" color={C.em}/>
+                <SecHead icon="📅" label={t("brief.brief.weeklyActions")} color={C.em}/>
                 {result.weeklyActions?.map((a,i) => <div key={i} style={{ display:"flex", gap:10, marginBottom:8 }}>
                   <Badge label={a.deadline} color={C.amber} size={10}/>
                   <div>
@@ -1054,13 +1056,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
               </Card>
 
               {result.lookAhead && <Card style={{ marginTop:10 }}>
-                <SecHead icon="🔭" label="Semaine prochaine" color={C.teal}/>
+                <SecHead icon="🔭" label={t("brief.brief.lookAhead")} color={C.teal}/>
                 <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{result.lookAhead}</div>
               </Card>}
 
               {result.watchList?.length > 0 && (
                 <Card style={{ marginTop:10, borderLeft:`3px solid ${C.textD}` }}>
-                  <SecHead icon="📡" label="Radar — Sujets à garder en mémoire" color={C.textM}/>
+                  <SecHead icon="📡" label={t("brief.brief.watchList")} color={C.textM}/>
                   {result.watchList.map((w,i) => {
                     const CLASSIF_C = {"activeRisk":C.amber,"latentSignal":C.blue,"resolved":C.teal};
                     const cc = CLASSIF_C[w.classification] || C.textD;
@@ -1086,7 +1088,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                 <button onClick={() => { setResult(null); setInputs({meetings:"",signals:"",cases:"",kpi:"",other:"",weekOf:""}); setSaved(false); setBriefTab("brief"); }}
                   style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:7,
                     padding:"8px 20px", fontSize:12, color:C.textD, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-                  ↺ Nouveau brief
+                  {t("brief.brief.newBrief")}
                 </button>
               </div>
             </div>
@@ -1097,9 +1099,9 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
             const sentRecaps = data.sentRecaps || [];
             const lastSent = sentRecaps.length > 0 ? sentRecaps[sentRecaps.length - 1] : null;
             const subTabs = [
-              { id:"generate", label:"⚡ Générer" },
-              { id:"sent",     label:"📤 Récap envoyé" },
-              { id:"history",  label:`📚 Historique${sentRecaps.length > 0 ? ` (${sentRecaps.length})` : ""}` },
+              { id:"generate", label:t("brief.recap.gen") },
+              { id:"sent",     label:t("brief.recap.sent") },
+              { id:"history",  label:`${t("brief.recap.history")}${sentRecaps.length > 0 ? ` (${sentRecaps.length})` : ""}` },
             ];
             return (
               <div>
@@ -1122,14 +1124,14 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <div>
                     <div style={{ background:C.blue+"10", border:`1px solid ${C.blue}25`, borderRadius:8,
                       padding:"10px 14px", marginBottom:14, fontSize:12, color:C.textM }}>
-                      📅 Généré automatiquement depuis tous tes meetings, signaux, dossiers et preps 1:1 de la période sélectionnée.
+                      {t("brief.recap.banner")}
                     </div>
                     {recapError && <div style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:7,
                       padding:"10px 14px", marginBottom:12, fontSize:12, color:C.red }}>⚠ {recapError}</div>}
-                    {recapLoading ? <AILoader label="Génération du récap depuis l'historique"/> : (
+                    {recapLoading ? <AILoader label={t("brief.recap.generating")}/> : (
                       !recapResult && <button onClick={generateRecap} style={{ ...css.btn(C.blue), width:"100%", padding:"13px", fontSize:14,
                         boxShadow:`0 4px 20px ${C.blue}30` }}>
-                        📋 Générer le récap directrice
+                        {t("brief.recap.generate")}
                       </button>
                     )}
                   {recapResult && (
@@ -1137,17 +1139,17 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
                         <div style={{ fontSize:14, fontWeight:700, color:C.text }}>📋 {recapResult.weekLabel}</div>
                         <div style={{ display:"flex", gap:8 }}>
-                          <button onClick={() => setRecapResult(null)} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>↺ Regénérer</button>
+                          <button onClick={() => setRecapResult(null)} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>{t("brief.recap.regen")}</button>
                           <button onClick={copyRecap} style={{ ...css.btn(copied?C.em:C.blue), padding:"8px 14px", fontSize:12 }}>
-                            {copied ? "✓ Copié !" : "📋 Copier"}
+                            {copied ? t("copilot.copied") + " !" : t("copilot.copy")}
                           </button>
                         </div>
                       </div>
                       {(recapResult.recrutement?.embauches?.length>0||recapResult.recrutement?.processus?.length>0||recapResult.recrutement?.ouvertures?.length>0) && (
                         <Card style={{ marginBottom:10 }}>
-                          <SecHead icon="🎯" label="Recrutement" color={C.blue}/>
+                          <SecHead icon="🎯" label={t("brief.recap.recrutement")} color={C.blue}/>
                           {recapResult.recrutement?.embauches?.length>0 && <div style={{ marginBottom:10 }}>
-                            <Mono color={C.em} size={9}>EMBAUCHES CONFIRMÉES</Mono>
+                            <Mono color={C.em} size={9}>{t("brief.recap.embauches")}</Mono>
                             {recapResult.recrutement.embauches.map((i,idx) => (
                               <div key={idx} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
                                 <span style={{ color:C.em, fontSize:12, flexShrink:0 }}>✓</span>
@@ -1156,7 +1158,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             ))}
                           </div>}
                           {recapResult.recrutement?.processus?.length>0 && <div style={{ marginBottom:10 }}>
-                            <Mono color={C.blue} size={9}>PROCESSUS EN COURS</Mono>
+                            <Mono color={C.blue} size={9}>{t("brief.recap.processus")}</Mono>
                             {recapResult.recrutement.processus.map((i,idx) => (
                               <div key={idx} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
                                 <span style={{ color:C.blue, fontSize:12, flexShrink:0 }}>→</span>
@@ -1165,7 +1167,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             ))}
                           </div>}
                           {recapResult.recrutement?.ouvertures?.length>0 && <div>
-                            <Mono color={C.textD} size={9}>OUVERTURES DE POSTE</Mono>
+                            <Mono color={C.textD} size={9}>{t("brief.recap.ouvertures")}</Mono>
                             {recapResult.recrutement.ouvertures.map((i,idx) => (
                               <div key={idx} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
                                 <span style={{ color:C.textD, fontSize:12, flexShrink:0 }}>+</span>
@@ -1176,11 +1178,11 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                         </Card>
                       )}
                       {[
-                        {key:"promotions", icon:"⬆", label:"Promotions",                        color:C.purple},
-                        {key:"fins_emploi",icon:"🚪", label:"Fins d'emploi",                    color:C.textM},
-                        {key:"performance",icon:"⚖",  label:"Performance / Plaintes / Enquêtes",color:C.red},
-                        {key:"projets_rh", icon:"🔧", label:"Processus et Projets RH",          color:C.teal},
-                        {key:"divers",     icon:"📎", label:"Divers",                           color:C.textD},
+                        {key:"promotions", icon:"⬆", label:t("brief.recap.promotions"),                        color:C.purple},
+                        {key:"fins_emploi",icon:"🚪", label:t("brief.recap.endings"),                    color:C.textM},
+                        {key:"performance",icon:"⚖",  label:t("brief.recap.performance"),color:C.red},
+                        {key:"projets_rh", icon:"🔧", label:t("brief.recap.hrProjects"),          color:C.teal},
+                        {key:"divers",     icon:"📎", label:t("brief.recap.divers"),                           color:C.textD},
                       ].map(({key,icon,label,color}) => recapResult[key]?.length>0 && (
                         <Card key={key} style={{ marginBottom:10, borderLeft:`3px solid ${color}` }}>
                           <SecHead icon={icon} label={label} color={color}/>
@@ -1202,12 +1204,12 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <div>
                     <div style={{ background:C.em+"10", border:`1px solid ${C.em}25`, borderRadius:8,
                       padding:"10px 14px", marginBottom:14, fontSize:12, color:C.textM }}>
-                      📤 Colle ici le récap final que tu as envoyé à ta directrice. Il sera archivé avec la date et consultable les semaines suivantes.
+                      {t("brief.sent.banner")}
                     </div>
-                    <Mono color={C.textD} size={9}>RÉCAP FINAL ENVOYÉ</Mono>
+                    <Mono color={C.textD} size={9}>{t("brief.sent.label")}</Mono>
                     <textarea rows={14} value={sentRecapText}
                       onChange={e => { setSentRecapText(e.target.value); setSentRecapSaved(false); }}
-                      placeholder={"Colle ton récap final ici — tel qu'envoyé à ta directrice..."}
+                      placeholder={t("brief.sent.placeholder")}
                       style={{ ...css.textarea, marginTop:6, fontFamily:"monospace", fontSize:12, lineHeight:1.7 }}
                       onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
                     <div style={{ display:"flex", gap:10, marginTop:10 }}>
@@ -1216,13 +1218,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       </div>
                       <button onClick={saveSentRecap} disabled={!sentRecapText.trim() || sentRecapSaved}
                         style={{ ...css.btn(sentRecapSaved ? C.textD : C.em), padding:"9px 20px", fontSize:13 }}>
-                        {sentRecapSaved ? "✓ Archivé" : "💾 Archiver ce récap"}
+                        {sentRecapSaved ? t("brief.sent.archived") : t("brief.sent.archive")}
                       </button>
                     </div>
                     {sentRecapSaved && (
                       <div style={{ marginTop:12, padding:"10px 14px", background:C.em+"12", border:`1px solid ${C.em}30`,
                         borderRadius:7, fontSize:12, color:C.em }}>
-                        ✓ Récap archivé — consultable dans Historique la semaine prochaine.
+                        {t("brief.sent.archivedConfirm")}
                       </div>
                     )}
                   </div>
@@ -1233,7 +1235,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <div>
                     {sentRecaps.length === 0 ? (
                       <div style={{ textAlign:"center", padding:"40px 20px", color:C.textD, fontSize:13 }}>
-                        Aucun récap archivé. Archive ton premier récap dans l'onglet Récap envoyé.
+                        {t("brief.history.empty")}
                       </div>
                     ) : (
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -1242,13 +1244,13 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                               <div>
                                 <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{r.weekLabel}</div>
-                                <Mono color={C.textD} size={9}>Archivé le {r.savedAt}</Mono>
+                                <Mono color={C.textD} size={9}>{t("brief.history.archivedAt")} {r.savedAt}</Mono>
                               </div>
                               <button onClick={() => {
                                 setSentRecapText(r.sentText);
                                 setRecapSubTab("sent");
                               }} style={{ ...css.btn(C.textM, true), padding:"5px 10px", fontSize:11 }}>
-                                Consulter
+                                {t("brief.history.view")}
                               </button>
                             </div>
                             <div style={{ fontSize:12, color:C.textM, background:C.surfLL, borderRadius:7,
@@ -1270,48 +1272,48 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
           {briefTab === "insights" && (
             <div>
               <Card style={{ marginBottom:14 }}>
-                <SecHead icon="🔍" label="Insights cross-modules" color={C.purple}/>
+                <SecHead icon="🔍" label={t("brief.insights.header")} color={C.purple}/>
                 <div style={{ fontSize:12, color:C.textM, marginBottom:14, lineHeight:1.6 }}>
-                  Analyse stratégique qui croise tes cas actifs, signaux, meetings et sessions Meeting Engine pour détecter des patterns non évidents.
+                  {t("brief.insights.body")}
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={generateInsights} disabled={insightsLoading}
                     style={{ ...css.btn(C.purple), opacity:insightsLoading?.5:1 }}>
-                    {insightsLoading ? "⏳ Analyse en cours…" : "🔍 Générer les insights"}
+                    {insightsLoading ? t("brief.insights.generating") : t("brief.insights.generate")}
                   </button>
                   {insightsResult && !insightsSaved && (
-                    <button onClick={saveInsights} style={css.btn(C.em)}>💾 Sauvegarder</button>
+                    <button onClick={saveInsights} style={css.btn(C.em)}>{t("brief.insights.save")}</button>
                   )}
-                  {insightsSaved && <Badge label="✓ Sauvegardé" color={C.em}/>}
+                  {insightsSaved && <Badge label={t("brief.insights.saved")} color={C.em}/>}
                 </div>
               </Card>
 
-              {insightsLoading && <AILoader label="Analyse cross-modules en cours…"/>}
+              {insightsLoading && <AILoader label={t("brief.insights.analyzing")}/>}
               {insightsError && <div style={{ color:C.red, fontSize:12, marginBottom:10 }}>{insightsError}</div>}
 
               {insightsResult && (
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   {insightsResult.patterns && (
                     <Card style={{ borderLeft:`3px solid ${C.blue}` }}>
-                      <SecHead icon="🔄" label="Patterns récurrents" color={C.blue}/>
+                      <SecHead icon="🔄" label={t("brief.insights.patterns")} color={C.blue}/>
                       <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{insightsResult.patterns}</div>
                     </Card>
                   )}
                   {insightsResult.risquesSystemiques && (
                     <Card style={{ borderLeft:`3px solid ${C.red}` }}>
-                      <SecHead icon="⚠️" label="Risques systémiques" color={C.red}/>
+                      <SecHead icon="⚠️" label={t("brief.insights.systemic")} color={C.red}/>
                       <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{insightsResult.risquesSystemiques}</div>
                     </Card>
                   )}
                   {insightsResult.anglesMorts && (
                     <Card style={{ borderLeft:`3px solid ${C.amber}` }}>
-                      <SecHead icon="👁" label="Angles morts" color={C.amber}/>
+                      <SecHead icon="👁" label={t("brief.insights.blindspots")} color={C.amber}/>
                       <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{insightsResult.anglesMorts}</div>
                     </Card>
                   )}
                   {insightsResult.recommandation && (
                     <Card style={{ borderLeft:`3px solid ${C.em}`, background:C.em+"08" }}>
-                      <SecHead icon="🎯" label="Recommandation stratégique" color={C.em}/>
+                      <SecHead icon="🎯" label={t("brief.insights.recommendation")} color={C.em}/>
                       <div style={{ fontSize:13, color:C.text, lineHeight:1.7, fontWeight:500 }}>{insightsResult.recommandation}</div>
                       {insightsResult.riskLevel && (
                         <div style={{ marginTop:8 }}><RiskBadge level={insightsResult.riskLevel}/></div>
@@ -1326,7 +1328,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                 const briefsWithInsights = (data.briefs||[]).filter(b => b.insights).reverse().slice(0,5);
                 return briefsWithInsights.length > 0 && !insightsResult && (
                   <Card style={{ marginTop:14 }}>
-                    <SecHead icon="📚" label="Historique des insights" color={C.textD}/>
+                    <SecHead icon="📚" label={t("brief.insights.history")} color={C.textD}/>
                     {briefsWithInsights.map((b,i) => (
                       <button key={b.id||i}
                         onClick={() => setInsightsResult(b.insights)}

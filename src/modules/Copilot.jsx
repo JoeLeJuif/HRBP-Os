@@ -14,8 +14,10 @@ import { APE_TEMPLATES, detectSituations } from '../utils/situations.js';
 import { toArray } from '../utils/meetingModel.js';
 import { C, css } from '../theme.js';
 import { isCaseActive } from '../utils/caseStatus.js';
+import { useT } from '../lib/i18n.js';
 
 export default function ModuleCopilot({ data }) {
+  const { t } = useT();
   const [situation, setSituation]   = useState("");
   const [loading, setLoading]       = useState(false);
   const [response, setResponse]     = useState(null);
@@ -39,7 +41,7 @@ export default function ModuleCopilot({ data }) {
     const coaching   = data.coaching   || [];
     const prep1on1   = data.prep1on1   || [];
 
-    const activeCases = cases.filter(c => c.status === "active" || c.status === "open");
+    const activeCases = cases.filter(c => c.status === "open" || c.status === "in_progress");
     const recentMeetings = meetings.slice().reverse().slice(0, 8);
     const recentSignals  = signals.slice().reverse().slice(0, 6);
 
@@ -247,8 +249,8 @@ ${playbooksCtx}`;
           <div style={{ width:34, height:34, background:C.em, borderRadius:8,
             display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>⚡</div>
           <div>
-            <div style={{ fontSize:18, fontWeight:700, color:C.text }}>HRBP Copilot</div>
-            <div style={{ fontSize:12, color:C.textM }}>Intelligence stratégique avec accès complet au contexte du OS</div>
+            <div style={{ fontSize:18, fontWeight:700, color:C.text }}>{t("copilot.title")}</div>
+            <div style={{ fontSize:12, color:C.textM }}>{t("copilot.subtitle")}</div>
           </div>
         </div>
 
@@ -256,7 +258,7 @@ ${playbooksCtx}`;
           <div style={{ marginTop:10, padding:"8px 12px",
             background:C.amber+"12", border:`1px solid ${C.amber}33`,
             borderRadius:7, fontSize:12, color:C.text, lineHeight:1.5 }}>
-            ⚡ Suggestions automatiques basées sur vos cas actifs
+            {t("copilot.banner.suggestions")}
           </div>
         )}
 
@@ -267,7 +269,7 @@ ${playbooksCtx}`;
             borderRadius:8, cursor:"pointer", fontFamily:"'DM Sans',sans-serif",
             marginTop:10, textAlign:"left" }}>
           <span style={{ fontSize:11, color:C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase" }}>
-            Contexte injecté
+            {t("copilot.context.label")}
           </span>
           <div style={{ display:"flex", gap:8, flex:1 }}>
             {[
@@ -284,7 +286,7 @@ ${playbooksCtx}`;
             ))}
           </div>
           <span style={{ fontSize:11, color:C.textD, flexShrink:0 }}>
-            {contextExpanded ? "▲ Masquer" : "▼ Voir le contexte"}
+            {contextExpanded ? t("copilot.context.hide") : t("copilot.context.show")}
           </span>
         </button>
 
@@ -304,20 +306,20 @@ ${playbooksCtx}`;
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
             <div style={{ display:"flex", alignItems:"center", gap:7 }}>
               <Mono color={C.amber} size={9}>
-                SITUATIONS DÉTECTÉES — {situations.length} prioritaire{situations.length>1?"s":""}
+                {t("copilot.detected")} — {situations.length}
               </Mono>
               <span style={{ background:C.em+"18", border:`1px solid ${C.em}40`,
                 color:C.em, borderRadius:4, padding:"1px 6px",
                 fontSize:9, fontWeight:700, fontFamily:"'DM Mono',monospace",
                 letterSpacing:0.5, textTransform:"uppercase" }}>
-                Recommandé
+                {t("copilot.recommended")}
               </span>
             </div>
             <div style={{ display:"flex", gap:4 }}>
               {[
-                { id:"diagnose", label:"🔍 Diagnose", color:C.purple },
-                { id:"act",      label:"🎯 Act",      color:C.em },
-                { id:"say",      label:"💬 Say",      color:C.blue },
+                { id:"diagnose", label:t("copilot.mode.diagnose"), color:C.purple },
+                { id:"act",      label:t("copilot.mode.act"),      color:C.em },
+                { id:"say",      label:t("copilot.mode.say"),      color:C.blue },
               ].map(m => {
                 const active = apeMode === m.id;
                 return (
@@ -368,7 +370,7 @@ ${playbooksCtx}`;
 
       {/* Input */}
       <Card style={{ marginBottom:14, borderLeft:`3px solid ${C.em}` }}>
-        <Mono color={C.em} size={9}>SITUATION — Décris ce qui se passe</Mono>
+        <Mono color={C.em} size={9}>{t("copilot.input.label")}</Mono>
         <textarea
           rows={5}
           value={situation}
@@ -380,16 +382,16 @@ ${playbooksCtx}`;
           onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) analyze(); }}
         />
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
-          <span style={{ fontSize:11, color:C.textD }}>Cmd/Ctrl + Enter pour analyser</span>
+          <span style={{ fontSize:11, color:C.textD }}>{t("copilot.input.hint")}</span>
           {loading ? (
-            <AILoader label="Analyse en cours…"/>
+            <AILoader label={t("copilot.analyzing")}/>
           ) : (
             <button onClick={analyze} disabled={!situation.trim()}
               style={{ ...css.btn(situation.trim() ? C.em : C.textD),
                 padding:"10px 24px", fontSize:13,
                 opacity: situation.trim() ? 1 : 0.5,
                 boxShadow: situation.trim() ? `0 4px 20px ${C.em}30` : "none" }}>
-              ⚡ Analyser
+              {t("copilot.analyze")}
             </button>
           )}
         </div>
@@ -404,15 +406,15 @@ ${playbooksCtx}`;
       {response && (
         <div ref={responseRef}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-            <Mono color={C.em} size={9}>Analyse HRBP</Mono>
+            <Mono color={C.em} size={9}>{t("copilot.response.heading")}</Mono>
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={copyResponse}
                 style={{ ...css.btn(copied ? C.em : C.textM, true), padding:"6px 12px", fontSize:11 }}>
-                {copied ? "✓ Copié" : "📋 Copier"}
+                {copied ? t("copilot.copied") : t("copilot.copy")}
               </button>
               <button onClick={() => { setResponse(null); setSituation(""); }}
                 style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>
-                ↺ Nouvelle analyse
+                {t("copilot.newAnalysis")}
               </button>
             </div>
           </div>
@@ -425,7 +427,7 @@ ${playbooksCtx}`;
       {/* History */}
       {history.length > 1 && !response && (
         <div style={{ marginTop:24 }}>
-          <Mono color={C.textD} size={9}>Analyses précédentes — cette session</Mono>
+          <Mono color={C.textD} size={9}>{t("copilot.history.heading")}</Mono>
           <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:7 }}>
             {history.slice(1).map((h,i) => (
               <button key={i}
@@ -450,10 +452,10 @@ ${playbooksCtx}`;
         <div style={{ textAlign:"center", padding:"40px 20px", color:C.textD }}>
           <div style={{ fontSize:40, marginBottom:16 }}>⚡</div>
           <div style={{ fontSize:14, color:C.textM, marginBottom:8 }}>
-            Décris une situation — le Copilot analyse avec tout le contexte de ton OS.
+            {t("copilot.empty.title")}
           </div>
           <div style={{ fontSize:12, color:C.textD, maxWidth:480, margin:"0 auto", lineHeight:1.7 }}>
-            Cas actifs · Meetings récents · Signaux · Preps 1:1 · Playbooks · Historique de décisions
+            {t("copilot.empty.subtitle")}
           </div>
         </div>
       )}

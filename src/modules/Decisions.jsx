@@ -9,6 +9,11 @@ import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import ProvinceBadge from '../components/ProvinceBadge.jsx';
+import { useT } from '../lib/i18n.js';
+import {
+  tDecisionStatus, tDecisionType, tDecisionRisk,
+  DECISION_STATUS_IDS, DECISION_TYPE_IDS, DECISION_RISK_IDS,
+} from '../lib/i18nEnums.js';
 
 // ── Shared inline helpers ─────────────────────────────────────────────────────
 function SecHead({ icon, label, color=C.em }) {
@@ -18,25 +23,12 @@ function SecHead({ icon, label, color=C.em }) {
   </div>;
 }
 
-const DECISION_TYPES = [
-  { value:"discipline", label:"Discipline" },
-  { value:"performance", label:"Performance" },
-  { value:"organizational", label:"Organisationnel" },
-  { value:"talent", label:"Talent" },
-  { value:"legal", label:"Légal" },
-  { value:"other", label:"Autre" },
-];
-const DECISION_STATUSES = [
-  { value:"draft", label:"Brouillon", color:C.textM },
-  { value:"decided", label:"Décidé", color:C.em },
-  { value:"reviewed", label:"Révisé", color:C.blue },
-  { value:"archived", label:"Archivé", color:C.textD },
-];
-const DECISION_RISK = [
-  { value:"low", label:"Faible", color:C.em },
-  { value:"medium", label:"Modéré", color:C.amber },
-  { value:"high", label:"Élevé", color:C.red },
-];
+// Color maps: enum ids come from i18nEnums; labels are produced via tDecision* helpers.
+const DECISION_STATUS_COLOR = { draft:C.textM, decided:C.em, reviewed:C.blue, archived:C.textD };
+const DECISION_RISK_COLOR   = { low:C.em, medium:C.amber, high:C.red };
+const DECISION_TYPES    = DECISION_TYPE_IDS.map(value => ({ value }));
+const DECISION_STATUSES = DECISION_STATUS_IDS.map(value => ({ value, color: DECISION_STATUS_COLOR[value] }));
+const DECISION_RISK     = DECISION_RISK_IDS.map(value => ({ value, color: DECISION_RISK_COLOR[value] }));
 
 const EMPTY_DECISION = {
   id:"", title:"", decisionDate:new Date().toISOString().split("T")[0],
@@ -127,6 +119,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
 // ── Decision Log component ───────────────────────────────────────────────────
 
 export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisionId, onClearFocus }) {
+  const { t } = useT();
   const [view, setView] = useState("list");
   const [form, setForm] = useState({ ...EMPTY_DECISION });
   const [editId, setEditId] = useState(null);
@@ -210,7 +203,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
   };
 
   const deleteDecision = (id) => {
-    if (!confirm("Supprimer cette décision ?")) return;
+    if (!confirm(t("decisions.confirmDelete"))) return;
     onSave("decisions", decisions.filter(d => d.id !== id));
     setView("list"); setForm({ ...EMPTY_DECISION }); setEditId(null);
   };
@@ -274,14 +267,14 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
     return (
       <div style={{ maxWidth:860, margin:"0 auto" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16, flexWrap:"wrap" }}>
-          <button onClick={()=>{ setView("list"); setForm({...EMPTY_DECISION}); setEditId(null); }} style={{ ...css.btn(C.textM,true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
-          <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{editId ? "Modifier la décision" : "Nouvelle décision"}</div>
-          {editId && <button onClick={()=>deleteDecision(editId)} style={{ ...css.btn(C.red,true), padding:"6px 14px", fontSize:11 }}>🗑 Supprimer</button>}
+          <button onClick={()=>{ setView("list"); setForm({...EMPTY_DECISION}); setEditId(null); }} style={{ ...css.btn(C.textM,true), padding:"6px 12px", fontSize:11 }}>{t("decisions.back")}</button>
+          <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{editId ? t("decisions.headingEdit") : t("decisions.headingNew")}</div>
+          {editId && <button onClick={()=>deleteDecision(editId)} style={{ ...css.btn(C.red,true), padding:"6px 14px", fontSize:11 }}>{t("decisions.delete")}</button>}
         </div>
 
         {/* Section 1: Metadata */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="📋" label="Métadonnées" color={C.blue}/>
+          <SecHead icon="📋" label={t("decisions.section.metadata")} color={C.blue}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:10 }}>
             <div><Mono color={C.textD} size={9}>Titre de la décision *</Mono>
               <input value={form.title} onChange={SF("title")} placeholder="Ex: Avis disciplinaire — retard chronique" style={{ ...css.input, marginTop:5 }} {...focusStyle}/></div>
@@ -291,15 +284,15 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12, marginBottom:10 }}>
             <div><Mono color={C.textD} size={9}>Type</Mono>
               <select value={form.decisionType} onChange={SF("decisionType")} style={{ ...css.select, marginTop:5 }}>
-                {DECISION_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
+                {DECISION_TYPES.map(o=><option key={o.value} value={o.value}>{tDecisionType(t, o.value)}</option>)}</select></div>
             <div><Mono color={C.textD} size={9}>Niveau de risque</Mono>
               <select value={form.riskLevel} onChange={SF("riskLevel")} style={{ ...css.select, marginTop:5 }}>
-                {DECISION_RISK.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></div>
+                {DECISION_RISK.map(r=><option key={r.value} value={r.value}>{tDecisionRisk(t, r.value)}</option>)}</select></div>
             <div><Mono color={C.textD} size={9}>Province</Mono>
               <ProvinceSelect value={form.province} onChange={SF("province")} style={{ marginTop:5, width:"100%" }}/></div>
             <div><Mono color={C.textD} size={9}>Statut</Mono>
               <select value={form.status} onChange={SF("status")} style={{ ...css.select, marginTop:5 }}>
-                {DECISION_STATUSES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}</select></div>
+                {DECISION_STATUSES.map(s=><option key={s.value} value={s.value}>{tDecisionStatus(t, s.value)}</option>)}</select></div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12 }}>
             <div><Mono color={C.textD} size={9}>Gestionnaire</Mono>
@@ -328,7 +321,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 2: Context & Facts */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="📝" label="Contexte et faits" color={C.purple}/>
+          <SecHead icon="📝" label={t("decisions.section.context")} color={C.purple}/>
           <Mono color={C.textD} size={9}>Faits établis</Mono>
           <textarea rows={3} value={form.facts} onChange={SF("facts")} placeholder="Faits objectifs, documentés, vérifiables..." style={{ ...css.textarea, marginTop:5 }} {...focusStyle}/>
           <div style={{ marginTop:10 }}><Mono color={C.textD} size={9}>Contexte / historique</Mono></div>
@@ -339,7 +332,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 3: Options considérées */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="🔀" label="Options considérées" color={C.amber}/>
+          <SecHead icon="🔀" label={t("decisions.section.options")} color={C.amber}/>
           {form.options.map((opt,i) => (
             <div key={opt.id} style={{ background:C.surf, border:`1px solid ${C.border}`, borderRadius:8, padding:"12px 14px", marginBottom:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -356,15 +349,15 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
             </div>
           ))}
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={addOption} style={{ ...css.btn(C.amber,true), padding:"7px 14px", fontSize:11 }}>+ Ajouter une option</button>
+            <button onClick={addOption} style={{ ...css.btn(C.amber,true), padding:"7px 14px", fontSize:11 }}>{t("decisions.option.add")}</button>
             <button onClick={()=>runAI("options",buildGenerateOptionsPrompt)} disabled={!!aiLoading} style={{ ...css.btn(C.purple,true), padding:"7px 14px", fontSize:11, opacity:aiLoading?.5:1 }}>
-              {aiLoading==="options"?"⏳ Génération...":"🤖 Générer 3 options avec l'IA"}</button>
+              {aiLoading==="options"?t("decisions.option.aiGenLoading"):t("decisions.option.aiGen")}</button>
           </div>
           {aiResult?.key==="options" && (
             <div style={{ background:C.surf, border:`1px solid ${C.purple}44`, borderRadius:8, padding:12, marginTop:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-                <Mono color={C.purple} size={9}>Options générées par l'IA</Mono>
-                <button onClick={()=>applyGeneratedOptions(aiResult.data.options)} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>✓ Appliquer</button>
+                <Mono color={C.purple} size={9}>{t("decisions.option.aiTitle")}</Mono>
+                <button onClick={()=>applyGeneratedOptions(aiResult.data.options)} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>{t("decisions.option.apply")}</button>
               </div>
               {(aiResult.data.options||[]).map((o,i)=><div key={i} style={{ marginBottom:8 }}><div style={{ fontSize:13, fontWeight:600, color:C.text }}>{o.title}</div><div style={{ fontSize:12, color:C.textM, marginTop:2 }}>{o.description}</div></div>)}
             </div>
@@ -373,7 +366,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 4: Décision retenue */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="✅" label="Décision retenue" color={C.em}/>
+          <SecHead icon="✅" label={t("decisions.section.decision")} color={C.em}/>
           <Mono color={C.textD} size={9}>Option sélectionnée</Mono>
           {form.options.length > 0 ? (
             <select value={form.selectedOption} onChange={SF("selectedOption")} style={{ ...css.select, marginTop:5 }}>
@@ -389,25 +382,25 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
           <textarea rows={2} value={form.decisionFactors} onChange={SF("decisionFactors")} placeholder="Un facteur par ligne..." style={{ ...css.textarea, marginTop:5 }} {...focusStyle}/>
           <div style={{ display:"flex", gap:8, marginTop:10 }}>
             <button onClick={()=>runAI("challenge",buildChallengeDecisionPrompt)} disabled={!!aiLoading} style={{ ...css.btn(C.red,true), padding:"7px 14px", fontSize:11, opacity:aiLoading?.5:1 }}>
-              {aiLoading==="challenge"?"⏳ Analyse...":"🔴 Challenger cette décision"}</button>
+              {aiLoading==="challenge"?t("decisions.action.challengeLoading"):t("decisions.action.challenge")}</button>
             <button onClick={()=>runAI("rationale",buildDecisionRationalePrompt)} disabled={!!aiLoading} style={{ ...css.btn(C.blue,true), padding:"7px 14px", fontSize:11, opacity:aiLoading?.5:1 }}>
-              {aiLoading==="rationale"?"⏳ Rédaction...":"📝 Rédiger la justification"}</button>
+              {aiLoading==="rationale"?t("decisions.action.rationaleLoading"):t("decisions.action.rationale")}</button>
           </div>
           {aiResult?.key==="challenge" && (
             <div style={{ background:C.red+"08", border:`1px solid ${C.red}33`, borderRadius:8, padding:14, marginTop:10 }}>
-              <Mono color={C.red} size={9}>Challenge IA</Mono>
-              {aiResult.data.blindSpots?.length>0 && <div style={{ marginTop:8 }}><Mono color={C.amber} size={8}>Angles morts</Mono>{aiResult.data.blindSpots.map((b,i)=><div key={i} style={{ fontSize:12, color:C.text, marginTop:4 }}>• {b}</div>)}</div>}
-              {aiResult.data.objections?.length>0 && <div style={{ marginTop:8 }}><Mono color={C.purple} size={8}>Objections probables</Mono>{aiResult.data.objections.map((o,i)=><div key={i} style={{ marginTop:6 }}><div style={{ fontSize:12, color:C.amber, fontWeight:600 }}>{o.from}: {o.objection}</div><div style={{ fontSize:12, color:C.em, marginTop:2 }}>→ {o.response}</div></div>)}</div>}
-              {aiResult.data.worstCaseScenario && <div style={{ marginTop:8 }}><Mono color={C.red} size={8}>Pire scénario</Mono><div style={{ fontSize:12, color:C.text, marginTop:4 }}>{aiResult.data.worstCaseScenario}</div></div>}
+              <Mono color={C.red} size={9}>{t("decisions.ai.challenge")}</Mono>
+              {aiResult.data.blindSpots?.length>0 && <div style={{ marginTop:8 }}><Mono color={C.amber} size={8}>{t("decisions.ai.blindSpots")}</Mono>{aiResult.data.blindSpots.map((b,i)=><div key={i} style={{ fontSize:12, color:C.text, marginTop:4 }}>• {b}</div>)}</div>}
+              {aiResult.data.objections?.length>0 && <div style={{ marginTop:8 }}><Mono color={C.purple} size={8}>{t("decisions.ai.objections")}</Mono>{aiResult.data.objections.map((o,i)=><div key={i} style={{ marginTop:6 }}><div style={{ fontSize:12, color:C.amber, fontWeight:600 }}>{o.from}: {o.objection}</div><div style={{ fontSize:12, color:C.em, marginTop:2 }}>→ {o.response}</div></div>)}</div>}
+              {aiResult.data.worstCaseScenario && <div style={{ marginTop:8 }}><Mono color={C.red} size={8}>{t("decisions.ai.worstCase")}</Mono><div style={{ fontSize:12, color:C.text, marginTop:4 }}>{aiResult.data.worstCaseScenario}</div></div>}
               {aiResult.data.recommendation && <div style={{ marginTop:8, fontSize:12, color:C.em, fontStyle:"italic" }}>{aiResult.data.recommendation}</div>}
-              <button onClick={()=>setAiResult(null)} style={{ ...css.btn(C.textM,true), padding:"4px 10px", fontSize:10, marginTop:8 }}>Fermer</button>
+              <button onClick={()=>setAiResult(null)} style={{ ...css.btn(C.textM,true), padding:"4px 10px", fontSize:10, marginTop:8 }}>{t("decisions.ai.close")}</button>
             </div>
           )}
           {aiResult?.key==="rationale" && (
             <div style={{ background:C.blue+"08", border:`1px solid ${C.blue}33`, borderRadius:8, padding:14, marginTop:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <Mono color={C.blue} size={9}>Justification IA</Mono>
-                <button onClick={()=>applyRationale(aiResult.data)} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>✓ Appliquer</button>
+                <Mono color={C.blue} size={9}>{t("decisions.ai.rationale")}</Mono>
+                <button onClick={()=>applyRationale(aiResult.data)} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>{t("decisions.option.apply")}</button>
               </div>
               <div style={{ fontSize:12, color:C.text, lineHeight:1.7 }}>{aiResult.data.rationale}</div>
               {aiResult.data.legalBasis && <div style={{ marginTop:6, fontSize:11, color:C.blue }}>📋 {aiResult.data.legalBasis}</div>}
@@ -418,7 +411,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 5: Risques anticipés */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="⚠️" label="Risques anticipés" color={C.red}/>
+          <SecHead icon="⚠️" label={t("decisions.section.risks")} color={C.red}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             {[["legalRisk","Risque légal"],["employeeRelationsRisk","Relations employés"],["managerCapabilityRisk","Capacité gestionnaire"],["organizationalRisk","Risque organisationnel"],["precedentRisk","Risque de précédent"]].map(([k,label])=>(
               <div key={k}><Mono color={C.textD} size={8}>{label}</Mono>
@@ -431,7 +424,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 6: Legal Notes */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="⚖️" label={`Notes légales — ${prov}`} color={C.blue}/>
+          <SecHead icon="⚖️" label={`${t("decisions.section.legal")}${prov}`} color={C.blue}/>
           <div style={{ fontSize:11, color:C.textM, marginBottom:10, padding:"6px 10px", background:C.surf, borderRadius:6 }}>
             {getLegalContext(prov)}
           </div>
@@ -449,7 +442,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 7: Outcome & Follow-up */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="📊" label="Résultat et suivi" color={C.teal}/>
+          <SecHead icon="📊" label={t("decisions.section.outcome")} color={C.teal}/>
           <Mono color={C.textD} size={9}>Résultat observé</Mono>
           <textarea rows={2} value={form.outcome} onChange={SF("outcome")} placeholder="Résultat concret après la décision..." style={{ ...css.textarea, marginTop:5 }} {...focusStyle}/>
           <div style={{ marginTop:10 }}><Mono color={C.textD} size={9}>Actions de suivi</Mono></div>
@@ -460,7 +453,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         {/* Section 8: Rétrospective */}
         <Card style={{ marginBottom:12 }}>
-          <SecHead icon="🔄" label="Rétrospective" color={C.purple}/>
+          <SecHead icon="🔄" label={t("decisions.section.retro")} color={C.purple}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div><Mono color={C.em} size={8}>Ce qui a fonctionné</Mono>
               <textarea rows={2} value={form.whatWorked} onChange={SF("whatWorked")} placeholder="Points positifs..." style={{ ...css.textarea, marginTop:4, fontSize:12 }} {...focusStyle}/></div>
@@ -472,15 +465,15 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
           <div style={{ marginTop:10 }}><Mono color={C.textD} size={9}>Leçons et notes rétrospectives</Mono></div>
           <textarea rows={2} value={form.retrospective} onChange={SF("retrospective")} placeholder="Leçons apprises pour les prochaines décisions..." style={{ ...css.textarea, marginTop:5 }} {...focusStyle}/>
           <button onClick={()=>runAI("retro",buildDecisionRetrospectivePrompt)} disabled={!!aiLoading} style={{ ...css.btn(C.purple,true), padding:"7px 14px", fontSize:11, marginTop:10, opacity:aiLoading?.5:1 }}>
-            {aiLoading==="retro"?"⏳ Analyse...":"🔄 Analyser le résultat avec l'IA"}</button>
+            {aiLoading==="retro"?t("decisions.retro.aiAnalyzeLoading"):t("decisions.retro.aiAnalyze")}</button>
           {aiResult?.key==="retro" && (
             <div style={{ background:C.purple+"08", border:`1px solid ${C.purple}33`, borderRadius:8, padding:14, marginTop:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <Mono color={C.purple} size={9}>Rétrospective IA</Mono>
-                <button onClick={()=>applyRetrospective(aiResult.data)} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>✓ Appliquer</button>
+                <Mono color={C.purple} size={9}>{t("decisions.retro.aiTitle")}</Mono>
+                <button onClick={()=>applyRetrospective(aiResult.data)} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>{t("decisions.option.apply")}</button>
               </div>
-              {aiResult.data.whatWorkedWell?.length>0 && <div style={{ marginBottom:6 }}><Mono color={C.em} size={8}>Positif</Mono>{aiResult.data.whatWorkedWell.map((w,i)=><div key={i} style={{ fontSize:12, color:C.text, marginTop:2 }}>✓ {w}</div>)}</div>}
-              {aiResult.data.whatWasMissed?.length>0 && <div style={{ marginBottom:6 }}><Mono color={C.red} size={8}>Manqué</Mono>{aiResult.data.whatWasMissed.map((w,i)=><div key={i} style={{ fontSize:12, color:C.text, marginTop:2 }}>✗ {w}</div>)}</div>}
+              {aiResult.data.whatWorkedWell?.length>0 && <div style={{ marginBottom:6 }}><Mono color={C.em} size={8}>{t("decisions.retro.positive")}</Mono>{aiResult.data.whatWorkedWell.map((w,i)=><div key={i} style={{ fontSize:12, color:C.text, marginTop:2 }}>✓ {w}</div>)}</div>}
+              {aiResult.data.whatWasMissed?.length>0 && <div style={{ marginBottom:6 }}><Mono color={C.red} size={8}>{t("decisions.retro.missedAi")}</Mono>{aiResult.data.whatWasMissed.map((w,i)=><div key={i} style={{ fontSize:12, color:C.text, marginTop:2 }}>✗ {w}</div>)}</div>}
               {aiResult.data.wouldDoSameAgain && <div style={{ fontSize:12, color:C.amber, fontStyle:"italic" }}>{aiResult.data.wouldDoSameAgain}</div>}
             </div>
           )}
@@ -490,8 +483,8 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
 
         <div style={{ position:"sticky", bottom:0, background:C.bg, borderTop:`1px solid ${C.border}`, padding:"12px 0", display:"flex", gap:10, zIndex:10 }}>
           <button onClick={save} disabled={!form.title.trim()} style={{ ...css.btn(C.em), flex:1, opacity:form.title.trim()?1:.4 }}>
-            💾 {editId ? "Enregistrer" : "Créer la décision"}</button>
-          <button onClick={()=>{ setView("list"); setForm({...EMPTY_DECISION}); setEditId(null); }} style={{ ...css.btn(C.textM,true) }}>Annuler</button>
+            {editId ? t("decisions.save.update") : t("decisions.save.create")}</button>
+          <button onClick={()=>{ setView("list"); setForm({...EMPTY_DECISION}); setEditId(null); }} style={{ ...css.btn(C.textM,true) }}>{t("decisions.cancel")}</button>
         </div>
       </div>
     );
@@ -513,37 +506,37 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
     <div style={{ maxWidth:900, margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Decision Log RH</div>
-          <div style={{ fontSize:12, color:C.textM }}>{decisions.length} décision(s) documentée(s)</div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>{t("decisions.title")}</div>
+          <div style={{ fontSize:12, color:C.textM }}>{decisions.length}</div>
         </div>
-        <button onClick={openNew} style={css.btn(C.em)}>+ Nouvelle décision</button>
+        <button onClick={openNew} style={css.btn(C.em)}>{t("decisions.new")}</button>
       </div>
 
       <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Rechercher..." style={{ ...css.input, maxWidth:220, fontSize:12 }} {...focusStyle}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("decisions.searchPh")} style={{ ...css.input, maxWidth:220, fontSize:12 }} {...focusStyle}/>
         <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{ ...css.select, maxWidth:140, fontSize:12 }}>
-          <option value="all">Tous statuts</option>
-          {DECISION_STATUSES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+          <option value="all">{t("decisions.filter.allStatus")}</option>
+          {DECISION_STATUSES.map(s=><option key={s.value} value={s.value}>{tDecisionStatus(t, s.value)}</option>)}
         </select>
         <select value={filterType} onChange={e=>setFilterType(e.target.value)} style={{ ...css.select, maxWidth:150, fontSize:12 }}>
-          <option value="all">Tous types</option>
-          {DECISION_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+          <option value="all">{t("decisions.filter.allTypes")}</option>
+          {DECISION_TYPES.map(o=><option key={o.value} value={o.value}>{tDecisionType(t, o.value)}</option>)}
         </select>
         <select value={filterProvince} onChange={e=>setFilterProvince(e.target.value)} style={{ ...css.select, maxWidth:100, fontSize:12 }}>
-          <option value="all">Prov.</option>
+          <option value="all">{t("decisions.filter.allProvinces")}</option>
           {PROVINCES.map(p=><option key={p} value={p}>{p}</option>)}
         </select>
       </div>
 
       {filtered.length === 0 && <div style={{ textAlign:"center", padding:40, color:C.textD, fontSize:13 }}>
-        {decisions.length === 0 ? "Aucune décision documentée. Clique sur \"+ Nouvelle décision\" pour commencer." : "Aucun résultat pour ces filtres."}
+        {decisions.length === 0 ? t("decisions.empty.none") : t("decisions.empty.noResults")}
       </div>}
 
       <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
         {filtered.map(d => {
           const riskDef = DECISION_RISK.find(r=>r.value===d.riskLevel) || DECISION_RISK[1];
           const statusDef = DECISION_STATUSES.find(s=>s.value===d.status) || DECISION_STATUSES[0];
-          const typeDef = DECISION_TYPES.find(t=>t.value===d.decisionType) || DECISION_TYPES[5];
+          const typeDef = DECISION_TYPES.find(o=>o.value===d.decisionType) || DECISION_TYPES[5];
           const comp = completeness(d);
           const reviewDue = isReviewDue(d);
           const linkedCase = d.linkedCaseId ? (data.cases||[]).find(c => c.id === d.linkedCaseId) : null;
@@ -555,16 +548,16 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
                 <button onClick={()=>openEdit(d)} style={{ flex:1, background:"none", border:"none", cursor:"pointer", textAlign:"left", padding:0, fontFamily:"'DM Sans',sans-serif" }}>
                   <span style={{ fontSize:13, fontWeight:600, color:C.text }}>{d.title||"(sans titre)"}</span>
                 </button>
-                <Badge label={riskDef.label} color={riskDef.color}/>
-                <Badge label={typeDef.label} color={C.blue} size={9}/>
-                <Badge label={statusDef.label} color={statusDef.color} size={9}/>
+                <Badge label={tDecisionRisk(t, riskDef.value)} color={riskDef.color}/>
+                <Badge label={tDecisionType(t, typeDef.value)} color={C.blue} size={9}/>
+                <Badge label={tDecisionStatus(t, statusDef.value)} color={statusDef.color} size={9}/>
                 {d.province && <ProvinceBadge province={d.province}/>}
-                {reviewDue && <Badge label="Review due" color={C.red} size={9}/>}
+                {reviewDue && <Badge label={t("decisions.reviewDue")} color={C.red} size={9}/>}
                 {linkedCase && onNavigate && (
-                  <button onClick={(e)=>{e.stopPropagation();onNavigate("cases",{focusCaseId:linkedCase.id});}} title={linkedCase.title||"Dossier lié"} style={{ background:"none", border:`1px solid ${C.blue}44`, borderRadius:4, padding:"1px 7px", fontSize:9, color:C.blue, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>↗ Case</button>
+                  <button onClick={(e)=>{e.stopPropagation();onNavigate("cases",{focusCaseId:linkedCase.id});}} title={linkedCase.title||""} style={{ background:"none", border:`1px solid ${C.blue}44`, borderRadius:4, padding:"1px 7px", fontSize:9, color:C.blue, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>{t("decisions.linkedCase")}</button>
                 )}
                 {linkedInv && onNavigate && (
-                  <button onClick={(e)=>{e.stopPropagation();onNavigate("investigation",{focusInvestigationId:linkedInv.id});}} title={linkedInv.title||"Enquête liée"} style={{ background:"none", border:`1px solid ${C.purple}44`, borderRadius:4, padding:"1px 7px", fontSize:9, color:C.purple, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>↗ Enquête</button>
+                  <button onClick={(e)=>{e.stopPropagation();onNavigate("investigation",{focusInvestigationId:linkedInv.id});}} title={linkedInv.title||""} style={{ background:"none", border:`1px solid ${C.purple}44`, borderRadius:4, padding:"1px 7px", fontSize:9, color:C.purple, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>{t("decisions.linkedInv")}</button>
                 )}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:12, fontSize:11, color:C.textM }}>
@@ -576,7 +569,7 @@ export default function ModuleDecisions({ data, onSave, onNavigate, focusDecisio
                   </div>
                   <span style={{ fontSize:10 }}>{comp}%</span>
                 </span>
-                <button onClick={(e)=>{e.stopPropagation();duplicate(d);}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:5, padding:"2px 8px", fontSize:10, color:C.textM, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>⧉ Dupliquer</button>
+                <button onClick={(e)=>{e.stopPropagation();duplicate(d);}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:5, padding:"2px 8px", fontSize:10, color:C.textM, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>{t("decisions.duplicate")}</button>
               </div>
             </div>
           );

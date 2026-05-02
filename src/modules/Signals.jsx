@@ -8,6 +8,7 @@ import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
 import AILoader from '../components/AILoader.jsx';
+import { useT } from '../lib/i18n.js';
 
 // Inline shared helpers (used in multiple modules, to be reviewed at Bloc 7)
 function RiskBadge({ level }) {
@@ -23,6 +24,7 @@ function SecHead({ icon, label, color=C.em }) {
 }
 
 export default function ModuleSignals({ data, onSave, focusSignalId, onClearFocus }) {
+  const { t } = useT();
   const [view, setView] = useState("list");
   const [signalText, setSignalText] = useState("");
   const [source, setSource] = useState("meeting");
@@ -69,10 +71,10 @@ export default function ModuleSignals({ data, onSave, focusSignalId, onClearFocu
     <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
         <button onClick={() => { setView("list"); setResult(null); setSignalText(""); }}
-          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>{t("signals.back")}</button>
         <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{result.title}</div>
         <button onClick={saveSignal} disabled={saved} style={{ ...css.btn(saved?C.textD:C.em), padding:"8px 16px", fontSize:12 }}>
-          {saved ? "✓ Sauvegardé" : "💾 Sauvegarder"}
+          {saved ? t("signals.saved") : t("signals.save")}
         </button>
       </div>
 
@@ -83,25 +85,25 @@ export default function ModuleSignals({ data, onSave, focusSignalId, onClearFocu
 
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         <Card>
-          <SecHead icon="🔍" label="Interprétation" color={C.purple}/>
+          <SecHead icon="🔍" label={t("signals.section.interpretation")} color={C.purple}/>
           <div style={{ fontSize:13, color:C.text, lineHeight:1.7 }}>{result.interpretation}</div>
           {result.rootCause && <div style={{ marginTop:10, fontSize:12, color:C.textM }}>
-            <span style={{ color:C.amber }}>Cause racine : </span>{result.rootCause}
+            <span style={{ color:C.amber }}>{t("signals.rootCause")}</span>{result.rootCause}
           </div>}
         </Card>
         <Card>
-          <SecHead icon="⚡" label="Verdict HRBP" color={C.em}/>
+          <SecHead icon="⚡" label={t("signals.section.verdict")} color={C.em}/>
           <div style={{ fontSize:13, color:C.text, lineHeight:1.7, fontStyle:"italic" }}>{result.verdict}</div>
         </Card>
         {result.actions?.length > 0 && <Card>
-          <SecHead icon="🎯" label="Actions recommandées" color={C.em}/>
+          <SecHead icon="🎯" label={t("signals.section.actions")} color={C.em}/>
           {result.actions.map((a,i) => <div key={i} style={{ display:"flex", gap:8, marginBottom:8 }}>
             <Badge label={a.delay} color={DELAY_C[a.delay]||C.blue} size={10}/>
             <span style={{ fontSize:13, color:C.text }}>{a.action}</span>
           </div>)}
         </Card>}
         {result.risks?.length > 0 && <Card>
-          <SecHead icon="⚠" label="Risques identifiés" color={C.red}/>
+          <SecHead icon="⚠" label={t("signals.section.risks")} color={C.red}/>
           {result.risks.map((r,i) => <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
             <RiskBadge level={r.level}/>
             <span style={{ fontSize:13, color:C.text }}>{r.risk}</span>
@@ -115,53 +117,53 @@ export default function ModuleSignals({ data, onSave, focusSignalId, onClearFocu
     <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Signal Detector</div>
-          <div style={{ fontSize:12, color:C.textM }}>{signals.length} signal(s) enregistré(s)</div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>{t("signals.title")}</div>
+          <div style={{ fontSize:12, color:C.textM }}>{signals.length} · {t("signals.history")}</div>
         </div>
       </div>
 
       {/* New signal */}
       <Card style={{ marginBottom:20 }}>
-        <SecHead icon="📡" label="Nouveau signal" color={C.purple}/>
+        <SecHead icon="📡" label={t("signals.new")} color={C.purple}/>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:12 }}>
           <div>
-            <Mono color={C.textD}>Source</Mono>
+            <Mono color={C.textD}>{t("signals.source")}</Mono>
             <select value={source} onChange={e=>setSource(e.target.value)} style={{ ...css.select, marginTop:6 }}>
-              {[{v:"meeting",l:"Meeting"},{ v:"corridor",l:"Corridor/Informel"},{v:"slack",l:"Slack/Teams"},
-                {v:"hr_report",l:"Rapport RH"},{v:"manager",l:"Gestionnaire"},{v:"other",l:"Autre"}].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+              {[{v:"meeting",l:t("signals.source.meeting")},{ v:"corridor",l:t("signals.source.corridor")},{v:"slack",l:t("signals.source.slack")},
+                {v:"hr_report",l:t("signals.source.hr_report")},{v:"manager",l:t("signals.source.manager")},{v:"other",l:t("signals.source.other")}].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
             </select>
           </div>
           <div>
-            <Mono color={C.textD}>Directeur / Contexte</Mono>
+            <Mono color={C.textD}>{t("signals.directorLabel")}</Mono>
             <input value={director} onChange={e=>setDirector(e.target.value)}
-              placeholder="Nom ou contexte" style={{ ...css.input, marginTop:6 }}
+              placeholder={t("signals.directorPh")} style={{ ...css.input, marginTop:6 }}
               onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
           </div>
           <div>
-            <Mono color={C.textD}>Date du signal</Mono>
+            <Mono color={C.textD}>{t("signals.date")}</Mono>
             <input type="date" value={signalDate} onChange={e=>setSignalDate(e.target.value)}
               style={{ ...css.input, marginTop:6 }}
               onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
           </div>
         </div>
-        <Mono color={C.textD}>Description du signal</Mono>
+        <Mono color={C.textD}>{t("signals.description")}</Mono>
         <textarea rows={4} value={signalText} onChange={e=>setSignalText(e.target.value)}
-          placeholder="Décris ce que tu as observé, entendu ou ressenti…"
+          placeholder={t("signals.descriptionPh")}
           style={{ ...css.textarea, marginTop:6 }}
           onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
         {error && <div style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:7,
           padding:"8px 12px", margin:"10px 0", fontSize:12, color:C.red }}>⚠ {error}</div>}
-        {loading ? <AILoader label="Analyse du signal" /> : (
+        {loading ? <AILoader label={t("signals.analyzing")} /> : (
           <button onClick={analyze} disabled={signalText.trim().length<20}
             style={{ ...css.btn(C.purple), width:"100%", marginTop:12, opacity:signalText.trim().length>=20?1:.4 }}>
-            📡 Analyser le signal
+            {t("signals.analyze")}
           </button>
         )}
       </Card>
 
       {/* Signal history */}
       {signals.length > 0 && <>
-        <Mono color={C.textD} size={9}>Signaux enregistrés</Mono>
+        <Mono color={C.textD} size={9}>{t("signals.history")}</Mono>
         <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:7 }}>
           {signals.slice().reverse().map((s,i) => {
             const r = RISK[s.analysis?.severity]||RISK["Modéré"];

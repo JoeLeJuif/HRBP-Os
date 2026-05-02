@@ -17,6 +17,7 @@ import Divider      from '../components/Divider.jsx';
 import ProvinceBadge  from '../components/ProvinceBadge.jsx';
 import Module1on1Prep from './Prep1on1.jsx';
 import MeetingEngine  from './MeetingEngine.jsx';
+import { useT } from '../lib/i18n.js';
 
 // ── Inline shared helpers ─────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -79,6 +80,7 @@ function MeetingLoader({ chars=0 }) {
 }
 
 function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
+  const { t } = useT();
   const [view, setView] = useState("list"); // list | new | result | director
   const [transcript, setTranscript] = useState("");
   const [meetingType, setMeetingType] = useState("director");
@@ -197,32 +199,32 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
   const isDiscMeeting = meetingType === "disciplinaire" || activeSession?.meetingType === "disciplinaire";
   const isInitMeeting = meetingType === "initiatives"   || activeSession?.meetingType === "initiatives";
   const TABS = isDiscMeeting ? [
-    {id:"summary",   icon:"📋", label:"Résumé"},
-    {id:"faits",     icon:"📄", label:"Faits"},
-    {id:"juridique", icon:"⚖",  label:"Cadre juridique"},
-    {id:"sanction",  icon:"🔴", label:"Sanction"},
-    {id:"actions",   icon:"✅", label:"Actions & Docs"},
+    {id:"summary",   icon:"📋", label:t("meetings.tab.summary")},
+    {id:"faits",     icon:"📄", label:t("meetings.tab.faits")},
+    {id:"juridique", icon:"⚖",  label:t("meetings.tab.juridique")},
+    {id:"sanction",  icon:"🔴", label:t("meetings.tab.sanction")},
+    {id:"actions",   icon:"✅", label:t("meetings.tab.actionsDocs")},
   ] : isInitMeeting ? [
-    {id:"summary",    icon:"📋", label:"Résumé"},
-    {id:"initiatives",icon:"🚀", label:"Initiatives", badge: result?.initiatives?.length > 0 ? result.initiatives.length : null},
-    {id:"blocages",   icon:"🚧", label:"Blocages",    badge: result?.blocagesGlobaux?.length > 0 ? result.blocagesGlobaux.length : null},
-    {id:"decisions",  icon:"✅", label:"Décisions"},
-    {id:"actions",    icon:"🎯", label:"Actions"},
-    {id:"questions",  icon:"💬", label:"Prochain meeting"},
+    {id:"summary",    icon:"📋", label:t("meetings.tab.summary")},
+    {id:"initiatives",icon:"🚀", label:t("meetings.tab.initiatives"), badge: result?.initiatives?.length > 0 ? result.initiatives.length : null},
+    {id:"blocages",   icon:"🚧", label:t("meetings.tab.blocages"),    badge: result?.blocagesGlobaux?.length > 0 ? result.blocagesGlobaux.length : null},
+    {id:"decisions",  icon:"✅", label:t("meetings.tab.decisions")},
+    {id:"actions",    icon:"🎯", label:t("meetings.tab.actions")},
+    {id:"questions",  icon:"💬", label:t("meetings.tab.nextMeeting")},
   ] : isTAMeeting ? [
-    {id:"summary",   icon:"📋", label:"Résumé"},
-    {id:"postes",    icon:"🎯", label:"Postes", badge: result?.postes?.length > 0 ? result.postes.length : null},
-    {id:"blocages",  icon:"🚧", label:"Blocages", badge: result?.blocages?.length > 0 ? result.blocages.length : null},
-    {id:"actions",   icon:"✅", label:"Actions"},
-    {id:"questions", icon:"💬", label:"Prochain meeting"},
+    {id:"summary",   icon:"📋", label:t("meetings.tab.summary")},
+    {id:"postes",    icon:"🎯", label:t("meetings.tab.postes"), badge: result?.postes?.length > 0 ? result.postes.length : null},
+    {id:"blocages",  icon:"🚧", label:t("meetings.tab.blocages"), badge: result?.blocages?.length > 0 ? result.blocages.length : null},
+    {id:"actions",   icon:"✅", label:t("meetings.tab.actions")},
+    {id:"questions", icon:"💬", label:t("meetings.tab.nextMeeting")},
   ] : [
-    {id:"summary",icon:"📋",label:"Résumé"},
-    {id:"people",icon:"👥",label:"People"},
-    {id:"signals",icon:"📡",label:"Signaux"},
-    {id:"risks",icon:"⚠",label:"Risques"},
-    {id:"actions",icon:"🎯",label:"Actions"},
-    {id:"questions",icon:"💬",label:"Questions", badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null},
-    {id:"case",icon:"📂",label:"Case Log"},
+    {id:"summary",icon:"📋",label:t("meetings.tab.summary")},
+    {id:"people",icon:"👥",label:t("meetings.tab.people")},
+    {id:"signals",icon:"📡",label:t("meetings.tab.signals")},
+    {id:"risks",icon:"⚠",label:t("meetings.tab.risks")},
+    {id:"actions",icon:"🎯",label:t("meetings.tab.actions")},
+    {id:"questions",icon:"💬",label:t("meetings.tab.questions"), badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null},
+    {id:"case",icon:"📂",label:t("meetings.tab.case")},
   ];
   const [tab, setTab] = useState("summary");
   const [qsub, setQsub] = useState("meeting");
@@ -232,26 +234,26 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
 
   if (view === "list") {
     const TYPE_META = {
-      executif:      { label:"Exécutif",            icon:"🏛", color:C.purple },
+      executif:      { label:t("meetings.type.executif").replace(/^[^\s]+\s/,""),            icon:"🏛", color:C.purple },
       vp:            { label:"VP",                  icon:"📊", color:C.blue },
-      director:      { label:"Directeur",          icon:"🏢", color:C.blue },
-      manager:       { label:"Gestionnaire",        icon:"👤", color:C.blue },
-      talent:        { label:"Talent / Perf",       icon:"⭐", color:C.amber },
-      org:           { label:"Org & Changement",    icon:"🔄", color:C.purple },
-      ta:            { label:"Talent Acquisition",  icon:"🎯", color:C.teal },
-      hrbpteam:      { label:"HRBP Team",           icon:"🤝", color:C.em },
-      disciplinaire: { label:"Disciplinaire",       icon:"⚖",  color:C.red },
-      initiatives:   { label:"Initiatives",         icon:"🚀", color:C.em },
+      director:      { label:t("meetings.type.director").replace(/^[^\s]+\s/,""),          icon:"🏢", color:C.blue },
+      manager:       { label:t("meetings.type.manager").replace(/^[^\s]+\s/,""),        icon:"👤", color:C.blue },
+      talent:        { label:t("meetings.type.talent").replace(/^[^\s]+\s/,""),       icon:"⭐", color:C.amber },
+      org:           { label:t("meetings.type.org").replace(/^[^\s]+\s/,""),    icon:"🔄", color:C.purple },
+      ta:            { label:t("meetings.type.ta").replace(/^[^\s]+\s/,""),  icon:"🎯", color:C.teal },
+      hrbpteam:      { label:t("meetings.type.hrbpteam").replace(/^[^\s]+\s/,""),           icon:"🤝", color:C.em },
+      disciplinaire: { label:t("meetings.type.disciplinaire").replace(/^[^\s]+\s/,""),       icon:"⚖",  color:C.red },
+      initiatives:   { label:t("meetings.type.initiatives").replace(/^[^\s]+\s/,""),         icon:"🚀", color:C.em },
     };
     return (
     <div style={{ maxWidth:860, margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Meetings Hub</div>
-          <div style={{ fontSize:12, color:C.textM }}>{meetings.length} meeting(s) enregistré(s)</div>
+          <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>{t("meetings.title")}</div>
+          <div style={{ fontSize:12, color:C.textM }}>{meetings.length}</div>
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          <button onClick={() => onSwitchTab && onSwitchTab("engine")} style={{ ...css.btn(C.em) }}>⚡ Meeting Engine</button>
+          <button onClick={() => onSwitchTab && onSwitchTab("engine")} style={{ ...css.btn(C.em) }}>{t("meetings.engine")}</button>
         </div>
       </div>
 
@@ -277,7 +279,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         return (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginBottom:18 }}>
             <div style={{ ...tileCss, borderLeft:`3px solid ${C.em}` }}>
-              <Mono color={C.em} size={9}>MEETINGS PAR TYPE</Mono>
+              <Mono color={C.em} size={9}>{t("meetings.tile.byType")}</Mono>
               <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
                 {topTypes.map(([t,n]) => (
                   <div key={t} style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:C.textM }}>
@@ -287,7 +289,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               </div>
             </div>
             <div style={{ ...tileCss, borderLeft:`3px solid ${C.amber}` }}>
-              <Mono color={C.amber} size={9}>PAR RISQUE</Mono>
+              <Mono color={C.amber} size={9}>{t("meetings.tile.byRisk")}</Mono>
               <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
                 {Object.entries(byRisk).map(([lvl,n]) => (
                   <div key={lvl} style={{ display:"flex", justifyContent:"space-between", fontSize:11 }}>
@@ -298,14 +300,14 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               </div>
             </div>
             <div style={{ ...tileCss, borderLeft:`3px solid ${C.purple}` }}>
-              <Mono color={C.purple} size={9}>AVEC CASE ENTRY</Mono>
+              <Mono color={C.purple} size={9}>{t("meetings.tile.withCase")}</Mono>
               <div style={{ marginTop:8, fontSize:24, fontWeight:700, color:C.text }}>{withCaseEntry}</div>
-              <div style={{ fontSize:10, color:C.textD }}>sur {meetings.length} meeting{meetings.length>1?"s":""}</div>
+              <div style={{ fontSize:10, color:C.textD }}>/ {meetings.length}</div>
             </div>
             <div style={{ ...tileCss, borderLeft:`3px solid ${C.red}` }}>
-              <Mono color={C.red} size={9}>CASES ACTIVES LIÉES</Mono>
+              <Mono color={C.red} size={9}>{t("meetings.tile.linkedCases")}</Mono>
               <div style={{ marginTop:8, fontSize:24, fontWeight:700, color:C.text }}>{linkedActiveCases}</div>
-              <div style={{ fontSize:10, color:C.textD }}>provenant de meetings</div>
+              <div style={{ fontSize:10, color:C.textD }}>{t("meetings.tile.linkedCases.sub")}</div>
             </div>
           </div>
         );
@@ -313,7 +315,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
 
       {/* Group by toggle */}
       <div style={{ display:"flex", gap:2, marginBottom:20, background:C.surfL, borderRadius:8, padding:4, width:"fit-content" }}>
-        {[{id:"director",label:"Par directeur"},{id:"type",label:"Par type"}].map(g => (
+        {[{id:"director",label:t("meetings.byDirector")},{id:"type",label:t("meetings.byType")}].map(g => (
           <button key={g.id} onClick={() => setGroupBy(g.id)}
             style={{ padding:"6px 16px", borderRadius:6, fontSize:12, cursor:"pointer",
               fontFamily:"'DM Sans',sans-serif", border:"none",
@@ -329,13 +331,13 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {groupBy === "director" && (() => {
         const LEVEL_MAP = {
           employe:       { label:"Employé",      icon:"🧑", color:C.em,     order:0 },
-          gestionnaire:  { label:"Gestionnaire", icon:"👤", color:C.teal,   order:1 },
-          directeur:     { label:"Directeur",    icon:"🏢", color:C.blue,   order:2 },
-          director:      { label:"Directeur",    icon:"🏢", color:C.blue,   order:2 },
-          manager:       { label:"Gestionnaire", icon:"👤", color:C.teal,   order:1 },
+          gestionnaire:  { label:t("meetings.type.manager").replace(/^[^\s]+\s/,""), icon:"👤", color:C.teal,   order:1 },
+          directeur:     { label:t("meetings.type.director").replace(/^[^\s]+\s/,""),    icon:"🏢", color:C.blue,   order:2 },
+          director:      { label:t("meetings.type.director").replace(/^[^\s]+\s/,""),    icon:"🏢", color:C.blue,   order:2 },
+          manager:       { label:t("meetings.type.manager").replace(/^[^\s]+\s/,""), icon:"👤", color:C.teal,   order:1 },
           vp:            { label:"VP",           icon:"📊", color:C.blue,   order:3 },
-          executif:      { label:"Exécutif",     icon:"🏛", color:C.purple, order:4 },
-          hrbp_team:     { label:"HRBP Team",    icon:"🤝", color:C.purple, order:5 },
+          executif:      { label:t("meetings.type.executif").replace(/^[^\s]+\s/,""),     icon:"🏛", color:C.purple, order:4 },
+          hrbp_team:     { label:t("meetings.type.hrbpteam").replace(/^[^\s]+\s/,""),    icon:"🤝", color:C.purple, order:5 },
           ta_team:       { label:"TA Team",      icon:"🎯", color:C.teal,   order:6 },
           autres:        { label:"Autres",       icon:"📋", color:C.textD,  order:7 },
         };
@@ -397,8 +399,8 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           {directors.length === 0 && (
             <div style={{ textAlign:"center", padding:"60px 20px", color:C.textD }}>
               <div style={{ fontSize:36, marginBottom:12 }}>🎙️</div>
-              <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>Aucun meeting enregistré</div>
-              <div style={{ fontSize:12, color:C.textD }}>Analyse ton premier transcript pour commencer.</div>
+              <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>{t("meetings.empty.title")}</div>
+              <div style={{ fontSize:12, color:C.textD }}>{t("meetings.empty.body")}</div>
             </div>
           )}
         </>;
@@ -452,8 +454,8 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           {meetings.length === 0 && (
             <div style={{ textAlign:"center", padding:"60px 20px", color:C.textD }}>
               <div style={{ fontSize:36, marginBottom:12 }}>🎙️</div>
-              <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>Aucun meeting enregistré</div>
-              <div style={{ fontSize:12, color:C.textD }}>Analyse ton premier transcript pour commencer.</div>
+              <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>{t("meetings.empty.title")}</div>
+              <div style={{ fontSize:12, color:C.textD }}>{t("meetings.empty.body")}</div>
             </div>
           )}
         </>;
@@ -462,7 +464,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {/* Recent meetings footer */}
       {meetings.length > 0 && (
         <div style={{ marginTop:20 }}>
-          <Mono color={C.textD} size={9}>Sessions récentes</Mono>
+          <Mono color={C.textD} size={9}>{t("meetings.recent")}</Mono>
           <div style={{ display:"flex", flexDirection:"column", gap:5, marginTop:8 }}>
             {meetings.slice().reverse().slice(0,5).map((m,i) => (
               <button key={i}
@@ -492,16 +494,16 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
 
   // Session / result view
   const MEETING_TYPES = [
-    {id:"executif",    label:"🏛 Exécutif"},
-    {id:"vp",          label:"📊 VP"},
-    {id:"director",    label:"🏢 Directeur"},
-    {id:"manager",     label:"👤 Gestionnaire"},
-    {id:"hrbpteam",    label:"🤝 HRBP Team"},
-    {id:"ta",          label:"🎯 Talent Acquisition"},
-    {id:"talent",      label:"⭐ Talent/Perf"},
-    {id:"org",         label:"🔄 Org & Changement"},
-    {id:"disciplinaire",label:"⚖ Disciplinaire"},
-    {id:"initiatives", label:"🚀 Initiatives"},
+    {id:"executif",    label:t("meetings.type.executif")},
+    {id:"vp",          label:t("meetings.type.vp")},
+    {id:"director",    label:t("meetings.type.director")},
+    {id:"manager",     label:t("meetings.type.manager")},
+    {id:"hrbpteam",    label:t("meetings.type.hrbpteam")},
+    {id:"ta",          label:t("meetings.type.ta")},
+    {id:"talent",      label:t("meetings.type.talent")},
+    {id:"org",         label:t("meetings.type.org")},
+    {id:"disciplinaire",label:t("meetings.type.disciplinaire")},
+    {id:"initiatives", label:t("meetings.type.initiatives")},
   ];
 
   const saveMeta = () => {
@@ -527,7 +529,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
         <button onClick={() => { setView("list"); setResult(null); setTranscript(""); setContext(""); setEditingMeta(false); }}
-          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+          style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>{t("meetings.back")}</button>
         <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{result.meetingTitle}</div>
         {view === "session" && (
           <button onClick={() => {
@@ -540,12 +542,12 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
             });
           }}
             style={{ ...css.btn(editingMeta ? C.amber : C.textM, true), padding:"6px 12px", fontSize:11 }}>
-            {editingMeta ? "✕ Annuler" : "✏ Modifier"}
+            {editingMeta ? t("meetings.editMeta.cancel") : t("meetings.editMeta")}
           </button>
         )}
         {view === "result" && <button onClick={saveResult} disabled={saved}
           style={{ ...css.btn(saved?C.textD:C.em), padding:"8px 16px", fontSize:12 }}>
-          {saved ? "✓ Sauvegardé" : "💾 Sauvegarder"}
+          {saved ? t("meetings.saved") : t("meetings.save")}
         </button>}
       </div>
 
@@ -553,10 +555,10 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {editingMeta && view === "session" && (
         <div style={{ background:C.amber+"10", border:`1px solid ${C.amber}40`,
           borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
-          <Mono color={C.amber} size={9}>MODIFIER LES MÉTADONNÉES</Mono>
+          <Mono color={C.amber} size={9}>{t("meetings.editingMeta")}</Mono>
           <div style={{ display:"flex", gap:12, marginTop:12, flexWrap:"wrap", alignItems:"flex-end" }}>
             <div style={{ flex:"1 1 160px" }}>
-              <Mono color={C.textD} size={9}>Titre du meeting</Mono>
+              <Mono color={C.textD} size={9}>{t("meetings.field.title")}</Mono>
               <input value={metaDraft.meetingTitle || ""}
                 onChange={e => setMetaDraft(p => ({...p, meetingTitle: e.target.value}))}
                 style={{ ...css.input, marginTop:5, fontSize:12 }}
@@ -564,7 +566,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 onBlur={e=>e.target.style.borderColor=C.border}/>
             </div>
             <div style={{ flex:"1 1 140px" }}>
-              <Mono color={C.textD} size={9}>Nom</Mono>
+              <Mono color={C.textD} size={9}>{t("meetings.field.name")}</Mono>
               <input value={metaDraft.director || ""}
                 onChange={e => setMetaDraft(p => ({...p, director: e.target.value}))}
                 style={{ ...css.input, marginTop:5, fontSize:12 }}
@@ -572,7 +574,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 onBlur={e=>e.target.style.borderColor=C.border}/>
             </div>
             <div style={{ flex:"1 1 160px" }}>
-              <Mono color={C.textD} size={9}>Type de meeting</Mono>
+              <Mono color={C.textD} size={9}>{t("meetings.field.type")}</Mono>
               <select value={metaDraft.meetingType || ""}
                 onChange={e => setMetaDraft(p => ({...p, meetingType: e.target.value}))}
                 style={{ ...css.input, marginTop:5, fontSize:12 }}>
@@ -580,19 +582,19 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               </select>
             </div>
             <div style={{ flex:"1 1 130px" }}>
-              <Mono color={C.textD} size={9}>Portée</Mono>
+              <Mono color={C.textD} size={9}>{t("meetings.field.scope")}</Mono>
               <select value={metaDraft.scope || "leader"}
                 onChange={e => setMetaDraft(p => ({...p, scope: e.target.value}))}
                 style={{ ...css.input, marginTop:5, fontSize:12 }}>
-                <option value="leader">Leader / Gestionnaire</option>
-                <option value="team">Équipe</option>
-                <option value="individual">Employé / Individuel</option>
-                <option value="org">Organisation / Projet</option>
+                <option value="leader">{t("meetings.scope.leader")}</option>
+                <option value="team">{t("meetings.scope.team")}</option>
+                <option value="individual">{t("meetings.scope.individual")}</option>
+                <option value="org">{t("meetings.scope.org")}</option>
               </select>
             </div>
             <button onClick={saveMeta}
               style={{ ...css.btn(C.amber), padding:"9px 18px", fontSize:12 }}>
-              ✓ Sauvegarder
+              {t("meetings.save")}
             </button>
           </div>
         </div>
@@ -645,17 +647,17 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isInitMeeting && tab==="summary" && (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <Card style={{ borderLeft:`3px solid ${C.em}` }}>
-            <SecHead icon="📋" label="Résumé portefeuille" color={C.em}/>
+            <SecHead icon="📋" label={t("meetings.section.summaryPortfolio")} color={C.em}/>
             <BulletList items={result.summary} color={C.em}/>
           </Card>
           {result.metriques && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10 }}>
               {[
-                {label:"Total",     val:result.metriques.total,     color:C.blue},
-                {label:"En cours",  val:result.metriques.enCours,   color:C.em},
-                {label:"Bloquées",  val:result.metriques.bloquees,  color:C.red},
-                {label:"Complétées",val:result.metriques.completees,color:C.teal},
-                {label:"À risque",  val:result.metriques.aRisque,   color:C.amber},
+                {label:t("meetings.metric.total"),     val:result.metriques.total,     color:C.blue},
+                {label:t("meetings.metric.inProgress"),  val:result.metriques.enCours,   color:C.em},
+                {label:t("meetings.metric.blocked"),  val:result.metriques.bloquees,  color:C.red},
+                {label:t("meetings.metric.completed"),val:result.metriques.completees,color:C.teal},
+                {label:t("meetings.metric.atRisk"),  val:result.metriques.aRisque,   color:C.amber},
               ].map((m,i) => (
                 <div key={i} style={{ background:m.color+"12", border:`1px solid ${m.color}30`,
                   borderRadius:9, padding:"12px 14px", textAlign:"center" }}>
@@ -671,7 +673,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isInitMeeting && tab==="initiatives" && (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {(!result.initiatives || result.initiatives.length === 0) && (
-            <Card><div style={{ color:C.textD, fontSize:13 }}>Aucune initiative identifiée.</div></Card>
+            <Card><div style={{ color:C.textD, fontSize:13 }}>{t("meetings.empty.initiatives")}</div></Card>
           )}
           {(result.initiatives||[]).map((p, i) => {
             const AVANC_STEPS = ["0-25%","25-50%","50-75%","75-100%","Complète"];
@@ -756,7 +758,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isInitMeeting && tab==="blocages" && (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {(!result.blocagesGlobaux || result.blocagesGlobaux.length === 0) && (
-            <Card><div style={{ color:C.textD, fontSize:13 }}>Aucun blocage global identifié.</div></Card>
+            <Card><div style={{ color:C.textD, fontSize:13 }}>{t("meetings.empty.blocagesGlobaux")}</div></Card>
           )}
           {(result.blocagesGlobaux||[]).map((b,i) => (
             <Card key={i} style={{ borderLeft:`3px solid ${C.red}` }}>
@@ -778,7 +780,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isInitMeeting && tab==="decisions" && (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {(!result.decisions || result.decisions.length === 0) && (
-            <Card><div style={{ color:C.textD, fontSize:13 }}>Aucune décision enregistrée.</div></Card>
+            <Card><div style={{ color:C.textD, fontSize:13 }}>{t("meetings.empty.decisions")}</div></Card>
           )}
           {(result.decisions||[]).map((d,i) => (
             <Card key={i} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
@@ -838,25 +840,25 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               {result.typeRencontre && <div style={{ background:C.red+"22", border:`1px solid ${C.red}55`, borderRadius:6, padding:"4px 12px", fontSize:12, color:C.red, fontWeight:700 }}>{result.typeRencontre}</div>}
               <RiskBadge level={result.overallRisk}/>
             </div>
-            <SecHead icon="📋" label="Résumé" color={C.blue}/>
+            <SecHead icon="📋" label={t("meetings.section.summary")} color={C.blue}/>
             <BulletList items={result.summary} color={C.blue}/>
             {result.overallRiskRationale && <div style={{ marginTop:10, fontSize:12, color:C.textM }}><span style={{ color:C.red }}>Risque → </span>{result.overallRiskRationale}</div>}
           </Card>
           {result.pointsVigilance?.length > 0 && (
             <Card style={{ borderLeft:`3px solid ${C.amber}` }}>
-              <SecHead icon="👁" label="Points de vigilance" color={C.amber}/>
+              <SecHead icon="👁" label={t("meetings.section.points")} color={C.amber}/>
               <BulletList items={result.pointsVigilance} color={C.amber}/>
             </Card>
           )}
           {result.prochaineSanction && (
             <Card style={{ background:C.red+"08" }}>
-              <Mono color={C.red} size={9}>SI RÉCIDIVE — PROCHAINE ÉTAPE</Mono>
+              <Mono color={C.red} size={9}>{t("meetings.section.nextSanction")}</Mono>
               <div style={{ fontSize:13, color:C.text, marginTop:8, lineHeight:1.65 }}>{result.prochaineSanction}</div>
             </Card>
           )}
           {result.notes && (
             <Card>
-              <Mono color={C.textD} size={9}>NOTES HRBP</Mono>
+              <Mono color={C.textD} size={9}>{t("meetings.section.notesHrbp")}</Mono>
               <div style={{ fontSize:13, color:C.textM, marginTop:8, fontStyle:"italic", lineHeight:1.65 }}>{result.notes}</div>
             </Card>
           )}
@@ -866,10 +868,10 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isDiscMeeting && tab==="faits" && (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {[
-            {key:"reproches",       label:"Reproches / Manquements",  color:C.red,    icon:"🔴"},
-            {key:"positionEE",      label:"Position de l'employé(e)", color:C.blue,   icon:"💬"},
-            {key:"reconnaissances", label:"Éléments reconnus",        color:C.em,     icon:"✓"},
-            {key:"contestations",   label:"Éléments contestés",       color:C.amber,  icon:"⚠"},
+            {key:"reproches",       label:t("meetings.section.facts.reproches"),  color:C.red,    icon:"🔴"},
+            {key:"positionEE",      label:t("meetings.section.facts.position"), color:C.blue,   icon:"💬"},
+            {key:"reconnaissances", label:t("meetings.section.facts.recognized"),        color:C.em,     icon:"✓"},
+            {key:"contestations",   label:t("meetings.section.facts.contested"),       color:C.amber,  icon:"⚠"},
           ].map(({key,label,color,icon}) => result.faits?.[key]?.length > 0 && (
             <Card key={key} style={{ borderLeft:`3px solid ${color}` }}>
               <SecHead icon={icon} label={label} color={color}/>
@@ -882,16 +884,16 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isDiscMeeting && tab==="juridique" && (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <Card>
-            <SecHead icon="📜" label="Politiques visées" color={C.blue}/>
+            <SecHead icon="📜" label={t("meetings.section.policies")} color={C.blue}/>
             <BulletList items={result.cadreJuridique?.politiquesVisees} color={C.blue}/>
           </Card>
           <Card>
-            <SecHead icon="⚖" label="Lois applicables" color={C.purple}/>
+            <SecHead icon="⚖" label={t("meetings.section.laws")} color={C.purple}/>
             <BulletList items={result.cadreJuridique?.loisApplicables} color={C.purple}/>
           </Card>
           {result.cadreJuridique?.progressiviteSanction && (
             <Card style={{ borderLeft:`3px solid ${result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber}` }}>
-              <Mono color={C.textD} size={9}>PROGRESSIVITÉ DES SANCTIONS</Mono>
+              <Mono color={C.textD} size={9}>{t("meetings.section.progressivity")}</Mono>
               <div style={{ marginTop:8, display:"flex", gap:8, alignItems:"center" }}>
                 <div style={{ background:(result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber)+"22", border:`1px solid ${(result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber)}55`, borderRadius:6, padding:"3px 10px", fontSize:11, color:(result.cadreJuridique.progressiviteSanction === "respectee" ? C.em : C.amber), fontWeight:700, textTransform:"uppercase" }}>
                   {result.cadreJuridique.progressiviteSanction}
@@ -902,7 +904,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           )}
           {result.risquesLegaux?.length > 0 && (
             <Card style={{ borderLeft:`3px solid ${C.red}` }}>
-              <SecHead icon="🚨" label="Risques légaux" color={C.red}/>
+              <SecHead icon="🚨" label={t("meetings.section.legalRisks")} color={C.red}/>
               {result.risquesLegaux.map((r,i) => (
                 <div key={i} style={{ marginBottom:10, paddingBottom:8, borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ display:"flex", gap:8, marginBottom:6 }}><RiskBadge level={r.niveau}/></div>
@@ -919,7 +921,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {result.sanctionImposee?.type ? (
             <Card style={{ borderLeft:`3px solid ${C.red}` }}>
-              <SecHead icon="🔴" label="Sanction imposée" color={C.red}/>
+              <SecHead icon="🔴" label={t("meetings.section.sanctionImposed")} color={C.red}/>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
                 <div style={{ background:C.red+"18", border:`1px solid ${C.red}40`, borderRadius:7, padding:"6px 14px", fontSize:13, color:C.red, fontWeight:700 }}>{result.sanctionImposee.type}</div>
                 {result.sanctionImposee.duree && <Badge label={result.sanctionImposee.duree} color={C.amber}/>}
@@ -927,13 +929,13 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               </div>
               {result.sanctionImposee.conditionsRetour?.length > 0 && (
                 <div>
-                  <Mono color={C.textD} size={9}>CONDITIONS / ATTENTES</Mono>
+                  <Mono color={C.textD} size={9}>{t("meetings.section.conditions")}</Mono>
                   <BulletList items={result.sanctionImposee.conditionsRetour} color={C.amber}/>
                 </div>
               )}
             </Card>
           ) : (
-            <Card><div style={{ color:C.textD, fontSize:13 }}>Aucune sanction formelle — rencontre préliminaire ou investigatoire.</div></Card>
+            <Card><div style={{ color:C.textD, fontSize:13 }}>{t("meetings.section.noSanction")}</div></Card>
           )}
         </div>
       )}
@@ -942,7 +944,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {result.documentationRequise?.length > 0 && (
             <Card style={{ borderLeft:`3px solid ${C.blue}` }}>
-              <SecHead icon="📄" label="Documents à produire" color={C.blue}/>
+              <SecHead icon="📄" label={t("meetings.section.docsNeeded")} color={C.blue}/>
               {result.documentationRequise.map((d,i) => (
                 <div key={i} style={{ display:"flex", gap:12, marginBottom:8, paddingBottom:8, borderBottom:`1px solid ${C.border}` }}>
                   <Badge label={d.delai} color={C.amber} size={10}/>
@@ -956,7 +958,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           )}
           {result.actions?.length > 0 && (
             <Card>
-              <SecHead icon="✅" label="Actions" color={C.em}/>
+              <SecHead icon="✅" label={t("meetings.section.actions")} color={C.em}/>
               {result.actions.map((a,i) => {
                 const dc = DELAY_C[a.delay] || C.blue;
                 return (
@@ -977,14 +979,14 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {/* ── TA-SPECIFIC TABS ── */}
       {isTAMeeting && tab==="summary" && (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <Card><SecHead icon="📋" label="Résumé pipeline" color={C.blue}/><BulletList items={result.summary} color={C.blue}/></Card>
+          <Card><SecHead icon="📋" label={t("meetings.section.summaryPipeline")} color={C.blue}/><BulletList items={result.summary} color={C.blue}/></Card>
           {result.metriques && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
               {[
-                {label:"Postes actifs",    val:result.metriques.postesActifs,   color:C.em},
-                {label:"En offre",         val:result.metriques.enOffre,        color:C.amber},
-                {label:"Fermés / Comblés", val:result.metriques.fermes,         color:C.teal},
-                {label:"Délai moyen",      val:result.metriques.joursOuvertureMoyen ? result.metriques.joursOuvertureMoyen+"j" : "N/D", color:C.blue},
+                {label:t("meetings.metric.activePos"),    val:result.metriques.postesActifs,   color:C.em},
+                {label:t("meetings.metric.inOffer"),         val:result.metriques.enOffre,        color:C.amber},
+                {label:t("meetings.metric.closed"), val:result.metriques.fermes,         color:C.teal},
+                {label:t("meetings.metric.avgDays"),      val:result.metriques.joursOuvertureMoyen ? result.metriques.joursOuvertureMoyen+"j" : "N/D", color:C.blue},
               ].map((m,i) => (
                 <div key={i} style={{ background:m.color+"12", border:`1px solid ${m.color}30`, borderRadius:9, padding:"12px 14px", textAlign:"center" }}>
                   <div style={{ fontSize:22, fontWeight:800, color:m.color }}>{m.val ?? "—"}</div>
@@ -995,7 +997,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           )}
           {result.metriques?.risquesPipeline?.length > 0 && (
             <Card style={{ borderLeft:`3px solid ${C.red}` }}>
-              <SecHead icon="⚠" label="Risques pipeline globaux" color={C.red}/>
+              <SecHead icon="⚠" label={t("meetings.section.pipelineRisks")} color={C.red}/>
               <BulletList items={result.metriques.risquesPipeline} color={C.red}/>
             </Card>
           )}
@@ -1005,7 +1007,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isTAMeeting && tab==="postes" && (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {(!result.postes || result.postes.length === 0) && (
-            <Card><div style={{ color:C.textD, fontSize:13 }}>Aucun poste identifié dans le transcript.</div></Card>
+            <Card><div style={{ color:C.textD, fontSize:13 }}>{t("meetings.empty.postes")}</div></Card>
           )}
           {(result.postes||[]).map((p, i) => {
             const ETAPE_C = {
@@ -1076,7 +1078,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
       {isTAMeeting && tab==="blocages" && (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {(!result.blocages || result.blocages.length === 0) && (
-            <Card><div style={{ color:C.textD, fontSize:13 }}>Aucun blocage identifié.</div></Card>
+            <Card><div style={{ color:C.textD, fontSize:13 }}>{t("meetings.empty.blocages")}</div></Card>
           )}
           {(result.blocages||[]).map((b,i) => (
             <Card key={i} style={{ borderLeft:`3px solid ${C.red}` }}>
@@ -1135,7 +1137,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
           {(result.hrbpKeyMessage || result.overallRiskRationale) && (
             <Card style={{ borderLeft:`3px solid ${C.em}` }}>
               {result.hrbpKeyMessage && <>
-                <Mono color={C.em} size={9}>MESSAGE CLÉ HRBP</Mono>
+                <Mono color={C.em} size={9}>{t("meetings.section.keyMessage")}</Mono>
                 <div style={{ fontSize:14, color:C.text, fontWeight:600, marginTop:8, lineHeight:1.6 }}>{result.hrbpKeyMessage}</div>
               </>}
               {result.overallRiskRationale && (
@@ -1145,7 +1147,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               )}
             </Card>
           )}
-          <Card><SecHead icon="📋" label="Résumé exécutif" color={C.blue}/><BulletList items={result.summary} color={C.blue}/></Card>
+          <Card><SecHead icon="📋" label={t("meetings.section.summaryExec")} color={C.blue}/><BulletList items={result.summary} color={C.blue}/></Card>
         </div>
       )}
       {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="people" && (() => {
@@ -1154,12 +1156,12 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         const lead = people.leadership || [];
         const engg = people.engagement || [];
         if (!perf.length && !lead.length && !engg.length) {
-          return <Card><div style={{ fontSize:13, color:C.textM, textAlign:"center", padding:"16px 8px" }}>Aucune donnée People disponible.</div></Card>;
+          return <Card><div style={{ fontSize:13, color:C.textM, textAlign:"center", padding:"16px 8px" }}>{t("meetings.empty.people")}</div></Card>;
         }
         return <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <Card><SecHead icon="📈" label="Performance" color={C.amber}/><BulletList items={perf} color={C.amber}/></Card>
-          <Card><SecHead icon="🎙️" label="Leadership" color={C.purple}/><BulletList items={lead} color={C.purple}/></Card>
-          <Card><SecHead icon="💡" label="Engagement" color={C.em}/><BulletList items={engg} color={C.em}/></Card>
+          <Card><SecHead icon="📈" label={t("meetings.section.performance")} color={C.amber}/><BulletList items={perf} color={C.amber}/></Card>
+          <Card><SecHead icon="🎙️" label={t("meetings.section.leadership")} color={C.purple}/><BulletList items={lead} color={C.purple}/></Card>
+          <Card><SecHead icon="💡" label={t("meetings.section.engagement")} color={C.em}/><BulletList items={engg} color={C.em}/></Card>
         </div>;
       })()}
       {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="signals" && <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -1213,8 +1215,8 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         const hasCross = result.crossQuestions?.length > 0;
         return <div>
           {hasCross && <div style={{ display:"flex", gap:6, marginBottom:12 }}>
-            {[["meeting","💬 Ce meeting","Questions pour le prochain meeting avec ce directeur"],
-              ["cross","🔀 Cross-questions",`Questions pour ${result.crossQuestions?.length} autre(s) personne(s) mentionnée(s)`]
+            {[["meeting",t("meetings.q.thisMeeting"),""],
+              ["cross",t("meetings.q.cross"),""]
             ].map(([id,label,hint]) => (
               <button key={id} onClick={()=>setQsub(id)} style={{
                 padding:"7px 14px", borderRadius:7, fontSize:12, cursor:"pointer", fontFamily:"inherit",
@@ -1274,7 +1276,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         </div>;
       })()}
       {!isTAMeeting && !isDiscMeeting && !isInitMeeting && tab==="case" && result.caseEntry && <Card style={{ borderLeft:`3px solid ${C.em}` }}>
-        <SecHead icon="📂" label="Entrée Case Log" color={C.em}/>
+        <SecHead icon="📂" label={t("meetings.section.caseEntry")} color={C.em}/>
         {[["Titre",result.caseEntry.title],["Type",result.caseEntry.type],["Risque",result.caseEntry.riskLevel],
           ["Situation",result.caseEntry.situation],["Interventions",result.caseEntry.interventionsDone],
           ["Position RH",result.caseEntry.hrPosition],["Prochain suivi",result.caseEntry.nextFollowUp],
@@ -1285,7 +1287,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         </div> : null)}
         {view==="result" && <button onClick={saveResult} disabled={saved}
           style={{ ...css.btn(C.em), width:"100%", marginTop:8 }}>
-          {saved ? "✓ Sauvegardé" : "💾 Sauvegarder au Case Log"}
+          {saved ? t("meetings.saved") : t("meetings.case.save")}
         </button>}
       </Card>}
 
@@ -1293,7 +1295,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         <button onClick={() => { setView("new"); setResult(null); setTranscript(""); setContext(""); }}
           style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:7,
             padding:"8px 20px", fontSize:12, color:C.textD, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-          ↺ Nouvelle analyse
+          {t("meetings.newAnalysis")}
         </button>
       </div>}
     </div>
@@ -1303,7 +1305,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     const dm = meetings.filter(m => m.director===activeDir).reverse();
     return <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
-        <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← Retour</button>
+        <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>{t("meetings.back")}</button>
         <div style={{ fontSize:17, fontWeight:700, color:C.text }}>{activeDir}</div>
         <Badge label={`${dm.length} meetings`} color={C.blue}/>
         {activeDir && (
@@ -1312,7 +1314,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
               background:C.purple+"18", border:`1px solid ${C.purple}44`, borderRadius:7,
               padding:"6px 13px", fontSize:11, color:C.purple, cursor:"pointer",
               fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
-            👤 Fiche leader
+            {t("meetings.dirView.leaderCard")}
           </button>
         )}
       </div>
@@ -1345,6 +1347,7 @@ function EngineTab(props) {
 
 // ── SHELL: 2 tabs (Meetings / 1:1 Engine) ───────────────────────────────────
 export default function ModuleMeetings(props) {
+  const { t } = useT();
   const [tab, setTab] = useState(() => {
     // B-25: Switch to engine tab if a meeting context is pending (do not clear — MeetingEngine consumes it)
     try {
@@ -1359,8 +1362,8 @@ export default function ModuleMeetings(props) {
     if (props.focusMeetingId) setTab("transcripts");
   }, [props.focusMeetingId]);
   const tabs = [
-    { id:"transcripts", label:"Meetings",     icon:"🎙️", color:C.blue },
-    { id:"engine",      label:"Meeting Engine", color:C.em, icon:"⚡" },
+    { id:"transcripts", label:t("meetings.shell.transcripts"),     icon:"🎙️", color:C.blue },
+    { id:"engine",      label:t("meetings.shell.engine"), color:C.em, icon:"⚡" },
   ];
   return (
     <div>
