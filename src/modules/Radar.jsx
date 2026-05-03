@@ -115,7 +115,6 @@ ${signals.map(s=>`- ${s.analysis?.category} ${s.analysis?.title} (${s.analysis?.
       situation: `${r.description || ""}${r.evidence ? "\nPreuve: " + r.evidence : ""}`,
       interventionsDone: "",
       hrPosition: r.urgentAction || "",
-      nextFollowUp: "",
       notes: `Créé depuis Org Radar — ${new Date().toLocaleDateString("fr-CA")}`,
       actions: [],
       updatedAt: new Date().toISOString().split("T")[0],

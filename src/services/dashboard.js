@@ -29,8 +29,8 @@ export async function getDashboardMetrics() {
   if (!supabase) return NO_CLIENT;
 
   // Fetch every case the caller is allowed to see. `status` is the top-level
-  // mirror; `data` carries `type`, `closedDate`, and the `__deleted` tombstone
-  // flag. RLS handles org scoping; no extra org filter here.
+  // mirror; `data` carries `type`, `closedDate`, and tombstone metadata.
+  // RLS handles org scoping; no extra org filter here.
   const { data: caseRows, error: caseErr } = await supabase
     .from("cases")
     .select("status, data, created_at, updated_at");
@@ -49,7 +49,7 @@ export async function getDashboardMetrics() {
     const data = row && row.data;
     // Tombstones (deletion reconciliation rows from supabaseStore.saveCases)
     // are not real cases — exclude from every counter.
-    if (data && data.__deleted === true) continue;
+    if (data && data.status === "deleted") continue;
 
     total++;
 

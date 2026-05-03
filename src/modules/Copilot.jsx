@@ -1,7 +1,7 @@
 // ── MODULE: HRBP COPILOT ─────────────────────────────────────────────────────
 // Source: HRBP_OS.jsx L.5453–5803
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Mono     from '../components/Mono.jsx';
 import Card     from '../components/Card.jsx';
 import AILoader from '../components/AILoader.jsx';
@@ -14,6 +14,7 @@ import { APE_TEMPLATES, detectSituations } from '../utils/situations.js';
 import { toArray } from '../utils/meetingModel.js';
 import { C, css } from '../theme.js';
 import { isCaseActive } from '../utils/caseStatus.js';
+import { getCaseFollowUp, followUpToText, fetchTasksForCases } from '../utils/caseFollowUp.js';
 import { useT } from '../lib/i18n.js';
 
 export default function ModuleCopilot({ data }) {
@@ -32,9 +33,22 @@ export default function ModuleCopilot({ data }) {
   // Detected situations — proactive AI surface (AutoPrompt → Copilot fusion)
   const situations = detectSituations(data).slice(0, 5);
 
+  // Phase 3 Batch 2.8 — bulk-fetch tasks for active cases so the AI context
+  // builder below can prefer the next open case_task over legacy fields.
+  // Returns gracefully (empty object) when Supabase is unavailable.
+  const [tasksByCase, setTasksByCase] = useState({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const map = await fetchTasksForCases(data.cases || []);
+      if (!cancelled) setTasksByCase(map);
+    })();
+    return () => { cancelled = true; };
+  }, [data.cases?.length]); // eslint-disable-line
+
   // Build rich context from all OS data
   const buildContext = () => {
-    const cases      = (data.cases || []).filter(c => !c.archived);
+    const cases      = (data.cases || []).filter(c => c.status !== "archived");
     const meetings   = data.meetings   || [];
     const signals    = data.signals    || [];
     const decisions  = data.decisions  || [];
@@ -48,7 +62,7 @@ export default function ModuleCopilot({ data }) {
     // Active cases
     const casesCtx = activeCases.length > 0
       ? activeCases.map(c =>
-          `- [${c.type?.toUpperCase()||"CASE"}] ${c.title} | Risk: ${c.riskLevel} | Status: ${c.status}\n  Situation: ${c.situation||""}\n  Interventions: ${c.interventionsDone||"none"}\n  HR Position: ${c.hrPosition||""}\n  Next follow-up: ${c.nextFollowUp||"not set"}`
+          `- [${c.type?.toUpperCase()||"CASE"}] ${c.title} | Risk: ${c.riskLevel} | Status: ${c.status}\n  Situation: ${c.situation||""}\n  Interventions: ${c.interventionsDone||"none"}\n  HR Position: ${c.hrPosition||""}\n  Next follow-up: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id])) || "not set"}`
         ).join("\n")
       : "No active cases.";
 

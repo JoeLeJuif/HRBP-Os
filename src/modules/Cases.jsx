@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { C, css, RISK } from '../theme.js';
 import { normalizeRisk } from '../utils/normalize.js';
 import { getProvince, fmtDate } from '../utils/format.js';
-import { getCaseTimeBadge } from '../utils/caseStatus.js';
+import { getCaseTimeBadge, INACTIVE_CASE_STATUSES } from '../utils/caseStatus.js';
 import { PROVINCES } from '../utils/legal.js';
 import Badge from '../components/Badge.jsx';
 import Card from '../components/Card.jsx';
@@ -12,6 +12,8 @@ import Divider from '../components/Divider.jsx';
 import ProvinceBadge from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import CaseBrief from '../components/CaseBrief.jsx';
+import { listCaseTasks, createCaseTask, updateCaseTask } from '../services/caseTasks.js';
+import { getNextOpenTask, getCaseFollowUp, fetchTasksForCases } from '../utils/caseFollowUp.js';
 import { useT, t as tFn } from '../lib/i18n.js';
 import { tStatus, tRisk, tDecisionStatus, tDecisionRisk } from '../lib/i18nEnums.js';
 
@@ -21,6 +23,171 @@ function RiskBadge({ level }) {
   const norm = normalizeRisk(level);
   const r = RISK[norm] || RISK["Modéré"];
   return <Badge label={tRisk(t, norm)} color={r.color} />;
+}
+
+// Phase 3 Batch 2 — case_tasks panel.
+// Reads/writes public.case_tasks via the isolated service. Coexists with the
+// legacy `c.nextFollowUp` text field (not removed in this batch). When tasks
+// exist alongside a non-empty nextFollowUp, both surfaces are shown so HRBPs
+// can manually migrate at their own pace; data migration is a later batch.
+function CaseTasksPanel({ caseId, legacyFollowUp, onTasksChange }) {
+  const [tasks, setTasks]       = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
+  const [title, setTitle]       = useState("");
+  const [dueDate, setDueDate]   = useState("");
+  const [busy, setBusy]         = useState(false);
+  const [error, setError]       = useState("");
+
+  const refetch = async () => {
+    if (!caseId) return;
+    setLoading(true); setError("");
+    const res = await listCaseTasks(caseId);
+    if (res.ok) {
+      const fresh = res.tasks || [];
+      setTasks(fresh);
+      setUnavailable(false);
+      // Phase 3 Batch 2.6 — push fresh tasks up so the parent's tasksByCase
+      // cache (used by the list pill and detail "Prochain suivi" row) stays
+      // in sync with this panel's mutations without waiting for a navigation.
+      if (typeof onTasksChange === "function") onTasksChange(caseId, fresh);
+    } else if (res.reason === "no-client") {
+      setUnavailable(true);
+      setTasks([]);
+    } else {
+      setError(res.reason || "load-failed");
+      setTasks([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { refetch(); /* eslint-disable-line */ }, [caseId]);
+
+  const addTask = async () => {
+    const trimmed = title.trim();
+    if (!trimmed || busy) return;
+    setBusy(true); setError("");
+    const res = await createCaseTask({ case_id: caseId, title: trimmed, due_date: dueDate || null });
+    setBusy(false);
+    if (!res.ok) { setError(res.reason || "create-failed"); return; }
+    setTitle(""); setDueDate("");
+    refetch();
+  };
+
+  const transitionTask = async (taskId, newStatus) => {
+    if (busy) return;
+    setBusy(true); setError("");
+    const res = await updateCaseTask(taskId, { status: newStatus });
+    setBusy(false);
+    if (!res.ok) { setError(res.reason || "update-failed"); return; }
+    refetch();
+  };
+
+  const open      = tasks.filter(t => t.status === "open");
+  const done      = tasks.filter(t => t.status === "done");
+  const cancelled = tasks.filter(t => t.status === "cancelled");
+
+  const TaskRow = ({ task }) => {
+    const muted = task.status !== "open";
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
+        borderBottom:`1px solid ${C.borderL}`, opacity: muted ? .55 : 1 }}>
+        <div style={{ flex:1, fontSize:13, color:C.text,
+          textDecoration: task.status === "cancelled" ? "line-through" : "none" }}>
+          {task.title}
+          {task.due_date && <Mono color={C.textD} size={9} style={{ marginLeft:8 }}>· {task.due_date}</Mono>}
+        </div>
+        {task.status === "open" && (
+          <>
+            <button onClick={() => transitionTask(task.id, "done")} disabled={busy}
+              title="Marquer comme complété"
+              style={{ ...css.btn(C.em, true), padding:"4px 10px", fontSize:11 }}>✓</button>
+            <button onClick={() => transitionTask(task.id, "cancelled")} disabled={busy}
+              title="Annuler"
+              style={{ ...css.btn(C.textD, true), padding:"4px 10px", fontSize:11 }}>✗</button>
+          </>
+        )}
+        {task.status !== "open" && (
+          <Mono color={C.textD} size={9}>{task.status === "done" ? "Complété" : "Annulé"}</Mono>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card style={{ marginBottom:16 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+        <Mono color={C.textD} size={9}>SUIVIS / TÂCHES</Mono>
+        {loading && <Mono color={C.textD} size={9}>chargement…</Mono>}
+      </div>
+
+      {legacyFollowUp && (
+        <div style={{ padding:"8px 10px", marginBottom:10, background:C.amber+"14",
+          border:`1px solid ${C.amber}33`, borderLeft:`3px solid ${C.amber}`, borderRadius:6 }}>
+          <Mono color={C.amber} size={9}>SUIVI HÉRITÉ (champ texte)</Mono>
+          <div style={{ fontSize:12, color:C.text, marginTop:4 }}>{legacyFollowUp}</div>
+          <Mono color={C.textD} size={9} style={{ marginTop:4 }}>
+            À convertir manuellement en tâche ci-dessous (la migration automatique arrivera plus tard).
+          </Mono>
+        </div>
+      )}
+
+      {unavailable ? (
+        <Mono color={C.textD} size={9}>Service de tâches indisponible (Supabase non connecté).</Mono>
+      ) : (
+        <>
+          <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+            <input
+              type="text"
+              placeholder="Nouvelle tâche…"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") addTask(); }}
+              disabled={busy}
+              style={{ flex:1, padding:"6px 10px", fontSize:13, color:C.text,
+                background:C.surfL, border:`1px solid ${C.border}`, borderRadius:4 }}
+            />
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              disabled={busy}
+              style={{ padding:"6px 10px", fontSize:13, color:C.text,
+                background:C.surfL, border:`1px solid ${C.border}`, borderRadius:4 }}
+            />
+            <button onClick={addTask} disabled={busy || !title.trim()}
+              style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12,
+                opacity: (busy || !title.trim()) ? .4 : 1 }}>+ Ajouter</button>
+          </div>
+
+          {error && <Mono color={C.red} size={9} style={{ marginBottom:8 }}>Erreur: {error}</Mono>}
+
+          {open.length === 0 && done.length === 0 && cancelled.length === 0 && !loading && (
+            <Mono color={C.textD} size={9}>Aucune tâche pour le moment.</Mono>
+          )}
+
+          {open.length > 0 && (
+            <div>
+              {open.map(task => <TaskRow key={task.id} task={task} />)}
+            </div>
+          )}
+
+          {(done.length > 0 || cancelled.length > 0) && (
+            <details style={{ marginTop:12 }}>
+              <summary style={{ cursor:"pointer", fontSize:11, color:C.textD,
+                fontFamily:"'DM Mono',monospace" }}>
+                Historique ({done.length + cancelled.length})
+              </summary>
+              <div style={{ marginTop:8 }}>
+                {done.map(task => <TaskRow key={task.id} task={task} />)}
+                {cancelled.map(task => <TaskRow key={task.id} task={task} />)}
+              </div>
+            </details>
+          )}
+        </>
+      )}
+    </Card>
+  );
 }
 
 // Inline data constants (Source: L.1742-1768)
@@ -46,7 +213,8 @@ const STATUSES = [
   {id:"archived",    label:"Archivé",    color:C.textD},
 ];
 const ACTIVE_STATUSES = ["open","in_progress","waiting"];
-const INACTIVE_STATUSES = ["closed","archived"];
+// Phase 3 Batch 3.1 — single source of truth for "inactive" classification
+// is INACTIVE_CASE_STATUSES from caseStatus.js (now includes "deleted").
 const URGENCY_C    = {"Immediat":C.red,"Cette semaine":C.amber,"Ce mois":C.blue,"En veille":C.textD};
 const EVO_C        = {"Nouveau":C.blue,"En cours":C.amber,"Aggravé":C.red,"En amélioration":C.teal,"Bloqué":C.red,"Résolu":C.em};
 const HR_POSTURE_C = {"Partenaire":C.blue,"Garant":C.red,"Coach":C.teal,"Neutre":C.textD,"Enquêteur":"#7a1e2e"};
@@ -72,10 +240,10 @@ const mapCaseTypeToEngineType = (caseType) => CASE_TO_ENGINE[caseType] || "1on1"
 const EMPTY_FORM = { title:"", type:"conflict_ee", riskLevel:"Modéré", status:"open",
   director:"", employee:"", department:"", openDate:new Date().toISOString().split("T")[0],
   province:"QC",
-  situation:"", interventionsDone:"", hrPosition:"", decision:"", nextFollowUp:"",
+  situation:"", interventionsDone:"", hrPosition:"", decision:"",
   notes:"", actions:[],
   scope:"leader", owner:"HRBP", dueDate:"", urgency:"Cette semaine", evolution:"", hrPosture:"", closedDate:"",
-  closure:"open" };
+};
 
 // Field wrapper — plain function (NOT a React component).
 // Called as fl("label", <input/>) so its output is part of CaseForm's own fiber tree.
@@ -210,11 +378,18 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
           autoComplete="off" {...FO}/>
       )}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        {fl(t("case.form.nextFollowUp"),
-          <input value={form.nextFollowUp} onChange={SF("nextFollowUp")}
-            placeholder={t("case.form.ph.nextFollowUp")} style={css.input}
-            autoComplete="off" {...FO}/>
-        )}
+        {/* Phase 3 Batch 2.11 — the legacy free-text follow-up input was
+            removed from the form. Users now manage follow-ups as tasks
+            on the saved case (case_tasks panel). Existing nextFollowUp
+            data on legacy rows is preserved by normalizeCase and still
+            surfaces via getCaseFollowUp's last-priority fallback. */}
+        <div style={{ alignSelf:"end", padding:"10px 12px",
+          background:C.surfL, border:`1px dashed ${C.border}`, borderRadius:6 }}>
+          <Mono color={C.textD} size={9}>SUIVI</Mono>
+          <div style={{ fontSize:11, color:C.textD, marginTop:6, lineHeight:1.55 }}>
+            Les suivis se gèrent comme tâches sur la fiche du dossier (après enregistrement).
+          </div>
+        </div>
         {fl(t("case.form.dueDate"),
           <input type="date" value={form.dueDate||""} onChange={SF("dueDate")}
             style={css.input} {...FO}/>
@@ -238,7 +413,12 @@ function CaseForm({ form, setForm, editId, defaultProvince, onSave, onCancel }) 
 }
 
 // ── Clipboard export formatter ────────────────────────────────────────────────
-function formatCaseForClipboard(c, data) {
+// Phase 3 Batch 2.7: optional `tasks` param feeds getCaseFollowUp so the
+// PROCHAIN SUIVI section and the timeline "Échéance" event reflect the
+// preferred follow-up (open task > legacy dueDate > legacy nextFollowUp).
+// Called without `tasks` will still work — the helper falls back to the
+// legacy fields, matching pre-2.7 behavior.
+function formatCaseForClipboard(c, data, tasks) {
   const lines = [];
   const sep = "─".repeat(40);
   const secSep = "── ";
@@ -270,7 +450,21 @@ function formatCaseForClipboard(c, data) {
   if (c.interventionsDone)  { lines.push(""); lines.push(`${secSep}INTERVENTIONS EFFECTUÉES`); lines.push(c.interventionsDone); }
   if (c.hrPosition)         { lines.push(""); lines.push(`${secSep}POSITION RH`); lines.push(c.hrPosition); }
   if (c.decision)           { lines.push(""); lines.push(`${secSep}DÉCISION`); lines.push(c.decision); }
-  if (c.nextFollowUp)       { lines.push(""); lines.push(`${secSep}PROCHAIN SUIVI`); lines.push(c.nextFollowUp); }
+  // Phase 3 Batch 2.7: PROCHAIN SUIVI section uses the unified helper.
+  // When the source is the open task we render the title (with optional
+  // date suffix); when it falls back to dueDate/nextFollowUp we render the
+  // raw legacy value. Section is omitted entirely when no follow-up exists.
+  const _fu = getCaseFollowUp(c, tasks);
+  if (_fu) {
+    lines.push(""); lines.push(`${secSep}PROCHAIN SUIVI`);
+    if (_fu.source === "task") {
+      lines.push(_fu.due ? `${_fu.title} — échéance ${_fu.due}` : _fu.title);
+    } else if (_fu.source === "due_date") {
+      lines.push(`Échéance ${_fu.due}`);
+    } else {
+      lines.push(_fu.title);
+    }
+  }
   if (c.notes)              { lines.push(""); lines.push(`${secSep}NOTES`); lines.push(c.notes); }
 
   // Décisions liées (section dédiée)
@@ -292,7 +486,12 @@ function formatCaseForClipboard(c, data) {
   if (created) tlEvents.push({ date: created, label: "Dossier ouvert" });
   if ((c.status === "closed" || c.status === "archived") && (c.closedDate || c.savedAt))
     tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "archived" ? "Dossier archivé" : "Dossier fermé" });
-  if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "Échéance" + (c.nextFollowUp ? ` — ${c.nextFollowUp}` : "") });
+  // Phase 3 Batch 2.7: deadline event prefers the helper's resolved due
+  // date. When the source is `next_follow_up` (no date), the event is
+  // omitted — matching pre-2.7 behavior, which never pushed a dateless event.
+  if (_fu && _fu.due) {
+    tlEvents.push({ date: _fu.due, label: _fu.title ? `Échéance — ${_fu.title}` : "Échéance" });
+  }
   linkedDecs.forEach(d => {
     tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: `⚖ ${d.title || "Décision RH"}`, sub: d.summary || d.rationale || "" });
   });
@@ -333,7 +532,7 @@ function formatCaseForClipboard(c, data) {
   return lines.join("\n");
 }
 
-export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
+export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus }) {
   const { t } = useT();
   const [view, setView] = useState("list"); // list | form | detail
   const [form, setForm] = useState({...EMPTY_FORM});
@@ -344,6 +543,13 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterProvince, setFilterProvince] = useState("");
   const [filterArchived, setFilterArchived] = useState("active"); // active | archived | all
+  // Phase 3 Batch 2.5 — per-case task cache for read-only display in list/detail.
+  // Bulk-fetched on mount and when cases-length / view changes. Stale between
+  // fetches if the panel adds tasks while the user stays in detail view; the
+  // cache resyncs when the user navigates back to the list. Acceptable for
+  // minimum-scope display preference. Falls back to legacy `c.nextFollowUp`
+  // when no entry / no open task exists for a case.
+  const [tasksByCase, setTasksByCase] = useState({});
 
   // ── Inter-module focus: auto-open a specific case on mount ───────────────────
   useEffect(() => {
@@ -353,10 +559,23 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     if (onClearFocus) onClearFocus();
   }, [focusCaseId]); // eslint-disable-line
 
+  // Bulk-fetch tasks for all cases. Returns gracefully (empty object) when
+  // Supabase is unavailable. Refetches on cases-length change and on view
+  // transitions back to the list, so additions made via the detail panel
+  // become visible on the list pill after a navigation.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const map = await fetchTasksForCases(data.cases || []);
+      if (!cancelled) setTasksByCase(map);
+    })();
+    return () => { cancelled = true; };
+  }, [data.cases?.length, view]); // eslint-disable-line
+
   const cases = (data.cases || []).filter(c => {
-    if (filterArchived === "archived") return c.archived === true;
+    if (filterArchived === "archived") return c.status === "archived";
     if (filterArchived === "all") return true;
-    return !c.archived;
+    return c.status !== "archived";
   });
   const todayISO = new Date().toISOString().split("T")[0];
   const filtered = cases.filter(c => {
@@ -375,55 +594,42 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     return (b.updatedAt||"0000-00-00") < (a.updatedAt||"0000-00-00") ? -1 : 1;
   });
 
-  const save = () => {
+  const save = async () => {
     const today = new Date().toISOString().split("T")[0];
     const isClosing = form.status === "closed" || form.status === "archived";
     const closedDate = isClosing ? (form.closedDate || today) : "";
     const allCases = data.cases || [];
     const existingCase = editId ? allCases.find(c => c.id === editId) : null;
-    if (editId && existingCase?.archived) { setView("list"); setForm({...EMPTY_FORM}); setEditId(null); return; }
+    if (editId && existingCase?.status === "archived") { setView("list"); setForm({...EMPTY_FORM}); setEditId(null); return; }
     const newCase = { ...form, closedDate, id: editId || Date.now().toString(), updatedAt: today,
       dateCreated: existingCase?.dateCreated || today };
-    const updated = editId ? allCases.map(c => c.id===editId ? newCase : c) : [...allCases, newCase];
-    onSave("cases", updated);
+    // Phase 2.5: when editing an existing case AND the form changed the
+    // status, route the change through transitionCase so status writes
+    // remain centralized. Other form fields ride along via extraPatch.
+    if (editId && existingCase && existingCase.status !== form.status) {
+      const { status: _droppedStatus, ...formFieldsWithoutStatus } = newCase;
+      await onTransitionCase(editId, form.status, formFieldsWithoutStatus);
+    } else {
+      const updated = editId ? allCases.map(c => c.id===editId ? newCase : c) : [...allCases, newCase];
+      onSave("cases", updated);
+    }
     setView("list"); setForm({...EMPTY_FORM}); setEditId(null);
   };
 
-  const archiveCase = (id) => {
+  const archiveCase = async (id) => {
     const now = new Date().toISOString();
-    const updated = (data.cases || []).map(c => c.id === id ? {
-      ...c,
-      archived: true,
-      status: "archived",
+    // Phase 3 Batch 1: `archived` boolean is derived from status by
+    // normalizeCase — stamping it explicitly is redundant. Only the
+    // archive-specific metadata (archivedAt / archivedReason) is co-written.
+    await onTransitionCase(id, "archived", {
       archivedAt: now,
       archivedReason: "user_archived",
-    } : c);
-    onSave("cases", updated);
+    });
     setView("list");
   };
 
-  const setClosure = (id, closure) => {
-    const now = new Date().toISOString();
-    const today = now.split("T")[0];
-    const updated = (data.cases || []).map(c => c.id === id ? {
-      ...c,
-      closure,
-      closedAtTs: closure === "closed" ? now : (c.closedAtTs || null),
-      reopenedAt: closure === "open" && c.closure === "closed" ? now : (c.reopenedAt || null),
-      updatedAt: today,
-    } : c);
-    onSave("cases", updated);
-    setDetail(prev => prev && prev.id === id ? {
-      ...prev,
-      closure,
-      closedAtTs: closure === "closed" ? now : (prev.closedAtTs || null),
-      reopenedAt: closure === "open" && prev.closure === "closed" ? now : (prev.reopenedAt || null),
-      updatedAt: today,
-    } : prev);
-  };
-
   const openEdit = (c) => {
-    if (c?.archived) return;
+    if (c?.status === "archived") return;
     setForm({...EMPTY_FORM, ...c}); setEditId(c.id); setView("form");
   };
 
@@ -443,15 +649,15 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
     const typeObj = CASE_TYPES.find(t=>t.id===c.type);
     const statusObj = STATUSES.find(s=>s.id===c.status);
     const r = RISK[c.riskLevel]||RISK["Modéré"];
-    const isArchived = c.archived === true;
+    const isArchived = c.status === "archived";
     const archivedDate = c.archivedAt ? fmtDate(c.archivedAt) : null;
-    const isClosed = c.closure === "closed";
+    const isClosed = c.status === "closed";
     return <div style={{ maxWidth:820, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
         <button onClick={() => setView("list")} style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>← {t("common.back")}</button>
         <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{c.title}</div>
         <button onClick={async () => {
-            const text = formatCaseForClipboard(c, data);
+            const text = formatCaseForClipboard(c, data, tasksByCase[c.id]);
             try { await navigator.clipboard.writeText(text); }
             catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
             setCopied(true); setTimeout(() => setCopied(false), 2000);
@@ -492,10 +698,16 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🎯 Préparer une rencontre</button>
         {!isArchived && (
           isClosed
-            ? <button onClick={() => setClosure(c.id, "open")}
+            ? <button onClick={async () => {
+                const res = await onTransitionCase(c.id, "open");
+                if (res && res.ok && res.case) setDetail(res.case);
+              }}
                 title="Rouvrir ce dossier (le marquer comme actif)"
                 style={{ ...css.btn(C.em, true), padding:"6px 14px", fontSize:12 }}>🔓 {t("case.action.reopen")}</button>
-            : <button onClick={() => setClosure(c.id, "closed")}
+            : <button onClick={async () => {
+                const res = await onTransitionCase(c.id, "closed");
+                if (res && res.ok && res.case) setDetail(res.case);
+              }}
                 title="Marquer ce dossier comme fermé (n'archive pas)"
                 style={{ ...css.btn(C.textD, true), padding:"6px 14px", fontSize:12 }}>🔒 {t("case.action.markClosed")}</button>
         )}
@@ -517,7 +729,6 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         <RiskBadge level={c.riskLevel}/>
         {statusObj && <Badge label={tStatus(t, statusObj.id)} color={statusObj.color}/>}
-        {isClosed && <Badge label={`🔒 ${tStatus(t, "closed")}`} color={C.textD}/>}
         {typeObj && <Badge label={`${typeObj.icon} ${typeObj.label}`} color={typeObj.color}/>}
         {(() => { const tb = getCaseTimeBadge(c); return tb ? <Badge label={tb.label} color={tb.tone}/> : null; })()}
         {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD}/>}
@@ -547,15 +758,30 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
       <CaseBrief caseObj={c} data={data} />
 
       <Card>
-        {[["Employé / Groupe",c.employee],["Département",c.department],["Situation",c.situation],
-          ["Interventions",c.interventionsDone],["Décision",c.decision],["Position RH",c.hrPosition],
-          ["Prochain suivi",c.nextFollowUp],["Notes HRBP",c.notes]].map(([l,v],i) => v ? (
-          <div key={i} style={{ marginBottom:14 }}>
-            <Mono color={C.textD} size={9}>{l}</Mono>
-            <div style={{ fontSize:13, color:C.text, lineHeight:1.65, marginTop:4 }}>{v}</div>
-            <Divider my={8}/>
-          </div>) : null)}
+        {(() => {
+          // Phase 3 Batch 2.7 — "Prochain suivi" row sourced through the
+          // unified getCaseFollowUp helper (open task > dueDate > nextFollowUp).
+          const fu = getCaseFollowUp(c, tasksByCase[c.id]);
+          const followUpDisplay = !fu ? "" :
+            fu.source === "task"     ? (fu.due ? `${fu.title} — échéance ${fu.due}` : fu.title) :
+            fu.source === "due_date" ? `Échéance ${fu.due}` :
+            /* next_follow_up */       fu.title;
+          return [["Employé / Groupe",c.employee],["Département",c.department],["Situation",c.situation],
+            ["Interventions",c.interventionsDone],["Décision",c.decision],["Position RH",c.hrPosition],
+            ["Prochain suivi",followUpDisplay],["Notes HRBP",c.notes]].map(([l,v],i) => v ? (
+            <div key={i} style={{ marginBottom:14 }}>
+              <Mono color={C.textD} size={9}>{l}</Mono>
+              <div style={{ fontSize:13, color:C.text, lineHeight:1.65, marginTop:4 }}>{v}</div>
+              <Divider my={8}/>
+            </div>) : null);
+        })()}
       </Card>
+
+      <CaseTasksPanel
+        caseId={c.id}
+        legacyFollowUp={c.nextFollowUp || ""}
+        onTasksChange={(id, tasks) => setTasksByCase(prev => ({ ...prev, [id]: tasks }))}
+      />
 
       {/* ── Timeline ──────────────────────────────────────────────── */}
       {(() => {
@@ -570,7 +796,11 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
             label: c.status === "archived" ? t("case.timeline.archived") : t("case.timeline.closed"), sub:"", color: C.textD });
         }
         // Due date
-        if (c.dueDate) events.push({ date: c.dueDate, type:"deadline", icon:"⏰", label:t("case.timeline.deadline"), sub: c.nextFollowUp || "", color: C.amber });
+        // Phase 3 Batch 2.7: deadline event sourced through the unified
+        // helper — open task date wins, then legacy dueDate. Sub-label is
+        // the task title (or empty when the source is dueDate alone).
+        const _fuTl = getCaseFollowUp(c, tasksByCase[c.id]);
+        if (_fuTl && _fuTl.due) events.push({ date: _fuTl.due, type:"deadline", icon:"⏰", label:t("case.timeline.deadline"), sub: _fuTl.title || "", color: C.amber });
         // Linked decisions (B-05.2: enriched + clickable)
         (data.decisions || []).filter(d => d.linkedCaseId === c.id).forEach(d => {
           const statusLabel = d.status ? tDecisionStatus(t, d.status) : "";
@@ -706,7 +936,7 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
           const r = RISK[c.riskLevel]||RISK["Modéré"];
           const typeObj = CASE_TYPES.find(t=>t.id===c.type);
           const statusObj = STATUSES.find(s=>s.id===c.status);
-          const isOverdue = c.dueDate && c.dueDate < todayISO && !INACTIVE_STATUSES.includes(c.status);
+          const isOverdue = c.dueDate && c.dueDate < todayISO && !INACTIVE_CASE_STATUSES.includes(c.status);
           const linkedDecisions = (data.decisions||[]).filter(d => d.linkedCaseId === c.id);
           const latestLinkedDecision = linkedDecisions.length > 0 ? [...linkedDecisions].sort((a,b) => (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||""))[0] : null;
           return <button key={c.id||i} onClick={() => { setDetail(c); setView("detail"); }}
@@ -722,7 +952,6 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
               <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
                 <RiskBadge level={c.riskLevel}/>
                 {statusObj && <Badge label={tStatus(t, statusObj.id)} color={statusObj.color}/>}
-                {c.closure === "closed" && <Badge label={`🔒 ${tStatus(t, "closed")}`} color={C.textD} size={9}/>}
                 {latestLinkedDecision && (onNavigate
                   ? <span onClick={(e)=>{e.stopPropagation();onNavigate("decisions",{focusDecisionId:latestLinkedDecision.id});}} style={{ cursor:"pointer" }} title={linkedDecisions.length === 1 ? "Ouvrir la décision liée" : `Ouvrir la plus récente (${linkedDecisions.length} liées)`}>
                       <Badge label={linkedDecisions.length === 1 ? "⚖ Décision" : `⚖ Décisions (${linkedDecisions.length})`} color={C.purple} size={9}/>
@@ -745,7 +974,11 @@ export default function ModuleCases({ data, onSave, onNavigate, focusCaseId, onC
                   color={{ individual:C.blue, team:C.teal, org:C.textD }[c.scope] || C.textD}
                   size={9}/>
               )}
-              {(c.dueDate||c.nextFollowUp) && <span style={{ fontSize:10, color:isOverdue ? C.red : C.purple, marginLeft:"auto" }}>📅 {c.dueDate||c.nextFollowUp}</span>}
+              {(() => {
+                const fu = getCaseFollowUp(c, tasksByCase[c.id]);
+                const pillText = fu?.due || fu?.title || "";
+                return pillText ? <span style={{ fontSize:10, color:isOverdue ? C.red : C.purple, marginLeft:"auto" }}>📅 {pillText}</span> : null;
+              })()}
             </div>
           </button>;
         })}

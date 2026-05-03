@@ -274,7 +274,7 @@ export function detectSituations(data) {
   const situations = [];
   // Filtre cas par statut + priorité (statuts canoniques: open/in_progress/waiting/closed/archived).
   // Exclus: closed, archived. Priorité: in_progress/open > waiting (conditionnel).
-  const _allCases = (data.cases || []).filter(c => !c.archived);
+  const _allCases = (data.cases || []).filter(c => c.status !== "archived");
   const _active    = _allCases.filter(c => c.status === "open" || c.status === "in_progress");
   const _waiting   = _allCases.filter(c => {
     if (c.status !== "waiting") return false;

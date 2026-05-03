@@ -282,7 +282,7 @@ var HRBPOSApp = (() => {
     return null;
   }
   var CASE_TYPES = ["performance", "pip", "conflict_ee", "conflict_em", "complaint", "immigration", "retention", "promotion", "return", "reorg", "exit", "investigation"];
-  var CASE_STATUSES = ["open", "in_progress", "waiting", "closed", "archived"];
+  var CASE_STATUSES = ["open", "in_progress", "waiting", "closed", "archived", "deleted"];
   var CASE_STATUS_DEFAULT = "open";
   var LEGACY_STATUS_MAP = {
     active: "in_progress",
@@ -309,13 +309,15 @@ var HRBPOSApp = (() => {
       const createdAt = _isoOrNull(c.createdAt) || _isoOrNull(c.dateCreated) || _isoOrNull(c.savedAt) || _isoOrNull(c.openDate) || (/* @__PURE__ */ new Date()).toISOString();
       const rawUrgency = normalizeDelay(c.urgency);
       const urgency = rawUrgency === null || rawUrgency === void 0 || rawUrgency === "" ? "" : _pickEnum(rawUrgency, CASE_URGENCIES, rawUrgency);
+      const status = _migrateStatus(c.status, c.archived === true);
       const out = {
         ...c,
         id: _str(c.id, "") || String(Date.now()),
         title: _str(c.title).trim() || "(sans titre)",
         type: _pickEnum(_str(c.type).toLowerCase(), CASE_TYPES, "performance"),
         riskLevel: normalizeRisk(c.riskLevel),
-        status: _migrateStatus(c.status, c.archived === true),
+        status,
+        archived: status === "archived",
         director: _str(c.director).trim(),
         employee: _str(c.employee).trim(),
         department: _str(c.department).trim(),
@@ -338,7 +340,7 @@ var HRBPOSApp = (() => {
         createdAt,
         dateCreated: _isoOrNull(c.dateCreated) || createdAt,
         savedAt: _isoOrNull(c.savedAt) || createdAt,
-        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        updatedAt: _isoOrNull(c.updatedAt) || (/* @__PURE__ */ new Date()).toISOString()
       };
       if (c.meetingId !== void 0 && c.meetingId !== null) {
         out.meetingId = _str(c.meetingId);
@@ -381,7 +383,7 @@ var HRBPOSApp = (() => {
         enrichedAt: _isoOrNull(i.enrichedAt),
         createdAt,
         savedAt: _isoOrNull(i.savedAt) || createdAt,
-        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        updatedAt: _isoOrNull(i.updatedAt) || (/* @__PURE__ */ new Date()).toISOString()
       };
     } catch {
       return null;
@@ -674,7 +676,6 @@ ${LEGAL_GUARDRAIL}`;
       "case.form.interventions": "Interventions / actions taken",
       "case.form.hrPosition": "Recommended HR position",
       "case.form.decision": "Decision",
-      "case.form.nextFollowUp": "Next follow-up (free text)",
       "case.form.dueDate": "Due date",
       "case.form.notes": "HRBP notes",
       "case.form.ph.title": "e.g. Infrastructure conflict \u2014 Nolan/Laroche",
@@ -685,7 +686,6 @@ ${LEGAL_GUARDRAIL}`;
       "case.form.ph.interventions": "Interventions, conversations, documents produced\u2026",
       "case.form.ph.hrPosition": "Formal recommendation, or in progress\u2026",
       "case.form.ph.decision": "Formal decision made or pending\u2026",
-      "case.form.ph.nextFollowUp": "e.g. March 16 2026",
       "case.form.ph.notes": "Organizational patterns, links to other cases\u2026",
       "case.confirm.archive": "Archive this case?\n\nIt will be removed from active lists but kept in the history.",
       // ── Cases timeline section ────────────────────────────────────────────
@@ -1200,7 +1200,6 @@ ${LEGAL_GUARDRAIL}`;
       "case.form.interventions": "Interventions / Actions faites",
       "case.form.hrPosition": "Position RH recommand\xE9e",
       "case.form.decision": "D\xE9cision prise",
-      "case.form.nextFollowUp": "Prochain suivi (libre)",
       "case.form.dueDate": "\xC9ch\xE9ance (date)",
       "case.form.notes": "Notes HRBP",
       "case.form.ph.title": "Ex: Conflit infra Nolan-Laroche",
@@ -1211,7 +1210,6 @@ ${LEGAL_GUARDRAIL}`;
       "case.form.ph.interventions": "Interventions, conversations, documents produits\u2026",
       "case.form.ph.hrPosition": "Recommandation formelle ou en cours\u2026",
       "case.form.ph.decision": "D\xE9cision formelle prise ou en attente\u2026",
-      "case.form.ph.nextFollowUp": "Ex: 16 mars 2026",
       "case.form.ph.notes": "Patterns organisationnels, liens avec d'autres dossiers\u2026",
       "case.confirm.archive": "Archiver ce dossier ?\n\nIl sera retir\xE9 des listes actives, mais restera pr\xE9serv\xE9 dans l'historique.",
       // ── Cases timeline section ────────────────────────────────────────────
@@ -21726,7 +21724,9 @@ ${suffix}`;
     CASE_CREATED: "case.created",
     CASE_UPDATED: "case.updated",
     CASE_STATUS_CHANGED: "case.status_changed",
+    CASE_STATE_CHANGED: "case.state_changed",
     CASE_ARCHIVED: "case.archived",
+    CASE_DELETED: "case.deleted",
     TASK_CREATED: "task.created",
     TASK_UPDATED: "task.updated",
     TASK_COMPLETED: "task.completed",
@@ -21830,9 +21830,24 @@ ${suffix}`;
       return null;
     }
   }
+  function _contentHashIgnoringStateFields(data) {
+    if (!data) return "";
+    const {
+      status,
+      updatedAt,
+      closedDate,
+      closedAtTs,
+      reopenedAt,
+      archived,
+      archivedAt,
+      archivedReason,
+      ...rest
+    } = data;
+    return JSON.stringify(rest);
+  }
   function emitCaseAudit(idStr, prev, norm) {
     const prevData = prev && prev.data ? prev.data : null;
-    const prevTombstoned = prevData && prevData.__deleted === true;
+    const prevTombstoned = prevData && prevData.status === "deleted";
     if (!prev || prevTombstoned) {
       void bestEffortAudit({
         action: AUDIT_ACTIONS.CASE_CREATED,
@@ -21842,17 +21857,7 @@ ${suffix}`;
       });
       return;
     }
-    const prevStatus = prevData ? prevData.status : null;
-    if (prevStatus !== norm.status) {
-      void bestEffortAudit({
-        action: norm.status === "archived" ? AUDIT_ACTIONS.CASE_ARCHIVED : AUDIT_ACTIONS.CASE_STATUS_CHANGED,
-        entity_type: "case",
-        entity_id: idStr,
-        metadata: { prev_status: prevStatus, new_status: norm.status }
-      });
-      return;
-    }
-    if (JSON.stringify(prevData) !== JSON.stringify(norm)) {
+    if (_contentHashIgnoringStateFields(prevData) !== _contentHashIgnoringStateFields(norm)) {
       void bestEffortAudit({
         action: AUDIT_ACTIONS.CASE_UPDATED,
         entity_type: "case",
@@ -21875,7 +21880,7 @@ ${suffix}`;
           return { ...r.data, organization_id: r.organization_id };
         }
         return r.data;
-      }).filter((d) => d && d.__deleted !== true);
+      }).filter((d) => d);
       return { ok: true, data: rows };
     } catch (error) {
       return { ok: false, reason: "exception", error };
@@ -21942,6 +21947,9 @@ ${suffix}`;
       }
     } catch {
     }
+    if (cases.length === 0 && prevById.size > 0) {
+      return { ok: false, reason: "refused-empty-input" };
+    }
     for (const raw of cases) {
       const norm = normalizeCase(raw);
       if (!norm || !norm.id) continue;
@@ -21962,19 +21970,17 @@ ${suffix}`;
     }
     for (const ex of prevById.values()) {
       if (!ex || !ex.id || liveIds.has(ex.id)) continue;
-      if (ex.data && ex.data.__deleted === true) continue;
+      if (ex.data && ex.data.status === "deleted") continue;
       rows.push({
         id: ex.id,
         user_id: sessionUserId,
-        data: { id: ex.id, __deleted: true, deleted_at: now },
-        // Tombstones get 'archived' so the indexed column never carries
-        // an 'open'-looking value for a row the client has dropped.
-        status: "archived",
+        data: { id: ex.id, status: "deleted", deleted_at: now },
+        status: "deleted",
         organization_id: ex.organization_id || null,
         updated_at: now
       });
       void bestEffortAudit({
-        action: AUDIT_ACTIONS.CASE_ARCHIVED,
+        action: AUDIT_ACTIONS.CASE_DELETED,
         entity_type: "case",
         entity_id: ex.id,
         metadata: { reason: "removed_from_client" }
@@ -21999,10 +22005,79 @@ ${suffix}`;
     return saveTable("briefs", briefs, normalizeBrief, userId);
   }
 
-  // src/lib/auth.js
+  // src/services/caseTasks.js
   var NO_CLIENT3 = { ok: false, reason: "no-client" };
-  async function signIn(email) {
+  var TASK_COLS = "id, case_id, organization_id, title, assigned_to, due_date, status, created_at, updated_at";
+  var STATUSES = ["open", "done", "cancelled"];
+  async function listCaseTasks(caseId) {
     if (!supabase) return NO_CLIENT3;
+    if (!caseId) return { ok: false, reason: "invalid-case-id" };
+    const { data, error } = await supabase.from("case_tasks").select(TASK_COLS).eq("case_id", String(caseId)).order("created_at", { ascending: true });
+    if (error) return { ok: false, reason: "query-error", error };
+    return { ok: true, tasks: data ?? [] };
+  }
+  async function createCaseTask(input) {
+    if (!supabase) return NO_CLIENT3;
+    if (!input || typeof input !== "object") return { ok: false, reason: "invalid-input" };
+    const caseId = input.case_id ? String(input.case_id) : null;
+    const title = typeof input.title === "string" ? input.title.trim() : "";
+    if (!caseId) return { ok: false, reason: "invalid-case-id" };
+    if (!title) return { ok: false, reason: "invalid-title" };
+    const status = input.status && STATUSES.includes(input.status) ? input.status : "open";
+    const { data: parent, error: parentErr } = await supabase.from("cases").select("organization_id").eq("id", caseId).maybeSingle();
+    if (parentErr) return { ok: false, reason: "parent-query-error", error: parentErr };
+    if (!parent) return { ok: false, reason: "parent-not-found" };
+    const row = {
+      case_id: caseId,
+      organization_id: parent.organization_id,
+      title,
+      assigned_to: input.assigned_to || null,
+      due_date: input.due_date || null,
+      status
+    };
+    const { data, error } = await supabase.from("case_tasks").insert(row).select(TASK_COLS).maybeSingle();
+    if (error) return { ok: false, reason: "insert-error", error };
+    void bestEffortAudit({
+      action: AUDIT_ACTIONS.TASK_CREATED,
+      entity_type: "task",
+      entity_id: data && data.id ? data.id : "",
+      metadata: { case_id: caseId, status: row.status }
+    });
+    return { ok: true, task: data };
+  }
+  async function updateCaseTask(id, patch) {
+    if (!supabase) return NO_CLIENT3;
+    if (!id) return { ok: false, reason: "invalid-id" };
+    if (!patch || typeof patch !== "object") return { ok: false, reason: "invalid-patch" };
+    const allowed = {};
+    if (patch.title !== void 0) {
+      const t2 = typeof patch.title === "string" ? patch.title.trim() : "";
+      if (!t2) return { ok: false, reason: "invalid-title" };
+      allowed.title = t2;
+    }
+    if (patch.assigned_to !== void 0) allowed.assigned_to = patch.assigned_to || null;
+    if (patch.due_date !== void 0) allowed.due_date = patch.due_date || null;
+    if (patch.status !== void 0) {
+      if (!STATUSES.includes(patch.status)) return { ok: false, reason: "invalid-status" };
+      allowed.status = patch.status;
+    }
+    if (Object.keys(allowed).length === 0) return { ok: false, reason: "empty-patch" };
+    allowed.updated_at = (/* @__PURE__ */ new Date()).toISOString();
+    const { data, error } = await supabase.from("case_tasks").update(allowed).eq("id", id).select(TASK_COLS).maybeSingle();
+    if (error) return { ok: false, reason: "update-error", error };
+    void bestEffortAudit({
+      action: allowed.status === "done" ? AUDIT_ACTIONS.TASK_COMPLETED : AUDIT_ACTIONS.TASK_UPDATED,
+      entity_type: "task",
+      entity_id: id,
+      metadata: { case_id: data && data.case_id ? data.case_id : null }
+    });
+    return { ok: true, task: data };
+  }
+
+  // src/lib/auth.js
+  var NO_CLIENT4 = { ok: false, reason: "no-client" };
+  async function signIn(email) {
+    if (!supabase) return NO_CLIENT4;
     if (!email || typeof email !== "string") {
       return { ok: false, reason: "invalid-email" };
     }
@@ -22014,25 +22089,25 @@ ${suffix}`;
     return { ok: true, data };
   }
   async function signOut() {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     const { error } = await supabase.auth.signOut();
     if (error) return { ok: false, reason: "auth-error", error };
     return { ok: true };
   }
   async function getSession() {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     const { data, error } = await supabase.auth.getSession();
     if (error) return { ok: false, reason: "auth-error", error };
     return { ok: true, session: data?.session ?? null };
   }
   async function exchangeCodeForSession(href) {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     const { data, error } = await supabase.auth.exchangeCodeForSession(href);
     if (error) return { ok: false, reason: "auth-error", error };
     return { ok: true, session: data?.session ?? null };
   }
   async function isEmailAllowed(email) {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     if (!email || typeof email !== "string") {
       return { ok: true, allowed: false };
     }
@@ -22059,7 +22134,7 @@ ${suffix}`;
   }
 
   // src/lib/profile.js
-  var NO_CLIENT4 = { ok: false, reason: "no-client" };
+  var NO_CLIENT5 = { ok: false, reason: "no-client" };
   var PROFILE_COLS = "id, email, status, role, organization_id, disabled_at, disabled_by, created_at, updated_at";
   var FALLBACK = (user) => ({
     id: user?.id ?? null,
@@ -22069,7 +22144,7 @@ ${suffix}`;
     organization_id: null
   });
   async function fetchOrCreateProfile(user) {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     if (!user || !user.id) return { ok: false, reason: "invalid-user" };
     const { data: existing, error: selErr } = await supabase.from("profiles").select(PROFILE_COLS).eq("id", user.id).maybeSingle();
     if (selErr) {
@@ -22092,13 +22167,13 @@ ${suffix}`;
     return { ok: true, profile: inserted ?? FALLBACK(user) };
   }
   async function listAllProfiles() {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     const { data, error } = await supabase.from("profiles").select(PROFILE_COLS).order("created_at", { ascending: true });
     if (error) return { ok: false, reason: "query-error", error };
     return { ok: true, profiles: data ?? [] };
   }
   async function updateProfile(id, patch) {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     if (!id) return { ok: false, reason: "invalid-id" };
     const allowed = {};
     if (patch && typeof patch === "object") {
@@ -22113,14 +22188,14 @@ ${suffix}`;
     return { ok: true, profile: data };
   }
   async function revokeUserAccess(targetUserId) {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     if (!targetUserId) return { ok: false, reason: "invalid-id" };
     const { data, error } = await supabase.rpc("revoke_user_access", { target_user_id: targetUserId });
     if (error) return { ok: false, reason: rpcReason(error), error };
     return { ok: true, profile: data };
   }
   async function restoreUserAccess(targetUserId) {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     if (!targetUserId) return { ok: false, reason: "invalid-id" };
     const { data, error } = await supabase.rpc("restore_user_access", { target_user_id: targetUserId });
     if (error) return { ok: false, reason: rpcReason(error), error };
@@ -22128,7 +22203,7 @@ ${suffix}`;
   }
   var ROLES = ["super_admin", "admin", "hrbp"];
   async function setUserRole(targetUserId, newRole) {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     if (!targetUserId) return { ok: false, reason: "invalid-id" };
     if (!ROLES.includes(newRole)) return { ok: false, reason: "invalid-role" };
     const { data, error } = await supabase.rpc("set_user_role", { target_user_id: targetUserId, new_role: newRole });
@@ -22147,17 +22222,16 @@ ${suffix}`;
     return "rpc-error";
   }
   async function listOrganizations() {
-    if (!supabase) return NO_CLIENT4;
+    if (!supabase) return NO_CLIENT5;
     const { data, error } = await supabase.from("organizations").select("id, name, created_at").order("name", { ascending: true });
     if (error) return { ok: false, reason: "query-error", error };
     return { ok: true, organizations: data ?? [] };
   }
 
   // src/utils/caseStatus.js
-  var INACTIVE_CASE_STATUSES = ["closed", "archived", "resolved", "done", "ferm\xE9", "ferme"];
+  var INACTIVE_CASE_STATUSES = ["closed", "archived", "deleted", "resolved", "done", "ferm\xE9", "ferme"];
   function isCaseInactive(c) {
     if (!c) return false;
-    if (c.archived === true) return true;
     const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
     return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
   }
@@ -26504,7 +26578,6 @@ ${buildContext()}`, 3500);
         situation: `${r.description || ""}${r.evidence ? "\nPreuve: " + r.evidence : ""}`,
         interventionsDone: "",
         hrPosition: r.urgentAction || "",
-        nextFollowUp: "",
         notes: `Cr\xE9\xE9 depuis Org Radar \u2014 ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`,
         actions: [],
         updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
@@ -27197,12 +27270,211 @@ ${similarBlock}`;
     } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, "Lecture du dossier \xB7 cadre l\xE9gal \xB7 cas similaires\u2026")), error && !loading && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red } }, "\u26A0 Brief indisponible : ", error), text && !loading && renderBrief(text));
   }
 
+  // src/utils/caseFollowUp.js
+  function getNextOpenTask(tasks) {
+    if (!Array.isArray(tasks)) return null;
+    const open = tasks.filter((t2) => t2 && t2.status === "open");
+    if (open.length === 0) return null;
+    open.sort((a, b) => {
+      const ad = a.due_date || "";
+      const bd = b.due_date || "";
+      if (ad && !bd) return -1;
+      if (!ad && bd) return 1;
+      if (ad && bd && ad !== bd) return ad < bd ? -1 : 1;
+      const ac = a.created_at || "";
+      const bc = b.created_at || "";
+      return ac < bc ? -1 : ac > bc ? 1 : 0;
+    });
+    return open[0];
+  }
+  function getCaseFollowUp(c, tasks) {
+    const nt = getNextOpenTask(tasks);
+    if (nt) return { source: "task", title: nt.title || "", due: nt.due_date || "" };
+    if (c?.dueDate) return { source: "due_date", title: "", due: c.dueDate };
+    if (c?.nextFollowUp) return { source: "next_follow_up", title: c.nextFollowUp, due: "" };
+    return null;
+  }
+  function followUpToText(fu) {
+    if (!fu) return "";
+    if (fu.source === "task") return fu.due ? `${fu.title} (${fu.due})` : fu.title;
+    return fu.due || fu.title;
+  }
+  async function fetchTasksForCases(cases) {
+    const out = {};
+    if (!Array.isArray(cases) || cases.length === 0) return out;
+    const ids = cases.map((c) => c?.id).filter(Boolean);
+    if (ids.length === 0) return out;
+    const results = await Promise.all(ids.map(async (id) => [id, await listCaseTasks(id)]));
+    for (const [id, res] of results) {
+      if (res && res.ok) out[id] = res.tasks || [];
+    }
+    return out;
+  }
+
   // src/modules/Cases.jsx
   function RiskBadge2({ level }) {
     const { t: t2 } = useT();
     const norm = normalizeRisk(level);
     const r = RISK[norm] || RISK["Mod\xE9r\xE9"];
     return /* @__PURE__ */ React.createElement(Badge, { label: tRisk(t2, norm), color: r.color });
+  }
+  function CaseTasksPanel({ caseId, legacyFollowUp, onTasksChange }) {
+    const [tasks, setTasks] = (0, import_react13.useState)([]);
+    const [loading, setLoading] = (0, import_react13.useState)(false);
+    const [unavailable, setUnavailable] = (0, import_react13.useState)(false);
+    const [title, setTitle] = (0, import_react13.useState)("");
+    const [dueDate, setDueDate] = (0, import_react13.useState)("");
+    const [busy, setBusy] = (0, import_react13.useState)(false);
+    const [error, setError] = (0, import_react13.useState)("");
+    const refetch = async () => {
+      if (!caseId) return;
+      setLoading(true);
+      setError("");
+      const res = await listCaseTasks(caseId);
+      if (res.ok) {
+        const fresh = res.tasks || [];
+        setTasks(fresh);
+        setUnavailable(false);
+        if (typeof onTasksChange === "function") onTasksChange(caseId, fresh);
+      } else if (res.reason === "no-client") {
+        setUnavailable(true);
+        setTasks([]);
+      } else {
+        setError(res.reason || "load-failed");
+        setTasks([]);
+      }
+      setLoading(false);
+    };
+    (0, import_react13.useEffect)(() => {
+      refetch();
+    }, [caseId]);
+    const addTask = async () => {
+      const trimmed = title.trim();
+      if (!trimmed || busy) return;
+      setBusy(true);
+      setError("");
+      const res = await createCaseTask({ case_id: caseId, title: trimmed, due_date: dueDate || null });
+      setBusy(false);
+      if (!res.ok) {
+        setError(res.reason || "create-failed");
+        return;
+      }
+      setTitle("");
+      setDueDate("");
+      refetch();
+    };
+    const transitionTask = async (taskId, newStatus) => {
+      if (busy) return;
+      setBusy(true);
+      setError("");
+      const res = await updateCaseTask(taskId, { status: newStatus });
+      setBusy(false);
+      if (!res.ok) {
+        setError(res.reason || "update-failed");
+        return;
+      }
+      refetch();
+    };
+    const open = tasks.filter((t2) => t2.status === "open");
+    const done = tasks.filter((t2) => t2.status === "done");
+    const cancelled = tasks.filter((t2) => t2.status === "cancelled");
+    const TaskRow = ({ task }) => {
+      const muted = task.status !== "open";
+      return /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 0",
+        borderBottom: `1px solid ${C.borderL}`,
+        opacity: muted ? 0.55 : 1
+      } }, /* @__PURE__ */ React.createElement("div", { style: {
+        flex: 1,
+        fontSize: 13,
+        color: C.text,
+        textDecoration: task.status === "cancelled" ? "line-through" : "none"
+      } }, task.title, task.due_date && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginLeft: 8 } }, "\xB7 ", task.due_date)), task.status === "open" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => transitionTask(task.id, "done"),
+          disabled: busy,
+          title: "Marquer comme compl\xE9t\xE9",
+          style: { ...css.btn(C.em, true), padding: "4px 10px", fontSize: 11 }
+        },
+        "\u2713"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => transitionTask(task.id, "cancelled"),
+          disabled: busy,
+          title: "Annuler",
+          style: { ...css.btn(C.textD, true), padding: "4px 10px", fontSize: 11 }
+        },
+        "\u2717"
+      )), task.status !== "open" && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, task.status === "done" ? "Compl\xE9t\xE9" : "Annul\xE9"));
+    };
+    return /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "SUIVIS / T\xC2CHES"), loading && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "chargement\u2026")), legacyFollowUp && /* @__PURE__ */ React.createElement("div", { style: {
+      padding: "8px 10px",
+      marginBottom: 10,
+      background: C.amber + "14",
+      border: `1px solid ${C.amber}33`,
+      borderLeft: `3px solid ${C.amber}`,
+      borderRadius: 6
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "SUIVI H\xC9RIT\xC9 (champ texte)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text, marginTop: 4 } }, legacyFollowUp), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9, style: { marginTop: 4 } }, "\xC0 convertir manuellement en t\xE2che ci-dessous (la migration automatique arrivera plus tard).")), unavailable ? /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Service de t\xE2ches indisponible (Supabase non connect\xE9).") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "text",
+        placeholder: "Nouvelle t\xE2che\u2026",
+        value: title,
+        onChange: (e) => setTitle(e.target.value),
+        onKeyDown: (e) => {
+          if (e.key === "Enter") addTask();
+        },
+        disabled: busy,
+        style: {
+          flex: 1,
+          padding: "6px 10px",
+          fontSize: 13,
+          color: C.text,
+          background: C.surfL,
+          border: `1px solid ${C.border}`,
+          borderRadius: 4
+        }
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: dueDate,
+        onChange: (e) => setDueDate(e.target.value),
+        disabled: busy,
+        style: {
+          padding: "6px 10px",
+          fontSize: 13,
+          color: C.text,
+          background: C.surfL,
+          border: `1px solid ${C.border}`,
+          borderRadius: 4
+        }
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: addTask,
+        disabled: busy || !title.trim(),
+        style: {
+          ...css.btn(C.em, true),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: busy || !title.trim() ? 0.4 : 1
+        }
+      },
+      "+ Ajouter"
+    )), error && /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9, style: { marginBottom: 8 } }, "Erreur: ", error), open.length === 0 && done.length === 0 && cancelled.length === 0 && !loading && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Aucune t\xE2che pour le moment."), open.length > 0 && /* @__PURE__ */ React.createElement("div", null, open.map((task) => /* @__PURE__ */ React.createElement(TaskRow, { key: task.id, task }))), (done.length > 0 || cancelled.length > 0) && /* @__PURE__ */ React.createElement("details", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement("summary", { style: {
+      cursor: "pointer",
+      fontSize: 11,
+      color: C.textD,
+      fontFamily: "'DM Mono',monospace"
+    } }, "Historique (", done.length + cancelled.length, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } }, done.map((task) => /* @__PURE__ */ React.createElement(TaskRow, { key: task.id, task })), cancelled.map((task) => /* @__PURE__ */ React.createElement(TaskRow, { key: task.id, task }))))));
   }
   var CASE_TYPES2 = [
     { id: "performance", label: "Performance", icon: "\u{1F4C9}", color: C.amber },
@@ -27218,7 +27490,7 @@ ${similarBlock}`;
     { id: "exit", label: "D\xE9part", icon: "\u{1F6AA}", color: C.textM },
     { id: "investigation", label: "Enqu\xEAte", icon: "\u2696", color: "#7a1e2e" }
   ];
-  var STATUSES = [
+  var STATUSES2 = [
     { id: "open", label: "Ouvert", color: C.blue },
     { id: "in_progress", label: "En cours", color: C.amber },
     { id: "waiting", label: "En attente", color: C.purple },
@@ -27226,7 +27498,6 @@ ${similarBlock}`;
     { id: "archived", label: "Archiv\xE9", color: C.textD }
   ];
   var ACTIVE_STATUSES = ["open", "in_progress", "waiting"];
-  var INACTIVE_STATUSES = ["closed", "archived"];
   var URGENCY_C = { "Immediat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
   var EVO_C = { "Nouveau": C.blue, "En cours": C.amber, "Aggrav\xE9": C.red, "En am\xE9lioration": C.teal, "Bloqu\xE9": C.red, "R\xE9solu": C.em };
   var HR_POSTURE_C = { "Partenaire": C.blue, "Garant": C.red, "Coach": C.teal, "Neutre": C.textD, "Enqu\xEAteur": "#7a1e2e" };
@@ -27261,7 +27532,6 @@ ${similarBlock}`;
     interventionsDone: "",
     hrPosition: "",
     decision: "",
-    nextFollowUp: "",
     notes: "",
     actions: [],
     scope: "leader",
@@ -27270,8 +27540,7 @@ ${similarBlock}`;
     urgency: "Cette semaine",
     evolution: "",
     hrPosture: "",
-    closedDate: "",
-    closure: "open"
+    closedDate: ""
   };
   function fl(label, child) {
     return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, label), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6 } }, child));
@@ -27322,7 +27591,7 @@ ${similarBlock}`;
         /* @__PURE__ */ React.createElement("select", { value: form.type, onChange: SF("type"), style: css.select }, CASE_TYPES2.map((t3) => /* @__PURE__ */ React.createElement("option", { key: t3.id, value: t3.id }, t3.icon, " ", t3.label)))
       ), fl(
         t2("case.form.status"),
-        /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: SF("status"), style: css.select }, STATUSES.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.id, value: s.id }, tStatus(t2, s.id))))
+        /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: SF("status"), style: css.select }, STATUSES2.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.id, value: s.id }, tStatus(t2, s.id))))
       ), fl(
         t2("case.form.risk"),
         /* @__PURE__ */ React.createElement("select", { value: form.riskLevel, onChange: SF("riskLevel"), style: css.select }, ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"].map((r) => /* @__PURE__ */ React.createElement("option", { key: r, value: r }, tRisk(t2, r))))
@@ -27445,20 +27714,13 @@ ${similarBlock}`;
             ...FO
           }
         )
-      ), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } }, fl(
-        t2("case.form.nextFollowUp"),
-        /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            value: form.nextFollowUp,
-            onChange: SF("nextFollowUp"),
-            placeholder: t2("case.form.ph.nextFollowUp"),
-            style: css.input,
-            autoComplete: "off",
-            ...FO
-          }
-        )
-      ), fl(
+      ), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: {
+        alignSelf: "end",
+        padding: "10px 12px",
+        background: C.surfL,
+        border: `1px dashed ${C.border}`,
+        borderRadius: 6
+      } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "SUIVI"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 6, lineHeight: 1.55 } }, "Les suivis se g\xE8rent comme t\xE2ches sur la fiche du dossier (apr\xE8s enregistrement).")), fl(
         t2("case.form.dueDate"),
         /* @__PURE__ */ React.createElement(
           "input",
@@ -27496,14 +27758,14 @@ ${similarBlock}`;
       ), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onCancel, style: { ...css.btn(C.textM, true) } }, t2("common.cancel"))))
     );
   }
-  function formatCaseForClipboard(c, data) {
+  function formatCaseForClipboard(c, data, tasks) {
     const lines = [];
     const sep = "\u2500".repeat(40);
     const secSep = "\u2500\u2500 ";
     lines.push(`DOSSIER RH \u2014 ${c.title || "Sans titre"}`);
     lines.push(sep);
     const typeObj = CASE_TYPES2.find((t2) => t2.id === c.type);
-    const statusObj = STATUSES.find((s) => s.id === c.status);
+    const statusObj = STATUSES2.find((s) => s.id === c.status);
     if (statusObj) lines.push(`Statut       : ${statusObj.label}`);
     if (c.riskLevel) lines.push(`Risque       : ${c.riskLevel}`);
     if (typeObj) lines.push(`Type         : ${typeObj.label}`);
@@ -27538,10 +27800,17 @@ ${similarBlock}`;
       lines.push(`${secSep}D\xC9CISION`);
       lines.push(c.decision);
     }
-    if (c.nextFollowUp) {
+    const _fu = getCaseFollowUp(c, tasks);
+    if (_fu) {
       lines.push("");
       lines.push(`${secSep}PROCHAIN SUIVI`);
-      lines.push(c.nextFollowUp);
+      if (_fu.source === "task") {
+        lines.push(_fu.due ? `${_fu.title} \u2014 \xE9ch\xE9ance ${_fu.due}` : _fu.title);
+      } else if (_fu.source === "due_date") {
+        lines.push(`\xC9ch\xE9ance ${_fu.due}`);
+      } else {
+        lines.push(_fu.title);
+      }
     }
     if (c.notes) {
       lines.push("");
@@ -27565,7 +27834,9 @@ ${similarBlock}`;
     if (created) tlEvents.push({ date: created, label: "Dossier ouvert" });
     if ((c.status === "closed" || c.status === "archived") && (c.closedDate || c.savedAt))
       tlEvents.push({ date: c.closedDate || c.savedAt, label: c.status === "archived" ? "Dossier archiv\xE9" : "Dossier ferm\xE9" });
-    if (c.dueDate) tlEvents.push({ date: c.dueDate, label: "\xC9ch\xE9ance" + (c.nextFollowUp ? ` \u2014 ${c.nextFollowUp}` : "") });
+    if (_fu && _fu.due) {
+      tlEvents.push({ date: _fu.due, label: _fu.title ? `\xC9ch\xE9ance \u2014 ${_fu.title}` : "\xC9ch\xE9ance" });
+    }
     linkedDecs.forEach((d) => {
       tlEvents.push({ date: d.savedAt || d.decisionDate || d.createdAt, label: `\u2696 ${d.title || "D\xE9cision RH"}`, sub: d.summary || d.rationale || "" });
     });
@@ -27596,7 +27867,7 @@ ${similarBlock}`;
     lines.push(`Export\xE9 depuis HRBP OS \u2014 ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`);
     return lines.join("\n");
   }
-  function ModuleCases({ data, onSave, onNavigate, focusCaseId, onClearFocus }) {
+  function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus }) {
     const { t: t2 } = useT();
     const [view, setView] = (0, import_react13.useState)("list");
     const [form, setForm] = (0, import_react13.useState)({ ...EMPTY_FORM });
@@ -27607,6 +27878,7 @@ ${similarBlock}`;
     const [filterStatus, setFilterStatus] = (0, import_react13.useState)("all");
     const [filterProvince, setFilterProvince] = (0, import_react13.useState)("");
     const [filterArchived, setFilterArchived] = (0, import_react13.useState)("active");
+    const [tasksByCase, setTasksByCase] = (0, import_react13.useState)({});
     (0, import_react13.useEffect)(() => {
       if (!focusCaseId) return;
       const target = (data.cases || []).find((c) => c.id === focusCaseId);
@@ -27616,10 +27888,20 @@ ${similarBlock}`;
       }
       if (onClearFocus) onClearFocus();
     }, [focusCaseId]);
+    (0, import_react13.useEffect)(() => {
+      let cancelled = false;
+      (async () => {
+        const map = await fetchTasksForCases(data.cases || []);
+        if (!cancelled) setTasksByCase(map);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [data.cases?.length, view]);
     const cases = (data.cases || []).filter((c) => {
-      if (filterArchived === "archived") return c.archived === true;
+      if (filterArchived === "archived") return c.status === "archived";
       if (filterArchived === "all") return true;
-      return !c.archived;
+      return c.status !== "archived";
     });
     const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     const filtered = cases.filter((c) => {
@@ -27637,13 +27919,13 @@ ${similarBlock}`;
       if (ra !== rb) return ra - rb;
       return (b.updatedAt || "0000-00-00") < (a.updatedAt || "0000-00-00") ? -1 : 1;
     });
-    const save = () => {
+    const save = async () => {
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const isClosing = form.status === "closed" || form.status === "archived";
       const closedDate = isClosing ? form.closedDate || today : "";
       const allCases = data.cases || [];
       const existingCase = editId ? allCases.find((c) => c.id === editId) : null;
-      if (editId && existingCase?.archived) {
+      if (editId && existingCase?.status === "archived") {
         setView("list");
         setForm({ ...EMPTY_FORM });
         setEditId(null);
@@ -27656,45 +27938,27 @@ ${similarBlock}`;
         updatedAt: today,
         dateCreated: existingCase?.dateCreated || today
       };
-      const updated = editId ? allCases.map((c) => c.id === editId ? newCase : c) : [...allCases, newCase];
-      onSave("cases", updated);
+      if (editId && existingCase && existingCase.status !== form.status) {
+        const { status: _droppedStatus, ...formFieldsWithoutStatus } = newCase;
+        await onTransitionCase(editId, form.status, formFieldsWithoutStatus);
+      } else {
+        const updated = editId ? allCases.map((c) => c.id === editId ? newCase : c) : [...allCases, newCase];
+        onSave("cases", updated);
+      }
       setView("list");
       setForm({ ...EMPTY_FORM });
       setEditId(null);
     };
-    const archiveCase = (id) => {
+    const archiveCase = async (id) => {
       const now = (/* @__PURE__ */ new Date()).toISOString();
-      const updated = (data.cases || []).map((c) => c.id === id ? {
-        ...c,
-        archived: true,
-        status: "archived",
+      await onTransitionCase(id, "archived", {
         archivedAt: now,
         archivedReason: "user_archived"
-      } : c);
-      onSave("cases", updated);
+      });
       setView("list");
     };
-    const setClosure = (id, closure2) => {
-      const now = (/* @__PURE__ */ new Date()).toISOString();
-      const today = now.split("T")[0];
-      const updated = (data.cases || []).map((c) => c.id === id ? {
-        ...c,
-        closure: closure2,
-        closedAtTs: closure2 === "closed" ? now : c.closedAtTs || null,
-        reopenedAt: closure2 === "open" && c.closure === "closed" ? now : c.reopenedAt || null,
-        updatedAt: today
-      } : c);
-      onSave("cases", updated);
-      setDetail((prev) => prev && prev.id === id ? {
-        ...prev,
-        closure: closure2,
-        closedAtTs: closure2 === "closed" ? now : prev.closedAtTs || null,
-        reopenedAt: closure2 === "open" && prev.closure === "closed" ? now : prev.reopenedAt || null,
-        updatedAt: today
-      } : prev);
-    };
     const openEdit = (c) => {
-      if (c?.archived) return;
+      if (c?.status === "archived") return;
       setForm({ ...EMPTY_FORM, ...c });
       setEditId(c.id);
       setView("form");
@@ -27717,16 +27981,16 @@ ${similarBlock}`;
     if (view === "detail" && detail) {
       const c = detail;
       const typeObj = CASE_TYPES2.find((t3) => t3.id === c.type);
-      const statusObj = STATUSES.find((s) => s.id === c.status);
+      const statusObj = STATUSES2.find((s) => s.id === c.status);
       const r = RISK[c.riskLevel] || RISK["Mod\xE9r\xE9"];
-      const isArchived = c.archived === true;
+      const isArchived = c.status === "archived";
       const archivedDate = c.archivedAt ? fmtDate(c.archivedAt) : null;
-      const isClosed = c.closure === "closed";
+      const isClosed = c.status === "closed";
       return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setView("list"), style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 ", t2("common.back")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, c.title), /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: async () => {
-            const text = formatCaseForClipboard(c, data);
+            const text = formatCaseForClipboard(c, data, tasksByCase[c.id]);
             try {
               await navigator.clipboard.writeText(text);
             } catch {
@@ -27799,7 +28063,10 @@ ${similarBlock}`;
       ), !isArchived && (isClosed ? /* @__PURE__ */ React.createElement(
         "button",
         {
-          onClick: () => setClosure(c.id, "open"),
+          onClick: async () => {
+            const res = await onTransitionCase(c.id, "open");
+            if (res && res.ok && res.case) setDetail(res.case);
+          },
           title: "Rouvrir ce dossier (le marquer comme actif)",
           style: { ...css.btn(C.em, true), padding: "6px 14px", fontSize: 12 }
         },
@@ -27808,7 +28075,10 @@ ${similarBlock}`;
       ) : /* @__PURE__ */ React.createElement(
         "button",
         {
-          onClick: () => setClosure(c.id, "closed"),
+          onClick: async () => {
+            const res = await onTransitionCase(c.id, "closed");
+            if (res && res.ok && res.case) setDetail(res.case);
+          },
           title: "Marquer ce dossier comme ferm\xE9 (n'archive pas)",
           style: { ...css.btn(C.textD, true), padding: "6px 14px", fontSize: 12 }
         },
@@ -27834,7 +28104,7 @@ ${similarBlock}`;
         border: `1px solid ${C.textD}44`,
         borderLeft: `3px solid ${C.textD}`,
         borderRadius: 8
-      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, t2("case.detail.archivedBanner")), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, archivedDate ? t2("case.detail.archivedAt").replace("{date}", archivedDate) : t2("case.detail.archivedKept"), " \xB7 ", t2("case.detail.editingDisabled")))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: tStatus(t2, statusObj.id), color: statusObj.color }), isClosed && /* @__PURE__ */ React.createElement(Badge, { label: `\u{1F512} ${tStatus(t2, "closed")}`, color: C.textD }), typeObj && /* @__PURE__ */ React.createElement(Badge, { label: `${typeObj.icon} ${typeObj.label}`, color: typeObj.color }), (() => {
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, "\u{1F4E6}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, t2("case.detail.archivedBanner")), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, archivedDate ? t2("case.detail.archivedAt").replace("{date}", archivedDate) : t2("case.detail.archivedKept"), " \xB7 ", t2("case.detail.editingDisabled")))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: tStatus(t2, statusObj.id), color: statusObj.color }), typeObj && /* @__PURE__ */ React.createElement(Badge, { label: `${typeObj.icon} ${typeObj.label}`, color: typeObj.color }), (() => {
         const tb = getCaseTimeBadge(c);
         return tb ? /* @__PURE__ */ React.createElement(Badge, { label: tb.label, color: tb.tone }) : null;
       })(), c.evolution && /* @__PURE__ */ React.createElement(Badge, { label: c.evolution, color: EVO_C[c.evolution] || C.textD }), c.hrPosture && /* @__PURE__ */ React.createElement(Badge, { label: c.hrPosture, color: HR_POSTURE_C[c.hrPosture] || C.textD }), c.director && (onNavigate ? /* @__PURE__ */ React.createElement(
@@ -27853,16 +28123,30 @@ ${similarBlock}`;
         if (ld.length === 0 || !onNavigate) return null;
         const latest = [...ld].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0];
         return /* @__PURE__ */ React.createElement("span", { onClick: () => onNavigate("decisions", { focusDecisionId: latest.id }), style: { cursor: "pointer" }, title: ld.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la d\xE9cision la plus r\xE9cente (${ld.length} li\xE9es)` }, /* @__PURE__ */ React.createElement(Badge, { label: ld.length === 1 ? "\u2696 D\xE9cision" : `\u2696 D\xE9cisions (${ld.length})`, color: C.purple, size: 9 }));
-      })(), c.owner && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Owner \xB7 ", c.owner), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.openDate && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Ouvert: ", c.openDate), c.dueDate && /* @__PURE__ */ React.createElement(Mono, { color: C.purple }, "\xC9ch\xE9ance: ", c.dueDate), c.closedDate && /* @__PURE__ */ React.createElement(Mono, { color: C.em }, "Ferm\xE9: ", c.closedDate)), /* @__PURE__ */ React.createElement(CaseBrief, { caseObj: c, data }), /* @__PURE__ */ React.createElement(Card, null, [
-        ["Employ\xE9 / Groupe", c.employee],
-        ["D\xE9partement", c.department],
-        ["Situation", c.situation],
-        ["Interventions", c.interventionsDone],
-        ["D\xE9cision", c.decision],
-        ["Position RH", c.hrPosition],
-        ["Prochain suivi", c.nextFollowUp],
-        ["Notes HRBP", c.notes]
-      ].map(([l, v], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginTop: 4 } }, v), /* @__PURE__ */ React.createElement(Divider, { my: 8 })) : null)), (() => {
+      })(), c.owner && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Owner \xB7 ", c.owner), /* @__PURE__ */ React.createElement(ProvinceBadge, { province: getProvince(c, data.profile) }), c.openDate && /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, "Ouvert: ", c.openDate), c.dueDate && /* @__PURE__ */ React.createElement(Mono, { color: C.purple }, "\xC9ch\xE9ance: ", c.dueDate), c.closedDate && /* @__PURE__ */ React.createElement(Mono, { color: C.em }, "Ferm\xE9: ", c.closedDate)), /* @__PURE__ */ React.createElement(CaseBrief, { caseObj: c, data }), /* @__PURE__ */ React.createElement(Card, null, (() => {
+        const fu = getCaseFollowUp(c, tasksByCase[c.id]);
+        const followUpDisplay = !fu ? "" : fu.source === "task" ? fu.due ? `${fu.title} \u2014 \xE9ch\xE9ance ${fu.due}` : fu.title : fu.source === "due_date" ? `\xC9ch\xE9ance ${fu.due}` : (
+          /* next_follow_up */
+          fu.title
+        );
+        return [
+          ["Employ\xE9 / Groupe", c.employee],
+          ["D\xE9partement", c.department],
+          ["Situation", c.situation],
+          ["Interventions", c.interventionsDone],
+          ["D\xE9cision", c.decision],
+          ["Position RH", c.hrPosition],
+          ["Prochain suivi", followUpDisplay],
+          ["Notes HRBP", c.notes]
+        ].map(([l, v], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginTop: 4 } }, v), /* @__PURE__ */ React.createElement(Divider, { my: 8 })) : null);
+      })()), /* @__PURE__ */ React.createElement(
+        CaseTasksPanel,
+        {
+          caseId: c.id,
+          legacyFollowUp: c.nextFollowUp || "",
+          onTasksChange: (id, tasks) => setTasksByCase((prev) => ({ ...prev, [id]: tasks }))
+        }
+      ), (() => {
         const events = [];
         const created = c.createdAt || c.savedAt || c.openDate;
         if (created) events.push({ date: created, type: "case", icon: "\u{1F4C2}", label: t2("case.timeline.opened"), sub: c.title || "", color: C.blue });
@@ -27877,7 +28161,8 @@ ${similarBlock}`;
             color: C.textD
           });
         }
-        if (c.dueDate) events.push({ date: c.dueDate, type: "deadline", icon: "\u23F0", label: t2("case.timeline.deadline"), sub: c.nextFollowUp || "", color: C.amber });
+        const _fuTl = getCaseFollowUp(c, tasksByCase[c.id]);
+        if (_fuTl && _fuTl.due) events.push({ date: _fuTl.due, type: "deadline", icon: "\u23F0", label: t2("case.timeline.deadline"), sub: _fuTl.title || "", color: C.amber });
         (data.decisions || []).filter((d) => d.linkedCaseId === c.id).forEach((d) => {
           const statusLabel = d.status ? tDecisionStatus(t2, d.status) : "";
           const excerpt = d.decisionRationale || d.selectedOption || d.background || "";
@@ -27961,8 +28246,8 @@ ${similarBlock}`;
         onFocus: (e) => e.target.style.borderColor = C.em + "60",
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, ["all", ...STATUSES.map((s) => s.id)].map((s) => {
-      const so = STATUSES.find((x) => x.id === s);
+    ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, ["all", ...STATUSES2.map((s) => s.id)].map((s) => {
+      const so = STATUSES2.find((x) => x.id === s);
       return /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -28002,8 +28287,8 @@ ${similarBlock}`;
     )))), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: 32, color: C.textM, fontSize: 13 } }, t2("case.empty.noFilter")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, filtered.map((c, i) => {
       const r = RISK[c.riskLevel] || RISK["Mod\xE9r\xE9"];
       const typeObj = CASE_TYPES2.find((t3) => t3.id === c.type);
-      const statusObj = STATUSES.find((s) => s.id === c.status);
-      const isOverdue = c.dueDate && c.dueDate < todayISO && !INACTIVE_STATUSES.includes(c.status);
+      const statusObj = STATUSES2.find((s) => s.id === c.status);
+      const isOverdue = c.dueDate && c.dueDate < todayISO && !INACTIVE_CASE_STATUSES.includes(c.status);
       const linkedDecisions = (data.decisions || []).filter((d) => d.linkedCaseId === c.id);
       const latestLinkedDecision = linkedDecisions.length > 0 ? [...linkedDecisions].sort((a, b) => (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || ""))[0] : null;
       return /* @__PURE__ */ React.createElement(
@@ -28026,7 +28311,7 @@ ${similarBlock}`;
             transition: "border-color .15s"
           }
         },
-        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, c.title, isOverdue && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.red, fontFamily: "'DM Mono',monospace", marginLeft: 8 } }, "\u26A0 \xC9CH\xC9ANCE D\xC9PASS\xC9E")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: tStatus(t2, statusObj.id), color: statusObj.color }), c.closure === "closed" && /* @__PURE__ */ React.createElement(Badge, { label: `\u{1F512} ${tStatus(t2, "closed")}`, color: C.textD, size: 9 }), latestLinkedDecision && (onNavigate ? /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, c.title, isOverdue && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.red, fontFamily: "'DM Mono',monospace", marginLeft: 8 } }, "\u26A0 \xC9CH\xC9ANCE D\xC9PASS\xC9E")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 } }, /* @__PURE__ */ React.createElement(RiskBadge2, { level: c.riskLevel }), statusObj && /* @__PURE__ */ React.createElement(Badge, { label: tStatus(t2, statusObj.id), color: statusObj.color }), latestLinkedDecision && (onNavigate ? /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
           e.stopPropagation();
           onNavigate("decisions", { focusDecisionId: latestLinkedDecision.id });
         }, style: { cursor: "pointer" }, title: linkedDecisions.length === 1 ? "Ouvrir la d\xE9cision li\xE9e" : `Ouvrir la plus r\xE9cente (${linkedDecisions.length} li\xE9es)` }, /* @__PURE__ */ React.createElement(Badge, { label: linkedDecisions.length === 1 ? "\u2696 D\xE9cision" : `\u2696 D\xE9cisions (${linkedDecisions.length})`, color: C.purple, size: 9 })) : /* @__PURE__ */ React.createElement(Badge, { label: "\u2696 D\xE9cision li\xE9e", color: C.purple, size: 9 })))),
@@ -28053,7 +28338,11 @@ ${similarBlock}`;
             color: { individual: C.blue, team: C.teal, org: C.textD }[c.scope] || C.textD,
             size: 9
           }
-        ), (c.dueDate || c.nextFollowUp) && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: isOverdue ? C.red : C.purple, marginLeft: "auto" } }, "\u{1F4C5} ", c.dueDate || c.nextFollowUp))
+        ), (() => {
+          const fu = getCaseFollowUp(c, tasksByCase[c.id]);
+          const pillText = fu?.due || fu?.title || "";
+          return pillText ? /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: isOverdue ? C.red : C.purple, marginLeft: "auto" } }, "\u{1F4C5} ", pillText) : null;
+        })())
       );
     }), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.textD, fontSize: 13 } }, search ? t2("case.empty.noResults") : t2("case.empty.noCases"))));
   }
@@ -29135,7 +29424,7 @@ Pr\xE9pare la conversation d'accueil:
   };
   function detectSituations(data) {
     const situations = [];
-    const _allCases = (data.cases || []).filter((c) => !c.archived);
+    const _allCases = (data.cases || []).filter((c) => c.status !== "archived");
     const _active = _allCases.filter((c) => c.status === "open" || c.status === "in_progress");
     const _waiting = _allCases.filter((c) => {
       if (c.status !== "waiting") return false;
@@ -33792,6 +34081,17 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const [periodStart, setPeriodStart] = (0, import_react19.useState)("");
     const [periodEnd, setPeriodEnd] = (0, import_react19.useState)("");
     const briefs = data.briefs || [];
+    const [tasksByCase, setTasksByCase] = (0, import_react19.useState)({});
+    (0, import_react19.useEffect)(() => {
+      let cancelled = false;
+      (async () => {
+        const map = await fetchTasksForCases(data.cases || []);
+        if (!cancelled) setTasksByCase(map);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [data.cases?.length]);
     const parseDate = (str) => {
       if (!str) return null;
       if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return /* @__PURE__ */ new Date(str + "T00:00:00");
@@ -33827,7 +34127,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
         (s) => `Signal ${s.analysis?.category} (${s.savedAt}): ${s.analysis?.title} \u2014 ${s.analysis?.severity}`
       ).join("\n") : "(Aucun signal enregistr\xE9 dans cette p\xE9riode)";
       const casesTxt = allCases.map(
-        (c) => `Dossier actif: ${c.title} \u2014 Risque ${c.riskLevel} \u2014 Suivi: ${c.nextFollowUp || "N/A"}`
+        (c) => `Dossier actif: ${c.title} \u2014 Risque ${c.riskLevel} \u2014 Suivi: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id])) || "N/A"}`
       ).join("\n") || "(Aucun dossier actif)";
       const weekLabel = periodStart && periodEnd ? `Semaine du ${new Date(periodStart).toLocaleDateString("fr-CA")} au ${new Date(periodEnd).toLocaleDateString("fr-CA")}` : `Semaine du ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`;
       setInputs((f) => ({
@@ -33838,10 +34138,6 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
         weekOf: weekLabel,
         other: f.other || `Donn\xE9es: ${filteredMeetings.length} meeting(s), ${filteredSignals.length} signal(s) dans la p\xE9riode.`
       }));
-      const caseTAFill = allCases.filter((c) => c.type === "performance" || c.type === "pip" || c.type === "complaint" || c.type === "investigation").map((c) => `${c.title} (${c.employee || c.director || ""}) \u2014 ${c.status}`).join("\n");
-      if (caseTAFill) setRecapInputs((f) => ({ ...f, performance: f.performance || caseTAFill }));
-      const retentionFill = allCases.filter((c) => c.type === "exit" || c.type === "reorg").map((c) => `${c.title} \u2014 ${c.status}`).join("\n");
-      if (retentionFill) setRecapInputs((f) => ({ ...f, fins_emploi: f.fins_emploi || retentionFill }));
     };
     const generate = async () => {
       setLoading(true);
@@ -33868,7 +34164,7 @@ WatchList: ${lastBrief.watchList?.map((w) => `${w.subject} [${w.classification}]
   Position RH: ${c.hrPosition || ""}${c.decision ? `
   D\xE9cision: ${c.decision}` : ""}${c.owner && c.owner !== "HRBP" ? `
   Owner: ${c.owner}` : ""}
-  Suivi: ${c.dueDate || c.nextFollowUp || ""}`
+  Suivi: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id]))}`
         ).join("\n") : "\n=== CASE LOG : Aucun dossier actif ===\n";
         const prompt = `SEMAINE DU: ${inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}
 MEETINGS DE LA SEMAINE:
@@ -33936,7 +34232,7 @@ ${inputs.other || ""}${prevCtx}${caseCtx}`;
   Situation: ${c.situation || ""}
   Interventions: ${c.interventionsDone || ""}
   Position RH: ${c.hrPosition || ""}
-  Prochain suivi: ${c.nextFollowUp || ""}`
+  Prochain suivi: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id]))}`
         ).join("\n\n") : "(Aucun dossier actif)";
         const prepsTxt = weekPreps.length > 0 ? weekPreps.map((p) => {
           const o = p.output || {};
@@ -34841,7 +35137,7 @@ ${recap.sentText}`,
       const { destination, ctx } = buildNav(item);
       onNavigate(destination, ctx);
     };
-    const cases = (data.cases || []).filter((c) => !c.archived);
+    const cases = (data.cases || []).filter((c) => c.status !== "archived");
     const signals = data.signals || [];
     const decisions = data.decisions || [];
     const prep1on1 = data.prep1on1 || [];
@@ -35497,7 +35793,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
       }
     });
     (data.cases || []).forEach((c) => {
-      if (c.archived) return;
+      if (c.status === "archived") return;
       if ((c.scope || "leader") !== "leader") return;
       const l = ensure(c.director);
       if (l) l.cases.push(c);
@@ -36695,8 +36991,19 @@ ${ctx}`, 500);
     const [apeMode, setApeMode] = (0, import_react21.useState)("diagnose");
     const responseRef = (0, import_react21.useRef)(null);
     const situations = detectSituations(data).slice(0, 5);
+    const [tasksByCase, setTasksByCase] = (0, import_react21.useState)({});
+    (0, import_react21.useEffect)(() => {
+      let cancelled = false;
+      (async () => {
+        const map = await fetchTasksForCases(data.cases || []);
+        if (!cancelled) setTasksByCase(map);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [data.cases?.length]);
     const buildContext = () => {
-      const cases = (data.cases || []).filter((c) => !c.archived);
+      const cases = (data.cases || []).filter((c) => c.status !== "archived");
       const meetings = data.meetings || [];
       const signals = data.signals || [];
       const decisions = data.decisions || [];
@@ -36710,7 +37017,7 @@ ${ctx}`, 500);
   Situation: ${c.situation || ""}
   Interventions: ${c.interventionsDone || "none"}
   HR Position: ${c.hrPosition || ""}
-  Next follow-up: ${c.nextFollowUp || "not set"}`
+  Next follow-up: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id])) || "not set"}`
       ).join("\n") : "No active cases.";
       const signalsCtx = recentSignals.length > 0 ? recentSignals.map(
         (s) => `- [${s.analysis?.category || "SIGNAL"}] ${s.analysis?.title || ""} (${s.analysis?.severity || ""}) \u2014 ${fmtDate(s.savedAt)}
@@ -37719,11 +38026,39 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         const entries = results.map((r) => r.status === "fulfilled" ? r.value : null).filter(Boolean);
         if (entries.length > 0) setData((d) => ({ ...d, ...Object.fromEntries(entries) }));
         setLoaded(true);
+        const _ts = (x) => Date.parse(x?.updatedAt || x?.savedAt || x?.createdAt || 0) || 0;
+        const _isRemoteDeletionShadow = (r) => r && r.status === "deleted";
+        const mergeById = (local, remote) => {
+          const out = /* @__PURE__ */ new Map();
+          const deletedIds = /* @__PURE__ */ new Set();
+          for (const r of remote) {
+            if (!r || r.id == null) continue;
+            const id = String(r.id);
+            if (_isRemoteDeletionShadow(r)) {
+              deletedIds.add(id);
+              continue;
+            }
+            out.set(id, r);
+          }
+          for (const l of local) {
+            if (!l || l.id == null) continue;
+            const id = String(l.id);
+            if (deletedIds.has(id)) continue;
+            const r = out.get(id);
+            if (!r) {
+              out.set(id, l);
+              continue;
+            }
+            out.set(id, _ts(l) > _ts(r) ? l : r);
+          }
+          return Array.from(out.values());
+        };
+        const stripDeleted = (arr) => arr.filter((x) => !x || x.status !== "deleted");
         try {
           const res = await loadCases();
           if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
             const normalized = res.data.map(normalizeCase).filter(Boolean);
-            if (normalized.length > 0) setData((d) => ({ ...d, cases: normalized }));
+            if (normalized.length > 0) setData((d) => ({ ...d, cases: stripDeleted(mergeById(d.cases || [], normalized)) }));
           } else if (res && !res.ok && res.reason !== "no-client") {
             console.warn("[supabase] loadCases failed:", res.reason, res.error);
           }
@@ -37733,7 +38068,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         try {
           const res = await loadMeetings();
           if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
-            setData((d) => ({ ...d, meetings: res.data }));
+            setData((d) => ({ ...d, meetings: stripDeleted(mergeById(d.meetings || [], res.data)) }));
           } else if (res && !res.ok && res.reason !== "no-client") {
             console.warn("[supabase] loadMeetings failed:", res.reason, res.error);
           }
@@ -37744,7 +38079,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           const res = await loadInvestigations();
           if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
             const normalized = res.data.map(normalizeInvestigation).filter(Boolean);
-            if (normalized.length > 0) setData((d) => ({ ...d, investigations: normalized }));
+            if (normalized.length > 0) setData((d) => ({ ...d, investigations: stripDeleted(mergeById(d.investigations || [], normalized)) }));
           } else if (res && !res.ok && res.reason !== "no-client") {
             console.warn("[supabase] loadInvestigations failed:", res.reason, res.error);
           }
@@ -37754,7 +38089,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         try {
           const res = await loadBriefs();
           if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
-            setData((d) => ({ ...d, briefs: res.data }));
+            setData((d) => ({ ...d, briefs: stripDeleted(mergeById(d.briefs || [], res.data)) }));
           } else if (res && !res.ok && res.reason !== "no-client") {
             console.warn("[supabase] loadBriefs failed:", res.reason, res.error);
           }
@@ -37945,7 +38280,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           situation: caseEntry.situation,
           interventionsDone: caseEntry.interventionsDone,
           hrPosition: caseEntry.hrPosition,
-          nextFollowUp: caseEntry.nextFollowUp,
+          // Phase 3 Batch 2.12: nextFollowUp no longer stamped on the new
+          // case row. The AI-extracted follow-up is captured as a case_task
+          // below. normalizeCase still defaults missing values to "" on save.
           notes: caseEntry.notes,
           actions: (session.analysis?.actions || []).map((a) => ({ ...a, done: false })),
           updatedAt: session.savedAt
@@ -37954,6 +38291,28 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         const newCases = normalizedNewCase ? [...data.cases || [], normalizedNewCase] : data.cases || [];
         await sSet(SK.cases, newCases);
         setData((d) => ({ ...d, cases: newCases }));
+        saveCases(newCases).then((res) => {
+          if (res && !res.ok && res.reason !== "no-client") {
+            console.warn("[supabase] saveCases failed:", res.reason, res.error);
+            return;
+          }
+          const followUpText = (caseEntry.nextFollowUp || "").trim();
+          if (followUpText && res && res.ok && normalizedNewCase) {
+            createCaseTask({
+              case_id: normalizedNewCase.id,
+              title: followUpText,
+              due_date: caseEntry.dueDate || null
+            }).then((taskRes) => {
+              if (taskRes && !taskRes.ok && taskRes.reason !== "no-client") {
+                console.warn("[case_tasks] auto-create from meeting failed:", taskRes.reason);
+              }
+            }).catch((err) => {
+              console.warn("[case_tasks] auto-create from meeting threw:", err);
+            });
+          }
+        }).catch((err) => {
+          console.warn("[supabase] saveCases threw:", err);
+        });
       }
       showToast();
     }, [data]);
@@ -37971,6 +38330,57 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         console.warn("[supabase] saveMeetings threw:", err);
       });
       showToast();
+    }, [data]);
+    const transitionCase = (0, import_react23.useCallback)(async (caseId, newStatus, extraPatch) => {
+      const allCases = data.cases || [];
+      const target = allCases.find((c) => c.id === caseId);
+      if (!target) {
+        console.warn("[transition] case not found:", caseId);
+        return { ok: false, reason: "not-found" };
+      }
+      const VALID = ["open", "in_progress", "waiting", "closed", "archived"];
+      if (!VALID.includes(newStatus)) {
+        console.warn("[transition] invalid status:", newStatus);
+        return { ok: false, reason: "invalid-status" };
+      }
+      if (newStatus === "deleted") {
+        console.warn("[transition] refusing direct transition to 'deleted' \u2014 delete via reconciliation only");
+        return { ok: false, reason: "deleted-via-reconciliation-only" };
+      }
+      const prevStatus = target.status;
+      const isNoOp = prevStatus === newStatus && !extraPatch;
+      if (isNoOp) {
+        return { ok: true, reason: "no-op", case: target };
+      }
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const today = now.split("T")[0];
+      const patched = { ...target, ...extraPatch || {}, status: newStatus, updatedAt: today };
+      if (newStatus === "closed") {
+        patched.closedDate = target.closedDate || patched.closedDate || today;
+        patched.closedAtTs = now;
+      } else if (newStatus === "open" && prevStatus === "closed") {
+        patched.reopenedAt = now;
+      }
+      const updated = allCases.map((c) => c.id === caseId ? patched : c);
+      await sSet(SK.cases, updated);
+      setData((d) => ({ ...d, cases: updated }));
+      console.log(`[transition] case ${caseId}: ${prevStatus} \u2192 ${newStatus}`);
+      if (prevStatus !== newStatus) {
+        void bestEffortAudit({
+          action: AUDIT_ACTIONS.CASE_STATE_CHANGED,
+          entity_type: "case",
+          entity_id: String(caseId),
+          metadata: { prior_state: prevStatus, new_state: newStatus }
+        });
+      }
+      saveCases(updated).then((res) => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveCases failed:", res.reason, res.error);
+        }
+      }).catch((err) => {
+        console.warn("[supabase] saveCases threw:", err);
+      });
+      return { ok: true, prevStatus, newStatus, case: patched };
     }, [data]);
     if (hasSupabase && denied) return /* @__PURE__ */ React.createElement(AccessDeniedScreen, { email: denied.email, onRetry: () => setDenied(null) });
     if (hasSupabase && !sessionChecked) {
@@ -38238,7 +38648,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       "\u26A0 ",
       c.title?.substring(0, 20),
       c.title?.length > 20 ? "\u2026" : ""
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" ? isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile }) : null : null)), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, !loaded ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" ? isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile }) : null : null)), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();

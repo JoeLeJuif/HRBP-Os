@@ -202,7 +202,6 @@ const translations = {
     "case.form.interventions": "Interventions / actions taken",
     "case.form.hrPosition":    "Recommended HR position",
     "case.form.decision":      "Decision",
-    "case.form.nextFollowUp":  "Next follow-up (free text)",
     "case.form.dueDate":       "Due date",
     "case.form.notes":         "HRBP notes",
     "case.form.ph.title":         "e.g. Infrastructure conflict — Nolan/Laroche",
@@ -213,7 +212,6 @@ const translations = {
     "case.form.ph.interventions": "Interventions, conversations, documents produced…",
     "case.form.ph.hrPosition":    "Formal recommendation, or in progress…",
     "case.form.ph.decision":      "Formal decision made or pending…",
-    "case.form.ph.nextFollowUp":  "e.g. March 16 2026",
     "case.form.ph.notes":         "Organizational patterns, links to other cases…",
     "case.confirm.archive":    "Archive this case?\n\nIt will be removed from active lists but kept in the history.",
 
@@ -746,7 +744,6 @@ const translations = {
     "case.form.interventions": "Interventions / Actions faites",
     "case.form.hrPosition":    "Position RH recommandée",
     "case.form.decision":      "Décision prise",
-    "case.form.nextFollowUp":  "Prochain suivi (libre)",
     "case.form.dueDate":       "Échéance (date)",
     "case.form.notes":         "Notes HRBP",
     "case.form.ph.title":         "Ex: Conflit infra Nolan-Laroche",
@@ -757,7 +754,6 @@ const translations = {
     "case.form.ph.interventions": "Interventions, conversations, documents produits…",
     "case.form.ph.hrPosition":    "Recommandation formelle ou en cours…",
     "case.form.ph.decision":      "Décision formelle prise ou en attente…",
-    "case.form.ph.nextFollowUp":  "Ex: 16 mars 2026",
     "case.form.ph.notes":         "Patterns organisationnels, liens avec d'autres dossiers…",
     "case.confirm.archive":    "Archiver ce dossier ?\n\nIl sera retiré des listes actives, mais restera préservé dans l'historique.",
 

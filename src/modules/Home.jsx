@@ -81,7 +81,7 @@ export default function ModuleHome({ data, onNavigate }) {
     onNavigate(destination, ctx);
   };
 
-  const cases     = (data.cases || []).filter(c => !c.archived);
+  const cases     = (data.cases || []).filter(c => c.status !== "archived");
   const signals   = data.signals   || [];
   const decisions = data.decisions || [];
   const prep1on1  = data.prep1on1  || [];

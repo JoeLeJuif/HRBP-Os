@@ -46,8 +46,8 @@ function BulletList({ items, color=C.em }) {
 // ── MODULE: MEETINGS ──────────────────────────────────────────────────────────
 // Meeting-specific loader with elapsed time + progress hint
 function MeetingLoader({ chars=0 }) {
-  const [secs, setSecs] = React.useState(0);
-  React.useEffect(() => {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
     const t = setInterval(() => setSecs(s => s+1), 1000);
     return () => clearInterval(t);
   }, []);

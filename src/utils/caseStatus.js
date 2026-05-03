@@ -5,14 +5,15 @@
 
 import { C } from '../theme.js';
 
-// Canonical inactive set is { closed, archived }. Legacy values stay listed so
-// that any case bypassing normalizeCase (e.g. raw Supabase row) is still classified
-// correctly until it next round-trips through normalize.
-export const INACTIVE_CASE_STATUSES = ["closed", "archived", "resolved", "done", "fermé", "ferme"];
+// Canonical inactive set is { closed, archived, deleted }. Legacy values stay
+// listed so that any case bypassing normalizeCase (e.g. raw Supabase row) is
+// still classified correctly until it next round-trips through normalize.
+// `deleted` was added in Phase 3 Batch 3.1 — deleted rows must always be
+// classified as inactive so they never appear in active-case widgets.
+export const INACTIVE_CASE_STATUSES = ["closed", "archived", "deleted", "resolved", "done", "fermé", "ferme"];
 
 export function isCaseInactive(c) {
   if (!c) return false;
-  if (c.archived === true) return true;
   const s = typeof c.status === "string" ? c.status.toLowerCase() : "";
   return s !== "" && INACTIVE_CASE_STATUSES.includes(s);
 }

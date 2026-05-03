@@ -15,6 +15,8 @@ import { SK, sGet, sSet } from './utils/storage.js';
 import { PROVINCES, getLegalContext, LEGAL_GUARDRAIL, buildLegalPromptContext, isLegalSensitive } from './utils/legal.js';
 import { _apiFetch, callAI, callAIJson, callAIText } from './api/index.js';
 import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as supaLoadMeetings, saveMeetings as supaSaveMeetings, loadInvestigations as supaLoadInvestigations, saveInvestigations as supaSaveInvestigations, loadBriefs as supaLoadBriefs, saveBriefs as supaSaveBriefs } from './services/supabaseStore.js';
+import { bestEffortAudit, AUDIT_ACTIONS } from './services/auditLog.js';
+import { createCaseTask as supaCreateCaseTask } from './services/caseTasks.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
 import { fetchOrCreateProfile } from './lib/profile.js';
 import { hasSupabase } from './lib/supabase.js';
@@ -287,11 +289,49 @@ export default function HRBPOS() {
       const entries = results.map(r => r.status === "fulfilled" ? r.value : null).filter(Boolean);
       if (entries.length > 0) setData(d => ({ ...d, ...Object.fromEntries(entries) }));
       setLoaded(true);
+      // Merge remote into local by id, preferring whichever side has the
+      // newer updatedAt. Prevents the hydration race where edits made during
+      // the localStorage→Supabase load window would be silently overwritten.
+      const _ts = (x) => Date.parse(x?.updatedAt || x?.savedAt || x?.createdAt || 0) || 0;
+      // Phase 3 Batch 3.2 — deletion-shadow logic is now active.
+      // A remote row with status:"deleted" is a tombstone produced by
+      // saveCases reconciliation on another device (or this one). When
+      // such a shadow arrives:
+      //   1. The shadow itself is NOT added to the merge output.
+      //   2. The matching local row (if any) is dropped.
+      // This propagates the deletion across devices without leaking any
+      // row carrying status:"deleted" into the merged array. Defense in
+      // depth: the consumer-side post-merge filter below also strips any
+      // status:"deleted" survivor before setData.
+      const _isRemoteDeletionShadow = (r) => r && r.status === "deleted";
+      const mergeById = (local, remote) => {
+        const out = new Map();
+        const deletedIds = new Set();
+        for (const r of remote) {
+          if (!r || r.id == null) continue;
+          const id = String(r.id);
+          if (_isRemoteDeletionShadow(r)) { deletedIds.add(id); continue; }
+          out.set(id, r);
+        }
+        for (const l of local) {
+          if (!l || l.id == null) continue;
+          const id = String(l.id);
+          if (deletedIds.has(id)) continue; // remote deletion drops local
+          const r = out.get(id);
+          if (!r) { out.set(id, l); continue; }
+          out.set(id, _ts(l) > _ts(r) ? l : r);
+        }
+        return Array.from(out.values());
+      };
+      // Defensive post-merge filter — if anything bypassed mergeById's
+      // shadow handling, this still guarantees no `status:"deleted"` row
+      // ever reaches `data.*`. Cheap O(n) per loader.
+      const stripDeleted = (arr) => arr.filter(x => !x || x.status !== "deleted");
       try {
         const res = await supaLoadCases();
         if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
           const normalized = res.data.map(normalizeCase).filter(Boolean);
-          if (normalized.length > 0) setData(d => ({ ...d, cases: normalized }));
+          if (normalized.length > 0) setData(d => ({ ...d, cases: stripDeleted(mergeById(d.cases || [], normalized)) }));
         } else if (res && !res.ok && res.reason !== "no-client") {
           console.warn("[supabase] loadCases failed:", res.reason, res.error);
         }
@@ -301,7 +341,7 @@ export default function HRBPOS() {
       try {
         const res = await supaLoadMeetings();
         if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
-          setData(d => ({ ...d, meetings: res.data }));
+          setData(d => ({ ...d, meetings: stripDeleted(mergeById(d.meetings || [], res.data)) }));
         } else if (res && !res.ok && res.reason !== "no-client") {
           console.warn("[supabase] loadMeetings failed:", res.reason, res.error);
         }
@@ -312,7 +352,7 @@ export default function HRBPOS() {
         const res = await supaLoadInvestigations();
         if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
           const normalized = res.data.map(normalizeInvestigation).filter(Boolean);
-          if (normalized.length > 0) setData(d => ({ ...d, investigations: normalized }));
+          if (normalized.length > 0) setData(d => ({ ...d, investigations: stripDeleted(mergeById(d.investigations || [], normalized)) }));
         } else if (res && !res.ok && res.reason !== "no-client") {
           console.warn("[supabase] loadInvestigations failed:", res.reason, res.error);
         }
@@ -322,7 +362,7 @@ export default function HRBPOS() {
       try {
         const res = await supaLoadBriefs();
         if (res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
-          setData(d => ({ ...d, briefs: res.data }));
+          setData(d => ({ ...d, briefs: stripDeleted(mergeById(d.briefs || [], res.data)) }));
         } else if (res && !res.ok && res.reason !== "no-client") {
           console.warn("[supabase] loadBriefs failed:", res.reason, res.error);
         }
@@ -515,7 +555,9 @@ export default function HRBPOS() {
         situation: caseEntry.situation,
         interventionsDone: caseEntry.interventionsDone,
         hrPosition: caseEntry.hrPosition,
-        nextFollowUp: caseEntry.nextFollowUp,
+        // Phase 3 Batch 2.12: nextFollowUp no longer stamped on the new
+        // case row. The AI-extracted follow-up is captured as a case_task
+        // below. normalizeCase still defaults missing values to "" on save.
         notes: caseEntry.notes,
         actions: (session.analysis?.actions||[]).map(a => ({ ...a, done:false })),
         updatedAt: session.savedAt,
@@ -524,6 +566,33 @@ export default function HRBPOS() {
       const newCases = normalizedNewCase ? [...(data.cases||[]), normalizedNewCase] : (data.cases||[]);
       await sSet(SK.cases, newCases);
       setData(d => ({ ...d, cases: newCases }));
+      supaSaveCases(newCases).then(res => {
+        if (res && !res.ok && res.reason !== "no-client") {
+          console.warn("[supabase] saveCases failed:", res.reason, res.error);
+          return;
+        }
+        // Phase 3 Batch 2.9 + 2.12: the AI-extracted `caseEntry.nextFollowUp`
+        // is captured as a case_task linked to the new case (not as a field
+        // on the case row anymore — Batch 2.12 stopped stamping it).
+        // Chained after the case row commits so the task's RLS-protected
+        // parent SELECT inside createCaseTask can see it.
+        const followUpText = (caseEntry.nextFollowUp || "").trim();
+        if (followUpText && res && res.ok && normalizedNewCase) {
+          supaCreateCaseTask({
+            case_id: normalizedNewCase.id,
+            title: followUpText,
+            due_date: caseEntry.dueDate || null,
+          }).then(taskRes => {
+            if (taskRes && !taskRes.ok && taskRes.reason !== "no-client") {
+              console.warn("[case_tasks] auto-create from meeting failed:", taskRes.reason);
+            }
+          }).catch(err => {
+            console.warn("[case_tasks] auto-create from meeting threw:", err);
+          });
+        }
+      }).catch(err => {
+        console.warn("[supabase] saveCases threw:", err);
+      });
     }
     showToast();
   }, [data]);
@@ -542,6 +611,72 @@ export default function HRBPOS() {
       console.warn("[supabase] saveMeetings threw:", err);
     });
     showToast();
+  }, [data]);
+
+  // Phase 2: single entry point for case status changes. The legacy `closure`
+  // field is no longer written (Phase 3 Batch 1) — UI reads were swapped to
+  // `c.status` in Phase 2.6, and existing rows still carry the old field for
+  // back-compat. Optional `extraPatch` lets callers stamp co-located metadata
+  // (archive flags, form-edit fields) atomically with the status change. The
+  // status field itself is always written by this function and cannot be
+  // overridden by extraPatch.
+  const transitionCase = useCallback(async (caseId, newStatus, extraPatch) => {
+    const allCases = data.cases || [];
+    const target = allCases.find(c => c.id === caseId);
+    if (!target) {
+      console.warn("[transition] case not found:", caseId);
+      return { ok: false, reason: "not-found" };
+    }
+    const VALID = ["open", "in_progress", "waiting", "closed", "archived"];
+    if (!VALID.includes(newStatus)) {
+      console.warn("[transition] invalid status:", newStatus);
+      return { ok: false, reason: "invalid-status" };
+    }
+    // Phase 3 Batch 3.1: deletion enters the system only via saveCases
+    // reconciliation (an entire row removed from the local cases array
+    // produces a status="deleted" tombstone). transitionCase explicitly
+    // rejects "deleted" so no UI path can flip a case to that state.
+    if (newStatus === "deleted") {
+      console.warn("[transition] refusing direct transition to 'deleted' — delete via reconciliation only");
+      return { ok: false, reason: "deleted-via-reconciliation-only" };
+    }
+    const prevStatus = target.status;
+    const isNoOp = prevStatus === newStatus && !extraPatch;
+    if (isNoOp) {
+      return { ok: true, reason: "no-op", case: target };
+    }
+    const now = new Date().toISOString();
+    const today = now.split("T")[0];
+    const patched = { ...target, ...(extraPatch || {}), status: newStatus, updatedAt: today };
+    if (newStatus === "closed") {
+      patched.closedDate = target.closedDate || patched.closedDate || today;
+      patched.closedAtTs = now;
+    } else if (newStatus === "open" && prevStatus === "closed") {
+      patched.reopenedAt = now;
+    }
+    const updated = allCases.map(c => c.id === caseId ? patched : c);
+    await sSet(SK.cases, updated);
+    setData(d => ({ ...d, cases: updated }));
+    console.log(`[transition] case ${caseId}: ${prevStatus} → ${newStatus}`);
+    // Audit emission for state changes is owned by this function (Phase 3
+    // Batch 1). emitCaseAudit's status branch is suppressed downstream so
+    // a single transition produces exactly one audit row, not two.
+    if (prevStatus !== newStatus) {
+      void bestEffortAudit({
+        action: AUDIT_ACTIONS.CASE_STATE_CHANGED,
+        entity_type: "case",
+        entity_id: String(caseId),
+        metadata: { prior_state: prevStatus, new_state: newStatus },
+      });
+    }
+    supaSaveCases(updated).then(res => {
+      if (res && !res.ok && res.reason !== "no-client") {
+        console.warn("[supabase] saveCases failed:", res.reason, res.error);
+      }
+    }).catch(err => {
+      console.warn("[supabase] saveCases threw:", err);
+    });
+    return { ok: true, prevStatus, newStatus, case: patched };
   }, [data]);
 
   if (hasSupabase && denied) return <AccessDeniedScreen email={denied.email} onRetry={() => setDenied(null)} />;
@@ -735,7 +870,7 @@ export default function HRBPOS() {
           : safeModule === "copilot"        ? <ModuleCopilot data={data}/>
           : safeModule === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={handleNavigate} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
           : safeModule === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={handleNavigate}/>
-          : safeModule === "cases"          ? <ModuleCases data={data} onSave={handleSave} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
+          : safeModule === "cases"          ? <ModuleCases data={data} onSave={handleSave} onTransitionCase={transitionCase} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
           : safeModule === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
           : safeModule === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
           : safeModule === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave} onNavigate={handleNavigate} focusDecisionId={focusDecisionId} onClearFocus={() => setFocusDecisionId(null)}/>

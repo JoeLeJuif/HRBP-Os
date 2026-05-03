@@ -60,7 +60,9 @@ function _isoOrNull(v) {
 const CASE_TYPES = ["performance","pip","conflict_ee","conflict_em","complaint","immigration","retention","promotion","return","reorg","exit","investigation"];
 // Canonical case statuses. `archived` doubles as a status value AND a boolean
 // flag (`c.archived === true`) for back-compat with the existing archive flow.
-export const CASE_STATUSES = ["open","in_progress","waiting","closed","archived"];
+// Deletion only enters the system via saveCases reconciliation — never via
+// transitionCase.
+export const CASE_STATUSES = ["open","in_progress","waiting","closed","archived","deleted"];
 export const CASE_STATUS_DEFAULT = "open";
 // Legacy → canonical migration. Applied in normalizeCase so old rows hydrate
 // to a valid value without a separate backfill script. Anything not in the
@@ -101,13 +103,19 @@ export function normalizeCase(c) {
         ? ""
         : _pickEnum(rawUrgency, CASE_URGENCIES, rawUrgency);
 
+    // Phase 3 Batch 1: align legacy `archived` boolean with canonical
+    // `status === "archived"`. Either signal flips both. Pre-Phase-2.5 rows
+    // that have one without the other get reconciled here on every read,
+    // so downstream code can trust either field equivalently.
+    const status = _migrateStatus(c.status, c.archived === true);
     const out = {
       ...c,
       id: _str(c.id, "") || String(Date.now()),
       title: _str(c.title).trim() || "(sans titre)",
       type: _pickEnum(_str(c.type).toLowerCase(), CASE_TYPES, "performance"),
       riskLevel: normalizeRisk(c.riskLevel),
-      status: _migrateStatus(c.status, c.archived === true),
+      status,
+      archived: status === "archived",
       director: _str(c.director).trim(),
       employee: _str(c.employee).trim(),
       department: _str(c.department).trim(),
@@ -130,7 +138,7 @@ export function normalizeCase(c) {
       createdAt,
       dateCreated: _isoOrNull(c.dateCreated) || createdAt,
       savedAt: _isoOrNull(c.savedAt) || createdAt,
-      updatedAt: new Date().toISOString(),
+      updatedAt: _isoOrNull(c.updatedAt) || new Date().toISOString(),
     };
     if (c.meetingId !== undefined && c.meetingId !== null) {
       out.meetingId = _str(c.meetingId);
@@ -181,7 +189,7 @@ export function normalizeInvestigation(i) {
       enrichedAt: _isoOrNull(i.enrichedAt),
       createdAt,
       savedAt: _isoOrNull(i.savedAt) || createdAt,
-      updatedAt: new Date().toISOString(),
+      updatedAt: _isoOrNull(i.updatedAt) || new Date().toISOString(),
     };
   } catch {
     return null;

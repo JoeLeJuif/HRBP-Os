@@ -62,12 +62,30 @@ async function getSessionOrgId(sessionUserId) {
   }
 }
 
+// Strip state-transition fields so the content diff only catches genuine
+// content edits, not the side-effects of a transitionCase call. Any field
+// stamped/cleared as part of a state change must be listed here, otherwise
+// a pure transition would also fire CASE_UPDATED and we'd double-emit.
+function _contentHashIgnoringStateFields(data) {
+  if (!data) return "";
+  const {
+    status, updatedAt,
+    closedDate, closedAtTs, reopenedAt,
+    archived, archivedAt, archivedReason,
+    ...rest
+  } = data;
+  return JSON.stringify(rest);
+}
+
 // Emit a per-case audit event by diffing the new normalized case against
-// its prior persisted row. Best-effort (fire-and-forget). No-op when the
-// case is unchanged.
+// its prior persisted row. Best-effort (fire-and-forget). State-change
+// emission is owned by transitionCase (Phase 3 Batch 1) — this function
+// emits CASE_CREATED for new rows and CASE_UPDATED for content drift
+// outside the state-transition fields. No-op when the case is unchanged.
 function emitCaseAudit(idStr, prev, norm) {
   const prevData = prev && prev.data ? prev.data : null;
-  const prevTombstoned = prevData && prevData.__deleted === true;
+  // A re-create over a tombstone fires CASE_CREATED rather than CASE_UPDATED.
+  const prevTombstoned = prevData && prevData.status === "deleted";
   if (!prev || prevTombstoned) {
     void bestEffortAudit({
       action: AUDIT_ACTIONS.CASE_CREATED,
@@ -77,19 +95,7 @@ function emitCaseAudit(idStr, prev, norm) {
     });
     return;
   }
-  const prevStatus = prevData ? prevData.status : null;
-  if (prevStatus !== norm.status) {
-    void bestEffortAudit({
-      action: norm.status === "archived"
-        ? AUDIT_ACTIONS.CASE_ARCHIVED
-        : AUDIT_ACTIONS.CASE_STATUS_CHANGED,
-      entity_type: "case",
-      entity_id: idStr,
-      metadata: { prev_status: prevStatus, new_status: norm.status },
-    });
-    return;
-  }
-  if (JSON.stringify(prevData) !== JSON.stringify(norm)) {
+  if (_contentHashIgnoringStateFields(prevData) !== _contentHashIgnoringStateFields(norm)) {
     void bestEffortAudit({
       action: AUDIT_ACTIONS.CASE_UPDATED,
       entity_type: "case",
@@ -125,7 +131,9 @@ async function loadTable(table, userId = DEFAULT_USER) {
         }
         return r.data;
       })
-      .filter(d => d && d.__deleted !== true);
+      // Tombstones (status:"deleted") flow through to mergeById's
+      // deletion-shadow handling; only null `data` rows are skipped here.
+      .filter(d => d);
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, reason: "exception", error };
@@ -200,6 +208,13 @@ export async function saveCases(cases, userId) {
     // best-effort reconciliation; treat all incoming as "new" if read failed
   }
 
+  // Mass-tombstone guard: an empty incoming array combined with existing rows
+  // would soft-delete every case for this user. That is almost certainly a
+  // bug (stale state, accidental clear, hydration race) — refuse explicitly.
+  if (cases.length === 0 && prevById.size > 0) {
+    return { ok: false, reason: "refused-empty-input" };
+  }
+
   // First loop: process incoming cases — build rows + emit per-case audit.
   for (const raw of cases) {
     const norm = normalizeCase(raw);
@@ -220,23 +235,22 @@ export async function saveCases(cases, userId) {
     emitCaseAudit(idStr, prevById.get(idStr), norm);
   }
 
-  // Second loop: process deletions — build tombstones + emit case.archived.
-  // RLS has no DELETE policy, only UPDATE, so we soft-delete via __deleted.
+  // Second loop: process deletions — build tombstones + emit case.deleted.
+  // RLS has no DELETE policy, only UPDATE, so we soft-delete via the
+  // canonical status="deleted" state. Already-tombstoned rows are skipped.
   for (const ex of prevById.values()) {
     if (!ex || !ex.id || liveIds.has(ex.id)) continue;
-    if (ex.data && ex.data.__deleted === true) continue;
+    if (ex.data && ex.data.status === "deleted") continue;
     rows.push({
       id: ex.id,
       user_id: sessionUserId,
-      data: { id: ex.id, __deleted: true, deleted_at: now },
-      // Tombstones get 'archived' so the indexed column never carries
-      // an 'open'-looking value for a row the client has dropped.
-      status: "archived",
+      data: { id: ex.id, status: "deleted", deleted_at: now },
+      status: "deleted",
       organization_id: ex.organization_id || null,
       updated_at: now,
     });
     void bestEffortAudit({
-      action: AUDIT_ACTIONS.CASE_ARCHIVED,
+      action: AUDIT_ACTIONS.CASE_DELETED,
       entity_type: "case",
       entity_id: ex.id,
       metadata: { reason: "removed_from_client" },

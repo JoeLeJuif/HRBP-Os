@@ -1,7 +1,7 @@
 // ── MODULE: WEEKLY BRIEF ──────────────────────────────────────────────────────
 // Source: HRBP_OS.jsx L.2169–3239
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Mono     from '../components/Mono.jsx';
 import Badge    from '../components/Badge.jsx';
 import Card     from '../components/Card.jsx';
@@ -10,6 +10,7 @@ import { BRIEF_SP, RECAP_SP, NEXT_WEEK_LOCK_SP } from '../prompts/brief.js';
 import { callAI, callAIJson } from '../api/index.js';
 import { fmtDate } from '../utils/format.js';
 import { filterActiveCases } from '../utils/caseStatus.js';
+import { getCaseFollowUp, followUpToText, fetchTasksForCases } from '../utils/caseFollowUp.js';
 import { toArray } from '../utils/meetingModel.js';
 import { C, css, DELAY_C, RISK } from '../theme.js';
 import { useT } from '../lib/i18n.js';
@@ -72,6 +73,20 @@ export default function ModuleBrief({ data, onSave }) {
 
   const briefs = data.briefs || [];
 
+  // Phase 3 Batch 2.8 — bulk-fetch tasks for active cases so AI prompt
+  // builders below can prefer the next open case_task over legacy fields.
+  // Returns gracefully (empty object) when Supabase is unavailable.
+  // Refetches on cases-length change (creation/deletion).
+  const [tasksByCase, setTasksByCase] = useState({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const map = await fetchTasksForCases(data.cases || []);
+      if (!cancelled) setTasksByCase(map);
+    })();
+    return () => { cancelled = true; };
+  }, [data.cases?.length]); // eslint-disable-line
+
   const parseDate = (str) => {
     if (!str) return null;
     // ISO format YYYY-MM-DD (canonical after our standardization)
@@ -113,7 +128,7 @@ export default function ModuleBrief({ data, onSave }) {
       : "(Aucun signal enregistré dans cette période)";
 
     const casesTxt = allCases.map(c =>
-      `Dossier actif: ${c.title} — Risque ${c.riskLevel} — Suivi: ${c.nextFollowUp||"N/A"}`
+      `Dossier actif: ${c.title} — Risque ${c.riskLevel} — Suivi: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id])) || "N/A"}`
     ).join("\n") || "(Aucun dossier actif)";
 
     const weekLabel = periodStart && periodEnd
@@ -122,15 +137,6 @@ export default function ModuleBrief({ data, onSave }) {
 
     setInputs(f => ({ ...f, meetings: meetingsTxt, signals: signalsTxt, cases: casesTxt,
       weekOf: weekLabel, other: f.other || `Données: ${filteredMeetings.length} meeting(s), ${filteredSignals.length} signal(s) dans la période.` }));
-
-    // Also pre-fill recap from cases
-    const caseTAFill = allCases.filter(c => c.type==="performance"||c.type==="pip"||c.type==="complaint"||c.type==="investigation")
-      .map(c => `${c.title} (${c.employee||c.director||""}) — ${c.status}`).join("\n");
-    if (caseTAFill) setRecapInputs(f => ({ ...f, performance: f.performance || caseTAFill }));
-
-    const retentionFill = allCases.filter(c => c.type==="exit"||c.type==="reorg")
-      .map(c => `${c.title} — ${c.status}`).join("\n");
-    if (retentionFill) setRecapInputs(f => ({ ...f, fins_emploi: f.fins_emploi || retentionFill }));
   };
 
   const generate = async () => {
@@ -156,7 +162,7 @@ WatchList: ${lastBrief.watchList?.map(w=>`${w.subject} [${w.classification}]`).j
             `DOSSIER [${c.type||""}] ${c.title||""} — Risque: ${c.riskLevel||""} — Statut: ${c.status||""}${c.urgency?` — Urgence: ${c.urgency}`:""}${c.evolution?` — Évolution: ${c.evolution}`:""}
   Situation: ${c.situation||""}
   Position RH: ${c.hrPosition||""}${c.decision?`\n  Décision: ${c.decision}`:""}${c.owner&&c.owner!=="HRBP"?`\n  Owner: ${c.owner}`:""}
-  Suivi: ${c.dueDate||c.nextFollowUp||""}`
+  Suivi: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id]))}`
           ).join("\n")
         : "\n=== CASE LOG : Aucun dossier actif ===\n";
 
@@ -228,7 +234,7 @@ CONTEXTE ADDITIONNEL:\n${inputs.other||""}${prevCtx}${caseCtx}`;
   Situation: ${c.situation||""}
   Interventions: ${c.interventionsDone||""}
   Position RH: ${c.hrPosition||""}
-  Prochain suivi: ${c.nextFollowUp||""}`
+  Prochain suivi: ${followUpToText(getCaseFollowUp(c, tasksByCase[c.id]))}`
           ).join("\n\n")
         : "(Aucun dossier actif)";
 
