@@ -16,6 +16,7 @@ import { PORTFOLIO_ASSESS_SP } from '../prompts/portfolio.js';
 import { getLeadersMap, getMeta, setMeta, topFocusLeaders, computeFocusScore, getLastEngineOutput,
          MANAGER_TYPES, PRESSURE_LEVELS, RISK_LEVELS, TYPE_ICON, PRESSURE_EMOJI } from '../utils/leaderStore.js';
 import { isCaseActive } from '../utils/caseStatus.js';
+import IdentityRenameForm from '../components/IdentityRenameForm.jsx';
 
 // ── Inline helpers ─────────────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -367,9 +368,10 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
   const [metaForm,      setMetaForm]     = useState(null);
   const [aiAssessing,   setAiAssessing]  = useState(false);
   const [filterArchive, setFilterArchive] = useState("active"); // active | archived | all
+  const [renamingName,  setRenamingName]  = useState(false);
 
   // Selects a leader and resets timeline state
-  const selectLeader = (key) => { setSelected(key); setTlExpanded(false); setTlFilter("all"); setEditingMeta(false); setMetaForm(null); };
+  const selectLeader = (key) => { setSelected(key); setTlExpanded(false); setTlFilter("all"); setEditingMeta(false); setMetaForm(null); setRenamingName(false); };
 
   const leaders = useMemo(() => buildLeaderIndex(data), [data]);
   const leaderList = Object.values(leaders);
@@ -758,6 +760,11 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <Mono size={9} color={C.em}>{l.name}</Mono>
         {detailMeta.archived && <Badge label="Archivé" color={C.textD}/>}
         <div style={{ flex:1 }}/>
+        <button onClick={() => setRenamingName(v => !v)}
+          title="Corriger une typo ou renommer ce profil dans toutes les entités"
+          style={{ ...css.btn(C.teal, true), padding:"5px 12px", fontSize:11 }}>
+          ✏️ Modifier le nom
+        </button>
         {detailMeta.archived ? (
           <button onClick={() => { saveMeta(l.name, { archived:false, archivedAt:"" }); }}
             style={{ ...css.btn(C.em, true), padding:"5px 12px", fontSize:11 }}>
@@ -773,6 +780,26 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           </button>
         )}
       </div>
+
+      {/* ── Rename inline panel (cross-entity rewrite) ── */}
+      {renamingName && (
+        <div style={{ background:C.surf, border:`1px solid ${C.teal}33`, borderRadius:10,
+          padding:"14px 16px", marginBottom:14 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:6 }}>
+            Renommer le profil
+          </div>
+          <div style={{ fontSize:11, color:C.textM, lineHeight:1.5, marginBottom:10 }}>
+            Réécrit le nom dans cases, meetings, enquêtes et briefs (localStorage + Supabase si dispo).
+            Met aussi à jour <code style={{ fontSize:10 }}>case_tasks.assigned_to</code> et la table
+            employees côté Supabase. <b>Preview</b> compte sans rien écrire.
+          </div>
+          <IdentityRenameForm
+            defaultCurrent={l.name}
+            onCancel={() => setRenamingName(false)}
+            compact
+          />
+        </div>
+      )}
 
       {/* ── ARCHIVED BANNER ── */}
       {detailMeta.archived && (

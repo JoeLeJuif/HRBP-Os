@@ -16,10 +16,13 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { C, css } from "../theme.js";
 import {
   listAllProfiles, listOrganizations, updateProfile,
-  revokeUserAccess, restoreUserAccess, setUserRole,
+  revokeUserAccess, restoreUserAccess, setUserRole, canActOnProfile,
 } from "../lib/profile.js";
 import { useT } from "../lib/i18n.js";
 import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
+import { applyMergeToLocalStorage } from "../utils/identity.js";
+import { mergeIdentity } from "../services/identityMerge.js";
+import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
 // glance without introducing new palette entries.
@@ -42,10 +45,17 @@ export default function ModuleAdmin({ currentProfile }) {
   const isSuperAdmin = currentProfile?.role === "super_admin"
     && currentProfile?.status === "approved";
 
+  // Org-scoped fetch: super_admin sees every profile; org admins narrow the
+  // query to their own organization_id at the SQL layer (not just hidden in
+  // UI — they cannot SELECT other orgs even from devtools).
+  const listOpts = useMemo(() => (
+    isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }
+  ), [isSuperAdmin, currentProfile?.organization_id]);
+
   const refresh = useCallback(async () => {
     setStatus("loading");
     setErrorMsg("");
-    const [pRes, oRes] = await Promise.all([listAllProfiles(), listOrganizations()]);
+    const [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
     if (!pRes.ok) {
       setStatus("error");
       setErrorMsg(pRes.reason === "no-client" ? "Supabase non configuré." : "Échec du chargement des profils.");
@@ -57,7 +67,7 @@ export default function ModuleAdmin({ currentProfile }) {
     setProfiles(pRes.profiles);
     setOrganizations(oRes.ok ? oRes.organizations : []);
     setStatus("ready");
-  }, []);
+  }, [listOpts]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -66,6 +76,16 @@ export default function ModuleAdmin({ currentProfile }) {
     for (const o of organizations) m[o.id] = o.name;
     return m;
   }, [organizations]);
+
+  // Org admins can never reassign anyone (their own org included), so reduce
+  // the OrgSelect choices to a single locked option representing their org.
+  // Super_admin keeps the full org list.
+  const orgChoices = useMemo(() => {
+    if (isSuperAdmin) return organizations;
+    if (!currentProfile?.organization_id) return [];
+    const own = organizations.find(o => o.id === currentProfile.organization_id);
+    return own ? [own] : [];
+  }, [isSuperAdmin, organizations, currentProfile?.organization_id]);
 
   const buckets = useMemo(() => {
     const pending = [], approved = [], disabled = [], other = [];
@@ -85,7 +105,7 @@ export default function ModuleAdmin({ currentProfile }) {
 
   const applyPatch = async (profile, patch, errorLabel) => {
     setBusy(profile.id, true);
-    const res = await updateProfile(profile.id, patch);
+    const res = await updateProfile(profile.id, patch, { caller: currentProfile, target: profile });
     setBusy(profile.id, false);
     if (res.ok && res.profile) {
       setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, ...res.profile } : p));
@@ -97,10 +117,19 @@ export default function ModuleAdmin({ currentProfile }) {
 
   const approve = async (profile) => {
     const role = pendingRoleById[profile.id] || profile.role || "hrbp";
-    const orgRaw = pendingOrgById[profile.id];
-    const orgVal = orgRaw === undefined ? profile.organization_id : (orgRaw || null);
-    // Approval may carry a role change. If a non-super_admin tries to grant
-    // 'super_admin' here, the privileged-fields trigger will reject it (42501).
+    // Org admins cannot pick another org — force their own org on approval.
+    // Super_admin keeps the manual choice (incl. clearing the org).
+    let orgVal;
+    if (isSuperAdmin) {
+      const orgRaw = pendingOrgById[profile.id];
+      orgVal = orgRaw === undefined ? profile.organization_id : (orgRaw || null);
+    } else {
+      orgVal = currentProfile?.organization_id || null;
+    }
+    if (!isSuperAdmin && !canActOnProfile(currentProfile, { ...profile, organization_id: orgVal })) {
+      setErrorMsg(`Approbation refusée: cible hors de votre organisation.`);
+      return;
+    }
     await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "Échec d'approbation");
   };
 
@@ -109,7 +138,7 @@ export default function ModuleAdmin({ currentProfile }) {
   const changeRole = async (profile, newRole) => {
     if (newRole === profile.role) return;
     setBusy(profile.id, true);
-    const res = await setUserRole(profile.id, newRole);
+    const res = await setUserRole(profile.id, newRole, { caller: currentProfile, target: profile });
     setBusy(profile.id, false);
     if (res.ok && res.profile) {
       setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, ...res.profile } : p));
@@ -126,8 +155,12 @@ export default function ModuleAdmin({ currentProfile }) {
   };
 
   const callRpc = async (profile, rpc, errorLabel) => {
+    if (!canActOnProfile(currentProfile, profile)) {
+      setErrorMsg(`${errorLabel} pour ${profile.email || profile.id}: cible hors de votre organisation.`);
+      return false;
+    }
     setBusy(profile.id, true);
-    const res = await rpc(profile.id);
+    const res = await rpc(profile.id, { caller: currentProfile, target: profile });
     setBusy(profile.id, false);
     if (res.ok && res.profile) {
       setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, ...res.profile } : p));
@@ -156,6 +189,13 @@ export default function ModuleAdmin({ currentProfile }) {
   };
 
   const assignOrg = async (profile, organization_id) => {
+    // Org admins are not allowed to move users between orgs at all. The
+    // service layer rejects mismatching org_id; surface a clear UI message
+    // before sending.
+    if (!isSuperAdmin) {
+      setErrorMsg("Seul un super_admin peut réassigner l'organisation.");
+      return;
+    }
     await applyPatch(profile, { organization_id: organization_id || null }, "Échec d'assignation");
   };
 
@@ -212,8 +252,8 @@ export default function ModuleAdmin({ currentProfile }) {
                     style={{ ...css.select, width: 130, padding:"6px 8px", fontSize: 12 }}>
                     {roleOptions.map(r => <option key={r} value={r}>{tRole(t, r)}</option>)}
                   </select>
-                  <OrgSelect organizations={organizations} value={selectedOrg}
-                    onChange={v => setOrgFor(p.id, v)} disabled={busy}/>
+                  <OrgSelect organizations={orgChoices} value={isSuperAdmin ? selectedOrg : (currentProfile?.organization_id || "")}
+                    onChange={v => setOrgFor(p.id, v)} disabled={busy || !isSuperAdmin}/>
                   <button onClick={() => approve(p)} disabled={busy}
                     style={{ ...css.btn(C.em), padding:"6px 14px", fontSize: 12,
                       opacity: busy ? .6 : 1 }}>
@@ -236,8 +276,8 @@ export default function ModuleAdmin({ currentProfile }) {
                   <RoleControl profile={p} isSuperAdmin={isSuperAdmin}
                     busy={busy} isSelf={isSelf}
                     onChange={role => changeRole(p, role)}/>
-                  <OrgSelect organizations={organizations} value={p.organization_id || ""}
-                    onChange={v => assignOrg(p, v)} disabled={busy}/>
+                  <OrgSelect organizations={orgChoices} value={p.organization_id || ""}
+                    onChange={v => assignOrg(p, v)} disabled={busy || !isSuperAdmin}/>
                   <button onClick={() => disable(p)} disabled={busy || isSelf}
                     title={isSelf ? "Vous ne pouvez pas désactiver votre propre compte" : ""}
                     style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize: 12,
@@ -260,8 +300,8 @@ export default function ModuleAdmin({ currentProfile }) {
                 <Row key={p.id} profile={p} orgNameById={orgNameById}
                   badge={<RevokedBadge disabledAt={p.disabled_at}/>}>
                   <RoleBadge role={p.role}/>
-                  <OrgSelect organizations={organizations} value={p.organization_id || ""}
-                    onChange={v => assignOrg(p, v)} disabled={busy}/>
+                  <OrgSelect organizations={orgChoices} value={p.organization_id || ""}
+                    onChange={v => assignOrg(p, v)} disabled={busy || !isSuperAdmin}/>
                   <button onClick={() => reenable(p)} disabled={busy}
                     style={{ ...css.btn(C.em), padding:"6px 14px", fontSize: 12,
                       opacity: busy ? .6 : 1 }}>
@@ -281,6 +321,9 @@ export default function ModuleAdmin({ currentProfile }) {
               ))}
             </Section>
           )}
+
+          <RenameIdentityPanel/>
+          <IdentityMergePanel/>
         </>
       )}
 
@@ -288,6 +331,148 @@ export default function ModuleAdmin({ currentProfile }) {
         Seuls les utilisateurs avec status <b>approved</b> accèdent à HRBP OS.
         Les profils ne sont jamais supprimés ; un compte désactivé peut être réactivé.
       </div>
+    </div>
+  );
+}
+
+// ── Identity merge panel ─────────────────────────────────────────────────────
+// Renames or merges an employee/manager name across all entities. Always
+// rewrites localStorage (the primary store) and best-effort fires the
+// Supabase service. After a successful merge we reload so React state
+// re-hydrates from the freshly-rewritten localStorage — avoids threading
+// `setData` callbacks down into Admin.
+function IdentityMergePanel() {
+  const [source, setSource] = useState("");
+  const [target, setTarget] = useState("");
+  const [busy, setBusy]     = useState(false);
+  const [result, setResult] = useState(null); // { ok, local, remote, error? }
+
+  const canMerge = source.trim().length > 0
+    && target.trim().length > 0
+    && source.trim() !== target.trim();
+
+  const onMerge = async () => {
+    setBusy(true);
+    setResult(null);
+    const sourceName = source.trim();
+    const targetName = target.trim();
+
+    // Local rewrite (sync) — always runs, primary store of truth today.
+    let local;
+    try {
+      local = applyMergeToLocalStorage(sourceName, targetName);
+    } catch (e) {
+      setBusy(false);
+      setResult({ ok: false, error: `Erreur localStorage: ${e?.message || e}` });
+      return;
+    }
+
+    // Remote rewrite — best-effort. `no-client` (Supabase not configured)
+    // and `not-authenticated` are not failures here; just unavailable.
+    let remote = null;
+    try {
+      const r = await mergeIdentity({ sourceName, targetName });
+      remote = r;
+    } catch (e) {
+      remote = { ok: false, reason: "exception", error: e };
+    }
+    setBusy(false);
+    setResult({ ok: true, local, remote });
+  };
+
+  const localTotal = result?.local
+    ? (result.local.cases + result.local.investigations + result.local.meetings + result.local.briefs)
+    : 0;
+
+  return (
+    <div style={{ ...css.card, marginBottom: 14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.purple }}/>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Fusion d'identité</div>
+      </div>
+      <div style={{ fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 }}>
+        Corrige une typo ou fusionne deux variantes d'un même nom. Met à jour les cases,
+        rencontres, enquêtes et briefs (localStorage + Supabase si disponible). Append
+        une entrée <code style={{ fontSize: 10 }}>identity.merged</code> à l'audit log.
+      </div>
+      <div style={{ display:"flex", gap: 8, alignItems:"center", flexWrap:"wrap" }}>
+        <input
+          type="text"
+          value={source}
+          placeholder="Nom source (ex: CHanny Tremblay)"
+          onChange={e => setSource(e.target.value)}
+          disabled={busy}
+          style={{ ...css.input, flex:"1 1 220px", minWidth: 200, padding:"6px 10px", fontSize: 12 }}
+        />
+        <span style={{ color: C.textD, fontSize: 14 }}>→</span>
+        <input
+          type="text"
+          value={target}
+          placeholder="Nom cible (ex: Channy Tremblay)"
+          onChange={e => setTarget(e.target.value)}
+          disabled={busy}
+          style={{ ...css.input, flex:"1 1 220px", minWidth: 200, padding:"6px 10px", fontSize: 12 }}
+        />
+        <button
+          onClick={onMerge}
+          disabled={!canMerge || busy}
+          style={{ ...css.btn(C.purple), padding:"6px 14px", fontSize: 12,
+            opacity: (!canMerge || busy) ? .5 : 1,
+            cursor: (!canMerge || busy) ? "not-allowed" : "pointer" }}>
+          {busy ? "…" : "Fusionner"}
+        </button>
+      </div>
+
+      {result && (
+        <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.6 }}>
+          {result.ok === false ? (
+            <div style={{ color: C.red }}>{result.error}</div>
+          ) : (
+            <>
+              <div style={{ color: C.text, marginBottom: 4 }}>
+                <b>Local</b> ({localTotal} entité{localTotal > 1 ? "s" : ""} mise{localTotal > 1 ? "s" : ""} à jour) ·
+                cases {result.local.cases} · meetings {result.local.meetings} ·
+                enquêtes {result.local.investigations} · briefs {result.local.briefs}
+              </div>
+              <RemoteSummary remote={result.remote}/>
+              {localTotal > 0 && (
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{ ...css.btn(C.em, true), padding:"4px 10px", fontSize: 11, marginTop: 8 }}>
+                  Recharger pour voir les changements
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RemoteSummary({ remote }) {
+  if (!remote) return null;
+  if (remote.ok) {
+    const b = remote.breakdown || {};
+    return (
+      <div style={{ color: C.textM }}>
+        <b>Supabase</b> ({remote.total} ligne{remote.total > 1 ? "s" : ""} mise{remote.total > 1 ? "s" : ""} à jour) ·
+        cases {b.cases || 0} · meetings {b.meetings || 0} ·
+        enquêtes {b.investigations || 0} · briefs {b.briefs || 0} ·
+        case_tasks {b.case_tasks || 0} ·
+        employees {(b.employees_full_name || 0) + (b.employees_manager_name || 0)}
+      </div>
+    );
+  }
+  if (remote.reason === "no-client") {
+    return <div style={{ color: C.textD, fontStyle: "italic" }}>Supabase non configuré — local uniquement.</div>;
+  }
+  if (remote.reason === "not-authenticated") {
+    return <div style={{ color: C.textD, fontStyle: "italic" }}>Supabase: session expirée — local uniquement.</div>;
+  }
+  return (
+    <div style={{ color: C.amber }}>
+      Supabase: échec ({remote.reason || "erreur"}). Le rewrite local a quand même été appliqué.
     </div>
   );
 }
@@ -413,5 +598,25 @@ function OrgSelect({ organizations, value, onChange, disabled }) {
       <option value="">{t("common.none")}</option>
       {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
     </select>
+  );
+}
+
+// ── Rename panel (single-name typo correction) ───────────────────────────────
+// Thin admin-surface wrapper around the shared `IdentityRenameForm`. The form
+// owns all state and calls the existing identity helpers/services.
+function RenameIdentityPanel() {
+  return (
+    <div style={{ ...css.card, marginBottom: 14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.teal }}/>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Renommer un employé / gestionnaire</div>
+      </div>
+      <div style={{ fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 }}>
+        Corrige une typo dans un nom (ex&nbsp;: <i>CHanny Tremblay</i> → <i>Channy Tremblay</i>).
+        <b> Preview</b> compte les occurrences sans rien écrire ; <b>Appliquer</b> exécute le rename
+        sur localStorage et Supabase (si disponible).
+      </div>
+      <IdentityRenameForm/>
+    </div>
   );
 }

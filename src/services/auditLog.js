@@ -36,6 +36,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   TASK_COMPLETED:      "task.completed",
   EMPLOYEE_CREATED:    "employee.created",
   EMPLOYEE_UPDATED:    "employee.updated",
+  IDENTITY_MERGED:     "identity.merged",
 });
 
 const ALLOWED_ACTIONS = new Set(Object.values(AUDIT_ACTIONS));

@@ -38,7 +38,7 @@ var HRBPOSApp = (() => {
   __export(index_exports, {
     default: () => HRBPOS
   });
-  var import_react23 = __require("react");
+  var import_react24 = __require("react");
 
   // src/theme.js
   if (typeof document !== "undefined" && !document.getElementById("hrbp-fonts")) {
@@ -21731,7 +21731,8 @@ ${suffix}`;
     TASK_UPDATED: "task.updated",
     TASK_COMPLETED: "task.completed",
     EMPLOYEE_CREATED: "employee.created",
-    EMPLOYEE_UPDATED: "employee.updated"
+    EMPLOYEE_UPDATED: "employee.updated",
+    IDENTITY_MERGED: "identity.merged"
   });
   var ALLOWED_ACTIONS = new Set(Object.values(AUDIT_ACTIONS));
   async function getSessionUserId() {
@@ -22166,15 +22167,35 @@ ${suffix}`;
     }
     return { ok: true, profile: inserted ?? FALLBACK(user) };
   }
-  async function listAllProfiles() {
+  function canActOnProfile(caller, target) {
+    if (!caller || !target) return false;
+    if (caller.status !== "approved") return false;
+    if (caller.role === "super_admin") return true;
+    if (caller.role !== "admin") return false;
+    if (!caller.organization_id) return false;
+    return target.organization_id === caller.organization_id;
+  }
+  var NOT_ALLOWED_CROSS_ORG = { ok: false, reason: "not-allowed-cross-org" };
+  async function listAllProfiles(opts = {}) {
     if (!supabase) return NO_CLIENT5;
-    const { data, error } = await supabase.from("profiles").select(PROFILE_COLS).order("created_at", { ascending: true });
+    let q = supabase.from("profiles").select(PROFILE_COLS).order("created_at", { ascending: true });
+    if (opts && Object.prototype.hasOwnProperty.call(opts, "organization_id")) {
+      if (opts.organization_id === null) q = q.is("organization_id", null);
+      else if (opts.organization_id) q = q.eq("organization_id", opts.organization_id);
+    }
+    const { data, error } = await q;
     if (error) return { ok: false, reason: "query-error", error };
     return { ok: true, profiles: data ?? [] };
   }
-  async function updateProfile(id, patch) {
+  async function updateProfile(id, patch, ctx = {}) {
     if (!supabase) return NO_CLIENT5;
     if (!id) return { ok: false, reason: "invalid-id" };
+    if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+      return NOT_ALLOWED_CROSS_ORG;
+    }
+    if (ctx.caller && ctx.caller.role !== "super_admin" && patch && typeof patch === "object" && Object.prototype.hasOwnProperty.call(patch, "organization_id") && patch.organization_id !== ctx.caller.organization_id) {
+      return { ok: false, reason: "org-change-forbidden" };
+    }
     const allowed = {};
     if (patch && typeof patch === "object") {
       if (patch.status !== void 0) allowed.status = patch.status;
@@ -22187,25 +22208,34 @@ ${suffix}`;
     if (error) return { ok: false, reason: "query-error", error };
     return { ok: true, profile: data };
   }
-  async function revokeUserAccess(targetUserId) {
+  async function revokeUserAccess(targetUserId, ctx = {}) {
     if (!supabase) return NO_CLIENT5;
     if (!targetUserId) return { ok: false, reason: "invalid-id" };
+    if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+      return NOT_ALLOWED_CROSS_ORG;
+    }
     const { data, error } = await supabase.rpc("revoke_user_access", { target_user_id: targetUserId });
     if (error) return { ok: false, reason: rpcReason(error), error };
     return { ok: true, profile: data };
   }
-  async function restoreUserAccess(targetUserId) {
+  async function restoreUserAccess(targetUserId, ctx = {}) {
     if (!supabase) return NO_CLIENT5;
     if (!targetUserId) return { ok: false, reason: "invalid-id" };
+    if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+      return NOT_ALLOWED_CROSS_ORG;
+    }
     const { data, error } = await supabase.rpc("restore_user_access", { target_user_id: targetUserId });
     if (error) return { ok: false, reason: rpcReason(error), error };
     return { ok: true, profile: data };
   }
   var ROLES = ["super_admin", "admin", "hrbp"];
-  async function setUserRole(targetUserId, newRole) {
+  async function setUserRole(targetUserId, newRole, ctx = {}) {
     if (!supabase) return NO_CLIENT5;
     if (!targetUserId) return { ok: false, reason: "invalid-id" };
     if (!ROLES.includes(newRole)) return { ok: false, reason: "invalid-role" };
+    if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+      return NOT_ALLOWED_CROSS_ORG;
+    }
     const { data, error } = await supabase.rpc("set_user_role", { target_user_id: targetUserId, new_role: newRole });
     if (error) return { ok: false, reason: rpcReason(error), error };
     return { ok: true, profile: data };
@@ -35562,13 +35592,507 @@ ${recap.sentText}`,
   }
 
   // src/modules/Leader.jsx
-  var import_react20 = __require("react");
+  var import_react21 = __require("react");
 
   // src/prompts/portfolio.js
   var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
 A partir des donnees historiques d un gestionnaire (meetings analyses, dossiers actifs), evalue son profil de risque RH actuel.
 Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les valeurs JSON.
 {"riskAssessment":"Critique|Eleve|Modere|Faible","pressureLevel":"Elevee|Moderee|Faible","managerType":"Solide|En developpement|A risque|Critique","topIssue":"enjeu principal identifie en 1 phrase courte","recommendedAction":"action HRBP recommandee en 1 phrase courte"}`;
+
+  // src/components/IdentityRenameForm.jsx
+  var import_react20 = __require("react");
+
+  // src/utils/identity.js
+  function normalizeIdentityKey(s) {
+    if (s == null) return "";
+    return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  }
+  function identityMatches(value, source) {
+    const v = normalizeIdentityKey(value);
+    const s = normalizeIdentityKey(source);
+    if (!v || !s) return false;
+    return v === s;
+  }
+  function applyMergeToCaseData(c, source, target) {
+    if (!c || typeof c !== "object") return { changed: false, value: c };
+    let changed = false;
+    const out = { ...c };
+    if (identityMatches(c.employee, source)) {
+      out.employee = target;
+      changed = true;
+    }
+    if (identityMatches(c.director, source)) {
+      out.director = target;
+      changed = true;
+    }
+    return { changed, value: changed ? out : c };
+  }
+  function applyMergeToInvestigationData(i, source, target) {
+    if (!i || typeof i !== "object") return { changed: false, value: i };
+    let changed = false;
+    const out = { ...i };
+    if (Array.isArray(i.people)) {
+      let arrChanged = false;
+      const next = i.people.map((p) => {
+        if (identityMatches(p, source)) {
+          arrChanged = true;
+          return target;
+        }
+        return p;
+      });
+      if (arrChanged) {
+        out.people = next;
+        changed = true;
+      }
+    }
+    return { changed, value: changed ? out : i };
+  }
+  var MEETING_PEOPLE_CATEGORIES = ["performance", "leadership", "engagement"];
+  function applyMergeToMeetingData(m, source, target) {
+    if (!m || typeof m !== "object") return { changed: false, value: m };
+    let changed = false;
+    const out = { ...m };
+    if (identityMatches(m.director, source)) {
+      out.director = target;
+      changed = true;
+    }
+    if (identityMatches(m.managerName, source)) {
+      out.managerName = target;
+      changed = true;
+    }
+    if (m.people && typeof m.people === "object") {
+      let peopleChanged = false;
+      const newPeople = { ...m.people };
+      for (const cat of MEETING_PEOPLE_CATEGORIES) {
+        const arr = m.people[cat];
+        if (!Array.isArray(arr)) continue;
+        let catChanged = false;
+        const next = arr.map((p) => {
+          if (identityMatches(p, source)) {
+            catChanged = true;
+            return target;
+          }
+          return p;
+        });
+        if (catChanged) {
+          newPeople[cat] = next;
+          peopleChanged = true;
+        }
+      }
+      if (peopleChanged) {
+        out.people = newPeople;
+        changed = true;
+      }
+    }
+    return { changed, value: changed ? out : m };
+  }
+  function applyMergeToBriefData(b, source, target) {
+    if (!b || typeof b !== "object") return { changed: false, value: b };
+    let changed = false;
+    const out = { ...b };
+    for (const key2 of ["director", "employee", "managerName", "manager_name"]) {
+      if (identityMatches(b[key2], source)) {
+        out[key2] = target;
+        changed = true;
+      }
+    }
+    return { changed, value: changed ? out : b };
+  }
+  var LS_KEYS = {
+    cases: "hrbp_os:cases",
+    investigations: "hrbp_os:investigations",
+    meetings: "hrbp_os:meetings",
+    briefs: "hrbp_os:briefs"
+  };
+  function _rewriteLsArray(key2, applyFn, source, target, dryRun = false) {
+    let raw;
+    try {
+      raw = localStorage.getItem(key2);
+    } catch {
+      return 0;
+    }
+    if (!raw) return 0;
+    let arr;
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return 0;
+    }
+    if (!Array.isArray(arr)) return 0;
+    let updated = 0;
+    const next = arr.map((item) => {
+      const { changed, value } = applyFn(item, source, target);
+      if (changed) updated += 1;
+      return value;
+    });
+    if (updated === 0 || dryRun) return updated;
+    try {
+      localStorage.setItem(key2, JSON.stringify(next));
+    } catch {
+      return 0;
+    }
+    return updated;
+  }
+  function _runLsBreakdown(sourceName, targetName, dryRun) {
+    const breakdown = { cases: 0, investigations: 0, meetings: 0, briefs: 0 };
+    if (typeof localStorage === "undefined") return breakdown;
+    const s = typeof sourceName === "string" ? sourceName.trim() : "";
+    const t2 = typeof targetName === "string" ? targetName.trim() : "";
+    if (!s || !t2 || s === t2) return breakdown;
+    breakdown.cases = _rewriteLsArray(LS_KEYS.cases, applyMergeToCaseData, s, t2, dryRun);
+    breakdown.investigations = _rewriteLsArray(LS_KEYS.investigations, applyMergeToInvestigationData, s, t2, dryRun);
+    breakdown.meetings = _rewriteLsArray(LS_KEYS.meetings, applyMergeToMeetingData, s, t2, dryRun);
+    breakdown.briefs = _rewriteLsArray(LS_KEYS.briefs, applyMergeToBriefData, s, t2, dryRun);
+    return breakdown;
+  }
+  function applyMergeToLocalStorage(sourceName, targetName) {
+    return _runLsBreakdown(sourceName, targetName, false);
+  }
+  function previewMergeInLocalStorage(sourceName, targetName) {
+    return _runLsBreakdown(sourceName, targetName, true);
+  }
+
+  // src/services/identityMerge.js
+  var NO_CLIENT6 = { ok: false, reason: "no-client" };
+  async function getSessionUserId3() {
+    if (!supabase || !supabase.auth || typeof supabase.auth.getSession !== "function") return null;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) return null;
+      return data && data.session && data.session.user && data.session.user.id || null;
+    } catch {
+      return null;
+    }
+  }
+  async function rewriteJsonbTable(table, sourceName, targetName, applyFn, sessionUserId) {
+    const { data: rows, error } = await supabase.from(table).select("id, data").eq("user_id", sessionUserId);
+    if (error) return { ok: false, reason: `${table}-query-error`, error };
+    let updated = 0;
+    for (const row of rows || []) {
+      if (!row || !row.data) continue;
+      const { changed, value } = applyFn(row.data, sourceName, targetName);
+      if (!changed) continue;
+      const { error: updErr } = await supabase.from(table).update({ data: value, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", row.id);
+      if (updErr) return { ok: false, reason: `${table}-update-error`, error: updErr };
+      updated += 1;
+    }
+    return { ok: true, updated };
+  }
+  async function mergeIdentity(input) {
+    if (!supabase) return NO_CLIENT6;
+    if (!input || typeof input !== "object") return { ok: false, reason: "invalid-input" };
+    const sourceName = typeof input.sourceName === "string" ? input.sourceName.trim() : "";
+    const targetName = typeof input.targetName === "string" ? input.targetName.trim() : "";
+    if (!sourceName) return { ok: false, reason: "invalid-source" };
+    if (!targetName) return { ok: false, reason: "invalid-target" };
+    if (sourceName === targetName) return { ok: false, reason: "noop" };
+    const sessionUserId = await getSessionUserId3();
+    if (!sessionUserId) return { ok: false, reason: "not-authenticated" };
+    const breakdown = {
+      cases: 0,
+      investigations: 0,
+      meetings: 0,
+      briefs: 0,
+      case_tasks: 0,
+      employees_full_name: 0,
+      employees_manager_name: 0
+    };
+    const cases = await rewriteJsonbTable("cases", sourceName, targetName, applyMergeToCaseData, sessionUserId);
+    if (!cases.ok) return cases;
+    breakdown.cases = cases.updated;
+    const inv = await rewriteJsonbTable("investigations", sourceName, targetName, applyMergeToInvestigationData, sessionUserId);
+    if (!inv.ok) return inv;
+    breakdown.investigations = inv.updated;
+    const meet = await rewriteJsonbTable("meetings", sourceName, targetName, applyMergeToMeetingData, sessionUserId);
+    if (!meet.ok) return meet;
+    breakdown.meetings = meet.updated;
+    const briefs = await rewriteJsonbTable("briefs", sourceName, targetName, applyMergeToBriefData, sessionUserId);
+    if (!briefs.ok) return briefs;
+    breakdown.briefs = briefs.updated;
+    {
+      const { data: rows, error } = await supabase.from("case_tasks").select("id, assigned_to");
+      if (error) return { ok: false, reason: "case_tasks-query-error", error };
+      for (const r of rows || []) {
+        if (!identityMatches(r.assigned_to, sourceName)) continue;
+        const { error: updErr } = await supabase.from("case_tasks").update({ assigned_to: targetName, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", r.id);
+        if (updErr) return { ok: false, reason: "case_tasks-update-error", error: updErr };
+        breakdown.case_tasks += 1;
+      }
+    }
+    {
+      const { data: rows, error } = await supabase.from("employees").select("id, full_name, manager_name");
+      if (error) return { ok: false, reason: "employees-query-error", error };
+      for (const r of rows || []) {
+        const patch = {};
+        if (identityMatches(r.full_name, sourceName)) patch.full_name = targetName;
+        if (identityMatches(r.manager_name, sourceName)) patch.manager_name = targetName;
+        if (Object.keys(patch).length === 0) continue;
+        patch.updated_at = (/* @__PURE__ */ new Date()).toISOString();
+        const { error: updErr } = await supabase.from("employees").update(patch).eq("id", r.id);
+        if (updErr) return { ok: false, reason: "employees-update-error", error: updErr };
+        if (patch.full_name) breakdown.employees_full_name += 1;
+        if (patch.manager_name) breakdown.employees_manager_name += 1;
+      }
+    }
+    void bestEffortAudit({
+      action: AUDIT_ACTIONS.IDENTITY_MERGED,
+      entity_type: "identity",
+      entity_id: targetName,
+      metadata: {
+        source_name: sourceName,
+        target_name: targetName,
+        source_key: normalizeIdentityKey(sourceName),
+        affected: breakdown
+      }
+    });
+    const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+    return { ok: true, total, breakdown };
+  }
+  async function previewMergeIdentity(input) {
+    if (!supabase) return NO_CLIENT6;
+    if (!input || typeof input !== "object") return { ok: false, reason: "invalid-input" };
+    const sourceName = typeof input.sourceName === "string" ? input.sourceName.trim() : "";
+    const targetName = typeof input.targetName === "string" ? input.targetName.trim() : "";
+    if (!sourceName) return { ok: false, reason: "invalid-source" };
+    if (!targetName) return { ok: false, reason: "invalid-target" };
+    if (sourceName === targetName) return { ok: false, reason: "noop" };
+    const sessionUserId = await getSessionUserId3();
+    if (!sessionUserId) return { ok: false, reason: "not-authenticated" };
+    const breakdown = {
+      cases: 0,
+      investigations: 0,
+      meetings: 0,
+      briefs: 0,
+      case_tasks: 0,
+      employees_full_name: 0,
+      employees_manager_name: 0
+    };
+    async function countJsonb(table, applyFn) {
+      const { data: rows, error } = await supabase.from(table).select("id, data").eq("user_id", sessionUserId);
+      if (error) return { ok: false, reason: `${table}-query-error`, error };
+      let n = 0;
+      for (const row of rows || []) {
+        if (!row || !row.data) continue;
+        const { changed } = applyFn(row.data, sourceName, targetName);
+        if (changed) n += 1;
+      }
+      return { ok: true, n };
+    }
+    let r;
+    r = await countJsonb("cases", applyMergeToCaseData);
+    if (!r.ok) return r;
+    breakdown.cases = r.n;
+    r = await countJsonb("investigations", applyMergeToInvestigationData);
+    if (!r.ok) return r;
+    breakdown.investigations = r.n;
+    r = await countJsonb("meetings", applyMergeToMeetingData);
+    if (!r.ok) return r;
+    breakdown.meetings = r.n;
+    r = await countJsonb("briefs", applyMergeToBriefData);
+    if (!r.ok) return r;
+    breakdown.briefs = r.n;
+    {
+      const { data: rows, error } = await supabase.from("case_tasks").select("id, assigned_to");
+      if (error) return { ok: false, reason: "case_tasks-query-error", error };
+      for (const row of rows || []) {
+        if (identityMatches(row.assigned_to, sourceName)) breakdown.case_tasks += 1;
+      }
+    }
+    {
+      const { data: rows, error } = await supabase.from("employees").select("id, full_name, manager_name");
+      if (error) return { ok: false, reason: "employees-query-error", error };
+      for (const row of rows || []) {
+        if (identityMatches(row.full_name, sourceName)) breakdown.employees_full_name += 1;
+        if (identityMatches(row.manager_name, sourceName)) breakdown.employees_manager_name += 1;
+      }
+    }
+    const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+    return { ok: true, total, breakdown };
+  }
+
+  // src/components/IdentityRenameForm.jsx
+  function IdentityRenameForm({
+    defaultCurrent = "",
+    onCancel,
+    onApplied,
+    compact = false
+  }) {
+    const [current, setCurrent] = (0, import_react20.useState)(defaultCurrent || "");
+    const [corrected, setCorrected] = (0, import_react20.useState)("");
+    const [busy, setBusy] = (0, import_react20.useState)(false);
+    const [preview, setPreview] = (0, import_react20.useState)(null);
+    const [result, setResult] = (0, import_react20.useState)(null);
+    const [error, setError] = (0, import_react20.useState)("");
+    const canSubmit = current.trim().length > 0 && corrected.trim().length > 0 && current.trim() !== corrected.trim();
+    const invalidateOnEdit = () => {
+      setPreview(null);
+      setResult(null);
+      setError("");
+    };
+    const onPreview = async () => {
+      setBusy(true);
+      setError("");
+      setResult(null);
+      const sourceName = current.trim();
+      const targetName = corrected.trim();
+      let local;
+      try {
+        local = previewMergeInLocalStorage(sourceName, targetName);
+      } catch (e) {
+        setBusy(false);
+        setError(`Erreur preview localStorage: ${e?.message || e}`);
+        return;
+      }
+      let remote = null;
+      try {
+        remote = await previewMergeIdentity({ sourceName, targetName });
+      } catch (e) {
+        remote = { ok: false, reason: "exception", error: e };
+      }
+      setBusy(false);
+      setPreview({ local, remote });
+    };
+    const onApply = async () => {
+      setBusy(true);
+      setError("");
+      setResult(null);
+      const sourceName = current.trim();
+      const targetName = corrected.trim();
+      let local;
+      try {
+        local = applyMergeToLocalStorage(sourceName, targetName);
+      } catch (e) {
+        setBusy(false);
+        setError(`Erreur apply localStorage: ${e?.message || e}`);
+        return;
+      }
+      let remote = null;
+      try {
+        remote = await mergeIdentity({ sourceName, targetName });
+      } catch (e) {
+        remote = { ok: false, reason: "exception", error: e };
+      }
+      setBusy(false);
+      const next = { local, remote };
+      setResult(next);
+      setPreview(null);
+      if (typeof onApplied === "function") {
+        try {
+          onApplied(next);
+        } catch {
+        }
+      }
+    };
+    const localSum = (b) => b ? b.cases + b.investigations + b.meetings + b.briefs : 0;
+    const resultLocalTotal = localSum(result?.local);
+    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "text",
+        value: current,
+        placeholder: "Nom actuel",
+        onChange: (e) => {
+          setCurrent(e.target.value);
+          invalidateOnEdit();
+        },
+        disabled: busy,
+        style: { ...css.input, flex: "1 1 220px", minWidth: 180, padding: "6px 10px", fontSize: 12 }
+      }
+    ), /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontSize: 14 } }, "\u2192"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "text",
+        value: corrected,
+        placeholder: "Nom corrig\xE9",
+        onChange: (e) => {
+          setCorrected(e.target.value);
+          invalidateOnEdit();
+        },
+        disabled: busy,
+        style: { ...css.input, flex: "1 1 220px", minWidth: 180, padding: "6px 10px", fontSize: 12 }
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onPreview,
+        disabled: !canSubmit || busy,
+        style: {
+          ...css.btn(C.em, true),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: !canSubmit || busy ? 0.5 : 1,
+          cursor: !canSubmit || busy ? "not-allowed" : "pointer"
+        }
+      },
+      busy && !result ? "\u2026" : "Preview"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onApply,
+        disabled: !canSubmit || busy,
+        style: {
+          ...css.btn(C.teal),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: !canSubmit || busy ? 0.5 : 1,
+          cursor: !canSubmit || busy ? "not-allowed" : "pointer"
+        }
+      },
+      busy && !preview ? "\u2026" : "Appliquer"
+    ), onCancel && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onCancel,
+        disabled: busy,
+        style: {
+          background: "none",
+          border: `1px solid ${C.border}`,
+          borderRadius: 6,
+          padding: "6px 12px",
+          fontSize: 12,
+          color: C.textM,
+          cursor: busy ? "not-allowed" : "pointer",
+          opacity: busy ? 0.5 : 1
+        }
+      },
+      "Annuler"
+    )), error && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 12, color: C.red } }, error), preview && /* @__PURE__ */ React.createElement("div", { style: {
+      marginTop: compact ? 8 : 12,
+      fontSize: 12,
+      lineHeight: 1.6,
+      padding: "8px 10px",
+      background: C.surfL,
+      border: `1px dashed ${C.border}`,
+      borderRadius: 6
+    } }, /* @__PURE__ */ React.createElement("div", { style: { color: C.text, marginBottom: 4, fontWeight: 600 } }, "Preview (rien \xE9crit)"), /* @__PURE__ */ React.createElement(BreakdownLine, { label: "Local", breakdown: preview.local }), /* @__PURE__ */ React.createElement(RemoteBreakdown, { remote: preview.remote })), result && /* @__PURE__ */ React.createElement("div", { style: { marginTop: compact ? 8 : 12, fontSize: 12, lineHeight: 1.6 } }, /* @__PURE__ */ React.createElement("div", { style: { color: C.text, marginBottom: 4, fontWeight: 600 } }, "Renomm\xE9"), /* @__PURE__ */ React.createElement(BreakdownLine, { label: "Local", breakdown: result.local }), /* @__PURE__ */ React.createElement(RemoteBreakdown, { remote: result.remote }), resultLocalTotal > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => window.location.reload(),
+        style: { ...css.btn(C.em, true), padding: "4px 10px", fontSize: 11, marginTop: 8 }
+      },
+      "Recharger pour voir les changements"
+    )));
+  }
+  function BreakdownLine({ label, breakdown }) {
+    if (!breakdown) return null;
+    const total = breakdown.cases + breakdown.investigations + breakdown.meetings + breakdown.briefs;
+    return /* @__PURE__ */ React.createElement("div", { style: { color: C.text } }, /* @__PURE__ */ React.createElement("b", null, label), " (", total, " entit\xE9", total > 1 ? "s" : "", ") \xB7 cases ", breakdown.cases, " \xB7 meetings ", breakdown.meetings, " \xB7 enqu\xEAtes ", breakdown.investigations, " \xB7 briefs ", breakdown.briefs);
+  }
+  function RemoteBreakdown({ remote }) {
+    if (!remote) return null;
+    if (remote.ok) {
+      const b = remote.breakdown || {};
+      return /* @__PURE__ */ React.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ React.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", ") \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
+    }
+    if (remote.reason === "no-client") {
+      return /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.");
+    }
+    if (remote.reason === "not-authenticated") {
+      return /* @__PURE__ */ React.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.");
+    }
+    return /* @__PURE__ */ React.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", ").");
+  }
 
   // src/modules/Leader.jsx
   function RiskBadge7({ level }) {
@@ -35871,25 +36395,27 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     });
   }
   function ModuleLeader({ data, onSave, onNavigate }) {
-    const [selected, setSelected] = (0, import_react20.useState)(null);
-    const [tlExpanded, setTlExpanded] = (0, import_react20.useState)(false);
-    const [tlFilter, setTlFilter] = (0, import_react20.useState)("all");
-    const [editingMeta, setEditingMeta] = (0, import_react20.useState)(false);
-    const [metaForm, setMetaForm] = (0, import_react20.useState)(null);
-    const [aiAssessing, setAiAssessing] = (0, import_react20.useState)(false);
-    const [filterArchive, setFilterArchive] = (0, import_react20.useState)("active");
+    const [selected, setSelected] = (0, import_react21.useState)(null);
+    const [tlExpanded, setTlExpanded] = (0, import_react21.useState)(false);
+    const [tlFilter, setTlFilter] = (0, import_react21.useState)("all");
+    const [editingMeta, setEditingMeta] = (0, import_react21.useState)(false);
+    const [metaForm, setMetaForm] = (0, import_react21.useState)(null);
+    const [aiAssessing, setAiAssessing] = (0, import_react21.useState)(false);
+    const [filterArchive, setFilterArchive] = (0, import_react21.useState)("active");
+    const [renamingName, setRenamingName] = (0, import_react21.useState)(false);
     const selectLeader = (key2) => {
       setSelected(key2);
       setTlExpanded(false);
       setTlFilter("all");
       setEditingMeta(false);
       setMetaForm(null);
+      setRenamingName(false);
     };
-    const leaders = (0, import_react20.useMemo)(() => buildLeaderIndex(data), [data]);
+    const leaders = (0, import_react21.useMemo)(() => buildLeaderIndex(data), [data]);
     const leaderList = Object.values(leaders);
-    const leadersMap = (0, import_react20.useMemo)(() => getLeadersMap(data), [data]);
+    const leadersMap = (0, import_react21.useMemo)(() => getLeadersMap(data), [data]);
     const todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    const topFocus = (0, import_react20.useMemo)(() => {
+    const topFocus = (0, import_react21.useMemo)(() => {
       const activeLeaders = leaderList.filter((l2) => !getMeta(l2.name, leadersMap).archived);
       return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
     }, [leaderList, leadersMap, todayISO_top]);
@@ -35931,7 +36457,7 @@ ${ctx}`, 500);
         setAiAssessing(false);
       }
     };
-    (0, import_react20.useEffect)(() => {
+    (0, import_react21.useEffect)(() => {
       const pending = sessionStorage.getItem("hrbpos:pendingLeader");
       if (!pending) return;
       sessionStorage.removeItem("hrbpos:pendingLeader");
@@ -36230,7 +36756,15 @@ ${ctx}`, 500);
         }
       },
       "\u2190 Retour"
-    ), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "Fiches Leaders"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "/"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.em }, l.name), detailMeta.archived && /* @__PURE__ */ React.createElement(Badge, { label: "Archiv\xE9", color: C.textD }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), detailMeta.archived ? /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "Fiches Leaders"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.textD }, "/"), /* @__PURE__ */ React.createElement(Mono, { size: 9, color: C.em }, l.name), detailMeta.archived && /* @__PURE__ */ React.createElement(Badge, { label: "Archiv\xE9", color: C.textD }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setRenamingName((v) => !v),
+        title: "Corriger une typo ou renommer ce profil dans toutes les entit\xE9s",
+        style: { ...css.btn(C.teal, true), padding: "5px 12px", fontSize: 11 }
+      },
+      "\u270F\uFE0F Modifier le nom"
+    ), detailMeta.archived ? /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -36249,6 +36783,19 @@ ${ctx}`, 500);
         style: { ...css.btn(C.textD, true), padding: "5px 12px", fontSize: 11 }
       },
       "\u{1F4E6} Archiver"
+    )), renamingName && /* @__PURE__ */ React.createElement("div", { style: {
+      background: C.surf,
+      border: `1px solid ${C.teal}33`,
+      borderRadius: 10,
+      padding: "14px 16px",
+      marginBottom: 14
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 } }, "Renommer le profil"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5, marginBottom: 10 } }, "R\xE9\xE9crit le nom dans cases, meetings, enqu\xEAtes et briefs (localStorage + Supabase si dispo). Met aussi \xE0 jour ", /* @__PURE__ */ React.createElement("code", { style: { fontSize: 10 } }, "case_tasks.assigned_to"), " et la table employees c\xF4t\xE9 Supabase. ", /* @__PURE__ */ React.createElement("b", null, "Preview"), " compte sans rien \xE9crire."), /* @__PURE__ */ React.createElement(
+      IdentityRenameForm,
+      {
+        defaultCurrent: l.name,
+        onCancel: () => setRenamingName(false),
+        compact: true
+      }
     )), detailMeta.archived && /* @__PURE__ */ React.createElement("div", { style: {
       background: C.textD + "14",
       border: `1px solid ${C.textD}33`,
@@ -36977,22 +37524,22 @@ ${ctx}`, 500);
   }
 
   // src/modules/Copilot.jsx
-  var import_react21 = __require("react");
+  var import_react22 = __require("react");
   function ModuleCopilot({ data }) {
     const { t: t2 } = useT();
-    const [situation, setSituation] = (0, import_react21.useState)("");
-    const [loading, setLoading] = (0, import_react21.useState)(false);
-    const [response, setResponse] = (0, import_react21.useState)(null);
-    const [error, setError] = (0, import_react21.useState)("");
-    const [history, setHistory] = (0, import_react21.useState)([]);
-    const [copied, setCopied] = (0, import_react21.useState)(false);
-    const [contextExpanded, setContextExpanded] = (0, import_react21.useState)(false);
-    const [generatedPrompt, setGeneratedPrompt] = (0, import_react21.useState)("");
-    const [apeMode, setApeMode] = (0, import_react21.useState)("diagnose");
-    const responseRef = (0, import_react21.useRef)(null);
+    const [situation, setSituation] = (0, import_react22.useState)("");
+    const [loading, setLoading] = (0, import_react22.useState)(false);
+    const [response, setResponse] = (0, import_react22.useState)(null);
+    const [error, setError] = (0, import_react22.useState)("");
+    const [history, setHistory] = (0, import_react22.useState)([]);
+    const [copied, setCopied] = (0, import_react22.useState)(false);
+    const [contextExpanded, setContextExpanded] = (0, import_react22.useState)(false);
+    const [generatedPrompt, setGeneratedPrompt] = (0, import_react22.useState)("");
+    const [apeMode, setApeMode] = (0, import_react22.useState)("diagnose");
+    const responseRef = (0, import_react22.useRef)(null);
     const situations = detectSituations(data).slice(0, 5);
-    const [tasksByCase, setTasksByCase] = (0, import_react21.useState)({});
-    (0, import_react21.useEffect)(() => {
+    const [tasksByCase, setTasksByCase] = (0, import_react22.useState)({});
+    (0, import_react22.useEffect)(() => {
       let cancelled = false;
       (async () => {
         const map = await fetchTasksForCases(data.cases || []);
@@ -37419,7 +37966,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
 
   // src/modules/Admin.jsx
-  var import_react22 = __toESM(__require("react"));
+  var import_react23 = __toESM(__require("react"));
   var ROLE_STYLE = {
     super_admin: { bg: C.red + "18", border: C.red + "55", color: C.red },
     admin: { bg: C.amber + "18", border: C.amber + "55", color: C.amber },
@@ -37427,18 +37974,19 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   };
   function ModuleAdmin({ currentProfile }) {
     const { t: t2 } = useT();
-    const [profiles, setProfiles] = (0, import_react22.useState)([]);
-    const [organizations, setOrganizations] = (0, import_react22.useState)([]);
-    const [status, setStatus] = (0, import_react22.useState)("loading");
-    const [errorMsg, setErrorMsg] = (0, import_react22.useState)("");
-    const [pendingRoleById, setPendingRoleById] = (0, import_react22.useState)({});
-    const [pendingOrgById, setPendingOrgById] = (0, import_react22.useState)({});
-    const [busyById, setBusyById] = (0, import_react22.useState)({});
+    const [profiles, setProfiles] = (0, import_react23.useState)([]);
+    const [organizations, setOrganizations] = (0, import_react23.useState)([]);
+    const [status, setStatus] = (0, import_react23.useState)("loading");
+    const [errorMsg, setErrorMsg] = (0, import_react23.useState)("");
+    const [pendingRoleById, setPendingRoleById] = (0, import_react23.useState)({});
+    const [pendingOrgById, setPendingOrgById] = (0, import_react23.useState)({});
+    const [busyById, setBusyById] = (0, import_react23.useState)({});
     const isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved";
-    const refresh = (0, import_react22.useCallback)(async () => {
+    const listOpts = (0, import_react23.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]);
+    const refresh = (0, import_react23.useCallback)(async () => {
       setStatus("loading");
       setErrorMsg("");
-      const [pRes, oRes] = await Promise.all([listAllProfiles(), listOrganizations()]);
+      const [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
       if (!pRes.ok) {
         setStatus("error");
         setErrorMsg(pRes.reason === "no-client" ? "Supabase non configur\xE9." : "\xC9chec du chargement des profils.");
@@ -37450,16 +37998,22 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setProfiles(pRes.profiles);
       setOrganizations(oRes.ok ? oRes.organizations : []);
       setStatus("ready");
-    }, []);
-    (0, import_react22.useEffect)(() => {
+    }, [listOpts]);
+    (0, import_react23.useEffect)(() => {
       refresh();
     }, [refresh]);
-    const orgNameById = (0, import_react22.useMemo)(() => {
+    const orgNameById = (0, import_react23.useMemo)(() => {
       const m = {};
       for (const o of organizations) m[o.id] = o.name;
       return m;
     }, [organizations]);
-    const buckets = (0, import_react22.useMemo)(() => {
+    const orgChoices = (0, import_react23.useMemo)(() => {
+      if (isSuperAdmin) return organizations;
+      if (!currentProfile?.organization_id) return [];
+      const own = organizations.find((o) => o.id === currentProfile.organization_id);
+      return own ? [own] : [];
+    }, [isSuperAdmin, organizations, currentProfile?.organization_id]);
+    const buckets = (0, import_react23.useMemo)(() => {
       const pending = [], approved = [], disabled = [], other = [];
       for (const p of profiles) {
         if (p.status === "pending") pending.push(p);
@@ -37474,7 +38028,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     const setBusy = (id, v) => setBusyById((m) => ({ ...m, [id]: v }));
     const applyPatch = async (profile, patch, errorLabel) => {
       setBusy(profile.id, true);
-      const res = await updateProfile(profile.id, patch);
+      const res = await updateProfile(profile.id, patch, { caller: currentProfile, target: profile });
       setBusy(profile.id, false);
       if (res.ok && res.profile) {
         setProfiles((prev) => prev.map((p) => p.id === profile.id ? { ...p, ...res.profile } : p));
@@ -37485,14 +38039,23 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     };
     const approve = async (profile) => {
       const role = pendingRoleById[profile.id] || profile.role || "hrbp";
-      const orgRaw = pendingOrgById[profile.id];
-      const orgVal = orgRaw === void 0 ? profile.organization_id : orgRaw || null;
+      let orgVal;
+      if (isSuperAdmin) {
+        const orgRaw = pendingOrgById[profile.id];
+        orgVal = orgRaw === void 0 ? profile.organization_id : orgRaw || null;
+      } else {
+        orgVal = currentProfile?.organization_id || null;
+      }
+      if (!isSuperAdmin && !canActOnProfile(currentProfile, { ...profile, organization_id: orgVal })) {
+        setErrorMsg(`Approbation refus\xE9e: cible hors de votre organisation.`);
+        return;
+      }
       await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "\xC9chec d'approbation");
     };
     const changeRole = async (profile, newRole) => {
       if (newRole === profile.role) return;
       setBusy(profile.id, true);
-      const res = await setUserRole(profile.id, newRole);
+      const res = await setUserRole(profile.id, newRole, { caller: currentProfile, target: profile });
       setBusy(profile.id, false);
       if (res.ok && res.profile) {
         setProfiles((prev) => prev.map((p) => p.id === profile.id ? { ...p, ...res.profile } : p));
@@ -37502,8 +38065,12 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setErrorMsg(`\xC9chec du changement de r\xF4le pour ${profile.email || profile.id}: ${detail}`);
     };
     const callRpc = async (profile, rpc, errorLabel) => {
+      if (!canActOnProfile(currentProfile, profile)) {
+        setErrorMsg(`${errorLabel} pour ${profile.email || profile.id}: cible hors de votre organisation.`);
+        return false;
+      }
       setBusy(profile.id, true);
-      const res = await rpc(profile.id);
+      const res = await rpc(profile.id, { caller: currentProfile, target: profile });
       setBusy(profile.id, false);
       if (res.ok && res.profile) {
         setProfiles((prev) => prev.map((p) => p.id === profile.id ? { ...p, ...res.profile } : p));
@@ -37524,9 +38091,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       await callRpc(profile, restoreUserAccess, "\xC9chec de r\xE9activation");
     };
     const assignOrg = async (profile, organization_id) => {
+      if (!isSuperAdmin) {
+        setErrorMsg("Seul un super_admin peut r\xE9assigner l'organisation.");
+        return;
+      }
       await applyPatch(profile, { organization_id: organization_id || null }, "\xC9chec d'assignation");
     };
-    return /* @__PURE__ */ import_react22.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react22.default.createElement(import_react22.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react22.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react22.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react23.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         onClick: refresh,
@@ -37539,12 +38110,12 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       status === "loading" ? t2("common.loading") : t2("common.refresh")
-    )), status === "error" && /* @__PURE__ */ import_react22.default.createElement("div", { style: { ...css.card, fontSize: 12, color: C.red } }, errorMsg || "Erreur inconnue."), status === "ready" && /* @__PURE__ */ import_react22.default.createElement(import_react22.default.Fragment, null, /* @__PURE__ */ import_react22.default.createElement(Section, { title: t2("admin.section.pending"), count: buckets.pending.length, color: C.amber }, buckets.pending.length === 0 ? /* @__PURE__ */ import_react22.default.createElement(Empty2, null, t2("admin.empty.pending")) : buckets.pending.map((p) => {
+    )), status === "error" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, fontSize: 12, color: C.red } }, errorMsg || "Erreur inconnue."), status === "ready" && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.pending"), count: buckets.pending.length, color: C.amber }, buckets.pending.length === 0 ? /* @__PURE__ */ import_react23.default.createElement(Empty2, null, t2("admin.empty.pending")) : buckets.pending.map((p) => {
       const selectedRole = pendingRoleById[p.id] ?? (p.role || "hrbp");
       const selectedOrg = pendingOrgById[p.id] ?? (p.organization_id || "");
       const busy = !!busyById[p.id];
       const roleOptions = isSuperAdmin ? ROLE_IDS : ROLE_IDS.filter((r) => r !== "super_admin");
-      return /* @__PURE__ */ import_react22.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react22.default.createElement(
+      return /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement(
         "select",
         {
           value: selectedRole,
@@ -37553,16 +38124,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           title: "R\xF4le",
           style: { ...css.select, width: 130, padding: "6px 8px", fontSize: 12 }
         },
-        roleOptions.map((r) => /* @__PURE__ */ import_react22.default.createElement("option", { key: r, value: r }, tRole(t2, r)))
-      ), /* @__PURE__ */ import_react22.default.createElement(
+        roleOptions.map((r) => /* @__PURE__ */ import_react23.default.createElement("option", { key: r, value: r }, tRole(t2, r)))
+      ), /* @__PURE__ */ import_react23.default.createElement(
         OrgSelect,
         {
-          organizations,
-          value: selectedOrg,
+          organizations: orgChoices,
+          value: isSuperAdmin ? selectedOrg : currentProfile?.organization_id || "",
           onChange: (v) => setOrgFor(p.id, v),
-          disabled: busy
+          disabled: busy || !isSuperAdmin
         }
-      ), /* @__PURE__ */ import_react22.default.createElement(
+      ), /* @__PURE__ */ import_react23.default.createElement(
         "button",
         {
           onClick: () => approve(p),
@@ -37576,10 +38147,10 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.approve")
       ));
-    })), /* @__PURE__ */ import_react22.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react22.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
+    })), /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react23.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
       const busy = !!busyById[p.id];
       const isSelf = p.id === currentProfile?.id;
-      return /* @__PURE__ */ import_react22.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react22.default.createElement(
+      return /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement(
         RoleControl,
         {
           profile: p,
@@ -37588,15 +38159,15 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           isSelf,
           onChange: (role) => changeRole(p, role)
         }
-      ), /* @__PURE__ */ import_react22.default.createElement(
+      ), /* @__PURE__ */ import_react23.default.createElement(
         OrgSelect,
         {
-          organizations,
+          organizations: orgChoices,
           value: p.organization_id || "",
           onChange: (v) => assignOrg(p, v),
-          disabled: busy
+          disabled: busy || !isSuperAdmin
         }
-      ), /* @__PURE__ */ import_react22.default.createElement(
+      ), /* @__PURE__ */ import_react23.default.createElement(
         "button",
         {
           onClick: () => disable(p),
@@ -37612,27 +38183,27 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.disable")
       ));
-    })), /* @__PURE__ */ import_react22.default.createElement(Section, { title: t2("admin.section.disabled"), count: buckets.disabled.length, color: C.textM }, buckets.disabled.length === 0 ? /* @__PURE__ */ import_react22.default.createElement(Empty2, null, t2("admin.empty.disabled")) : buckets.disabled.map((p) => {
+    })), /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.disabled"), count: buckets.disabled.length, color: C.textM }, buckets.disabled.length === 0 ? /* @__PURE__ */ import_react23.default.createElement(Empty2, null, t2("admin.empty.disabled")) : buckets.disabled.map((p) => {
       const busy = !!busyById[p.id];
-      return /* @__PURE__ */ import_react22.default.createElement(
+      return /* @__PURE__ */ import_react23.default.createElement(
         Row2,
         {
           key: p.id,
           profile: p,
           orgNameById,
-          badge: /* @__PURE__ */ import_react22.default.createElement(RevokedBadge, { disabledAt: p.disabled_at })
+          badge: /* @__PURE__ */ import_react23.default.createElement(RevokedBadge, { disabledAt: p.disabled_at })
         },
-        /* @__PURE__ */ import_react22.default.createElement(RoleBadge, { role: p.role }),
-        /* @__PURE__ */ import_react22.default.createElement(
+        /* @__PURE__ */ import_react23.default.createElement(RoleBadge, { role: p.role }),
+        /* @__PURE__ */ import_react23.default.createElement(
           OrgSelect,
           {
-            organizations,
+            organizations: orgChoices,
             value: p.organization_id || "",
             onChange: (v) => assignOrg(p, v),
-            disabled: busy
+            disabled: busy || !isSuperAdmin
           }
         ),
-        /* @__PURE__ */ import_react22.default.createElement(
+        /* @__PURE__ */ import_react23.default.createElement(
           "button",
           {
             onClick: () => reenable(p),
@@ -37647,17 +38218,104 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           busy ? "\u2026" : t2("admin.action.reenable")
         )
       );
-    })), buckets.other.length > 0 && /* @__PURE__ */ import_react22.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react22.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014"))))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react22.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+    })), buckets.other.length > 0 && /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+  }
+  function IdentityMergePanel() {
+    const [source, setSource] = (0, import_react23.useState)("");
+    const [target, setTarget] = (0, import_react23.useState)("");
+    const [busy, setBusy] = (0, import_react23.useState)(false);
+    const [result, setResult] = (0, import_react23.useState)(null);
+    const canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim();
+    const onMerge = async () => {
+      setBusy(true);
+      setResult(null);
+      const sourceName = source.trim();
+      const targetName = target.trim();
+      let local;
+      try {
+        local = applyMergeToLocalStorage(sourceName, targetName);
+      } catch (e) {
+        setBusy(false);
+        setResult({ ok: false, error: `Erreur localStorage: ${e?.message || e}` });
+        return;
+      }
+      let remote = null;
+      try {
+        const r = await mergeIdentity({ sourceName, targetName });
+        remote = r;
+      } catch (e) {
+        remote = { ok: false, reason: "exception", error: e };
+      }
+      setBusy(false);
+      setResult({ ok: true, local, remote });
+    };
+    const localTotal = result?.local ? result.local.cases + result.local.investigations + result.local.meetings + result.local.briefs : 0;
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.purple } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Fusion d'identit\xE9")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo ou fusionne deux variantes d'un m\xEAme nom. Met \xE0 jour les cases, rencontres, enqu\xEAtes et briefs (localStorage + Supabase si disponible). Append une entr\xE9e ", /* @__PURE__ */ import_react23.default.createElement("code", { style: { fontSize: 10 } }, "identity.merged"), " \xE0 l'audit log."), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement(
+      "input",
+      {
+        type: "text",
+        value: source,
+        placeholder: "Nom source (ex: CHanny Tremblay)",
+        onChange: (e) => setSource(e.target.value),
+        disabled: busy,
+        style: { ...css.input, flex: "1 1 220px", minWidth: 200, padding: "6px 10px", fontSize: 12 }
+      }
+    ), /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textD, fontSize: 14 } }, "\u2192"), /* @__PURE__ */ import_react23.default.createElement(
+      "input",
+      {
+        type: "text",
+        value: target,
+        placeholder: "Nom cible (ex: Channy Tremblay)",
+        onChange: (e) => setTarget(e.target.value),
+        disabled: busy,
+        style: { ...css.input, flex: "1 1 220px", minWidth: 200, padding: "6px 10px", fontSize: 12 }
+      }
+    ), /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: onMerge,
+        disabled: !canMerge || busy,
+        style: {
+          ...css.btn(C.purple),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: !canMerge || busy ? 0.5 : 1,
+          cursor: !canMerge || busy ? "not-allowed" : "pointer"
+        }
+      },
+      busy ? "\u2026" : "Fusionner"
+    )), result && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12, fontSize: 12, lineHeight: 1.6 } }, result.ok === false ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.red } }, result.error) : /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.text, marginBottom: 4 } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Local"), " (", localTotal, " entit\xE9", localTotal > 1 ? "s" : "", " mise", localTotal > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", result.local.cases, " \xB7 meetings ", result.local.meetings, " \xB7 enqu\xEAtes ", result.local.investigations, " \xB7 briefs ", result.local.briefs), /* @__PURE__ */ import_react23.default.createElement(RemoteSummary, { remote: result.remote }), localTotal > 0 && /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: () => window.location.reload(),
+        style: { ...css.btn(C.em, true), padding: "4px 10px", fontSize: 11, marginTop: 8 }
+      },
+      "Recharger pour voir les changements"
+    ))));
+  }
+  function RemoteSummary({ remote }) {
+    if (!remote) return null;
+    if (remote.ok) {
+      const b = remote.breakdown || {};
+      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
+    }
+    if (remote.reason === "no-client") {
+      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.");
+    }
+    if (remote.reason === "not-authenticated") {
+      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.");
+    }
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
   }
   function Section({ title, count, color, children }) {
-    return /* @__PURE__ */ import_react22.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react22.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react22.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
   }
   function Empty2({ children }) {
-    return /* @__PURE__ */ import_react22.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "6px 0" } }, children);
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "6px 0" } }, children);
   }
   function Row2({ profile, orgNameById, badge, children }) {
     const orgName = profile.organization_id ? orgNameById[profile.organization_id] || "\u2014" : null;
-    return /* @__PURE__ */ import_react22.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
@@ -37665,21 +38323,21 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       background: C.surf,
       border: `1px solid ${C.border}`,
       borderRadius: 8
-    } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ import_react22.default.createElement("div", { style: {
+    } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: {
       fontSize: 13,
       color: C.text,
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
-    } }, profile.email || /* @__PURE__ */ import_react22.default.createElement("em", { style: { color: C.textD } }, "(sans email)")), badge), /* @__PURE__ */ import_react22.default.createElement("div", { style: {
+    } }, profile.email || /* @__PURE__ */ import_react23.default.createElement("em", { style: { color: C.textD } }, "(sans email)")), badge), /* @__PURE__ */ import_react23.default.createElement("div", { style: {
       fontSize: 10,
       color: C.textD,
       fontFamily: "'DM Mono',monospace",
       display: "flex",
       gap: 8,
       flexWrap: "wrap"
-    } }, /* @__PURE__ */ import_react22.default.createElement("span", null, profile.id), orgName && /* @__PURE__ */ import_react22.default.createElement("span", null, "\xB7 org: ", /* @__PURE__ */ import_react22.default.createElement("b", { style: { color: C.textM } }, orgName)))), children);
+    } }, /* @__PURE__ */ import_react23.default.createElement("span", null, profile.id), orgName && /* @__PURE__ */ import_react23.default.createElement("span", null, "\xB7 org: ", /* @__PURE__ */ import_react23.default.createElement("b", { style: { color: C.textM } }, orgName)))), children);
   }
   function RevokedBadge({ disabledAt }) {
     const { t: t2 } = useT();
@@ -37688,7 +38346,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       const d = new Date(disabledAt);
       if (!Number.isNaN(d.getTime())) suffix = ` \xB7 ${d.toLocaleDateString("fr-CA")}`;
     }
-    return /* @__PURE__ */ import_react22.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement(
       "span",
       {
         style: {
@@ -37713,7 +38371,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     const { t: t2 } = useT();
     const r = ROLE_IDS.includes(role) ? role : "hrbp";
     const s = ROLE_STYLE[r];
-    return /* @__PURE__ */ import_react22.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react23.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -37730,8 +38388,8 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
     const { t: t2 } = useT();
     const role = ROLE_IDS.includes(profile.role) ? profile.role : "hrbp";
-    if (!isSuperAdmin) return /* @__PURE__ */ import_react22.default.createElement(RoleBadge, { role });
-    return /* @__PURE__ */ import_react22.default.createElement(
+    if (!isSuperAdmin) return /* @__PURE__ */ import_react23.default.createElement(RoleBadge, { role });
+    return /* @__PURE__ */ import_react23.default.createElement(
       "select",
       {
         value: role,
@@ -37746,7 +38404,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           opacity: busy ? 0.6 : 1
         }
       },
-      ROLE_IDS.map((r) => /* @__PURE__ */ import_react22.default.createElement(
+      ROLE_IDS.map((r) => /* @__PURE__ */ import_react23.default.createElement(
         "option",
         {
           key: r,
@@ -37760,9 +38418,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   function OrgSelect({ organizations, value, onChange, disabled }) {
     const { t: t2 } = useT();
     if (!organizations || organizations.length === 0) {
-      return /* @__PURE__ */ import_react22.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" } }, t2("admin.noOrganization"));
+      return /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" } }, t2("admin.noOrganization"));
     }
-    return /* @__PURE__ */ import_react22.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement(
       "select",
       {
         value: value || "",
@@ -37771,9 +38429,12 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         title: "Organisation",
         style: { ...css.select, width: 180, padding: "6px 8px", fontSize: 12 }
       },
-      /* @__PURE__ */ import_react22.default.createElement("option", { value: "" }, t2("common.none")),
-      organizations.map((o) => /* @__PURE__ */ import_react22.default.createElement("option", { key: o.id, value: o.id }, o.name))
+      /* @__PURE__ */ import_react23.default.createElement("option", { value: "" }, t2("common.none")),
+      organizations.map((o) => /* @__PURE__ */ import_react23.default.createElement("option", { key: o.id, value: o.id }, o.name))
     );
+  }
+  function RenameIdentityPanel() {
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Renommer un employ\xE9 / gestionnaire")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo dans un nom (ex\xA0: ", /* @__PURE__ */ import_react23.default.createElement("i", null, "CHanny Tremblay"), " \u2192 ", /* @__PURE__ */ import_react23.default.createElement("i", null, "Channy Tremblay"), ").", /* @__PURE__ */ import_react23.default.createElement("b", null, " Preview"), " compte les occurrences sans rien \xE9crire ; ", /* @__PURE__ */ import_react23.default.createElement("b", null, "Appliquer"), " ex\xE9cute le rename sur localStorage et Supabase (si disponible)."), /* @__PURE__ */ import_react23.default.createElement(IdentityRenameForm, null));
   }
 
   // src/index.jsx
@@ -37903,9 +38564,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function LoginScreen() {
     const { t: t2 } = useT();
-    const [email, setEmail] = (0, import_react23.useState)("");
-    const [status, setStatus] = (0, import_react23.useState)("idle");
-    const [errorReason, setErrorReason] = (0, import_react23.useState)("");
+    const [email, setEmail] = (0, import_react24.useState)("");
+    const [status, setStatus] = (0, import_react24.useState)("idle");
+    const [errorReason, setErrorReason] = (0, import_react24.useState)("");
     const send = async () => {
       if (!email || status === "sending") return;
       setStatus("sending");
@@ -37982,23 +38643,23 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function HRBPOS() {
     const { t: t2, lang, setLang: setLang2 } = useT();
-    const [supaSession, setSupaSession] = (0, import_react23.useState)(null);
-    const [sessionChecked, setSessionChecked] = (0, import_react23.useState)(false);
-    const [denied, setDenied] = (0, import_react23.useState)(null);
-    const [userProfile, setUserProfile] = (0, import_react23.useState)(null);
-    const [profileChecked, setProfileChecked] = (0, import_react23.useState)(false);
-    const [module, setModule] = (0, import_react23.useState)("home");
-    const [showMore, setShowMore] = (0, import_react23.useState)(false);
-    const [data, setData] = (0, import_react23.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
-    const [toast, setToast] = (0, import_react23.useState)(false);
-    const [loaded, setLoaded] = (0, import_react23.useState)(false);
-    const [focusCaseId, setFocusCaseId] = (0, import_react23.useState)(null);
-    const [focusMeetingId, setFocusMeetingId] = (0, import_react23.useState)(null);
-    const [focusExitId, setFocusExitId] = (0, import_react23.useState)(null);
-    const [focusSignalId, setFocusSignalId] = (0, import_react23.useState)(null);
-    const [focusDecisionId, setFocusDecisionId] = (0, import_react23.useState)(null);
-    const [focusInvestigationId, setFocusInvestigationId] = (0, import_react23.useState)(null);
-    const handleNavigate = (0, import_react23.useCallback)((id, ctx) => {
+    const [supaSession, setSupaSession] = (0, import_react24.useState)(null);
+    const [sessionChecked, setSessionChecked] = (0, import_react24.useState)(false);
+    const [denied, setDenied] = (0, import_react24.useState)(null);
+    const [userProfile, setUserProfile] = (0, import_react24.useState)(null);
+    const [profileChecked, setProfileChecked] = (0, import_react24.useState)(false);
+    const [module, setModule] = (0, import_react24.useState)("home");
+    const [showMore, setShowMore] = (0, import_react24.useState)(false);
+    const [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } });
+    const [toast, setToast] = (0, import_react24.useState)(false);
+    const [loaded, setLoaded] = (0, import_react24.useState)(false);
+    const [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null);
+    const [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null);
+    const [focusExitId, setFocusExitId] = (0, import_react24.useState)(null);
+    const [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null);
+    const [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null);
+    const [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null);
+    const handleNavigate = (0, import_react24.useCallback)((id, ctx) => {
       if (ctx?.focusCaseId) setFocusCaseId(ctx.focusCaseId);
       if (ctx?.focusMeetingId) setFocusMeetingId(ctx.focusMeetingId);
       if (ctx?.focusExitId) setFocusExitId(ctx.focusExitId);
@@ -38007,7 +38668,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       if (ctx?.focusInvestigationId) setFocusInvestigationId(ctx.focusInvestigationId);
       setModule(id);
     }, []);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       const defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } };
       const timeout = setTimeout(() => setLoaded(true), 1500);
       Promise.allSettled(
@@ -38101,7 +38762,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         setLoaded(true);
       });
     }, []);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       let cancelled = false;
       (async () => {
         if (typeof window !== "undefined") {
@@ -38175,7 +38836,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         unsubscribe();
       };
     }, []);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       if (!hasSupabase) {
         setProfileChecked(true);
         return;
@@ -38211,7 +38872,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       setToast(true);
       setTimeout(() => setToast(false), 2e3);
     };
-    const handleSave = (0, import_react23.useCallback)(async (key2, value) => {
+    const handleSave = (0, import_react24.useCallback)(async (key2, value) => {
       const skKey = SK[key2];
       if (!skKey) return;
       let toSave = value;
@@ -38254,7 +38915,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         });
       }
     }, []);
-    const handleSaveMeeting = (0, import_react23.useCallback)(async (session, caseEntry) => {
+    const handleSaveMeeting = (0, import_react24.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
       const newMeetings = [...data.meetings || [], session];
       await sSet(SK.meetings, newMeetings);
@@ -38316,7 +38977,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       showToast();
     }, [data]);
-    const handleUpdateMeeting = (0, import_react23.useCallback)(async (updatedSession) => {
+    const handleUpdateMeeting = (0, import_react24.useCallback)(async (updatedSession) => {
       const newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
@@ -38331,7 +38992,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       });
       showToast();
     }, [data]);
-    const transitionCase = (0, import_react23.useCallback)(async (caseId, newStatus, extraPatch) => {
+    const transitionCase = (0, import_react24.useCallback)(async (caseId, newStatus, extraPatch) => {
       const allCases = data.cases || [];
       const target = allCases.find((c) => c.id === caseId);
       if (!target) {

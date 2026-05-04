@@ -72,6 +72,21 @@ export async function fetchOrCreateProfile(user) {
   return { ok: true, profile: inserted ?? FALLBACK(user) };
 }
 
+// Org scope helper. super_admin can act on any profile; org admin can only act
+// on profiles in its own organization (and must itself be approved + assigned
+// to an org). Used by both the UI (to gate buttons) and the mutation services
+// below (belt-and-suspenders against direct calls).
+export function canActOnProfile(caller, target) {
+  if (!caller || !target) return false;
+  if (caller.status !== "approved") return false;
+  if (caller.role === "super_admin") return true;
+  if (caller.role !== "admin") return false;
+  if (!caller.organization_id) return false;
+  return target.organization_id === caller.organization_id;
+}
+
+const NOT_ALLOWED_CROSS_ORG = { ok: false, reason: "not-allowed-cross-org" };
+
 export async function listProfilesByStatus(status) {
   if (!supabase) return NO_CLIENT;
   const { data, error } = await supabase
@@ -83,12 +98,20 @@ export async function listProfilesByStatus(status) {
   return { ok: true, profiles: data ?? [] };
 }
 
-export async function listAllProfiles() {
+// Optional `{ organization_id }` narrows the list to that org. Pass `null` to
+// only return profiles with no org assigned. Omit to fetch every row RLS
+// allows. Org admins should always pass their own org_id; super_admin omits.
+export async function listAllProfiles(opts = {}) {
   if (!supabase) return NO_CLIENT;
-  const { data, error } = await supabase
+  let q = supabase
     .from("profiles")
     .select(PROFILE_COLS)
     .order("created_at", { ascending: true });
+  if (opts && Object.prototype.hasOwnProperty.call(opts, "organization_id")) {
+    if (opts.organization_id === null) q = q.is("organization_id", null);
+    else if (opts.organization_id) q = q.eq("organization_id", opts.organization_id);
+  }
+  const { data, error } = await q;
   if (error) return { ok: false, reason: "query-error", error };
   return { ok: true, profiles: data ?? [] };
 }
@@ -97,9 +120,23 @@ export async function listPendingProfiles() {
   return listProfilesByStatus("pending");
 }
 
-export async function updateProfile(id, patch) {
+// `ctx` (optional) carries the caller and target profile to enforce same-org
+// access. RLS + triggers + RPCs are still the source of truth on the server,
+// but this short-circuits cross-org attempts before any network round-trip.
+export async function updateProfile(id, patch, ctx = {}) {
   if (!supabase) return NO_CLIENT;
   if (!id) return { ok: false, reason: "invalid-id" };
+  if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+    return NOT_ALLOWED_CROSS_ORG;
+  }
+  // Only super_admin may change a profile's organization_id; for org admins,
+  // strip that key from the patch even if the caller passed one.
+  if (ctx.caller && ctx.caller.role !== "super_admin"
+      && patch && typeof patch === "object"
+      && Object.prototype.hasOwnProperty.call(patch, "organization_id")
+      && patch.organization_id !== ctx.caller.organization_id) {
+    return { ok: false, reason: "org-change-forbidden" };
+  }
   const allowed = {};
   if (patch && typeof patch === "object") {
     if (patch.status !== undefined)          allowed.status          = patch.status;
@@ -121,9 +158,12 @@ export async function updateProfile(id, patch) {
 // Admin-only RPC: flips status to 'disabled' and stamps disabled_at/disabled_by.
 // Server enforces admin role + approved status, blocks self-revoke, errors if
 // target profile does not exist. Errors surface as { ok:false, reason }.
-export async function revokeUserAccess(targetUserId) {
+export async function revokeUserAccess(targetUserId, ctx = {}) {
   if (!supabase) return NO_CLIENT;
   if (!targetUserId) return { ok: false, reason: "invalid-id" };
+  if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+    return NOT_ALLOWED_CROSS_ORG;
+  }
   const { data, error } = await supabase
     .rpc("revoke_user_access", { target_user_id: targetUserId });
   if (error) return { ok: false, reason: rpcReason(error), error };
@@ -131,9 +171,12 @@ export async function revokeUserAccess(targetUserId) {
 }
 
 // Admin-only RPC: flips status to 'approved' and clears disabled_at/disabled_by.
-export async function restoreUserAccess(targetUserId) {
+export async function restoreUserAccess(targetUserId, ctx = {}) {
   if (!supabase) return NO_CLIENT;
   if (!targetUserId) return { ok: false, reason: "invalid-id" };
+  if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+    return NOT_ALLOWED_CROSS_ORG;
+  }
   const { data, error } = await supabase
     .rpc("restore_user_access", { target_user_id: targetUserId });
   if (error) return { ok: false, reason: rpcReason(error), error };
@@ -145,10 +188,13 @@ export async function restoreUserAccess(targetUserId) {
 // and refuses caller self-demotion. Errors normalized to { ok:false, reason }.
 export const ROLES = ["super_admin", "admin", "hrbp"];
 
-export async function setUserRole(targetUserId, newRole) {
+export async function setUserRole(targetUserId, newRole, ctx = {}) {
   if (!supabase) return NO_CLIENT;
   if (!targetUserId) return { ok: false, reason: "invalid-id" };
   if (!ROLES.includes(newRole)) return { ok: false, reason: "invalid-role" };
+  if (ctx.caller && ctx.target && !canActOnProfile(ctx.caller, ctx.target)) {
+    return NOT_ALLOWED_CROSS_ORG;
+  }
   const { data, error } = await supabase
     .rpc("set_user_role", { target_user_id: targetUserId, new_role: newRole });
   if (error) return { ok: false, reason: rpcReason(error), error };
