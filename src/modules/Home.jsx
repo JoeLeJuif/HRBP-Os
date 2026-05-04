@@ -62,8 +62,8 @@ const BRIEF_SOURCE_NAV = { meeting:"meetings", case:"cases", signal:"signals", m
 // Unified routing: type+sourceId drives the destination. `nav` is only used when
 // no type is set (aggregate items). Weekly is reached only when no sourceId and
 // no module-specific nav is available.
-const TYPE_TO_NAV = { case:"cases", signal:"signals", meeting:"meetings" };
-const TYPE_TO_FOCUS = { case:"focusCaseId", signal:"focusSignalId", meeting:"focusMeetingId" };
+const TYPE_TO_NAV = { case:"cases", signal:"signals", meeting:"meetings", decision:"decisions" };
+const TYPE_TO_FOCUS = { case:"focusCaseId", signal:"focusSignalId", meeting:"focusMeetingId", decision:"focusDecisionId" };
 
 function buildNav(item) {
   const typedNav = TYPE_TO_NAV[item?.type];
@@ -78,6 +78,9 @@ export default function ModuleHome({ data, onNavigate }) {
   const { t } = useT();
   const goTo = (item) => {
     const { destination, ctx } = buildNav(item);
+    if (destination === "leaders" && item?.leaderName) {
+      sessionStorage.setItem("hrbpos:pendingLeader", item.leaderName);
+    }
     onNavigate(destination, ctx);
   };
 
@@ -183,7 +186,7 @@ export default function ModuleHome({ data, onNavigate }) {
           sortKey: 1, type:"leader", id:"br_l"+i, title: `${l.person} — ${l.signal}`,
           sub: l.action || "",
           badge: { label: l.evolution || "Watch", color: l.evolution === "Aggrave" ? C.red : C.amber },
-          nav: "leaders",
+          nav: "leaders", leaderName: l.person,
         });
       });
     }
@@ -194,7 +197,7 @@ export default function ModuleHome({ data, onNavigate }) {
           sortKey: 2, type:"retention", id:"br_ret"+i, title: r.profile,
           sub: [r.window, r.lever].filter(Boolean).join(" · "),
           badge: { label: `Rétention ${r.risk}`, color: BRIEF_RISK_C[r.risk] || C.red },
-          nav: "leaders",
+          nav: "leaders", leaderName: r.profile,
         });
       });
     }
@@ -242,12 +245,12 @@ export default function ModuleHome({ data, onNavigate }) {
     badge:{ label:"⚠ retard", color:C.red }, nav:"cases",
   }));
   overdueReviews.forEach(d => fallbackAttentionItems.push({
-    sortKey:1, type:"decision", id:d.id, title:d.title||"(décision)",
+    sortKey:1, type:"decision", id:d.id, sourceId:d.id, title:d.title||"(décision)",
     sub:[d.managerName, `review ${fmtDate(d.reviewDate)}`].filter(Boolean).join(" · "),
     badge:{ label:"Review due", color:C.red }, nav:"decisions",
   }));
   highRiskDecisions.filter(d => !overdueReviews.includes(d)).forEach(d => fallbackAttentionItems.push({
-    sortKey:2, type:"decision", id:d.id, title:d.title||"(décision)",
+    sortKey:2, type:"decision", id:d.id, sourceId:d.id, title:d.title||"(décision)",
     sub:[tDecisionType(t, d.decisionType), d.managerName].filter(Boolean).join(" · "),
     badge:{ label:t("home.badge.highRisk"), color:C.red }, nav:"decisions",
   }));

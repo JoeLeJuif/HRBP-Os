@@ -35152,8 +35152,8 @@ ${recap.sentText}`,
   var BRIEF_URGENCY_C = { "Immediat": C.red, "Imm\xE9diat": C.red, "Cette semaine": C.amber, "Semaine prochaine": C.blue };
   var BRIEF_RISK_C = { "Critique": C.red, "Eleve": C.amber, "\xC9lev\xE9": C.amber, "Modere": C.blue, "Mod\xE9r\xE9": C.blue, "Faible": C.em };
   var BRIEF_SOURCE_NAV = { meeting: "meetings", case: "cases", signal: "signals", multiple: "brief" };
-  var TYPE_TO_NAV = { case: "cases", signal: "signals", meeting: "meetings" };
-  var TYPE_TO_FOCUS = { case: "focusCaseId", signal: "focusSignalId", meeting: "focusMeetingId" };
+  var TYPE_TO_NAV = { case: "cases", signal: "signals", meeting: "meetings", decision: "decisions" };
+  var TYPE_TO_FOCUS = { case: "focusCaseId", signal: "focusSignalId", meeting: "focusMeetingId", decision: "focusDecisionId" };
   function buildNav(item) {
     const typedNav = TYPE_TO_NAV[item?.type];
     const destination = typedNav || item?.nav || "brief";
@@ -35165,6 +35165,9 @@ ${recap.sentText}`,
     const { t: t2 } = useT();
     const goTo = (item) => {
       const { destination, ctx } = buildNav(item);
+      if (destination === "leaders" && item?.leaderName) {
+        sessionStorage.setItem("hrbpos:pendingLeader", item.leaderName);
+      }
       onNavigate(destination, ctx);
     };
     const cases = (data.cases || []).filter((c) => c.status !== "archived");
@@ -35248,7 +35251,8 @@ ${recap.sentText}`,
             title: `${l.person} \u2014 ${l.signal}`,
             sub: l.action || "",
             badge: { label: l.evolution || "Watch", color: l.evolution === "Aggrave" ? C.red : C.amber },
-            nav: "leaders"
+            nav: "leaders",
+            leaderName: l.person
           });
         });
       }
@@ -35261,7 +35265,8 @@ ${recap.sentText}`,
             title: r.profile,
             sub: [r.window, r.lever].filter(Boolean).join(" \xB7 "),
             badge: { label: `R\xE9tention ${r.risk}`, color: BRIEF_RISK_C[r.risk] || C.red },
-            nav: "leaders"
+            nav: "leaders",
+            leaderName: r.profile
           });
         });
       }
@@ -35322,6 +35327,7 @@ ${recap.sentText}`,
       sortKey: 1,
       type: "decision",
       id: d.id,
+      sourceId: d.id,
       title: d.title || "(d\xE9cision)",
       sub: [d.managerName, `review ${fmtDate(d.reviewDate)}`].filter(Boolean).join(" \xB7 "),
       badge: { label: "Review due", color: C.red },
@@ -35331,6 +35337,7 @@ ${recap.sentText}`,
       sortKey: 2,
       type: "decision",
       id: d.id,
+      sourceId: d.id,
       title: d.title || "(d\xE9cision)",
       sub: [tDecisionType(t2, d.decisionType), d.managerName].filter(Boolean).join(" \xB7 "),
       badge: { label: t2("home.badge.highRisk"), color: C.red },
