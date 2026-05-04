@@ -35447,32 +35447,14 @@ ${recap.sentText}`,
       background: (BRIEF_RISK_C[lb.riskLevel] || C.textD) + "18",
       padding: "2px 8px",
       borderRadius: 4
-    } }, t2("home.briefRiskLabel"), " ", lb.riskLevel))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 } }, kpis.map((s, i) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: i,
-        onClick: () => onNavigate(s.nav),
-        style: {
-          background: C.surf,
-          border: `1px solid ${s.value > 0 ? s.color + "44" : C.border}`,
-          borderRadius: 8,
-          padding: "12px 14px",
-          textAlign: "left",
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          transition: "border-color .15s, background .15s"
-        },
-        onMouseEnter: (e) => {
-          e.currentTarget.style.borderColor = s.color;
-        },
-        onMouseLeave: (e) => {
-          e.currentTarget.style.borderColor = s.value > 0 ? s.color + "44" : C.border;
-        }
-      },
-      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 24, fontWeight: 800, color: s.color } }, s.value),
-      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: C.text, marginTop: 2 } }, s.label),
-      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, marginTop: 2 } }, s.sub)
-    ))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${topFocus.length > 0 ? C.red : C.em}` } }, /* @__PURE__ */ React.createElement(
+    } }, t2("home.briefRiskLabel"), " ", lb.riskLevel))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 } }, kpis.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, title: "Filtres \xE0 venir", style: {
+      background: C.surf,
+      border: `1px solid ${s.value > 0 ? s.color + "44" : C.border}`,
+      borderRadius: 8,
+      padding: "12px 14px",
+      textAlign: "left",
+      fontFamily: "'DM Sans',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 24, fontWeight: 800, color: s.color } }, s.value), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: C.text, marginTop: 2 } }, s.label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, marginTop: 2 } }, s.sub)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 14, borderLeft: `3px solid ${topFocus.length > 0 ? C.red : C.em}` } }, /* @__PURE__ */ React.createElement(
       SH,
       {
         icon: "\u{1F3AF}",

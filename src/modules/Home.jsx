@@ -389,16 +389,14 @@ export default function ModuleHome({ data, onNavigate }) {
       {/* ── KPI strip ────────────────────────────────────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:16 }}>
         {kpis.map((s,i) => (
-          <button key={i} onClick={()=>onNavigate(s.nav)} style={{
+          <div key={i} title="Filtres à venir" style={{
             background:C.surf, border:`1px solid ${s.value>0 ? s.color+"44" : C.border}`,
-            borderRadius:8, padding:"12px 14px", textAlign:"left", cursor:"pointer",
-            fontFamily:"'DM Sans',sans-serif", transition:"border-color .15s, background .15s" }}
-            onMouseEnter={e=>{ e.currentTarget.style.borderColor=s.color; }}
-            onMouseLeave={e=>{ e.currentTarget.style.borderColor=s.value>0?s.color+"44":C.border; }}>
+            borderRadius:8, padding:"12px 14px", textAlign:"left",
+            fontFamily:"'DM Sans',sans-serif" }}>
             <div style={{ fontSize:24, fontWeight:800, color:s.color }}>{s.value}</div>
             <div style={{ fontSize:10, fontWeight:600, color:C.text, marginTop:2 }}>{s.label}</div>
             <div style={{ fontSize:9, color:C.textD, marginTop:2 }}>{s.sub}</div>
-          </button>
+          </div>
         ))}
       </div>
 
