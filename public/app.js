@@ -21712,8 +21712,8 @@ ${suffix}`;
   if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
   // src/lib/supabase.js
-  var url = "";
-  var key = "";
+  var url = process.env.VITE_SUPABASE_URL || "";
+  var key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   var supabase = url && key ? createClient(url, key) : null;
   var hasSupabase = Boolean(supabase);
 
@@ -27531,8 +27531,7 @@ ${similarBlock}`;
   var URGENCY_C = { "Immediat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
   var EVO_C = { "Nouveau": C.blue, "En cours": C.amber, "Aggrav\xE9": C.red, "En am\xE9lioration": C.teal, "Bloqu\xE9": C.red, "R\xE9solu": C.em };
   var HR_POSTURE_C = { "Partenaire": C.blue, "Garant": C.red, "Coach": C.teal, "Neutre": C.textD, "Enqu\xEAteur": "#7a1e2e" };
-  var URGENCY_ORDER = { "Immediat": 0, "Cette semaine": 1, "Ce mois": 2, "En veille": 3 };
-  var RISK_ORDER = { "Critique": 0, "\xC9lev\xE9": 1, "Mod\xE9r\xE9": 2, "Faible": 3 };
+  var _caseSortKey = (c) => c?.updatedAt || c?.lastUpdated || c?.createdAt || c?.date || "";
   var CASE_TO_ENGINE = {
     performance: "performance",
     pip: "performance",
@@ -27941,13 +27940,9 @@ ${similarBlock}`;
       const matchProvince = !filterProvince || getProvince(c, data.profile) === filterProvince;
       return matchSearch && matchStatus && matchProvince;
     }).sort((a, b) => {
-      const ua = URGENCY_ORDER[a.urgency] ?? 4, ub = URGENCY_ORDER[b.urgency] ?? 4;
-      if (ua !== ub) return ua - ub;
-      const da = a.dueDate || "9999-99-99", db = b.dueDate || "9999-99-99";
-      if (da !== db) return da < db ? -1 : 1;
-      const ra = RISK_ORDER[a.riskLevel] ?? 4, rb = RISK_ORDER[b.riskLevel] ?? 4;
-      if (ra !== rb) return ra - rb;
-      return (b.updatedAt || "0000-00-00") < (a.updatedAt || "0000-00-00") ? -1 : 1;
+      const ka = _caseSortKey(a), kb = _caseSortKey(b);
+      if (ka === kb) return 0;
+      return ka < kb ? 1 : -1;
     });
     const save = async () => {
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -31497,15 +31492,15 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
     const next = { ...cur, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] };
     return { ...leadersMap, [k]: next };
   }
-  var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
+  var RISK_ORDER = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
   function computeFocusScore(autoLeader, meta, todayISO) {
     let score2 = 0;
     const reasons = [];
     const activeCases = (autoLeader.cases || []).filter(isCaseActive);
     const lastMeeting = (autoLeader.meetings || [])[0];
     const autoRisks = [...activeCases.map((c) => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
-    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER2[r] ?? 3)) : 3;
-    const overrideOrder = meta.riskOverride ? RISK_ORDER2[meta.riskOverride] ?? 3 : 9;
+    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER[r] ?? 3)) : 3;
+    const overrideOrder = meta.riskOverride ? RISK_ORDER[meta.riskOverride] ?? 3 : 9;
     const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
     score2 += (3 - effectiveOrder) * 30;
     if (effectiveOrder === 0) reasons.push("risque critique");
@@ -36107,7 +36102,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
   function InfoRow({ label, children }) {
     return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { size: 8, color: C.textD }, label), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, children));
   }
-  var RISK_ORDER3 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
+  var RISK_ORDER2 = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
   var RISK_LABELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
   var LEVEL_ORDER = { employe: 0, gestionnaire: 1, manager: 1, director: 2, directeur: 2, vp: 3, executif: 4, hrbp_team: 5, ta_team: 6, autres: 7 };
   var LEVEL_META = {
@@ -36180,7 +36175,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
   })[r] || C.blue;
   var normName = normKey;
   var worstRisk = (arr) => {
-    const filtered = arr.filter(Boolean).map((r) => RISK_ORDER3[r] ?? 3);
+    const filtered = arr.filter(Boolean).map((r) => RISK_ORDER2[r] ?? 3);
     if (filtered.length === 0) return "Faible";
     return RISK_LABELS[Math.min(...filtered)] || "Faible";
   };

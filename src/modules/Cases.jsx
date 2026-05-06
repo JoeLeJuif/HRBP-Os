@@ -218,8 +218,9 @@ const ACTIVE_STATUSES = ["open","in_progress","waiting"];
 const URGENCY_C    = {"Immediat":C.red,"Cette semaine":C.amber,"Ce mois":C.blue,"En veille":C.textD};
 const EVO_C        = {"Nouveau":C.blue,"En cours":C.amber,"Aggravé":C.red,"En amélioration":C.teal,"Bloqué":C.red,"Résolu":C.em};
 const HR_POSTURE_C = {"Partenaire":C.blue,"Garant":C.red,"Coach":C.teal,"Neutre":C.textD,"Enquêteur":"#7a1e2e"};
-const URGENCY_ORDER = {"Immediat":0,"Cette semaine":1,"Ce mois":2,"En veille":3};
-const RISK_ORDER    = {"Critique":0,"Élevé":1,"Modéré":2,"Faible":3};
+// Newest-first key — applied uniformly after status filtering so every
+// Case Journal tab (active/archived/all × open/closed/etc.) sorts the same way.
+const _caseSortKey = (c) => c?.updatedAt || c?.lastUpdated || c?.createdAt || c?.date || "";
 // B-25: Map Case type → MeetingEngine engineType
 const CASE_TO_ENGINE = {
   performance: "performance",
@@ -585,13 +586,9 @@ export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate
     const matchProvince = !filterProvince || getProvince(c, data.profile) === filterProvince;
     return matchSearch && matchStatus && matchProvince;
   }).sort((a, b) => {
-    const ua = URGENCY_ORDER[a.urgency] ?? 4, ub = URGENCY_ORDER[b.urgency] ?? 4;
-    if (ua !== ub) return ua - ub;
-    const da = a.dueDate || "9999-99-99", db = b.dueDate || "9999-99-99";
-    if (da !== db) return da < db ? -1 : 1;
-    const ra = RISK_ORDER[a.riskLevel] ?? 4, rb = RISK_ORDER[b.riskLevel] ?? 4;
-    if (ra !== rb) return ra - rb;
-    return (b.updatedAt||"0000-00-00") < (a.updatedAt||"0000-00-00") ? -1 : 1;
+    const ka = _caseSortKey(a), kb = _caseSortKey(b);
+    if (ka === kb) return 0;
+    return ka < kb ? 1 : -1; // newest first
   });
 
   const save = async () => {
