@@ -27531,7 +27531,11 @@ ${similarBlock}`;
   var URGENCY_C = { "Immediat": C.red, "Cette semaine": C.amber, "Ce mois": C.blue, "En veille": C.textD };
   var EVO_C = { "Nouveau": C.blue, "En cours": C.amber, "Aggrav\xE9": C.red, "En am\xE9lioration": C.teal, "Bloqu\xE9": C.red, "R\xE9solu": C.em };
   var HR_POSTURE_C = { "Partenaire": C.blue, "Garant": C.red, "Coach": C.teal, "Neutre": C.textD, "Enqu\xEAteur": "#7a1e2e" };
-  var _caseSortKey = (c) => c?.updatedAt || c?.lastUpdated || c?.createdAt || c?.date || "";
+  function _caseSortKey(c) {
+    const raw = c?.updatedAt || c?.lastUpdated || c?.createdAt || c?.date || "";
+    const ms = raw ? Date.parse(raw) : NaN;
+    return Number.isFinite(ms) ? ms : 0;
+  }
   var CASE_TO_ENGINE = {
     performance: "performance",
     pip: "performance",
@@ -27939,11 +27943,7 @@ ${similarBlock}`;
       const matchStatus = filterStatus === "all" || c.status === filterStatus;
       const matchProvince = !filterProvince || getProvince(c, data.profile) === filterProvince;
       return matchSearch && matchStatus && matchProvince;
-    }).sort((a, b) => {
-      const ka = _caseSortKey(a), kb = _caseSortKey(b);
-      if (ka === kb) return 0;
-      return ka < kb ? 1 : -1;
-    });
+    }).sort((a, b) => _caseSortKey(b) - _caseSortKey(a));
     const save = async () => {
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const isClosing = form.status === "closed" || form.status === "archived";

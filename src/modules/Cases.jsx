@@ -220,7 +220,12 @@ const EVO_C        = {"Nouveau":C.blue,"En cours":C.amber,"Aggravé":C.red,"En a
 const HR_POSTURE_C = {"Partenaire":C.blue,"Garant":C.red,"Coach":C.teal,"Neutre":C.textD,"Enquêteur":"#7a1e2e"};
 // Newest-first key — applied uniformly after status filtering so every
 // Case Journal tab (active/archived/all × open/closed/etc.) sorts the same way.
-const _caseSortKey = (c) => c?.updatedAt || c?.lastUpdated || c?.createdAt || c?.date || "";
+// Numeric (ms) so date-only strings and full ISO timestamps compare correctly.
+function _caseSortKey(c) {
+  const raw = c?.updatedAt || c?.lastUpdated || c?.createdAt || c?.date || "";
+  const ms = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(ms) ? ms : 0;
+}
 // B-25: Map Case type → MeetingEngine engineType
 const CASE_TO_ENGINE = {
   performance: "performance",
@@ -585,11 +590,7 @@ export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate
     const matchStatus = filterStatus === "all" || c.status === filterStatus;
     const matchProvince = !filterProvince || getProvince(c, data.profile) === filterProvince;
     return matchSearch && matchStatus && matchProvince;
-  }).sort((a, b) => {
-    const ka = _caseSortKey(a), kb = _caseSortKey(b);
-    if (ka === kb) return 0;
-    return ka < kb ? 1 : -1; // newest first
-  });
+  }).sort((a, b) => _caseSortKey(b) - _caseSortKey(a));
 
   const save = async () => {
     const today = new Date().toISOString().split("T")[0];
