@@ -21712,8 +21712,8 @@ ${suffix}`;
   if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
   // src/lib/supabase.js
-  var url = process.env.VITE_SUPABASE_URL || "";
-  var key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  var url = "";
+  var key = "";
   var supabase = url && key ? createClient(url, key) : null;
   var hasSupabase = Boolean(supabase);
 
@@ -27341,6 +27341,146 @@ ${similarBlock}`;
     return out;
   }
 
+  // src/utils/leaderStore.js
+  var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
+  var RISK_LEVELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
+  var TYPE_ICON = {
+    "Solide": "\u2705",
+    "\xC9vitant": "\u{1FAE5}",
+    "Evitant": "\u{1FAE5}",
+    "Surcharg\xE9": "\u{1F525}",
+    "Surcharge": "\u{1F525}",
+    "Micromanager": "\u{1F52C}",
+    "Politique": "\u{1F3AD}",
+    "En d\xE9veloppement": "\u{1F331}",
+    "En developpement": "\u{1F331}"
+  };
+  var PRESSURE_EMOJI = { "Elevee": "\u{1F534}", "\xC9lev\xE9e": "\u{1F534}", "Moderee": "\u{1F7E1}", "Mod\xE9r\xE9e": "\u{1F7E1}", "Faible": "\u{1F7E2}" };
+  function emptyMeta() {
+    return {
+      type: "",
+      pressure: "",
+      riskOverride: "",
+      topIssue: "",
+      nextAction: "",
+      execSummary: "",
+      tags: [],
+      lastInteraction: "",
+      updatedAt: "",
+      legacy: {}
+    };
+  }
+  function getLeadersMap(data) {
+    const existing = data.leaders;
+    if (existing && typeof existing === "object" && !Array.isArray(existing) && Object.keys(existing).length > 0) {
+      return existing;
+    }
+    const portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+    if (portfolio.length === 0) return {};
+    const out = {};
+    portfolio.forEach((p) => {
+      if (!p?.name) return;
+      const key2 = normKey(p.name);
+      if (!key2) return;
+      const known = ["id", "name", "team", "level", "risk", "pressure", "type", "topIssue", "hrbpAction", "lastInteraction", "notes"];
+      const legacy = {};
+      Object.keys(p).forEach((k) => {
+        if (!known.includes(k)) legacy[k] = p[k];
+      });
+      out[key2] = {
+        type: p.type || "",
+        pressure: p.pressure || "",
+        riskOverride: p.risk || "",
+        topIssue: p.topIssue || "",
+        nextAction: p.hrbpAction || "",
+        execSummary: p.notes || "",
+        tags: [],
+        lastInteraction: p.lastInteraction || "",
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        legacy
+      };
+    });
+    return out;
+  }
+  function getMeta(name, leadersMap) {
+    if (!name) return emptyMeta();
+    const k = normKey(name);
+    return leadersMap[k] || emptyMeta();
+  }
+  function setMeta(leadersMap, name, patch) {
+    const k = normKey(name);
+    if (!k) return leadersMap;
+    const cur = leadersMap[k] || emptyMeta();
+    const next = { ...cur, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] };
+    return { ...leadersMap, [k]: next };
+  }
+  function isPersonArchived(name, leadersMap) {
+    if (!name || !leadersMap) return false;
+    const k = normKey(name);
+    if (!k) return false;
+    const meta = leadersMap[k];
+    return !!(meta && meta.archived);
+  }
+  function anyPersonArchived(names, leadersMap) {
+    if (!Array.isArray(names) || names.length === 0) return false;
+    for (const n of names) if (isPersonArchived(n, leadersMap)) return true;
+    return false;
+  }
+  var RISK_ORDER = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
+  function computeFocusScore(autoLeader, meta, todayISO) {
+    let score2 = 0;
+    const reasons = [];
+    const activeCases = (autoLeader.cases || []).filter(isCaseActive);
+    const lastMeeting = (autoLeader.meetings || [])[0];
+    const autoRisks = [...activeCases.map((c) => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
+    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER[r] ?? 3)) : 3;
+    const overrideOrder = meta.riskOverride ? RISK_ORDER[meta.riskOverride] ?? 3 : 9;
+    const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
+    score2 += (3 - effectiveOrder) * 30;
+    if (effectiveOrder === 0) reasons.push("risque critique");
+    else if (effectiveOrder === 1) reasons.push("risque \xE9lev\xE9");
+    const lastDate = meta.lastInteraction || lastMeeting?.savedAt || null;
+    const days = lastDate ? Math.floor((new Date(todayISO) - new Date(lastDate)) / 864e5) : 99;
+    if (days > 21) {
+      score2 += 20;
+      reasons.push(`${days}j sans contact`);
+    } else if (days > 14) {
+      score2 += 10;
+      reasons.push(`${days}j sans contact`);
+    }
+    if (meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e") {
+      score2 += 15;
+      reasons.push("pression \xE9lev\xE9e");
+    }
+    if (meta.type === "\xC9vitant" || meta.type === "Evitant") {
+      score2 += 10;
+      reasons.push("pattern \xE9vitant");
+    }
+    if (meta.type === "Surcharg\xE9" || meta.type === "Surcharge") {
+      score2 += 8;
+      reasons.push("d\xE9bord\xE9");
+    }
+    if (activeCases.length >= 2) {
+      score2 += 5;
+    }
+    return { score: score2, reasons: reasons.slice(0, 3), days };
+  }
+  function getLastEngineOutput(leaderName, data) {
+    if (!leaderName) return null;
+    const nk = normKey(leaderName);
+    const sessions = (data.prep1on1 || []).filter(
+      (s) => s.kind === "1:1-meeting" && normKey(s.managerName || "") === nk && s.output
+    ).sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+    return sessions.length ? { ...sessions[0].output, _savedAt: sessions[0].savedAt } : null;
+  }
+  function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {
+    return autoLeaders.map((l) => {
+      const meta = getMeta(l.name, leadersMap);
+      const f = computeFocusScore(l, meta, todayISO);
+      return { ...l, _meta: meta, _focus: f };
+    }).filter((x) => x._focus.score > 10).sort((a, b) => b._focus.score - a._focus.score).slice(0, n);
+  }
+
   // src/modules/Cases.jsx
   function RiskBadge2({ level }) {
     const { t: t2 } = useT();
@@ -27931,10 +28071,13 @@ ${similarBlock}`;
         cancelled = true;
       };
     }, [data.cases?.length, view]);
+    const leadersMap = getLeadersMap(data);
     const cases = (data.cases || []).filter((c) => {
       if (filterArchived === "archived") return c.status === "archived";
       if (filterArchived === "all") return true;
-      return c.status !== "archived";
+      if (c.status === "archived") return false;
+      if (anyPersonArchived([c.director, c.employee], leadersMap)) return false;
+      return true;
     });
     const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     const filtered = cases.filter((c) => {
@@ -31419,134 +31562,6 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   // src/modules/MeetingEngine.jsx
   var import_react17 = __require("react");
 
-  // src/utils/leaderStore.js
-  var MANAGER_TYPES = ["Solide", "\xC9vitant", "Surcharg\xE9", "Micromanager", "Politique", "En d\xE9veloppement"];
-  var RISK_LEVELS = ["Critique", "\xC9lev\xE9", "Mod\xE9r\xE9", "Faible"];
-  var TYPE_ICON = {
-    "Solide": "\u2705",
-    "\xC9vitant": "\u{1FAE5}",
-    "Evitant": "\u{1FAE5}",
-    "Surcharg\xE9": "\u{1F525}",
-    "Surcharge": "\u{1F525}",
-    "Micromanager": "\u{1F52C}",
-    "Politique": "\u{1F3AD}",
-    "En d\xE9veloppement": "\u{1F331}",
-    "En developpement": "\u{1F331}"
-  };
-  var PRESSURE_EMOJI = { "Elevee": "\u{1F534}", "\xC9lev\xE9e": "\u{1F534}", "Moderee": "\u{1F7E1}", "Mod\xE9r\xE9e": "\u{1F7E1}", "Faible": "\u{1F7E2}" };
-  function emptyMeta() {
-    return {
-      type: "",
-      pressure: "",
-      riskOverride: "",
-      topIssue: "",
-      nextAction: "",
-      execSummary: "",
-      tags: [],
-      lastInteraction: "",
-      updatedAt: "",
-      legacy: {}
-    };
-  }
-  function getLeadersMap(data) {
-    const existing = data.leaders;
-    if (existing && typeof existing === "object" && !Array.isArray(existing) && Object.keys(existing).length > 0) {
-      return existing;
-    }
-    const portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
-    if (portfolio.length === 0) return {};
-    const out = {};
-    portfolio.forEach((p) => {
-      if (!p?.name) return;
-      const key2 = normKey(p.name);
-      if (!key2) return;
-      const known = ["id", "name", "team", "level", "risk", "pressure", "type", "topIssue", "hrbpAction", "lastInteraction", "notes"];
-      const legacy = {};
-      Object.keys(p).forEach((k) => {
-        if (!known.includes(k)) legacy[k] = p[k];
-      });
-      out[key2] = {
-        type: p.type || "",
-        pressure: p.pressure || "",
-        riskOverride: p.risk || "",
-        topIssue: p.topIssue || "",
-        nextAction: p.hrbpAction || "",
-        execSummary: p.notes || "",
-        tags: [],
-        lastInteraction: p.lastInteraction || "",
-        updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-        legacy
-      };
-    });
-    return out;
-  }
-  function getMeta(name, leadersMap) {
-    if (!name) return emptyMeta();
-    const k = normKey(name);
-    return leadersMap[k] || emptyMeta();
-  }
-  function setMeta(leadersMap, name, patch) {
-    const k = normKey(name);
-    if (!k) return leadersMap;
-    const cur = leadersMap[k] || emptyMeta();
-    const next = { ...cur, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] };
-    return { ...leadersMap, [k]: next };
-  }
-  var RISK_ORDER = { "Critique": 0, "\xC9lev\xE9": 1, "Eleve": 1, "Mod\xE9r\xE9": 2, "Modere": 2, "Faible": 3 };
-  function computeFocusScore(autoLeader, meta, todayISO) {
-    let score2 = 0;
-    const reasons = [];
-    const activeCases = (autoLeader.cases || []).filter(isCaseActive);
-    const lastMeeting = (autoLeader.meetings || [])[0];
-    const autoRisks = [...activeCases.map((c) => c.riskLevel), lastMeeting?.analysis?.overallRisk].filter(Boolean);
-    const minOrder = autoRisks.length ? Math.min(...autoRisks.map((r) => RISK_ORDER[r] ?? 3)) : 3;
-    const overrideOrder = meta.riskOverride ? RISK_ORDER[meta.riskOverride] ?? 3 : 9;
-    const effectiveOrder = Math.min(minOrder, overrideOrder === 9 ? minOrder : overrideOrder);
-    score2 += (3 - effectiveOrder) * 30;
-    if (effectiveOrder === 0) reasons.push("risque critique");
-    else if (effectiveOrder === 1) reasons.push("risque \xE9lev\xE9");
-    const lastDate = meta.lastInteraction || lastMeeting?.savedAt || null;
-    const days = lastDate ? Math.floor((new Date(todayISO) - new Date(lastDate)) / 864e5) : 99;
-    if (days > 21) {
-      score2 += 20;
-      reasons.push(`${days}j sans contact`);
-    } else if (days > 14) {
-      score2 += 10;
-      reasons.push(`${days}j sans contact`);
-    }
-    if (meta.pressure === "Elevee" || meta.pressure === "\xC9lev\xE9e") {
-      score2 += 15;
-      reasons.push("pression \xE9lev\xE9e");
-    }
-    if (meta.type === "\xC9vitant" || meta.type === "Evitant") {
-      score2 += 10;
-      reasons.push("pattern \xE9vitant");
-    }
-    if (meta.type === "Surcharg\xE9" || meta.type === "Surcharge") {
-      score2 += 8;
-      reasons.push("d\xE9bord\xE9");
-    }
-    if (activeCases.length >= 2) {
-      score2 += 5;
-    }
-    return { score: score2, reasons: reasons.slice(0, 3), days };
-  }
-  function getLastEngineOutput(leaderName, data) {
-    if (!leaderName) return null;
-    const nk = normKey(leaderName);
-    const sessions = (data.prep1on1 || []).filter(
-      (s) => s.kind === "1:1-meeting" && normKey(s.managerName || "") === nk && s.output
-    ).sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
-    return sessions.length ? { ...sessions[0].output, _savedAt: sessions[0].savedAt } : null;
-  }
-  function topFocusLeaders(autoLeaders, leadersMap, todayISO, n = 3) {
-    return autoLeaders.map((l) => {
-      const meta = getMeta(l.name, leadersMap);
-      const f = computeFocusScore(l, meta, todayISO);
-      return { ...l, _meta: meta, _focus: f };
-    }).filter((x) => x._focus.score > 10).sort((a, b) => b._focus.score - a._focus.score).slice(0, n);
-  }
-
   // src/prompts/meetingEngine.js
   var MEETING_ENGINE_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
 Analyse les informations fournies (transcript, notes, contexte) et genere un rapport complet couvrant 3 phases : extraction factuelle, intelligence HRBP, et continuite.
@@ -33298,7 +33313,8 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
         console.log("[focus] not found \u2014 keeping focusMeetingId for retry");
       }
     }, [focusMeetingId, data.meetings]);
-    const meetings = data.meetings || [];
+    const leadersMap = getLeadersMap(data);
+    const meetings = (data.meetings || []).filter((m) => !isPersonArchived(m.director, leadersMap));
     const directors = [...new Set(meetings.map((m) => m.director).filter(Boolean))];
     const compressTranscript = (t3) => {
       return t3.replace(/\[?\d{1,2}:\d{2}(?::\d{2})?\]?/g, "").replace(/^(SPEAKER_\d+|Intervenant\s*\d*|Participant\s*\d*)\s*:/gim, "").replace(/\b(euh|heu|umm|uhh|uh|hmm|genre|tu sais|you know|like|ok ok|right right|yeah yeah)\b/gi, "").replace(/\n{3,}/g, "\n\n").replace(/ {2,}/g, " ").replace(/^[-\s]*$/gm, "").trim();

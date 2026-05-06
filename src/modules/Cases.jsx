@@ -14,6 +14,7 @@ import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import CaseBrief from '../components/CaseBrief.jsx';
 import { listCaseTasks, createCaseTask, updateCaseTask } from '../services/caseTasks.js';
 import { getNextOpenTask, getCaseFollowUp, fetchTasksForCases } from '../utils/caseFollowUp.js';
+import { getLeadersMap, anyPersonArchived } from '../utils/leaderStore.js';
 import { useT, t as tFn } from '../lib/i18n.js';
 import { tStatus, tRisk, tDecisionStatus, tDecisionRisk } from '../lib/i18nEnums.js';
 
@@ -578,10 +579,16 @@ export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate
     return () => { cancelled = true; };
   }, [data.cases?.length, view]); // eslint-disable-line
 
+  // Portfolio archive sync: a person archived in data.leaders propagates to
+  // their cases (related via director / employee name). Active view hides
+  // them; archived/all keep showing them so they remain reachable.
+  const leadersMap = getLeadersMap(data);
   const cases = (data.cases || []).filter(c => {
     if (filterArchived === "archived") return c.status === "archived";
     if (filterArchived === "all") return true;
-    return c.status !== "archived";
+    if (c.status === "archived") return false;
+    if (anyPersonArchived([c.director, c.employee], leadersMap)) return false;
+    return true;
   });
   const todayISO = new Date().toISOString().split("T")[0];
   const filtered = cases.filter(c => {

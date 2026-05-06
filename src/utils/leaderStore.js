@@ -75,6 +75,23 @@ export function setMeta(leadersMap, name, patch) {
   return { ...leadersMap, [k]: next };
 }
 
+// Single source of truth: a "person" is archived iff their Portfolio entry
+// (data.leaders[normKey(name)]) carries `archived:true`. No per-module flag.
+// Empty/unknown names → false.
+export function isPersonArchived(name, leadersMap) {
+  if (!name || !leadersMap) return false;
+  const k = normKey(name);
+  if (!k) return false;
+  const meta = leadersMap[k];
+  return !!(meta && meta.archived);
+}
+
+export function anyPersonArchived(names, leadersMap) {
+  if (!Array.isArray(names) || names.length === 0) return false;
+  for (const n of names) if (isPersonArchived(n, leadersMap)) return true;
+  return false;
+}
+
 const RISK_ORDER = { "Critique":0, "Élevé":1, "Eleve":1, "Modéré":2, "Modere":2, "Faible":3 };
 
 // Compute "where to spend my next 5 HRBP hours" score for one leader.

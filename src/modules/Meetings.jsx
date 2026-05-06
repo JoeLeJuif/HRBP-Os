@@ -7,6 +7,7 @@ import { C, css, DELAY_C, RISK } from '../theme.js';
 import { fmtDate, getProvince } from '../utils/format.js';
 import { buildLegalPromptContext } from '../utils/legal.js';
 import { filterActiveCases } from '../utils/caseStatus.js';
+import { getLeadersMap, isPersonArchived } from '../utils/leaderStore.js';
 import { callAI } from '../api/index.js';
 import { MEETING_SP, DISC_SP, TA_SP, INIT_SP } from '../prompts/meetings.js';
 import { normalizeMeetingOutput, toArray } from '../utils/meetingModel.js';
@@ -128,7 +129,11 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     }
   }, [focusMeetingId, data.meetings]); // eslint-disable-line
 
-  const meetings = data.meetings || [];
+  // Portfolio archive sync: hide meetings whose director is archived in
+  // data.leaders from the active hub. Drill-down "director" view inherits
+  // because its entry button only renders for non-archived directors.
+  const leadersMap = getLeadersMap(data);
+  const meetings = (data.meetings || []).filter(m => !isPersonArchived(m.director, leadersMap));
   const directors = [...new Set(meetings.map(m => m.director).filter(Boolean))];
 
   // Compress transcript: remove filler words, timestamps, repeated whitespace
