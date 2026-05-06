@@ -847,16 +847,6 @@ export default function HRBPOS() {
           padding:"12px 24px", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
           <span style={{ fontSize:16 }}>{activeNav?.icon}</span>
           <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav ? navLabel(activeNav) : ""}</span>
-          <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
-            {(data.cases||[]).filter(c=>isCaseActive(c)&&(c.riskLevel==="Critique"||c.riskLevel==="Élevé")).slice(0,3).map((c,i) => (
-              <button key={i} onClick={()=>setModule("cases")}
-                style={{ background:C.red+"15", border:`1px solid ${C.red}33`, borderRadius:5,
-                  padding:"3px 10px", fontSize:10, color:C.red, cursor:"pointer",
-                  fontFamily:"'DM Sans',sans-serif" }}>
-                ⚠ {c.title?.substring(0,20)}{c.title?.length>20?"…":""}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Module area — stubs until migration complete */}
