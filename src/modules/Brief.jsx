@@ -40,6 +40,7 @@ export default function ModuleBrief({ data, onSave }) {
   const [recapSubTab, setRecapSubTab] = useState("generate"); // generate | sent | history
   const [sentRecapText, setSentRecapText] = useState("");
   const [sentRecapSaved, setSentRecapSaved] = useState(false);
+  const [editingRecapId, setEditingRecapId] = useState(null);
   const [recapResult, setRecapResult] = useState(null);
   const [recapLoading, setRecapLoading] = useState(false);
   const [recapError, setRecapError] = useState("");
@@ -328,18 +329,46 @@ ${prepsTxt ? `\n=== PRÉPARATIONS 1:1 (${weekPreps.length}) ===\n${prepsTxt}` : 
 
   const saveSentRecap = () => {
     if (!sentRecapText.trim() || sentRecapSaved) return;
-    const weekLabel = inputs.weekOf || new Date().toLocaleDateString("fr-CA");
-    const entry = {
-      id: Date.now().toString(),
-      savedAt: new Date().toISOString().split("T")[0],
-      weekLabel,
-      sentText: sentRecapText.trim(),
-    };
-    // Store sent recaps as a separate list in briefs storage under a sentRecaps key
+    const trimmed = sentRecapText.trim();
+    const todayISO = new Date().toISOString().split("T")[0];
     const existing = data.sentRecaps || [];
-    onSave("sentRecaps", [...existing, entry]);
+    if (editingRecapId) {
+      const updated = existing.map(r =>
+        r.id === editingRecapId ? { ...r, sentText: trimmed, savedAt: todayISO } : r
+      );
+      onSave("sentRecaps", updated);
+      setEditingRecapId(null);
+    } else {
+      const weekLabel = inputs.weekOf || new Date().toLocaleDateString("fr-CA");
+      const entry = { id: Date.now().toString(), savedAt: todayISO, weekLabel, sentText: trimmed };
+      onSave("sentRecaps", [...existing, entry]);
+    }
     setSentRecapSaved(true);
     setTimeout(() => setSentRecapSaved(false), 3000);
+  };
+
+  const startEditRecap = (r) => {
+    setEditingRecapId(r.id);
+    setSentRecapText(r.sentText || "");
+    setSentRecapSaved(false);
+    setRecapSubTab("sent");
+  };
+
+  const cancelEditRecap = () => {
+    setEditingRecapId(null);
+    setSentRecapText("");
+    setSentRecapSaved(false);
+  };
+
+  const deleteSentRecap = (id) => {
+    if (!window.confirm(t("brief.history.confirmDelete"))) return;
+    const filtered = (data.sentRecaps || []).filter(r => r.id !== id);
+    onSave("sentRecaps", filtered);
+    if (editingRecapId === id) {
+      setEditingRecapId(null);
+      setSentRecapText("");
+    }
+    if (nwlSourceIdx >= filtered.length && nwlSourceIdx > 0) setNwlSourceIdx(0);
   };
 
   // ── BRIEF TABS (shown when result exists)
@@ -734,12 +763,26 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                 )}
 
                 {/* ── SENT RECAP sub-tab */}
-                {recapSubTab === "sent" && (
+                {recapSubTab === "sent" && (() => {
+                  const isEditing = !!editingRecapId;
+                  const editingEntry = isEditing ? (data.sentRecaps||[]).find(r => r.id === editingRecapId) : null;
+                  return (
                   <div>
                     <div style={{ background:C.em+"10", border:`1px solid ${C.em}25`, borderRadius:8,
                       padding:"10px 14px", marginBottom:14, fontSize:12, color:C.textM }}>
                       {t("brief.sent.banner")}
                     </div>
+                    {isEditing && (
+                      <div style={{ background:C.blue+"12", border:`1px solid ${C.blue}33`, borderRadius:7,
+                        padding:"8px 12px", marginBottom:10, fontSize:11, color:C.blue, display:"flex",
+                        alignItems:"center", justifyContent:"space-between", gap:10 }}>
+                        <span>{t("brief.sent.editingBanner")} {editingEntry?.weekLabel || ""}</span>
+                        <button onClick={cancelEditRecap}
+                          style={{ ...css.btn(C.textM, true), padding:"4px 10px", fontSize:11 }}>
+                          {t("brief.sent.cancelEdit")}
+                        </button>
+                      </div>
+                    )}
                     <Mono color={C.textD} size={9}>{t("brief.sent.label")}</Mono>
                     <textarea rows={14} value={sentRecapText}
                       onChange={e => { setSentRecapText(e.target.value); setSentRecapSaved(false); }}
@@ -748,21 +791,24 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
                     <div style={{ display:"flex", gap:10, marginTop:10 }}>
                       <div style={{ fontSize:11, color:C.textD, flex:1, alignSelf:"center" }}>
-                        {inputs.weekOf || new Date().toLocaleDateString("fr-CA")}
+                        {isEditing ? (editingEntry?.weekLabel || "") : (inputs.weekOf || new Date().toLocaleDateString("fr-CA"))}
                       </div>
                       <button onClick={saveSentRecap} disabled={!sentRecapText.trim() || sentRecapSaved}
                         style={{ ...css.btn(sentRecapSaved ? C.textD : C.em), padding:"9px 20px", fontSize:13 }}>
-                        {sentRecapSaved ? t("brief.sent.archived") : t("brief.sent.archive")}
+                        {sentRecapSaved
+                          ? (isEditing ? t("brief.sent.updated") : t("brief.sent.archived"))
+                          : (isEditing ? t("brief.sent.saveChanges") : t("brief.sent.archive"))}
                       </button>
                     </div>
                     {sentRecapSaved && (
                       <div style={{ marginTop:12, padding:"10px 14px", background:C.em+"12", border:`1px solid ${C.em}30`,
                         borderRadius:7, fontSize:12, color:C.em }}>
-                        {t("brief.sent.archivedConfirm")}
+                        {isEditing ? t("brief.sent.updatedConfirm") : t("brief.sent.archivedConfirm")}
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* ── HISTORY sub-tab */}
                 {recapSubTab === "history" && (
@@ -775,17 +821,21 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         {[...sentRecaps].reverse().map((r, i) => (
                           <Card key={r.id||i}>
-                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, gap:8 }}>
                               <div>
                                 <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{r.weekLabel}</div>
                                 <Mono color={C.textD} size={9}>{t("brief.history.archivedAt")} {r.savedAt}</Mono>
                               </div>
-                              <button onClick={() => {
-                                setSentRecapText(r.sentText);
-                                setRecapSubTab("sent");
-                              }} style={{ ...css.btn(C.textM, true), padding:"5px 10px", fontSize:11 }}>
-                                {t("brief.history.view")}
-                              </button>
+                              <div style={{ display:"flex", gap:6 }}>
+                                <button onClick={() => startEditRecap(r)}
+                                  style={{ ...css.btn(C.blue, true), padding:"5px 10px", fontSize:11 }}>
+                                  {t("brief.history.edit")}
+                                </button>
+                                <button onClick={() => deleteSentRecap(r.id)}
+                                  style={{ ...css.btn(C.red, true), padding:"5px 10px", fontSize:11 }}>
+                                  {t("brief.history.delete")}
+                                </button>
+                              </div>
                             </div>
                             <div style={{ fontSize:12, color:C.textM, background:C.surfLL, borderRadius:7,
                               padding:"10px 12px", whiteSpace:"pre-wrap", lineHeight:1.7,
@@ -1206,12 +1256,26 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                 )}
 
                 {/* ── SENT RECAP sub-tab */}
-                {recapSubTab === "sent" && (
+                {recapSubTab === "sent" && (() => {
+                  const isEditing = !!editingRecapId;
+                  const editingEntry = isEditing ? (data.sentRecaps||[]).find(r => r.id === editingRecapId) : null;
+                  return (
                   <div>
                     <div style={{ background:C.em+"10", border:`1px solid ${C.em}25`, borderRadius:8,
                       padding:"10px 14px", marginBottom:14, fontSize:12, color:C.textM }}>
                       {t("brief.sent.banner")}
                     </div>
+                    {isEditing && (
+                      <div style={{ background:C.blue+"12", border:`1px solid ${C.blue}33`, borderRadius:7,
+                        padding:"8px 12px", marginBottom:10, fontSize:11, color:C.blue, display:"flex",
+                        alignItems:"center", justifyContent:"space-between", gap:10 }}>
+                        <span>{t("brief.sent.editingBanner")} {editingEntry?.weekLabel || ""}</span>
+                        <button onClick={cancelEditRecap}
+                          style={{ ...css.btn(C.textM, true), padding:"4px 10px", fontSize:11 }}>
+                          {t("brief.sent.cancelEdit")}
+                        </button>
+                      </div>
+                    )}
                     <Mono color={C.textD} size={9}>{t("brief.sent.label")}</Mono>
                     <textarea rows={14} value={sentRecapText}
                       onChange={e => { setSentRecapText(e.target.value); setSentRecapSaved(false); }}
@@ -1220,21 +1284,24 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       onFocus={e=>e.target.style.borderColor=C.em+"60"} onBlur={e=>e.target.style.borderColor=C.border}/>
                     <div style={{ display:"flex", gap:10, marginTop:10 }}>
                       <div style={{ fontSize:11, color:C.textD, flex:1, alignSelf:"center" }}>
-                        {inputs.weekOf || new Date().toLocaleDateString("fr-CA")}
+                        {isEditing ? (editingEntry?.weekLabel || "") : (inputs.weekOf || new Date().toLocaleDateString("fr-CA"))}
                       </div>
                       <button onClick={saveSentRecap} disabled={!sentRecapText.trim() || sentRecapSaved}
                         style={{ ...css.btn(sentRecapSaved ? C.textD : C.em), padding:"9px 20px", fontSize:13 }}>
-                        {sentRecapSaved ? t("brief.sent.archived") : t("brief.sent.archive")}
+                        {sentRecapSaved
+                          ? (isEditing ? t("brief.sent.updated") : t("brief.sent.archived"))
+                          : (isEditing ? t("brief.sent.saveChanges") : t("brief.sent.archive"))}
                       </button>
                     </div>
                     {sentRecapSaved && (
                       <div style={{ marginTop:12, padding:"10px 14px", background:C.em+"12", border:`1px solid ${C.em}30`,
                         borderRadius:7, fontSize:12, color:C.em }}>
-                        {t("brief.sent.archivedConfirm")}
+                        {isEditing ? t("brief.sent.updatedConfirm") : t("brief.sent.archivedConfirm")}
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* ── HISTORY sub-tab */}
                 {recapSubTab === "history" && (
@@ -1247,17 +1314,21 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         {[...sentRecaps].reverse().map((r, i) => (
                           <Card key={r.id||i}>
-                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, gap:8 }}>
                               <div>
                                 <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{r.weekLabel}</div>
                                 <Mono color={C.textD} size={9}>{t("brief.history.archivedAt")} {r.savedAt}</Mono>
                               </div>
-                              <button onClick={() => {
-                                setSentRecapText(r.sentText);
-                                setRecapSubTab("sent");
-                              }} style={{ ...css.btn(C.textM, true), padding:"5px 10px", fontSize:11 }}>
-                                {t("brief.history.view")}
-                              </button>
+                              <div style={{ display:"flex", gap:6 }}>
+                                <button onClick={() => startEditRecap(r)}
+                                  style={{ ...css.btn(C.blue, true), padding:"5px 10px", fontSize:11 }}>
+                                  {t("brief.history.edit")}
+                                </button>
+                                <button onClick={() => deleteSentRecap(r.id)}
+                                  style={{ ...css.btn(C.red, true), padding:"5px 10px", fontSize:11 }}>
+                                  {t("brief.history.delete")}
+                                </button>
+                              </div>
                             </div>
                             <div style={{ fontSize:12, color:C.textM, background:C.surfLL, borderRadius:7,
                               padding:"10px 12px", whiteSpace:"pre-wrap", lineHeight:1.7,

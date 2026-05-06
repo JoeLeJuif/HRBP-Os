@@ -803,9 +803,17 @@ ${LEGAL_GUARDRAIL}`;
       "brief.sent.archive": "\u{1F4BE} Archive this recap",
       "brief.sent.archived": "\u2713 Archived",
       "brief.sent.archivedConfirm": "\u2713 Recap archived \u2014 viewable in History next week.",
+      "brief.sent.editingBanner": "\u270E Editing recap \u2014",
+      "brief.sent.cancelEdit": "Cancel",
+      "brief.sent.saveChanges": "\u{1F4BE} Save changes",
+      "brief.sent.updated": "\u2713 Updated",
+      "brief.sent.updatedConfirm": "\u2713 Recap updated.",
       "brief.history.empty": "No recap archived. Archive your first recap in the Sent recap tab.",
       "brief.history.archivedAt": "Archived on",
       "brief.history.view": "View",
+      "brief.history.edit": "\u270E Edit",
+      "brief.history.delete": "\u{1F5D1} Delete",
+      "brief.history.confirmDelete": "Delete this recap? This cannot be undone.",
       "brief.nwl.empty.title": "No recap archived",
       "brief.nwl.empty.body": "Archive a recap in Director Recap \u2192 Sent recap. This module turns it into next week's execution plan.",
       "brief.nwl.empty.cta": "\u2192 Archive a recap",
@@ -1327,9 +1335,17 @@ ${LEGAL_GUARDRAIL}`;
       "brief.sent.archive": "\u{1F4BE} Archiver ce r\xE9cap",
       "brief.sent.archived": "\u2713 Archiv\xE9",
       "brief.sent.archivedConfirm": "\u2713 R\xE9cap archiv\xE9 \u2014 consultable dans Historique la semaine prochaine.",
+      "brief.sent.editingBanner": "\u270E Modification du r\xE9cap \u2014",
+      "brief.sent.cancelEdit": "Annuler",
+      "brief.sent.saveChanges": "\u{1F4BE} Enregistrer les modifications",
+      "brief.sent.updated": "\u2713 Mis \xE0 jour",
+      "brief.sent.updatedConfirm": "\u2713 R\xE9cap mis \xE0 jour.",
       "brief.history.empty": "Aucun r\xE9cap archiv\xE9. Archive ton premier r\xE9cap dans l'onglet R\xE9cap envoy\xE9.",
       "brief.history.archivedAt": "Archiv\xE9 le",
       "brief.history.view": "Consulter",
+      "brief.history.edit": "\u270E Modifier",
+      "brief.history.delete": "\u{1F5D1} Supprimer",
+      "brief.history.confirmDelete": "Supprimer ce r\xE9cap ? Cette action est irr\xE9versible.",
       "brief.nwl.empty.title": "Aucun r\xE9cap archiv\xE9",
       "brief.nwl.empty.body": "Archive un r\xE9cap dans R\xE9cap directrice \u2192 R\xE9cap envoy\xE9. Ce module le transforme en plan d'ex\xE9cution pour la semaine suivante.",
       "brief.nwl.empty.cta": "\u2192 Archiver un r\xE9cap",
@@ -34091,6 +34107,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     const [recapSubTab, setRecapSubTab] = (0, import_react19.useState)("generate");
     const [sentRecapText, setSentRecapText] = (0, import_react19.useState)("");
     const [sentRecapSaved, setSentRecapSaved] = (0, import_react19.useState)(false);
+    const [editingRecapId, setEditingRecapId] = (0, import_react19.useState)(null);
     const [recapResult, setRecapResult] = (0, import_react19.useState)(null);
     const [recapLoading, setRecapLoading] = (0, import_react19.useState)(false);
     const [recapError, setRecapError] = (0, import_react19.useState)("");
@@ -34369,17 +34386,43 @@ ${prepsTxt}` : ""}`;
     };
     const saveSentRecap = () => {
       if (!sentRecapText.trim() || sentRecapSaved) return;
-      const weekLabel = inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA");
-      const entry = {
-        id: Date.now().toString(),
-        savedAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-        weekLabel,
-        sentText: sentRecapText.trim()
-      };
+      const trimmed = sentRecapText.trim();
+      const todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const existing = data.sentRecaps || [];
-      onSave("sentRecaps", [...existing, entry]);
+      if (editingRecapId) {
+        const updated = existing.map(
+          (r) => r.id === editingRecapId ? { ...r, sentText: trimmed, savedAt: todayISO } : r
+        );
+        onSave("sentRecaps", updated);
+        setEditingRecapId(null);
+      } else {
+        const weekLabel = inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA");
+        const entry = { id: Date.now().toString(), savedAt: todayISO, weekLabel, sentText: trimmed };
+        onSave("sentRecaps", [...existing, entry]);
+      }
       setSentRecapSaved(true);
       setTimeout(() => setSentRecapSaved(false), 3e3);
+    };
+    const startEditRecap = (r) => {
+      setEditingRecapId(r.id);
+      setSentRecapText(r.sentText || "");
+      setSentRecapSaved(false);
+      setRecapSubTab("sent");
+    };
+    const cancelEditRecap = () => {
+      setEditingRecapId(null);
+      setSentRecapText("");
+      setSentRecapSaved(false);
+    };
+    const deleteSentRecap = (id) => {
+      if (!window.confirm(t2("brief.history.confirmDelete"))) return;
+      const filtered = (data.sentRecaps || []).filter((r) => r.id !== id);
+      onSave("sentRecaps", filtered);
+      if (editingRecapId === id) {
+        setEditingRecapId(null);
+        setSentRecapText("");
+      }
+      if (nwlSourceIdx >= filtered.length && nwlSourceIdx > 0) setNwlSourceIdx(0);
     };
     const BRIEF_RESULT_TABS = [
       { id: "brief", label: t2("brief.tab.intel") },
@@ -34723,48 +34766,82 @@ ${recap.sentText}`,
         { key: "performance", icon: "\u2696", label: t2("brief.recap.performance"), color: C.red },
         { key: "projets_rh", icon: "\u{1F527}", label: t2("brief.recap.hrProjects"), color: C.teal },
         { key: "divers", icon: "\u{1F4CE}", label: t2("brief.recap.divers"), color: C.textD }
-      ].map(({ key: key2, icon, label, color }) => recapResult[key2]?.length > 0 && /* @__PURE__ */ React.createElement(Card, { key: key2, style: { marginBottom: 10, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon, label, color }), recapResult[key2].map((i, idx) => /* @__PURE__ */ React.createElement("div", { key: idx, style: { display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: { color, fontSize: 12, flexShrink: 0 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.6 } }, i.item))))))), recapSubTab === "sent" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
-        background: C.em + "10",
-        border: `1px solid ${C.em}25`,
-        borderRadius: 8,
-        padding: "10px 14px",
-        marginBottom: 14,
-        fontSize: 12,
-        color: C.textM
-      } }, t2("brief.sent.banner")), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.sent.label")), /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          rows: 14,
-          value: sentRecapText,
-          onChange: (e) => {
-            setSentRecapText(e.target.value);
-            setSentRecapSaved(false);
+      ].map(({ key: key2, icon, label, color }) => recapResult[key2]?.length > 0 && /* @__PURE__ */ React.createElement(Card, { key: key2, style: { marginBottom: 10, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon, label, color }), recapResult[key2].map((i, idx) => /* @__PURE__ */ React.createElement("div", { key: idx, style: { display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: { color, fontSize: 12, flexShrink: 0 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.6 } }, i.item))))))), recapSubTab === "sent" && (() => {
+        const isEditing = !!editingRecapId;
+        const editingEntry = isEditing ? (data.sentRecaps || []).find((r) => r.id === editingRecapId) : null;
+        return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
+          background: C.em + "10",
+          border: `1px solid ${C.em}25`,
+          borderRadius: 8,
+          padding: "10px 14px",
+          marginBottom: 14,
+          fontSize: 12,
+          color: C.textM
+        } }, t2("brief.sent.banner")), isEditing && /* @__PURE__ */ React.createElement("div", { style: {
+          background: C.blue + "12",
+          border: `1px solid ${C.blue}33`,
+          borderRadius: 7,
+          padding: "8px 12px",
+          marginBottom: 10,
+          fontSize: 11,
+          color: C.blue,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10
+        } }, /* @__PURE__ */ React.createElement("span", null, t2("brief.sent.editingBanner"), " ", editingEntry?.weekLabel || ""), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: cancelEditRecap,
+            style: { ...css.btn(C.textM, true), padding: "4px 10px", fontSize: 11 }
           },
-          placeholder: t2("brief.sent.placeholder"),
-          style: { ...css.textarea, marginTop: 6, fontFamily: "monospace", fontSize: 12, lineHeight: 1.7 },
-          onFocus: (e) => e.target.style.borderColor = C.em + "60",
-          onBlur: (e) => e.target.style.borderColor = C.border
-        }
-      ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, flex: 1, alignSelf: "center" } }, inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")), /* @__PURE__ */ React.createElement(
+          t2("brief.sent.cancelEdit")
+        )), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.sent.label")), /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            rows: 14,
+            value: sentRecapText,
+            onChange: (e) => {
+              setSentRecapText(e.target.value);
+              setSentRecapSaved(false);
+            },
+            placeholder: t2("brief.sent.placeholder"),
+            style: { ...css.textarea, marginTop: 6, fontFamily: "monospace", fontSize: 12, lineHeight: 1.7 },
+            onFocus: (e) => e.target.style.borderColor = C.em + "60",
+            onBlur: (e) => e.target.style.borderColor = C.border
+          }
+        ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, flex: 1, alignSelf: "center" } }, isEditing ? editingEntry?.weekLabel || "" : inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: saveSentRecap,
+            disabled: !sentRecapText.trim() || sentRecapSaved,
+            style: { ...css.btn(sentRecapSaved ? C.textD : C.em), padding: "9px 20px", fontSize: 13 }
+          },
+          sentRecapSaved ? isEditing ? t2("brief.sent.updated") : t2("brief.sent.archived") : isEditing ? t2("brief.sent.saveChanges") : t2("brief.sent.archive")
+        )), sentRecapSaved && /* @__PURE__ */ React.createElement("div", { style: {
+          marginTop: 12,
+          padding: "10px 14px",
+          background: C.em + "12",
+          border: `1px solid ${C.em}30`,
+          borderRadius: 7,
+          fontSize: 12,
+          color: C.em
+        } }, isEditing ? t2("brief.sent.updatedConfirm") : t2("brief.sent.archivedConfirm")));
+      })(), recapSubTab === "history" && /* @__PURE__ */ React.createElement("div", null, sentRecaps.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.textD, fontSize: 13 } }, t2("brief.history.empty")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, [...sentRecaps].reverse().map((r, i) => /* @__PURE__ */ React.createElement(Card, { key: r.id || i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, r.weekLabel), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.history.archivedAt"), " ", r.savedAt)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement(
         "button",
         {
-          onClick: saveSentRecap,
-          disabled: !sentRecapText.trim() || sentRecapSaved,
-          style: { ...css.btn(sentRecapSaved ? C.textD : C.em), padding: "9px 20px", fontSize: 13 }
+          onClick: () => startEditRecap(r),
+          style: { ...css.btn(C.blue, true), padding: "5px 10px", fontSize: 11 }
         },
-        sentRecapSaved ? t2("brief.sent.archived") : t2("brief.sent.archive")
-      )), sentRecapSaved && /* @__PURE__ */ React.createElement("div", { style: {
-        marginTop: 12,
-        padding: "10px 14px",
-        background: C.em + "12",
-        border: `1px solid ${C.em}30`,
-        borderRadius: 7,
-        fontSize: 12,
-        color: C.em
-      } }, t2("brief.sent.archivedConfirm"))), recapSubTab === "history" && /* @__PURE__ */ React.createElement("div", null, sentRecaps.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.textD, fontSize: 13 } }, t2("brief.history.empty")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, [...sentRecaps].reverse().map((r, i) => /* @__PURE__ */ React.createElement(Card, { key: r.id || i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, r.weekLabel), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.history.archivedAt"), " ", r.savedAt)), /* @__PURE__ */ React.createElement("button", { onClick: () => {
-        setSentRecapText(r.sentText);
-        setRecapSubTab("sent");
-      }, style: { ...css.btn(C.textM, true), padding: "5px 10px", fontSize: 11 } }, t2("brief.history.view"))), /* @__PURE__ */ React.createElement("div", { style: {
+        t2("brief.history.edit")
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => deleteSentRecap(r.id),
+          style: { ...css.btn(C.red, true), padding: "5px 10px", fontSize: 11 }
+        },
+        t2("brief.history.delete")
+      ))), /* @__PURE__ */ React.createElement("div", { style: {
         fontSize: 12,
         color: C.textM,
         background: C.surfLL,
@@ -35037,48 +35114,82 @@ ${recap.sentText}`,
         { key: "performance", icon: "\u2696", label: t2("brief.recap.performance"), color: C.red },
         { key: "projets_rh", icon: "\u{1F527}", label: t2("brief.recap.hrProjects"), color: C.teal },
         { key: "divers", icon: "\u{1F4CE}", label: t2("brief.recap.divers"), color: C.textD }
-      ].map(({ key: key2, icon, label, color }) => recapResult[key2]?.length > 0 && /* @__PURE__ */ React.createElement(Card, { key: key2, style: { marginBottom: 10, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon, label, color }), recapResult[key2].map((i, idx) => /* @__PURE__ */ React.createElement("div", { key: idx, style: { display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: { color, fontSize: 12, flexShrink: 0 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.6 } }, i.item))))))), recapSubTab === "sent" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
-        background: C.em + "10",
-        border: `1px solid ${C.em}25`,
-        borderRadius: 8,
-        padding: "10px 14px",
-        marginBottom: 14,
-        fontSize: 12,
-        color: C.textM
-      } }, t2("brief.sent.banner")), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.sent.label")), /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          rows: 14,
-          value: sentRecapText,
-          onChange: (e) => {
-            setSentRecapText(e.target.value);
-            setSentRecapSaved(false);
+      ].map(({ key: key2, icon, label, color }) => recapResult[key2]?.length > 0 && /* @__PURE__ */ React.createElement(Card, { key: key2, style: { marginBottom: 10, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon, label, color }), recapResult[key2].map((i, idx) => /* @__PURE__ */ React.createElement("div", { key: idx, style: { display: "flex", gap: 8, padding: "5px 0", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: { color, fontSize: 12, flexShrink: 0 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.6 } }, i.item))))))), recapSubTab === "sent" && (() => {
+        const isEditing = !!editingRecapId;
+        const editingEntry = isEditing ? (data.sentRecaps || []).find((r) => r.id === editingRecapId) : null;
+        return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
+          background: C.em + "10",
+          border: `1px solid ${C.em}25`,
+          borderRadius: 8,
+          padding: "10px 14px",
+          marginBottom: 14,
+          fontSize: 12,
+          color: C.textM
+        } }, t2("brief.sent.banner")), isEditing && /* @__PURE__ */ React.createElement("div", { style: {
+          background: C.blue + "12",
+          border: `1px solid ${C.blue}33`,
+          borderRadius: 7,
+          padding: "8px 12px",
+          marginBottom: 10,
+          fontSize: 11,
+          color: C.blue,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10
+        } }, /* @__PURE__ */ React.createElement("span", null, t2("brief.sent.editingBanner"), " ", editingEntry?.weekLabel || ""), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: cancelEditRecap,
+            style: { ...css.btn(C.textM, true), padding: "4px 10px", fontSize: 11 }
           },
-          placeholder: t2("brief.sent.placeholder"),
-          style: { ...css.textarea, marginTop: 6, fontFamily: "monospace", fontSize: 12, lineHeight: 1.7 },
-          onFocus: (e) => e.target.style.borderColor = C.em + "60",
-          onBlur: (e) => e.target.style.borderColor = C.border
-        }
-      ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, flex: 1, alignSelf: "center" } }, inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")), /* @__PURE__ */ React.createElement(
+          t2("brief.sent.cancelEdit")
+        )), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.sent.label")), /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            rows: 14,
+            value: sentRecapText,
+            onChange: (e) => {
+              setSentRecapText(e.target.value);
+              setSentRecapSaved(false);
+            },
+            placeholder: t2("brief.sent.placeholder"),
+            style: { ...css.textarea, marginTop: 6, fontFamily: "monospace", fontSize: 12, lineHeight: 1.7 },
+            onFocus: (e) => e.target.style.borderColor = C.em + "60",
+            onBlur: (e) => e.target.style.borderColor = C.border
+          }
+        ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, flex: 1, alignSelf: "center" } }, isEditing ? editingEntry?.weekLabel || "" : inputs.weekOf || (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: saveSentRecap,
+            disabled: !sentRecapText.trim() || sentRecapSaved,
+            style: { ...css.btn(sentRecapSaved ? C.textD : C.em), padding: "9px 20px", fontSize: 13 }
+          },
+          sentRecapSaved ? isEditing ? t2("brief.sent.updated") : t2("brief.sent.archived") : isEditing ? t2("brief.sent.saveChanges") : t2("brief.sent.archive")
+        )), sentRecapSaved && /* @__PURE__ */ React.createElement("div", { style: {
+          marginTop: 12,
+          padding: "10px 14px",
+          background: C.em + "12",
+          border: `1px solid ${C.em}30`,
+          borderRadius: 7,
+          fontSize: 12,
+          color: C.em
+        } }, isEditing ? t2("brief.sent.updatedConfirm") : t2("brief.sent.archivedConfirm")));
+      })(), recapSubTab === "history" && /* @__PURE__ */ React.createElement("div", null, sentRecaps.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.textD, fontSize: 13 } }, t2("brief.history.empty")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, [...sentRecaps].reverse().map((r, i) => /* @__PURE__ */ React.createElement(Card, { key: r.id || i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, r.weekLabel), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.history.archivedAt"), " ", r.savedAt)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement(
         "button",
         {
-          onClick: saveSentRecap,
-          disabled: !sentRecapText.trim() || sentRecapSaved,
-          style: { ...css.btn(sentRecapSaved ? C.textD : C.em), padding: "9px 20px", fontSize: 13 }
+          onClick: () => startEditRecap(r),
+          style: { ...css.btn(C.blue, true), padding: "5px 10px", fontSize: 11 }
         },
-        sentRecapSaved ? t2("brief.sent.archived") : t2("brief.sent.archive")
-      )), sentRecapSaved && /* @__PURE__ */ React.createElement("div", { style: {
-        marginTop: 12,
-        padding: "10px 14px",
-        background: C.em + "12",
-        border: `1px solid ${C.em}30`,
-        borderRadius: 7,
-        fontSize: 12,
-        color: C.em
-      } }, t2("brief.sent.archivedConfirm"))), recapSubTab === "history" && /* @__PURE__ */ React.createElement("div", null, sentRecaps.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.textD, fontSize: 13 } }, t2("brief.history.empty")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, [...sentRecaps].reverse().map((r, i) => /* @__PURE__ */ React.createElement(Card, { key: r.id || i }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, r.weekLabel), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.history.archivedAt"), " ", r.savedAt)), /* @__PURE__ */ React.createElement("button", { onClick: () => {
-        setSentRecapText(r.sentText);
-        setRecapSubTab("sent");
-      }, style: { ...css.btn(C.textM, true), padding: "5px 10px", fontSize: 11 } }, t2("brief.history.view"))), /* @__PURE__ */ React.createElement("div", { style: {
+        t2("brief.history.edit")
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => deleteSentRecap(r.id),
+          style: { ...css.btn(C.red, true), padding: "5px 10px", fontSize: 11 }
+        },
+        t2("brief.history.delete")
+      ))), /* @__PURE__ */ React.createElement("div", { style: {
         fontSize: 12,
         color: C.textM,
         background: C.surfLL,
