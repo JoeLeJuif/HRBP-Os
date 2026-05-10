@@ -16,6 +16,7 @@ import { PORTFOLIO_ASSESS_SP } from '../prompts/portfolio.js';
 import { getLeadersMap, getMeta, setMeta, topFocusLeaders, computeFocusScore, getLastEngineOutput,
          MANAGER_TYPES, PRESSURE_LEVELS, RISK_LEVELS, TYPE_ICON, PRESSURE_EMOJI } from '../utils/leaderStore.js';
 import { isCaseActive } from '../utils/caseStatus.js';
+import { useT } from '../lib/i18n.js';
 import IdentityRenameForm from '../components/IdentityRenameForm.jsx';
 
 // ── Inline helpers ─────────────────────────────────────────────────────────────
@@ -52,18 +53,18 @@ const RISK_LABELS = ["Critique","Élevé","Modéré","Faible"];
 
 const LEVEL_ORDER = { employe:0, gestionnaire:1, manager:1, director:2, directeur:2, vp:3, executif:4, hrbp_team:5, ta_team:6, autres:7 };
 const LEVEL_META  = {
-  employe:       { label:"Employé",      icon:"🧑", color:C.em     },
-  gestionnaire:  { label:"Gestionnaire", icon:"👤", color:C.teal   },
-  manager:       { label:"Gestionnaire", icon:"👤", color:C.teal   },
-  directeur:     { label:"Directeur",    icon:"🏢", color:C.blue   },
-  director:      { label:"Directeur",    icon:"🏢", color:C.blue   },
-  vp:            { label:"VP",           icon:"📊", color:C.blue   },
-  executif:      { label:"Exécutif",     icon:"🏛", color:C.purple },
-  hrbp_team:     { label:"Équipe HRBP",  icon:"🤝", color:C.purple },
-  ta_team:       { label:"Équipe TA",    icon:"🎯", color:C.teal   },
-  autres:        { label:"Autres",       icon:"📋", color:C.textD  },
+  employe:       { labelKey:"leader.level.employe",      icon:"🧑", color:C.em     },
+  gestionnaire:  { labelKey:"leader.level.gestionnaire", icon:"👤", color:C.teal   },
+  manager:       { labelKey:"leader.level.gestionnaire", icon:"👤", color:C.teal   },
+  directeur:     { labelKey:"leader.level.directeur",    icon:"🏢", color:C.blue   },
+  director:      { labelKey:"leader.level.directeur",    icon:"🏢", color:C.blue   },
+  vp:            { labelKey:"leader.level.vp",           icon:"📊", color:C.blue   },
+  executif:      { labelKey:"leader.level.executif",     icon:"🏛", color:C.purple },
+  hrbp_team:     { labelKey:"leader.level.hrbp_team",    icon:"🤝", color:C.purple },
+  ta_team:       { labelKey:"leader.level.ta_team",      icon:"🎯", color:C.teal   },
+  autres:        { labelKey:"leader.level.autres",       icon:"📋", color:C.textD  },
 };
-const DEFAULT_LEVEL = { label:"Autres", icon:"📋", color:C.textD };
+const DEFAULT_LEVEL = { labelKey:"leader.level.autres", icon:"📋", color:C.textD };
 
 const CASE_TYPE_LABEL = {
   performance:"Performance", pip:"PIP / Correctif",
@@ -361,6 +362,7 @@ function buildLeaderTimeline(l) {
 
 // ── Module ─────────────────────────────────────────────────────────────────────
 export default function ModuleLeader({ data, onSave, onNavigate }) {
+  const { t } = useT();
   const [selected,      setSelected]      = useState(null);
   const [tlExpanded,    setTlExpanded]    = useState(false);
   const [tlFilter,      setTlFilter]     = useState("all");
@@ -434,15 +436,20 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
     const archivedCount = leaderList.filter(l => !!getMeta(l.name, leadersMap).archived).length;
 
     // Group by level — editorial levelOverride takes precedence
+    // Group key is the labelKey (stable across languages); display label resolves via t() at render
     const groupMap = {};
     filteredByArchive.forEach(l => {
       const lMeta = getMeta(l.name, leadersMap);
       const effectiveLevel = lMeta.levelOverride || l.level;
       const meta = LEVEL_META[effectiveLevel] || DEFAULT_LEVEL;
-      if (!groupMap[meta.label]) groupMap[meta.label] = { meta, leaders:[] };
-      groupMap[meta.label].leaders.push(l);
+      if (!groupMap[meta.labelKey]) groupMap[meta.labelKey] = { meta, leaders:[] };
+      groupMap[meta.labelKey].leaders.push(l);
     });
-    const groupOrder = ["Employé","Gestionnaire","Directeur","VP","Exécutif","Équipe HRBP","Équipe TA","Autres"];
+    const groupOrder = [
+      "leader.level.employe","leader.level.gestionnaire","leader.level.directeur",
+      "leader.level.vp","leader.level.executif",
+      "leader.level.hrbp_team","leader.level.ta_team","leader.level.autres",
+    ];
     const groups = groupOrder.filter(g => groupMap[g]).map(g => groupMap[g]);
 
     return (
@@ -450,19 +457,21 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <div style={{ marginBottom:20 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12 }}>
             <div>
-              <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Fiches Leaders</div>
+              <div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>{t("leader.list.title")}</div>
               <div style={{ fontSize:12, color:C.textM }}>
-                {filteredByArchive.length} gestionnaire{filteredByArchive.length>1?"s":""}
-                {filterArchive === "archived" ? " archivé" + (filteredByArchive.length>1?"s":"") : " actif" + (filteredByArchive.length>1?"s":"")}
-                {filterArchive === "all" && ` (${archivedCount} archivé${archivedCount>1?"s":""})`}
-                <span style={{ color:C.textD }}> · Agrégation auto + couche éditoriale HRBP</span>
+                {filteredByArchive.length} {t("leader.list.group.peopleSuffix")}
+                {filterArchive === "archived"
+                  ? " " + t("leader.list.subtitleArchived") + (filteredByArchive.length>1?"s":"")
+                  : " " + t("leader.list.subtitleActive") + (filteredByArchive.length>1?"s":"")}
+                {filterArchive === "all" && ` (${archivedCount} ${t("leader.list.subtitleArchivedParen")}${archivedCount>1?"s":""})`}
+                <span style={{ color:C.textD }}>{t("leader.list.subtitleTail")}</span>
               </div>
             </div>
             <div style={{ display:"flex", gap:4 }}>
               {[
-                { key:"active",   label:"Actifs" },
-                { key:"archived", label:"Archivés" },
-                { key:"all",      label:"Tous" },
+                { key:"active",   labelKey:"leader.list.filter.active" },
+                { key:"archived", labelKey:"leader.list.filter.archived" },
+                { key:"all",      labelKey:"leader.list.filter.all" },
               ].map(f => (
                 <button key={f.key} onClick={() => setFilterArchive(f.key)}
                   style={{ background: filterArchive===f.key ? C.em+"22" : "none",
@@ -470,7 +479,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     borderRadius:6, padding:"5px 11px", fontSize:11, cursor:"pointer",
                     color: filterArchive===f.key ? C.em : C.textM,
                     fontFamily:"'DM Sans',sans-serif", fontWeight: filterArchive===f.key ? 600 : 400 }}>
-                  {f.label}{f.key==="archived" && archivedCount > 0 ? ` (${archivedCount})` : ""}
+                  {t(f.labelKey)}{f.key==="archived" && archivedCount > 0 ? ` (${archivedCount})` : ""}
                 </button>
               ))}
             </div>
@@ -484,8 +493,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
               <span style={{ fontSize:14 }}>🎯</span>
               <div>
-                <div style={{ fontSize:13, fontWeight:700, color:C.text }}>Où passer mes 5 prochaines heures HRBP ?</div>
-                <div style={{ fontSize:11, color:C.textD }}>Score basé sur risque, inactivité, pression et pattern</div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{t("leader.list.topFocus.title")}</div>
+                <div style={{ fontSize:11, color:C.textD }}>{t("leader.list.topFocus.subtitle")}</div>
               </div>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
@@ -505,7 +514,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                       <div style={{ fontSize:13, fontWeight:600, color:C.text }}>
                         {TYPE_ICON[meta.type] || ""} {m.name}
                       </div>
-                      <div style={{ fontSize:11, color:C.textD, marginTop:2 }}>{m._focus.reasons.join(" · ") || "Priorité"}</div>
+                      <div style={{ fontSize:11, color:C.textD, marginTop:2 }}>{m._focus.reasons.join(" · ") || t("leader.list.topFocus.priority")}</div>
                       {meta.nextAction && <div style={{ fontSize:11, color:C.em, marginTop:2 }}>→ {meta.nextAction}</div>}
                     </div>
                   </button>
@@ -518,38 +527,37 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         {filteredByArchive.length === 0 && filterArchive === "archived" ? (
           <div style={{ textAlign:"center", padding:"40px 20px" }}>
             <div style={{ fontSize:36, marginBottom:12 }}>📦</div>
-            <div style={{ fontSize:13, color:C.textM }}>Aucun leader archivé</div>
+            <div style={{ fontSize:13, color:C.textM }}>{t("leader.list.empty.archivedTitle")}</div>
           </div>
         ) : leaderList.length === 0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px" }}>
             <div style={{ fontSize:36, marginBottom:12 }}>👤</div>
-            <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>Aucun leader détecté</div>
+            <div style={{ fontSize:13, color:C.textM, marginBottom:6 }}>{t("leader.list.empty.title")}</div>
             <div style={{ fontSize:11, color:C.textD, marginBottom:16, lineHeight:1.6 }}>
-              Les fiches se construisent automatiquement à partir de tes meetings, dossiers et préparations 1:1.
-              <br/>Commence par analyser un meeting ou créer un dossier Case Log.
+              {t("leader.list.empty.body")}
             </div>
             <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
               <button onClick={() => onNavigate("meetings")}
                 style={{ padding:"8px 18px", background:C.blue+"22",
                   border:`1px solid ${C.blue}44`, borderRadius:7, color:C.blue,
                   fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-                🎙️ Meetings
+                {t("leader.list.empty.cta.meetings")}
               </button>
               <button onClick={() => onNavigate("cases")}
                 style={{ padding:"8px 18px", background:C.amber+"22",
                   border:`1px solid ${C.amber}44`, borderRadius:7, color:C.amber,
                   fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-                📂 Case Log
+                {t("leader.list.empty.cta.cases")}
               </button>
             </div>
           </div>
         ) : groups.map(group => (
-          <div key={group.meta.label} style={{ marginBottom:24 }}>
+          <div key={group.meta.labelKey} style={{ marginBottom:24 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12,
               paddingBottom:6, borderBottom:`2px solid ${group.meta.color}33` }}>
               <span style={{ fontSize:14 }}>{group.meta.icon}</span>
-              <Mono color={group.meta.color} size={9}>{group.meta.label}</Mono>
-              <Mono size={9} color={C.textD}>— {group.leaders.length} personne{group.leaders.length>1?"s":""}</Mono>
+              <Mono color={group.meta.color} size={9}>{t(group.meta.labelKey)}</Mono>
+              <Mono size={9} color={C.textD}>— {group.leaders.length} {t("leader.list.group.peopleSuffix")}</Mono>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10 }}>
               {group.leaders.map(l => {
@@ -576,7 +584,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
                       <span style={{ fontSize:18 }}>{TYPE_ICON[lMeta.type] || group.meta.icon}</span>
                       <div style={{ display:"flex", gap:3, alignItems:"center" }}>
-                        {isArchived && <Badge label="Archivé" color={C.textD} size={9}/>}
+                        {isArchived && <Badge label={t("leader.list.card.archived")} color={C.textD} size={9}/>}
                         {PRESSURE_EMOJI[lMeta.pressure] && <span style={{ fontSize:11 }}>{PRESSURE_EMOJI[lMeta.pressure]}</span>}
                         <RiskBadge level={globalRisk}/>
                       </div>
@@ -584,9 +592,9 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:6 }}>{l.name}</div>
                     {lMeta.topIssue && <div style={{ fontSize:11, color:C.amber, marginBottom:6, lineHeight:1.4, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>⚑ {lMeta.topIssue}</div>}
                     <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                      {l.meetings.length>0 && <Mono size={8} color={C.textD}>{l.meetings.length} meeting{l.meetings.length>1?"s":""}</Mono>}
-                      {activeCases.length>0 && <Mono size={8} color={C.amber}>{activeCases.length} dossier{activeCases.length>1?"s":""} actif{activeCases.length>1?"s":""}</Mono>}
-                      {lastMeeting?.savedAt && <Mono size={8} color={C.textD}>Contact: {lastMeeting.savedAt}</Mono>}
+                      {l.meetings.length>0 && <Mono size={8} color={C.textD}>{l.meetings.length} {t("leader.list.card.meetingsSuffix")}</Mono>}
+                      {activeCases.length>0 && <Mono size={8} color={C.amber}>{activeCases.length} {t("leader.list.card.activeCasesSuffix")}</Mono>}
+                      {lastMeeting?.savedAt && <Mono size={8} color={C.textD}>{t("leader.list.card.contactPrefix")} {lastMeeting.savedAt}</Mono>}
                     </div>
                   </button>
                 );
@@ -627,7 +635,12 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
   const timeline = buildLeaderTimeline(l);
   const TL_COLOR = { meeting:C.blue, case:C.amber, exit:C.textM, signal:C.purple };
   const TL_ICON  = { meeting:"🎙️", case:"📂", exit:"🚪", signal:"📡" };
-  const TL_LABEL = { meeting:"MEETING", case:"DOSSIER", exit:"DÉPART", signal:"SIGNAL" };
+  const TL_LABEL = {
+    meeting: t("leader.tl.label.meeting"),
+    case:    t("leader.tl.label.case"),
+    exit:    t("leader.tl.label.exit"),
+    signal:  t("leader.tl.label.signal"),
+  };
   const TL_MAX   = 10;
 
   // Filter by type chip
@@ -639,9 +652,9 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
     if (!dateStr) return null;
     const diff = Math.floor((new Date(todayISO) - new Date(dateStr + "T00:00:00")) / 86400000);
     if (diff < 0 || diff > 30) return null;
-    if (diff === 0) return "auj.";
-    if (diff === 1) return "il y a 1j";
-    return `il y a ${diff}j`;
+    if (diff === 0) return t("leader.tl.todayShort");
+    if (diff === 1) return t("leader.tl.daysAgoOne");
+    return `${t("leader.tl.daysAgoPrefix")}${diff}${t("leader.tl.daysAgoSuffix")}`;
   };
 
   // Month grouping of sliced list (robust, no locale dependency)
@@ -653,7 +666,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
     tlSliced.forEach(item => {
       const key = item.date ? item.date.substring(0, 7) : "__none__";
       if (key !== cur) {
-        let label = "Sans date";
+        let label = t("leader.tl.month.noDate");
         if (item.date) {
           const [yr, mo] = item.date.split("-");
           label = `${MOIS_FR[parseInt(mo)] || mo} ${yr}`;
@@ -754,29 +767,29 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <button onClick={() => setSelected(null)}
           style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
             padding:"5px 11px", fontSize:11, color:C.textM, cursor:"pointer",
-            fontFamily:"'DM Sans',sans-serif" }}>← Retour</button>
-        <Mono size={9} color={C.textD}>Fiches Leaders</Mono>
+            fontFamily:"'DM Sans',sans-serif" }}>{t("leader.detail.back")}</button>
+        <Mono size={9} color={C.textD}>{t("leader.detail.breadcrumb")}</Mono>
         <Mono size={9} color={C.textD}>/</Mono>
         <Mono size={9} color={C.em}>{l.name}</Mono>
-        {detailMeta.archived && <Badge label="Archivé" color={C.textD}/>}
+        {detailMeta.archived && <Badge label={t("leader.detail.archivedBadge")} color={C.textD}/>}
         <div style={{ flex:1 }}/>
         <button onClick={() => setRenamingName(v => !v)}
-          title="Corriger une typo ou renommer ce profil dans toutes les entités"
+          title={t("leader.detail.btn.renameTooltip")}
           style={{ ...css.btn(C.teal, true), padding:"5px 12px", fontSize:11 }}>
-          ✏️ Modifier le nom
+          {t("leader.detail.btn.rename")}
         </button>
         {detailMeta.archived ? (
           <button onClick={() => { saveMeta(l.name, { archived:false, archivedAt:"" }); }}
             style={{ ...css.btn(C.em, true), padding:"5px 12px", fontSize:11 }}>
-            ↩ Restaurer
+            {t("leader.detail.btn.restore")}
           </button>
         ) : (
           <button onClick={() => {
-              if (!window.confirm(`Archiver la fiche de ${l.name} ? Elle restera accessible via le filtre "Archivés".`)) return;
+              if (!window.confirm(`${t("leader.detail.confirm.archivePrefixA")} ${l.name}${t("leader.detail.confirm.archivePrefixB")}`)) return;
               saveMeta(l.name, { archived:true, archivedAt:new Date().toISOString().split("T")[0] });
             }}
             style={{ ...css.btn(C.textD, true), padding:"5px 12px", fontSize:11 }}>
-            📦 Archiver
+            {t("leader.detail.btn.archive")}
           </button>
         )}
       </div>
@@ -786,12 +799,10 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <div style={{ background:C.surf, border:`1px solid ${C.teal}33`, borderRadius:10,
           padding:"14px 16px", marginBottom:14 }}>
           <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:6 }}>
-            Renommer le profil
+            {t("leader.detail.rename.title")}
           </div>
           <div style={{ fontSize:11, color:C.textM, lineHeight:1.5, marginBottom:10 }}>
-            Réécrit le nom dans cases, meetings, enquêtes et briefs (localStorage + Supabase si dispo).
-            Met aussi à jour <code style={{ fontSize:10 }}>case_tasks.assigned_to</code> et la table
-            employees côté Supabase. <b>Preview</b> compte sans rien écrire.
+            {t("leader.detail.rename.body")}
           </div>
           <IdentityRenameForm
             defaultCurrent={l.name}
@@ -808,12 +819,12 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ fontSize:14 }}>📦</span>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:12, fontWeight:600, color:C.textM }}>Fiche archivée</div>
-            {detailMeta.archivedAt && <Mono size={8} color={C.textD}>Archivé le {detailMeta.archivedAt}</Mono>}
+            <div style={{ fontSize:12, fontWeight:600, color:C.textM }}>{t("leader.detail.archivedBanner.title")}</div>
+            {detailMeta.archivedAt && <Mono size={8} color={C.textD}>{t("leader.detail.archivedBanner.atPrefix")} {detailMeta.archivedAt}</Mono>}
           </div>
           <button onClick={() => { saveMeta(l.name, { archived:false, archivedAt:"" }); }}
             style={{ ...css.btn(C.em, true), padding:"5px 12px", fontSize:11 }}>
-            ↩ Restaurer
+            {t("leader.detail.btn.restore")}
           </button>
         </div>
       )}
@@ -829,17 +840,17 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
               <div style={{ fontSize:20, fontWeight:800, color:C.text, letterSpacing:-.3 }}>{l.name}</div>
             </div>
             <div style={{ display:"flex", gap:7, flexWrap:"wrap", alignItems:"center" }}>
-              <Badge label={levelMeta.label} color={levelMeta.color}/>
+              <Badge label={t(levelMeta.labelKey)} color={levelMeta.color}/>
               <RiskBadge level={globalRisk}/>
               {lecture?.postureHRBP?.mode && (
-                <Badge label={`Posture HRBP: ${lecture.postureHRBP.mode}`}
+                <Badge label={`${t("leader.detail.header.posturePrefix")} ${lecture.postureHRBP.mode}`}
                   color={POSTURE_MODE_C[lecture.postureHRBP.mode]||C.textD}/>
               )}
             </div>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:3, alignItems:"flex-end" }}>
-            {lastMeeting?.savedAt && <Mono size={8} color={C.textD}>Dernier meeting: {lastMeeting.savedAt}</Mono>}
-            {lastPrep?.savedAt    && <Mono size={8} color={C.textD}>Dernier 1:1: {lastPrep.savedAt}</Mono>}
+            {lastMeeting?.savedAt && <Mono size={8} color={C.textD}>{t("leader.detail.header.lastMeeting")} {lastMeeting.savedAt}</Mono>}
+            {lastPrep?.savedAt    && <Mono size={8} color={C.textD}>{t("leader.detail.header.last1on1")} {lastPrep.savedAt}</Mono>}
           </div>
         </div>
 
@@ -847,13 +858,13 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <div style={{ display:"flex", gap:20, marginTop:14, flexWrap:"wrap",
           paddingTop:12, borderTop:`1px solid ${C.border}` }}>
           {[
-            { label:"Meetings",        value:l.meetings.length,     color:C.blue  },
-            { label:"Dossiers actifs", value:activeCases.length,    color:activeCases.length>0 ? C.amber : C.textD },
-            { label:"Plans 30-60-90",  value:(l.plans||[]).length,  color:(l.plans||[]).length>0 ? "#06b6d4" : C.textD },
+            { labelKey:"leader.detail.stats.meetings",    value:l.meetings.length,     color:C.blue  },
+            { labelKey:"leader.detail.stats.activeCases", value:activeCases.length,    color:activeCases.length>0 ? C.amber : C.textD },
+            { labelKey:"leader.detail.stats.plans",       value:(l.plans||[]).length,  color:(l.plans||[]).length>0 ? "#06b6d4" : C.textD },
           ].map((s,i) => (
             <div key={i}>
               <div style={{ fontSize:20, fontWeight:700, color:s.color }}>{s.value}</div>
-              <Mono size={8} color={C.textD}>{s.label}</Mono>
+              <Mono size={8} color={C.textD}>{t(s.labelKey)}</Mono>
             </div>
           ))}
         </div>
@@ -880,32 +891,32 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12,
               paddingBottom:8, borderBottom:`1px solid ${C.purple}22` }}>
               <span style={{ fontSize:13 }}>📝</span>
-              <Mono size={9} color={C.purple}>NOTE HRBP — COUCHE ÉDITORIALE</Mono>
+              <Mono size={9} color={C.purple}>{t("leader.note.title")}</Mono>
               <div style={{ flex:1 }}/>
               {!editingMeta && (
                 <>
                   <button onClick={()=>aiAssess(l)} disabled={aiAssessing}
-                    title="Réévaluer depuis le OS (meetings + cases)"
+                    title={t("leader.note.aiAssess.tooltip")}
                     style={{ ...css.btn(C.teal, true), padding:"5px 11px", fontSize:11, opacity:aiAssessing?.5:1 }}>
-                    {aiAssessing ? "⏳..." : "🔄 AI assess"}
+                    {aiAssessing ? t("leader.note.aiAssess.loading") : t("leader.note.aiAssess.label")}
                   </button>
                   <button onClick={startEdit}
                     style={{ ...css.btn(C.purple, true), padding:"5px 11px", fontSize:11 }}>
-                    {hasMeta ? "✏ Modifier" : "+ Ajouter"}
+                    {hasMeta ? t("leader.note.modify") : t("leader.note.add")}
                   </button>
                 </>
               )}
               {editingMeta && (
                 <>
-                  <button onClick={commitEdit} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>✓ Enregistrer</button>
-                  <button onClick={cancelEdit} style={{ ...css.btn(C.textM, true), padding:"5px 11px", fontSize:11 }}>Annuler</button>
+                  <button onClick={commitEdit} style={{ ...css.btn(C.em), padding:"5px 12px", fontSize:11 }}>{t("leader.note.save")}</button>
+                  <button onClick={cancelEdit} style={{ ...css.btn(C.textM, true), padding:"5px 11px", fontSize:11 }}>{t("leader.note.cancel")}</button>
                 </>
               )}
             </div>
 
             {!editingMeta && !hasMeta && (
               <div style={{ fontSize:12, color:C.textD, fontStyle:"italic" }}>
-                Aucune note HRBP. Clique sur "+ Ajouter" pour saisir type, pression, enjeu et next action.
+                {t("leader.note.empty")}
               </div>
             )}
 
@@ -913,79 +924,79 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
               <div>
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:10 }}>
                   {meta.type && <Badge label={`${TYPE_ICON[meta.type]||""} ${meta.type}`} color={C.purple}/>}
-                  {meta.pressure && <Badge label={`Pression ${meta.pressure}`} color={meta.pressure==="Elevee"||meta.pressure==="Élevée"?C.red:meta.pressure==="Moderee"||meta.pressure==="Modérée"?C.amber:C.em}/>}
-                  {meta.riskOverride && <Badge label={`Risque (override): ${meta.riskOverride}`} color={C.red}/>}
+                  {meta.pressure && <Badge label={`${t("leader.note.pressurePrefix")} ${meta.pressure}`} color={meta.pressure==="Elevee"||meta.pressure==="Élevée"?C.red:meta.pressure==="Moderee"||meta.pressure==="Modérée"?C.amber:C.em}/>}
+                  {meta.riskOverride && <Badge label={`${t("leader.note.riskOverridePrefix")} ${meta.riskOverride}`} color={C.red}/>}
                 </div>
-                {meta.tags?.length > 0 && <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8 }}>{meta.tags.map((t,i) => <Badge key={i} label={t} color={C.textM} size={9}/>)}</div>}
-                {meta.topIssue && <InfoRow label="Enjeu principal"><div style={{ fontSize:13, color:C.text, lineHeight:1.5 }}>⚑ {meta.topIssue}</div></InfoRow>}
-                {meta.nextAction && <InfoRow label="Prochaine action HRBP"><div style={{ fontSize:13, color:C.em, lineHeight:1.5 }}>→ {meta.nextAction}</div></InfoRow>}
-                {meta.execSummary && <InfoRow label="Note libre"><div style={{ fontSize:12, color:C.textM, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{meta.execSummary}</div></InfoRow>}
-                {meta.lastInteraction && <Mono size={8} color={C.textD}>Dernière éval: {meta.lastInteraction}</Mono>}
+                {meta.tags?.length > 0 && <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8 }}>{meta.tags.map((tg,i) => <Badge key={i} label={tg} color={C.textM} size={9}/>)}</div>}
+                {meta.topIssue && <InfoRow label={t("leader.note.display.topIssue")}><div style={{ fontSize:13, color:C.text, lineHeight:1.5 }}>⚑ {meta.topIssue}</div></InfoRow>}
+                {meta.nextAction && <InfoRow label={t("leader.note.display.nextAction")}><div style={{ fontSize:13, color:C.em, lineHeight:1.5 }}>→ {meta.nextAction}</div></InfoRow>}
+                {meta.execSummary && <InfoRow label={t("leader.note.display.execSummary")}><div style={{ fontSize:12, color:C.textM, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{meta.execSummary}</div></InfoRow>}
+                {meta.lastInteraction && <Mono size={8} color={C.textD}>{t("leader.note.lastEval")} {meta.lastInteraction}</Mono>}
               </div>
             )}
 
             {editingMeta && (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10 }}>
                 <div>
-                  <Mono size={8} color={C.textD}>Type</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.type")}</Mono>
                   <select value={form.type||""} onChange={e=>FF("type", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
                     <option value="">—</option>
-                    {MANAGER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {MANAGER_TYPES.map(mt => <option key={mt} value={mt}>{mt}</option>)}
                   </select>
                 </div>
                 <div>
-                  <Mono size={8} color={C.textD}>Niveau</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.level")}</Mono>
                   <select value={form.levelOverride||""} onChange={e=>FF("levelOverride", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
-                    <option value="">— (auto)</option>
-                    <option value="employe">Employé</option>
-                    <option value="gestionnaire">Gestionnaire</option>
-                    <option value="directeur">Directeur</option>
-                    <option value="vp">VP</option>
-                    <option value="executif">Exécutif</option>
-                    <option value="hrbp_team">Équipe HRBP</option>
-                    <option value="ta_team">Équipe TA</option>
-                    <option value="autres">Autres</option>
+                    <option value="">{t("leader.note.field.levelAuto")}</option>
+                    <option value="employe">{t("leader.level.employe")}</option>
+                    <option value="gestionnaire">{t("leader.level.gestionnaire")}</option>
+                    <option value="directeur">{t("leader.level.directeur")}</option>
+                    <option value="vp">{t("leader.level.vp")}</option>
+                    <option value="executif">{t("leader.level.executif")}</option>
+                    <option value="hrbp_team">{t("leader.level.hrbp_team")}</option>
+                    <option value="ta_team">{t("leader.level.ta_team")}</option>
+                    <option value="autres">{t("leader.level.autres")}</option>
                   </select>
                 </div>
                 <div>
-                  <Mono size={8} color={C.textD}>Pression</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.pressure")}</Mono>
                   <select value={form.pressure||""} onChange={e=>FF("pressure", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
                     <option value="">—</option>
-                    <option value="Elevee">Élevée</option>
-                    <option value="Moderee">Modérée</option>
-                    <option value="Faible">Faible</option>
+                    <option value="Elevee">{t("leader.note.pressure.high")}</option>
+                    <option value="Moderee">{t("leader.note.pressure.medium")}</option>
+                    <option value="Faible">{t("leader.note.pressure.low")}</option>
                   </select>
                 </div>
                 <div>
-                  <Mono size={8} color={C.textD}>Risque (override)</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.riskOverride")}</Mono>
                   <select value={form.riskOverride||""} onChange={e=>FF("riskOverride", e.target.value)} style={{ ...css.select, marginTop:4, fontSize:12 }}>
-                    <option value="">— (auto)</option>
+                    <option value="">{t("leader.note.field.levelAuto")}</option>
                     {RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
                 <div style={{ gridColumn:"1 / -1" }}>
-                  <Mono size={8} color={C.textD}>Enjeu principal</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.topIssue")}</Mono>
                   <input value={form.topIssue||""} onChange={e=>FF("topIssue", e.target.value)}
-                    placeholder="Ex: Évite les conversations de performance"
+                    placeholder={t("leader.note.ph.topIssue")}
                     style={{ ...css.input, marginTop:4, fontSize:12 }}/>
                 </div>
                 <div style={{ gridColumn:"1 / -1" }}>
-                  <Mono size={8} color={C.textD}>Prochaine action HRBP</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.nextAction")}</Mono>
                   <input value={form.nextAction||""} onChange={e=>FF("nextAction", e.target.value)}
-                    placeholder="Ex: Coaching ciblé conversation difficile"
+                    placeholder={t("leader.note.ph.nextAction")}
                     style={{ ...css.input, marginTop:4, fontSize:12 }}/>
                 </div>
                 <div style={{ gridColumn:"1 / -1" }}>
-                  <Mono size={8} color={C.textD}>Note libre HRBP</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.execSummary")}</Mono>
                   <textarea rows={3} value={form.execSummary||""} onChange={e=>FF("execSummary", e.target.value)}
-                    placeholder="Contexte, observations, patterns, plan stratégique..."
+                    placeholder={t("leader.note.ph.execSummary")}
                     style={{ ...css.textarea, marginTop:4, fontSize:12 }}/>
                 </div>
                 <div style={{ gridColumn:"1 / -1" }}>
-                  <Mono size={8} color={C.textD}>Tags</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.note.field.tags")}</Mono>
                   <input value={Array.isArray(form.tags) ? form.tags.join(", ") : (form.tags||"")}
-                    onChange={e=>FF("tags", e.target.value.split(",").map(t=>t.trim()).filter(Boolean))}
-                    placeholder="Ex: high-potential, succession, retention-risk"
+                    onChange={e=>FF("tags", e.target.value.split(",").map(s=>s.trim()).filter(Boolean))}
+                    placeholder={t("leader.note.ph.tags")}
                     style={{ ...css.input, marginTop:4, fontSize:12 }}/>
                 </div>
               </div>
@@ -1003,13 +1014,13 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14,
           paddingBottom:10, borderBottom:`1px solid ${r360Color}22` }}>
           <span style={{ fontSize:13 }}>🔬</span>
-          <Mono size={9} color={r360Color}>LECTURE STRATÉGIQUE 360</Mono>
+          <Mono size={9} color={r360Color}>{t("leader.r360.title")}</Mono>
           <div style={{ flex:1 }}/>
           <div style={{ background:r360Color+"22", border:`1px solid ${r360Color}55`,
             borderRadius:5, padding:"3px 9px", display:"flex", alignItems:"center", gap:6 }}>
             <span style={{ width:7, height:7, borderRadius:"50%", background:r360Color,
               display:"inline-block" }}/>
-            <Mono size={9} color={r360Color}>Risque global · {r360.globalRisk}</Mono>
+            <Mono size={9} color={r360Color}>{t("leader.r360.globalRiskPrefix")} {r360.globalRisk}</Mono>
           </div>
         </div>
 
@@ -1018,7 +1029,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
           {/* B — Patterns observés */}
           <div>
-            <Mono size={8} color={C.textD} style={{ marginBottom:8 }}>Patterns observés</Mono>
+            <Mono size={8} color={C.textD} style={{ marginBottom:8 }}>{t("leader.r360.patterns")}</Mono>
             <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:5 }}>
               {r360.patterns.length > 0 ? r360.patterns.map((p, i) => (
                 <div key={i} style={{ fontSize:11, color:C.text,
@@ -1028,7 +1039,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                 </div>
               )) : (
                 <div style={{ fontSize:11, color:C.textD, fontStyle:"italic" }}>
-                  Aucun pattern détecté
+                  {t("leader.r360.empty.patterns")}
                 </div>
               )}
             </div>
@@ -1036,7 +1047,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
           {/* C — Facteurs observés */}
           <div>
-            <Mono size={8} color={C.textD} style={{ marginBottom:8 }}>Facteurs observés</Mono>
+            <Mono size={8} color={C.textD} style={{ marginBottom:8 }}>{t("leader.r360.factors")}</Mono>
             <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:5 }}>
               {r360.why.length > 0 ? r360.why.map((w, i) => (
                 <div key={i} style={{ display:"flex", gap:7, alignItems:"flex-start" }}>
@@ -1046,7 +1057,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                 </div>
               )) : (
                 <div style={{ fontSize:11, color:C.textD, fontStyle:"italic" }}>
-                  Données insuffisantes
+                  {t("leader.r360.empty.factors")}
                 </div>
               )}
             </div>
@@ -1054,7 +1065,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
           {/* D — Actions recommandées */}
           <div>
-            <Mono size={8} color={C.textD} style={{ marginBottom:8 }}>Actions recommandées</Mono>
+            <Mono size={8} color={C.textD} style={{ marginBottom:8 }}>{t("leader.r360.actions")}</Mono>
             <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:7 }}>
               {r360.actions.map((a, i) => (
                 <div key={i} style={{ display:"flex", gap:7, alignItems:"flex-start" }}>
@@ -1083,15 +1094,15 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
             paddingBottom:9, borderBottom:`1px solid ${C.border}`, flexWrap:"wrap" }}>
             <span style={{ fontSize:13 }}>⏱</span>
-            <Mono size={9} color={C.textD}>TIMELINE</Mono>
+            <Mono size={9} color={C.textD}>{t("leader.tl.title")}</Mono>
             <Mono size={8} color={C.textD}>
-              — {timeline.length} événement{timeline.length > 1 ? "s" : ""}
+              — {timeline.length} {t("leader.tl.eventsSuffix")}
             </Mono>
             {tlHighActivity && (
               <span style={{ background:C.amber+"22", border:`1px solid ${C.amber}44`,
                 borderRadius:4, padding:"2px 8px", fontSize:9, fontWeight:700,
                 color:C.amber, fontFamily:"'DM Mono',monospace", letterSpacing:.3 }}>
-                ⚡ Activité élevée · 14j
+                {t("leader.tl.highActivity")}
               </span>
             )}
           </div>
@@ -1099,11 +1110,11 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Filter chips */}
           <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:12 }}>
             {[
-              { key:"all",     label:"Tous",     icon:"·" },
-              { key:"meeting", label:"Meetings", icon:"🎙️" },
-              { key:"case",    label:"Cases",    icon:"📂" },
-              { key:"signal",  label:"Signaux",  icon:"📡" },
-              { key:"exit",    label:"Exits",    icon:"🚪" },
+              { key:"all",     labelKey:"leader.tl.filter.all",      icon:"·" },
+              { key:"meeting", labelKey:"leader.tl.filter.meetings", icon:"🎙️" },
+              { key:"case",    labelKey:"leader.tl.filter.cases",    icon:"📂" },
+              { key:"signal",  labelKey:"leader.tl.filter.signals",  icon:"📡" },
+              { key:"exit",    labelKey:"leader.tl.filter.exits",    icon:"🚪" },
             ].map(f => {
               const count = f.key === "all"
                 ? timeline.length
@@ -1121,7 +1132,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     color: isActive ? col : C.textD,
                     cursor:"pointer", fontFamily:"'DM Mono',monospace",
                     letterSpacing:.3, whiteSpace:"nowrap" }}>
-                  {f.icon} {f.label}
+                  {f.icon} {t(f.labelKey)}
                   <span style={{ marginLeft:4, opacity:.6 }}>{count}</span>
                 </button>
               );
@@ -1131,7 +1142,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Month groups */}
           {tlGrouped.length === 0 ? (
             <div style={{ fontSize:11, color:C.textD, padding:"8px 0" }}>
-              Aucun événement pour ce filtre.
+              {t("leader.tl.empty")}
             </div>
           ) : tlGrouped.map(group => (
             <div key={group.key} style={{ marginBottom:6 }}>
@@ -1210,8 +1221,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                 fontSize:10, color:C.em, cursor:"pointer", padding:0,
                 fontFamily:"'DM Mono',monospace" }}>
               {tlExpanded
-                ? "↑ Réduire"
-                : `↓ Voir tout — ${tlFiltered.length - TL_MAX} de plus`}
+                ? t("leader.tl.collapse")
+                : `${t("leader.tl.expandPrefix")} ${tlFiltered.length - TL_MAX} ${t("leader.tl.expandSuffix")}`}
             </button>
           )}
         </div>
@@ -1226,8 +1237,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 1 — Dossiers actifs */}
           {activeCases.length > 0 && (
             <Card>
-              <SH icon="🔴" label="DOSSIERS ACTIFS" color={C.red}
-                sub={`${activeCases.length} en cours`}/>
+              <SH icon="🔴" label={t("leader.bloc.activeCases.title")} color={C.red}
+                sub={`${activeCases.length} ${t("leader.bloc.activeCases.subSuffix")}`}/>
               {activeCases.slice(0,4).map((c,i) => {
                 const isOverdue = c.dueDate && c.dueDate < todayISO;
                 return (
@@ -1253,14 +1264,14 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     <div style={{ fontSize:10, color:C.textD, marginTop:3, lineHeight:1.5 }}>
                       {[
                         CASE_TYPE_LABEL[c.type] || c.type,
-                        isOverdue ? `⚠ Échéance dépassée: ${c.dueDate}` : c.dueDate ? `📅 ${c.dueDate}` : null,
-                        c.hrPosture ? `Posture: ${c.hrPosture}` : null,
+                        isOverdue ? `${t("leader.bloc.case.overduePrefix")} ${c.dueDate}` : c.dueDate ? `📅 ${c.dueDate}` : null,
+                        c.hrPosture ? `${t("leader.bloc.case.posturePrefix")} ${c.hrPosture}` : null,
                       ].filter(Boolean).join(" · ")}
                     </div>
                     {(c.evolution || c.owner) && (
                       <div style={{ display:"flex", gap:5, marginTop:4, alignItems:"center" }}>
                         {c.evolution && <Badge label={c.evolution} color={EVO_C[c.evolution]||C.textD} size={9}/>}
-                        {c.owner && c.owner !== "HRBP" && <Mono size={8} color={C.textD}>Owner: {c.owner}</Mono>}
+                        {c.owner && c.owner !== "HRBP" && <Mono size={8} color={C.textD}>{t("leader.bloc.case.ownerPrefix")} {c.owner}</Mono>}
                       </div>
                     )}
                   </button>
@@ -1271,7 +1282,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   style={{ display:"block", width:"100%", background:"none", border:"none",
                     fontSize:10, color:C.em, marginTop:6, cursor:"pointer",
                     textAlign:"left", fontFamily:"'DM Mono',monospace", padding:0 }}>
-                  +{activeCases.length - 4} autre{activeCases.length-4>1?"s":""} — voir Case Log →
+                  +{activeCases.length - 4} {t("leader.bloc.case.moreSuffix")}
                 </button>
               )}
             </Card>
@@ -1280,8 +1291,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 2 — Signaux & patterns */}
           {highSignals.length > 0 && (
             <Card>
-              <SH icon="📡" label="SIGNAUX & PATTERNS" color={C.amber}
-                sub={`${highSignals.length} signal${highSignals.length>1?"s":""} élevés`}/>
+              <SH icon="📡" label={t("leader.bloc.signals.title")} color={C.amber}
+                sub={`${highSignals.length} ${t("leader.bloc.signals.subSuffix")}`}/>
               {highSignals.map((s,i) => (
                 <div key={i} style={{ borderBottom:`1px solid ${C.border}`, padding:"7px 0" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
@@ -1305,14 +1316,14 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 3 — Messages clés HRBP */}
           {keyMessages.length > 0 && (
             <Card>
-              <SH icon="💬" label="MESSAGES CLÉS HRBP" color={C.blue}/>
+              <SH icon="💬" label={t("leader.bloc.keyMsg.title")} color={C.blue}/>
               {keyMessages.map((m,i) => (
                 <div key={i} style={{ borderBottom:`1px solid ${C.border}`, padding:"7px 0" }}>
                   <div style={{ fontSize:12, color:C.text, lineHeight:1.5 }}>{m.msg}</div>
                   <div style={{ display:"flex", gap:6, alignItems:"center", marginTop:4 }}>
                     <Mono size={8} color={C.textD}>{m.date}</Mono>
                     {m.risk && <RiskBadge level={m.risk}/>}
-                    {m.source === "engine" && <Badge label="Meeting Engine" color={C.purple} size={8}/>}
+                    {m.source === "engine" && <Badge label={t("leader.bloc.keyMsg.engineBadge")} color={C.purple} size={8}/>}
                   </div>
                 </div>
               ))}
@@ -1322,8 +1333,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 4 — Actions prioritaires */}
           {meetingActions.length > 0 && (
             <Card>
-              <SH icon="✅" label="ACTIONS PRIORITAIRES" color={C.em}
-                sub="issues des meetings"/>
+              <SH icon="✅" label={t("leader.bloc.actions.title")} color={C.em}
+                sub={t("leader.bloc.actions.sub")}/>
               {meetingActions.map((a,i) => (
                 <div key={i} style={{ borderBottom:`1px solid ${C.border}`, padding:"7px 0" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", gap:8, alignItems:"flex-start" }}>
@@ -1344,8 +1355,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 5 — Exits liés */}
           {(l.exits||[]).length > 0 && (
             <Card>
-              <SH icon="🚪" label="DÉPARTS LIÉS" color={C.textM}
-                sub={`${(l.exits||[]).length} départ${(l.exits||[]).length>1?"s":""}`}/>
+              <SH icon="🚪" label={t("leader.bloc.exits.title")} color={C.textM}
+                sub={`${(l.exits||[]).length} ${t("leader.bloc.exits.subSuffix")}`}/>
               {sortByDate(l.exits||[], "savedAt").slice(0,3).map((ex,i) => {
                 const dept = ex.result?.summary?.departure_type;
                 const sent = ex.result?.management?.overallSentiment;
@@ -1362,7 +1373,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     onMouseLeave={e => e.currentTarget.style.background = "none"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
                       <span style={{ fontSize:12, fontWeight:500, color:C.text, flex:1, lineHeight:1.4 }}>
-                        {ex.result?.summary?.headline || ex.employeeName || "Départ"}
+                        {ex.result?.summary?.headline || ex.employeeName || t("leader.bloc.exits.fallbackHeadline")}
                       </span>
                       <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
                         {dept && <Badge label={dept} color={dc} size={9}/>}
@@ -1373,7 +1384,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                       {[
                         ex.role,
                         ex.team,
-                        sent ? <span key="sent" style={{ color:sc }}>Mgmt: {sent}</span> : null,
+                        sent ? <span key="sent" style={{ color:sc }}>{t("leader.bloc.exits.mgmtPrefix")} {sent}</span> : null,
                         ex.savedAt,
                       ].filter(Boolean).reduce((acc, el, idx) => (
                         idx === 0 ? [el] : [...acc, " · ", el]
@@ -1387,7 +1398,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   style={{ display:"block", width:"100%", background:"none", border:"none",
                     fontSize:10, color:C.textM, marginTop:4, cursor:"pointer",
                     textAlign:"left", fontFamily:"'DM Mono',monospace", padding:0 }}>
-                  +{(l.exits||[]).length - 3} autre{(l.exits||[]).length-3>1?"s":""} — voir les départs →
+                  +{(l.exits||[]).length - 3} {t("leader.bloc.exits.moreSuffix")}
                 </button>
               )}
             </Card>
@@ -1396,8 +1407,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 6 — Signaux liés */}
           {(l.signals||[]).length > 0 && (
             <Card>
-              <SH icon="📡" label="SIGNAUX LIÉS" color={C.purple}
-                sub={`${(l.signals||[]).length} signal${(l.signals||[]).length>1?"s":""}`}/>
+              <SH icon="📡" label={t("leader.bloc.signalsLinked.title")} color={C.purple}
+                sub={`${(l.signals||[]).length} ${t("leader.bloc.signalsLinked.subSuffix")}`}/>
               {sortByDate(l.signals||[], "savedAt").slice(0,3).map((s,i) => {
                 const sev = s.analysis?.severity || "Modéré";
                 const r   = RISK[normalizeRisk(sev)] || RISK["Modéré"];
@@ -1412,7 +1423,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     onMouseLeave={e => e.currentTarget.style.background = "none"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
                       <span style={{ fontSize:12, fontWeight:500, color:C.text, flex:1, lineHeight:1.4 }}>
-                        {s.analysis?.title || s.signal?.substring(0,50) || "Signal"}
+                        {s.analysis?.title || s.signal?.substring(0,50) || t("leader.bloc.signalsLinked.fallback")}
                       </span>
                       <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
                         <Badge label={sev} color={r.color} size={9}/>
@@ -1430,7 +1441,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   style={{ display:"block", width:"100%", background:"none", border:"none",
                     fontSize:10, color:C.purple, marginTop:4, cursor:"pointer",
                     textAlign:"left", fontFamily:"'DM Mono',monospace", padding:0 }}>
-                  +{(l.signals||[]).length - 3} autre{(l.signals||[]).length-3>1?"s":""} — voir tous les signaux →
+                  +{(l.signals||[]).length - 3} {t("leader.bloc.signalsLinked.moreSuffix")}
                 </button>
               )}
             </Card>
@@ -1444,10 +1455,10 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 5 — Lecture RH */}
           {lecture && (
             <Card style={{ borderLeft:`3px solid ${C.em}` }}>
-              <SH icon="🧠" label="LECTURE RH" color={C.em} sub={lectureDate||""}/>
+              <SH icon="🧠" label={t("leader.bloc.lecture.title")} color={C.em} sub={lectureDate||""}/>
 
               {lecture.lectureGestionnaire?.style && (
-                <InfoRow label="Style de gestion">
+                <InfoRow label={t("leader.bloc.lecture.field.style")}>
                   <div style={{ fontSize:12, fontWeight:600, color:C.text }}>
                     {lecture.lectureGestionnaire.style}
                   </div>
@@ -1455,7 +1466,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
               )}
 
               {lecture.lectureGestionnaire?.angles && (
-                <InfoRow label="Angle recommandé">
+                <InfoRow label={t("leader.bloc.lecture.field.angle")}>
                   <div style={{ fontSize:12, color:C.textM, lineHeight:1.5 }}>
                     {lecture.lectureGestionnaire.angles}
                   </div>
@@ -1463,7 +1474,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
               )}
 
               {lecture.postureHRBP && (
-                <InfoRow label="Posture HRBP">
+                <InfoRow label={t("leader.bloc.lecture.field.posture")}>
                   <div style={{ display:"flex", alignItems:"flex-start", gap:8, flexWrap:"wrap" }}>
                     <Badge label={lecture.postureHRBP.mode}
                       color={POSTURE_MODE_C[lecture.postureHRBP.mode]||C.textD}/>
@@ -1478,7 +1489,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
 
               {lecture.risqueCle && (
                 <div style={{ background:C.surfL, borderRadius:6, padding:"9px 11px", marginTop:4 }}>
-                  <Mono size={8} color={C.textD}>Risque clé identifié</Mono>
+                  <Mono size={8} color={C.textD}>{t("leader.bloc.lecture.field.keyRisk")}</Mono>
                   <div style={{ display:"flex", gap:7, marginTop:5, alignItems:"center" }}>
                     <Badge label={lecture.risqueCle.niveau||"—"}
                       color={(RISK[normalizeRisk(lecture.risqueCle.niveau)]||RISK["Faible"]).color}/>
@@ -1497,11 +1508,11 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 6 — Focus équipe */}
           {sante && (
             <Card>
-              <SH icon="👥" label="FOCUS ÉQUIPE" color={C.teal} sub={lectureDate||""}/>
+              <SH icon="👥" label={t("leader.bloc.team.title")} color={C.teal} sub={lectureDate||""}/>
               <div style={{ display:"flex", gap:8, marginBottom:10 }}>
                 {sante.performance && (
                   <div style={{ flex:1, background:C.surfL, borderRadius:6, padding:"8px 10px" }}>
-                    <Mono size={8} color={C.textD}>Performance</Mono>
+                    <Mono size={8} color={C.textD}>{t("leader.bloc.team.field.performance")}</Mono>
                     <div style={{ fontSize:12, fontWeight:600, marginTop:4,
                       color:SANTE_C[sante.performance]||C.text }}>
                       {sante.performance}
@@ -1510,7 +1521,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                 )}
                 {sante.engagement && (
                   <div style={{ flex:1, background:C.surfL, borderRadius:6, padding:"8px 10px" }}>
-                    <Mono size={8} color={C.textD}>Engagement</Mono>
+                    <Mono size={8} color={C.textD}>{t("leader.bloc.team.field.engagement")}</Mono>
                     <div style={{ fontSize:12, fontWeight:600, marginTop:4,
                       color:SANTE_C[sante.engagement]||C.text }}>
                       {sante.engagement}
@@ -1529,8 +1540,8 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 7 — Plans 30-60-90 */}
           {linkedPlans.length > 0 && (
             <Card>
-              <SH icon="📅" label="30-60-90 EN COURS" color="#06b6d4"
-                sub={`${linkedPlans.length} plan${linkedPlans.length>1?"s":""}`}/>
+              <SH icon="📅" label={t("leader.bloc.plans.title")} color="#06b6d4"
+                sub={`${linkedPlans.length} ${t("leader.bloc.plans.subSuffix")}`}/>
               {linkedPlans.map((p, i) => {
                 const ph      = p._phase;
                 const risk    = p.output?.summary?.transitionRisk;
@@ -1571,7 +1582,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                       </span>
                       {ph.daysLeft !== null && !isTerminated && (
                         <Mono size={8} color={ph.daysLeft <= 5 ? C.red : C.textD}>
-                          {ph.daysLeft}j restants
+                          {ph.daysLeft}{t("leader.bloc.plans.daysLeftSuffix")}
                         </Mono>
                       )}
                     </div>
@@ -1598,7 +1609,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {/* Bloc 8 — Historique */}
           {(sortedMeetings.length > 0 || sortedPreps.length > 0) && (
             <Card>
-              <SH icon="🕒" label="HISTORIQUE" color={C.textD}/>
+              <SH icon="🕒" label={t("leader.bloc.history.title")} color={C.textD}/>
 
               {sortedMeetings.slice(0,4).map((m,i) => {
                 const a = mAna(m);
@@ -1614,7 +1625,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                     onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
                       <span style={{ fontSize:11, color:C.blue, flex:1, lineHeight:1.4 }}>
-                        🎙️ {a.meetingTitle || m.meetingType || m.engineType || "Meeting"}
+                        🎙️ {a.meetingTitle || m.meetingType || m.engineType || t("leader.bloc.history.fallback.meeting")}
                       </span>
                       <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
                         <Badge label={a.overallRisk||"Faible"} color={r.color} size={9}/>
@@ -1630,7 +1641,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   style={{ display:"block", width:"100%", background:"none", border:"none",
                     fontSize:10, color:C.blue, marginTop:4, cursor:"pointer",
                     textAlign:"left", fontFamily:"'DM Mono',monospace", padding:0 }}>
-                  +{sortedMeetings.length - 4} autre{sortedMeetings.length-4>1?"s":""} — voir tous les meetings →
+                  +{sortedMeetings.length - 4} {t("leader.bloc.history.moreMeetings")}
                 </button>
               )}
 
@@ -1651,7 +1662,7 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
                   onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
                     <span style={{ fontSize:11, color:C.blue, flex:1 }}>
-                      📋 {p.engineType || p.meetingType || p.output?.meetingTitle || "Meeting"}
+                      📋 {p.engineType || p.meetingType || p.output?.meetingTitle || t("leader.bloc.history.fallback.meeting")}
                     </span>
                     <div style={{ display:"flex", gap:4, flexShrink:0, alignItems:"center" }}>
                       {p.output?.overallRisk && (
@@ -1672,22 +1683,22 @@ export default function ModuleLeader({ data, onSave, onNavigate }) {
           {!lecture && highSignals.length === 0 && activeCases.length === 0 && keyMessages.length === 0 && linkedPlans.length === 0 && (
             <Card style={{ textAlign:"center", padding:"24px 16px" }}>
               <div style={{ fontSize:24, marginBottom:8 }}>📭</div>
-              <div style={{ fontSize:12, color:C.textM, marginBottom:4 }}>Données limitées pour ce gestionnaire</div>
+              <div style={{ fontSize:12, color:C.textM, marginBottom:4 }}>{t("leader.bloc.empty.title")}</div>
               <div style={{ fontSize:11, color:C.textD, lineHeight:1.6 }}>
-                Analysez un meeting ou préparez un 1:1 pour enrichir cette fiche.
+                {t("leader.bloc.empty.body")}
               </div>
               <div style={{ display:"flex", gap:8, justifyContent:"center", marginTop:12 }}>
                 <button onClick={() => onNavigate("meetings")}
                   style={{ padding:"6px 14px", background:C.blue+"18",
                     border:`1px solid ${C.blue}44`, borderRadius:6, color:C.blue,
                     fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-                  🎙️ Meetings
+                  {t("leader.bloc.empty.cta.meetings")}
                 </button>
                 <button onClick={() => onNavigate("prep1on1")}
                   style={{ padding:"6px 14px", background:C.teal+"18",
                     border:`1px solid ${C.teal}44`, borderRadius:6, color:C.teal,
                     fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-                  🗂️ Préparer 1:1
+                  {t("leader.bloc.empty.cta.prep1on1")}
                 </button>
               </div>
             </Card>
