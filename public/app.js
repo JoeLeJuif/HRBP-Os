@@ -835,6 +835,7 @@ ${LEGAL_GUARDRAIL}`;
       "brief.brief.weeklyActions": "Week actions",
       "brief.brief.lookAhead": "Next week",
       "brief.brief.watchList": "Radar \u2014 Topics to keep in mind",
+      "brief.brief.ownerLabel": "OWNER",
       "brief.brief.newBrief": "\u21BA New brief",
       "brief.insights.header": "Cross-modules insights",
       "brief.insights.body": "Strategic analysis cross-referencing your active cases, signals, meetings and Meeting Engine sessions.",
@@ -1999,6 +2000,7 @@ ${LEGAL_GUARDRAIL}`;
       "brief.brief.weeklyActions": "Actions de la semaine",
       "brief.brief.lookAhead": "Semaine prochaine",
       "brief.brief.watchList": "Radar \u2014 Sujets \xE0 garder en m\xE9moire",
+      "brief.brief.ownerLabel": "RESPONSABLE",
       "brief.brief.newBrief": "\u21BA Nouveau brief",
       "brief.insights.header": "Insights cross-modules",
       "brief.insights.body": "Analyse strat\xE9gique qui croise tes cas actifs, signaux, meetings et sessions Meeting Engine.",
@@ -2111,15 +2113,15 @@ ${LEGAL_GUARDRAIL}`;
       "meetings.tab.nextMeeting": "Prochain meeting",
       "meetings.tab.postes": "Postes",
       "meetings.tab.questions": "Questions",
-      "meetings.tab.case": "Case Log",
-      "meetings.tab.people": "People",
+      "meetings.tab.case": "Journal de cas",
+      "meetings.tab.people": "Personnes",
       "meetings.tab.signals": "Signaux",
       "meetings.tab.risks": "Risques",
       "meetings.type.executif": "\u{1F3DB} Ex\xE9cutif",
       "meetings.type.vp": "\u{1F4CA} VP",
       "meetings.type.director": "\u{1F3E2} Directeur",
       "meetings.type.manager": "\u{1F464} Gestionnaire",
-      "meetings.type.hrbpteam": "\u{1F91D} HRBP Team",
+      "meetings.type.hrbpteam": "\u{1F91D} \xC9quipe HRBP",
       "meetings.type.ta": "\u{1F3AF} Talent Acquisition",
       "meetings.type.talent": "\u2B50 Talent/Perf",
       "meetings.type.org": "\u{1F504} Org & Changement",
@@ -2636,7 +2638,7 @@ ${LEGAL_GUARDRAIL}`;
       "leader.detail.confirm.archivePrefixA": "Archiver la fiche de",
       "leader.detail.confirm.archivePrefixB": " ? Elle restera accessible via le filtre \xAB Archiv\xE9s \xBB.",
       "leader.detail.rename.title": "Renommer le profil",
-      "leader.detail.rename.body": "R\xE9\xE9crit le nom dans cases, meetings, enqu\xEAtes et briefs (localStorage + Supabase si dispo). Met aussi \xE0 jour case_tasks.assigned_to et la table employees c\xF4t\xE9 Supabase. Preview compte sans rien \xE9crire.",
+      "leader.detail.rename.body": "R\xE9\xE9crit le nom dans cases, meetings, enqu\xEAtes et briefs (localStorage + Supabase si dispo). Met aussi \xE0 jour case_tasks.assigned_to et la table employees c\xF4t\xE9 Supabase. L'aper\xE7u compte sans rien \xE9crire.",
       "leader.detail.archivedBanner.title": "Fiche archiv\xE9e",
       "leader.detail.archivedBanner.atPrefix": "Archiv\xE9 le",
       "leader.detail.header.posturePrefix": "Posture HRBP :",
@@ -36568,7 +36570,7 @@ ${recap.sentText}`,
       const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };
       const ec = r.evolution ? EVO_C3[r.evolution] || C.textD : null;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 } }, /* @__PURE__ */ React.createElement(RiskBadge6, { level: r.risk }), /* @__PURE__ */ React.createElement(Badge, { label: r.window, color: C.purple, size: 10 }), ec && /* @__PURE__ */ React.createElement(Badge, { label: r.evolution, color: ec, size: 9 }), r.carryOver && /* @__PURE__ */ React.createElement(Badge, { label: "\u21BA", color: C.textD, size: 9 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.text } }, r.profile), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em, marginTop: 3 } }, "Levier: ", r.lever));
-    }))), /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4C5}", label: t2("brief.brief.weeklyActions"), color: C.em }), result.weeklyActions?.map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.deadline, color: C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "OWNER: ", a.owner))))), result.lookAhead && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F52D}", label: t2("brief.brief.lookAhead"), color: C.teal }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, result.lookAhead)), result.watchList?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 10, borderLeft: `3px solid ${C.textD}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4E1}", label: t2("brief.brief.watchList"), color: C.textM }), result.watchList.map((w, i) => {
+    }))), /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4C5}", label: t2("brief.brief.weeklyActions"), color: C.em }), result.weeklyActions?.map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.deadline, color: C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, a.action), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("brief.brief.ownerLabel"), ": ", a.owner))))), result.lookAhead && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F52D}", label: t2("brief.brief.lookAhead"), color: C.teal }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, result.lookAhead)), result.watchList?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginTop: 10, borderLeft: `3px solid ${C.textD}` } }, /* @__PURE__ */ React.createElement(SecHead7, { icon: "\u{1F4E1}", label: t2("brief.brief.watchList"), color: C.textM }), result.watchList.map((w, i) => {
       const CLASSIF_C = { "activeRisk": C.amber, "latentSignal": C.blue, "resolved": C.teal };
       const cc = CLASSIF_C[w.classification] || C.textD;
       const EVO_C3 = { "Aggrave": C.red, "Persistant": C.amber, "Nouveau": C.blue, "En amelioration": C.teal, "Resolu": C.textD };

@@ -1106,7 +1106,7 @@ Identifie les patterns recurrents, risques systemiques, angles morts et donne 1 
                   <Badge label={a.deadline} color={C.amber} size={10}/>
                   <div>
                     <div style={{ fontSize:13, color:C.text }}>{a.action}</div>
-                    <Mono color={C.textD} size={9}>OWNER: {a.owner}</Mono>
+                    <Mono color={C.textD} size={9}>{t("brief.brief.ownerLabel")}: {a.owner}</Mono>
                   </div>
                 </div>)}
               </Card>
