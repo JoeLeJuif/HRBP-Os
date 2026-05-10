@@ -94,7 +94,7 @@ export default function ModuleExit({ data, onSave, focusExitId, onClearFocus }) 
 
   return (
     <div style={{ maxWidth:820, margin:"0 auto" }}>
-      <div style={{ marginBottom:20 }}><div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Exit Interview Analyzer</div><div style={{ fontSize:12, color:C.textM }}>{exits.length} entrevue(s) archivée(s)</div></div>
+      <div style={{ marginBottom:20 }}><div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Analyseur d'entrevues de départ</div><div style={{ fontSize:12, color:C.textM }}>{exits.length} entrevue(s) archivée(s)</div></div>
       <Card style={{ marginBottom:20 }}>
         <SecHead icon="🚪" label="Analyser une entrevue de départ" color={C.textM}/>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:12 }}>

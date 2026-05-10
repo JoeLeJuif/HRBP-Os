@@ -147,6 +147,8 @@ const translations = {
     "home.briefAgeDays":            "{n}d old",
     "home.brief.label":             "📊 Brief",
     "home.briefRiskLabel":          "Risk",
+    "home.badge.reviewDue":         "Review due",
+    "home.badge.aging":             "Aging",
 
     // ── Toast / saved indicator ───────────────────────────────────────────
     "common.saved":      "Saved",
@@ -602,7 +604,7 @@ const translations = {
     "nav.home":          "Accueil",
     "nav.copilot":       "Copilot",
     "nav.meetings":      "Hub Réunions",
-    "nav.leaders":       "Portefeuille",
+    "nav.leaders":       "Portfolio",
     "nav.cases":         "Journal de cas",
     "nav.signals":       "Signaux",
     "nav.brief":         "Hebdo",
@@ -735,6 +737,8 @@ const translations = {
     "home.briefAgeDays":            "{n}j ancien",
     "home.brief.label":             "📊 Brief",
     "home.briefRiskLabel":          "Risque",
+    "home.badge.reviewDue":         "Suivi requis",
+    "home.badge.aging":             "Vieillissant",
 
     // ── Toast / saved indicator ───────────────────────────────────────────
     "common.saved":      "Sauvegardé",
@@ -1089,7 +1093,7 @@ const translations = {
     "meetings.engineType.suivi":         "📋 Suivi",
     "meetings.engineType.transition":    "🚀 Transition",
     "meetings.section.summaryExec":"Résumé exécutif",
-    "meetings.section.summaryPortfolio":"Résumé portefeuille",
+    "meetings.section.summaryPortfolio":"Résumé Portfolio",
     "meetings.section.summaryPipeline":"Résumé pipeline",
     "meetings.section.summary":    "Résumé",
     "meetings.section.performance":"Performance",

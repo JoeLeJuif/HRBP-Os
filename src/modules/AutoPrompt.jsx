@@ -63,7 +63,7 @@ export default function ModuleAutoPrompt({ data }) {
     <div style={{ maxWidth:900, margin:"0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom:18 }}>
-        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Auto Prompt Engine</div>
+        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Moteur de prompts automatiques</div>
         <div style={{ fontSize:12, color:C.textM }}>
           Contexte détecté automatiquement · {situations.length} situation{situations.length!==1?"s":""} identifiée{situations.length!==1?"s":""}
         </div>

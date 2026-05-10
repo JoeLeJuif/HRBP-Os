@@ -121,8 +121,8 @@ const PREP_MEETING_TYPES = [
 ];
 const PREP_FUNCTIONS = [
   {value:"",label:"Sélectionner…"},{value:"IT",label:"Technologies de l'information"},
-  {value:"network",label:"Network Planning"},{value:"ops",label:"Opérations"},
-  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporate / Siège"},
+  {value:"network",label:"Planification réseau"},{value:"ops",label:"Opérations"},
+  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporatif / Siège"},
   {value:"hr",label:"Ressources humaines"},{value:"other",label:"Autre"},
 ];
 
@@ -891,7 +891,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
   // ── Static tab/category data ──────────────────────────────────────────────
   const PTABS = [
-    {id:"guidance", icon:"🧭", label:"Guidance",        color:C.teal},
+    {id:"guidance", icon:"🧭", label:"Guidage",         color:C.teal},
     {id:"context",  icon:"📋", label:"Contexte",        color:C.blue},
     {id:"history",  icon:"🕐", label:"Historique",      color:C.purple, badge:histCount||null},
     {id:"prep",     icon:"🎯", label:"Préparation",     color:C.em,     badge:prep?"✓":null},

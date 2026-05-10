@@ -95,8 +95,8 @@ const PREP_MEETING_TYPES = [
 ];
 const PREP_FUNCTIONS = [
   {value:"",label:"Sélectionner…"},{value:"IT",label:"Technologies de l'information"},
-  {value:"network",label:"Network Planning"},{value:"ops",label:"Opérations"},
-  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporate / Siège"},
+  {value:"network",label:"Planification réseau"},{value:"ops",label:"Opérations"},
+  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporatif / Siège"},
   {value:"hr",label:"Ressources humaines"},{value:"other",label:"Autre"},
 ];
 

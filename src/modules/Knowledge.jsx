@@ -154,7 +154,7 @@ export default function ModuleKnowledge() {
           borderRadius:12, padding:"22px 26px", marginBottom:20 }}>
           <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, color:"rgba(255,255,255,.5)",
             textTransform:"uppercase", marginBottom:6 }}>HRBP OS · Groupe IT Québec</div>
-          <div style={{ fontSize:20, fontWeight:800, color:"#fff", marginBottom:6 }}>Knowledge Base</div>
+          <div style={{ fontSize:20, fontWeight:800, color:"#fff", marginBottom:6 }}>Base de connaissances</div>
           <div style={{ fontSize:13, color:"rgba(255,255,255,.65)", lineHeight:1.6 }}>
             14 sections · Performance · Immigration · Légal · Analytics · Cas fréquents IT · Templates
           </div>
@@ -925,7 +925,7 @@ Signature gestionnaire : _____ Date : _____` },
         <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
           fontSize:15, pointerEvents:"none" }}>🔍</span>
         <input value={search} onChange={e=>{ setSearch(e.target.value); }}
-          placeholder="Rechercher dans la Knowledge Base..."
+          placeholder="Rechercher dans la Base de connaissances..."
           style={{ width:"100%", padding:"10px 14px 10px 38px", borderRadius:10, boxSizing:"border-box",
             border:`1px solid ${C.border}`, fontSize:13, fontFamily:"inherit",
             background:C.surfL, color:C.text, outline:"none" }}

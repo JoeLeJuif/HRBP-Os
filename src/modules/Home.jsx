@@ -247,7 +247,7 @@ export default function ModuleHome({ data, onNavigate }) {
   overdueReviews.forEach(d => fallbackAttentionItems.push({
     sortKey:1, type:"decision", id:d.id, sourceId:d.id, title:d.title||"(décision)",
     sub:[d.managerName, `review ${fmtDate(d.reviewDate)}`].filter(Boolean).join(" · "),
-    badge:{ label:"Review due", color:C.red }, nav:"decisions",
+    badge:{ label:t("home.badge.reviewDue"), color:C.red }, nav:"decisions",
   }));
   highRiskDecisions.filter(d => !overdueReviews.includes(d)).forEach(d => fallbackAttentionItems.push({
     sortKey:2, type:"decision", id:d.id, sourceId:d.id, title:d.title||"(décision)",
@@ -265,7 +265,7 @@ export default function ModuleHome({ data, onNavigate }) {
     fallbackAttentionItems.push({
       sortKey:4, type:"case", id:c.id, sourceId:c.id, title:c.title||"(dossier)",
       sub:[c.director, age && `ouvert depuis ${daysBetween(todayISO, age)}j`].filter(Boolean).join(" · "),
-      badge:{ label:"Aging", color:C.amber }, nav:"cases",
+      badge:{ label:t("home.badge.aging"), color:C.amber }, nav:"cases",
     });
   });
 

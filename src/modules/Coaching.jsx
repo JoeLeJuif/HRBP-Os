@@ -94,7 +94,7 @@ export default function ModuleCoaching({ data, onSave }) {
 
   return (
     <div style={{ maxWidth:820, margin:"0 auto" }}>
-      <div style={{ marginBottom:20 }}><div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Manager Coaching Playbook</div><div style={{ fontSize:12, color:C.textM }}>{plans.length} plan(s) archivé(s)</div></div>
+      <div style={{ marginBottom:20 }}><div style={{ fontSize:18, fontWeight:700, color:C.text, marginBottom:4 }}>Playbook de coaching gestionnaire</div><div style={{ fontSize:12, color:C.textM }}>{plans.length} plan(s) archivé(s)</div></div>
       <Card style={{ marginBottom:20 }}>
         <SecHead icon="🤝" label="Nouveau plan de coaching" color={C.teal}/>
         <Mono color={C.textD} size={9}>Scénario</Mono>
