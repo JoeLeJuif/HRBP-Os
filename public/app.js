@@ -1174,7 +1174,73 @@ ${LEGAL_GUARDRAIL}`;
       "autoprompt.copy.label": "\u{1F4CB} Copy",
       "autoprompt.hint.chooseMode": "Choose a mode above to generate the prompt",
       "autoprompt.hint.selectSit": "Select a situation to generate the prompt",
-      "autoprompt.error.modeUnavailable": "Mode not available for this template."
+      "autoprompt.error.modeUnavailable": "Mode not available for this template.",
+      // ── Knowledge module ──────────────────────────────────────────────────
+      "knowledge.banner.brand": "HRBP OS \xB7 Quebec IT Group",
+      "knowledge.banner.title": "Knowledge Base",
+      "knowledge.banner.subtitle": "14 sections \xB7 Performance \xB7 Immigration \xB7 Legal \xB7 Analytics \xB7 Common IT cases \xB7 Templates",
+      "knowledge.search.placeholder": "Search the Knowledge Base...",
+      "knowledge.search.noResults": "No result for",
+      "knowledge.nav.back": "\u2190 Overview",
+      "knowledge.copy": "Copy",
+      "knowledge.copied": "\u2713 Copied",
+      "knowledge.copiedBang": "\u2713 Copied!",
+      "knowledge.section.home": "Overview",
+      "knowledge.section.rhythms": "Cadences & Meetings",
+      "knowledge.section.model": "Operating model",
+      "knowledge.section.onboarding": "Onboarding & Offboarding",
+      "knowledge.section.performance": "Performance & 9-Box",
+      "knowledge.section.pip": "PIPs & Corrective",
+      "knowledge.section.coaching": "Manager coaching",
+      "knowledge.section.development": "IT Development",
+      "knowledge.section.compensation": "Compensation",
+      "knowledge.section.immigration": "Immigration",
+      "knowledge.section.legal": "Legal & Guardrails",
+      "knowledge.section.analytics": "Analytics & KPIs",
+      "knowledge.section.cases": "Common IT cases",
+      "knowledge.section.templates": "FR/EN Templates",
+      "knowledge.group.foundations": "FOUNDATIONS",
+      "knowledge.group.cycle": "EMPLOYEE CYCLE",
+      "knowledge.group.talent": "TALENT",
+      "knowledge.group.compliance": "COMPLIANCE",
+      "knowledge.group.data": "DATA",
+      "knowledge.group.situations": "SITUATIONS",
+      "knowledge.kpi.detailsHeading": "Detailed interpretations per KPI",
+      "knowledge.kpi.interpretations": "Interpretations",
+      "knowledge.kpi.actions": "HRBP Actions",
+      "knowledge.cases.intro": "The 7 most frequent HR situations in IT corporate context \u2014 risks, recommended actions and a ready-to-send message.",
+      "knowledge.cases.riskPrefix": "Risk: ",
+      "knowledge.cases.risks": "Risks",
+      "knowledge.cases.actions": "Recommended actions",
+      "knowledge.cases.suggestedMsg": "Suggested message",
+      "knowledge.title.modelModes": "The 3 HRBP modes",
+      "knowledge.title.modelValue": "HRBP value \u2014 Corporate tech language",
+      "knowledge.title.onb4C": "4C model \u2014 Adapted to IT corporate",
+      "knowledge.title.onbChecklist": "Onboarding checklist \u2014 HRBP touchpoints",
+      "knowledge.title.perfCriteria": "Performance criteria by tech profile",
+      "knowledge.title.perf9Box": "9-Box grid \u2014 Click on a cell",
+      "knowledge.title.perfBias": "Calibration bias \u2014 Common in IT",
+      "knowledge.title.pipScale": "Escalation scale \u2014 Progressive process",
+      "knowledge.title.pipSmart": "SMART objectives in IT context",
+      "knowledge.title.coaArchetypes": "The 5 tech archetypes \u2014 Coaching guide",
+      "knowledge.title.coaGrow": "GROW model \u2014 Questions adapted to tech",
+      "knowledge.title.coaSbi": "SBI model \u2014 Structured feedback",
+      "knowledge.title.devTransition": "IC \u2192 Manager transition \u2014 6-month playbook",
+      "knowledge.title.dev702010": "70/20/10 model \u2014 Concrete IT examples",
+      "knowledge.title.devIcTrack": "IC vs. Management track \u2014 Choice criteria",
+      "knowledge.title.compRatio": "Compa-ratio \u2014 Interpretation guide",
+      "knowledge.title.compLevers": "Total compensation levers",
+      "knowledge.title.immTypes": "Permit types \u2014 Quick reference",
+      "knowledge.title.immImplicit": "Implied status \u2014 What every HRBP must master",
+      "knowledge.title.immTimeline": "Action calendar \u2014 Milestone by milestone",
+      "knowledge.title.immPromo": "Promotions & closed permits \u2014 Protocol",
+      "knowledge.title.legalTermination": "Employment termination (Quebec)",
+      "knowledge.title.legalCnesst": "CNESST \u2014 Vigilance points",
+      "knowledge.title.legalHarassment": "Psychological harassment \u2014 Duty to act",
+      "knowledge.title.legalLaw25": "Bill 25 \u2014 Personal information protection",
+      "knowledge.title.legalCalc": "LNT notice calculation \u2014 Quick reference",
+      "knowledge.title.analyticsSummary": "Dashboard \u2014 Synthesis alert thresholds",
+      "knowledge.title.analyticsPowerBi": "Power BI structure \u2014 3 recommended pages"
     },
     fr: {
       // ── Navigation ────────────────────────────────────────────────────────
@@ -1856,7 +1922,73 @@ ${LEGAL_GUARDRAIL}`;
       "autoprompt.copy.label": "\u{1F4CB} Copier",
       "autoprompt.hint.chooseMode": "Choisis un mode ci-dessus pour g\xE9n\xE9rer le prompt",
       "autoprompt.hint.selectSit": "S\xE9lectionne une situation pour g\xE9n\xE9rer le prompt",
-      "autoprompt.error.modeUnavailable": "Mode non disponible pour ce template."
+      "autoprompt.error.modeUnavailable": "Mode non disponible pour ce template.",
+      // ── Knowledge module ──────────────────────────────────────────────────
+      "knowledge.banner.brand": "HRBP OS \xB7 Groupe IT Qu\xE9bec",
+      "knowledge.banner.title": "Base de connaissances",
+      "knowledge.banner.subtitle": "14 sections \xB7 Performance \xB7 Immigration \xB7 L\xE9gal \xB7 Analytics \xB7 Cas fr\xE9quents IT \xB7 Templates",
+      "knowledge.search.placeholder": "Rechercher dans la Base de connaissances\u2026",
+      "knowledge.search.noResults": "Aucun r\xE9sultat pour",
+      "knowledge.nav.back": "\u2190 Vue d'ensemble",
+      "knowledge.copy": "Copier",
+      "knowledge.copied": "\u2713 Copi\xE9",
+      "knowledge.copiedBang": "\u2713 Copi\xE9 !",
+      "knowledge.section.home": "Vue d'ensemble",
+      "knowledge.section.rhythms": "Cadences & R\xE9unions",
+      "knowledge.section.model": "Mod\xE8le op\xE9rationnel",
+      "knowledge.section.onboarding": "Accueil & D\xE9part",
+      "knowledge.section.performance": "Performance & 9-Box",
+      "knowledge.section.pip": "PIPs & Correctif",
+      "knowledge.section.coaching": "Coaching gestionnaires",
+      "knowledge.section.development": "D\xE9veloppement IT",
+      "knowledge.section.compensation": "R\xE9mun\xE9ration",
+      "knowledge.section.immigration": "Immigration",
+      "knowledge.section.legal": "L\xE9gal & Guardrails",
+      "knowledge.section.analytics": "Analytics & KPIs",
+      "knowledge.section.cases": "Cas fr\xE9quents IT",
+      "knowledge.section.templates": "Templates FR/EN",
+      "knowledge.group.foundations": "FONDATIONS",
+      "knowledge.group.cycle": "CYCLE EMPLOY\xC9",
+      "knowledge.group.talent": "TALENT",
+      "knowledge.group.compliance": "COMPLIANCE",
+      "knowledge.group.data": "DONN\xC9ES",
+      "knowledge.group.situations": "SITUATIONS",
+      "knowledge.kpi.detailsHeading": "Interpr\xE9tations d\xE9taill\xE9es par KPI",
+      "knowledge.kpi.interpretations": "Interpr\xE9tations",
+      "knowledge.kpi.actions": "Actions HRBP",
+      "knowledge.cases.intro": "Les 7 situations RH les plus fr\xE9quentes en contexte IT corporate \u2014 risques, actions recommand\xE9es et message pr\xEAt \xE0 envoyer.",
+      "knowledge.cases.riskPrefix": "Risque : ",
+      "knowledge.cases.risks": "Risques",
+      "knowledge.cases.actions": "Actions recommand\xE9es",
+      "knowledge.cases.suggestedMsg": "Message sugg\xE9r\xE9",
+      "knowledge.title.modelModes": "Les 3 modes du HRBP",
+      "knowledge.title.modelValue": "Valeur HRBP \u2014 Langage tech corporate",
+      "knowledge.title.onb4C": "Mod\xE8le 4C \u2014 Adapt\xE9 IT corporate",
+      "knowledge.title.onbChecklist": "Checklist d'accueil \u2014 Touchpoints HRBP",
+      "knowledge.title.perfCriteria": "Crit\xE8res de performance par profil tech",
+      "knowledge.title.perf9Box": "Grille 9-Cases \u2014 Cliquer sur une case",
+      "knowledge.title.perfBias": "Biais de calibration \u2014 Fr\xE9quents en IT",
+      "knowledge.title.pipScale": "\xC9chelle d'escalade \u2014 Processus progressif",
+      "knowledge.title.pipSmart": "Objectifs SMART en contexte IT",
+      "knowledge.title.coaArchetypes": "Les 5 arch\xE9types tech \u2014 Guide de coaching",
+      "knowledge.title.coaGrow": "Mod\xE8le GROW \u2014 Questions adapt\xE9es au contexte tech",
+      "knowledge.title.coaSbi": "Mod\xE8le SBI \u2014 Feedback structur\xE9",
+      "knowledge.title.devTransition": "Transition IC \u2192 Manager \u2014 Playbook (6 mois)",
+      "knowledge.title.dev702010": "Mod\xE8le 70/20/10 \u2014 Exemples concrets en IT",
+      "knowledge.title.devIcTrack": "Voie IC vs. Management \u2014 Crit\xE8res de choix",
+      "knowledge.title.compRatio": "Compa-ratio \u2014 Guide d'interpr\xE9tation",
+      "knowledge.title.compLevers": "Leviers de r\xE9mun\xE9ration totale",
+      "knowledge.title.immTypes": "Types de permis \u2014 R\xE9f\xE9rence rapide",
+      "knowledge.title.immImplicit": "Statut implicite \u2014 Ce que tout HRBP doit ma\xEEtriser",
+      "knowledge.title.immTimeline": "Calendrier d'action \u2014 Jalon par jalon",
+      "knowledge.title.immPromo": "Promotions & permis ferm\xE9s \u2014 Protocole",
+      "knowledge.title.legalTermination": "Terminaison d'emploi (Qu\xE9bec)",
+      "knowledge.title.legalCnesst": "CNESST \u2014 Points de vigilance",
+      "knowledge.title.legalHarassment": "Harc\xE8lement psychologique \u2014 Obligation d'agir",
+      "knowledge.title.legalLaw25": "Loi 25 \u2014 Protection des renseignements personnels",
+      "knowledge.title.legalCalc": "Calcul du pr\xE9avis LNT \u2014 R\xE9f\xE9rence rapide",
+      "knowledge.title.analyticsSummary": "Tableau de bord \u2014 Seuils d'alerte synth\xE8se",
+      "knowledge.title.analyticsPowerBi": "Structure Power BI \u2014 3 pages recommand\xE9es"
     }
   };
   function readStoredLang() {
@@ -24450,6 +24582,7 @@ CLOSING: ${s.closing}`;
   // src/modules/Knowledge.jsx
   var import_react5 = __require("react");
   function ModuleKnowledge() {
+    const { t: t2 } = useT();
     const [activeSection, setActiveSection] = (0, import_react5.useState)("home");
     const [search, setSearch] = (0, import_react5.useState)("");
     const [openCards, setOpenCards] = (0, import_react5.useState)({});
@@ -24461,22 +24594,29 @@ CLOSING: ${s.closing}`;
     const [templateCopied, setTemplateCopied] = (0, import_react5.useState)(false);
     const toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] }));
     const SECTIONS = [
-      { id: "home", icon: "\u{1F3E0}", label: "Vue d'ensemble", group: "NAV" },
-      { id: "rhythms", icon: "\u{1F5D3}", label: "Cadences & R\xE9unions", group: "FONDATIONS" },
-      { id: "model", icon: "\u2699\uFE0F", label: "Mod\xE8le op\xE9rationnel", group: "FONDATIONS" },
-      { id: "onboarding", icon: "\u{1F680}", label: "Accueil & D\xE9part", group: "CYCLE EMPLOY\xC9" },
-      { id: "performance", icon: "\u{1F4CA}", label: "Performance & 9-Box", group: "CYCLE EMPLOY\xC9" },
-      { id: "pip", icon: "\u26A0\uFE0F", label: "PIPs & Correctif", group: "CYCLE EMPLOY\xC9" },
-      { id: "coaching", icon: "\u{1F399}\uFE0F", label: "Coaching Gestionnaires", group: "TALENT" },
-      { id: "development", icon: "\u{1F331}", label: "D\xE9veloppement IT", group: "TALENT" },
-      { id: "compensation", icon: "\u{1F4B0}", label: "R\xE9mun\xE9ration", group: "TALENT" },
-      { id: "immigration", icon: "\u2708\uFE0F", label: "Immigration", group: "COMPLIANCE" },
-      { id: "legal", icon: "\u2696\uFE0F", label: "L\xE9gal & Guardrails", group: "COMPLIANCE" },
-      { id: "analytics", icon: "\u{1F4C8}", label: "Analytics & KPIs", group: "DONN\xC9ES" },
-      { id: "cases", icon: "\u{1F5C2}\uFE0F", label: "Cas fr\xE9quents IT", group: "SITUATIONS" },
-      { id: "templates", icon: "\u{1F4C4}", label: "Templates FR/EN", group: "SITUATIONS" }
+      { id: "home", icon: "\u{1F3E0}", labelKey: "knowledge.section.home", group: "NAV" },
+      { id: "rhythms", icon: "\u{1F5D3}", labelKey: "knowledge.section.rhythms", group: "foundations" },
+      { id: "model", icon: "\u2699\uFE0F", labelKey: "knowledge.section.model", group: "foundations" },
+      { id: "onboarding", icon: "\u{1F680}", labelKey: "knowledge.section.onboarding", group: "cycle" },
+      { id: "performance", icon: "\u{1F4CA}", labelKey: "knowledge.section.performance", group: "cycle" },
+      { id: "pip", icon: "\u26A0\uFE0F", labelKey: "knowledge.section.pip", group: "cycle" },
+      { id: "coaching", icon: "\u{1F399}\uFE0F", labelKey: "knowledge.section.coaching", group: "talent" },
+      { id: "development", icon: "\u{1F331}", labelKey: "knowledge.section.development", group: "talent" },
+      { id: "compensation", icon: "\u{1F4B0}", labelKey: "knowledge.section.compensation", group: "talent" },
+      { id: "immigration", icon: "\u2708\uFE0F", labelKey: "knowledge.section.immigration", group: "compliance" },
+      { id: "legal", icon: "\u2696\uFE0F", labelKey: "knowledge.section.legal", group: "compliance" },
+      { id: "analytics", icon: "\u{1F4C8}", labelKey: "knowledge.section.analytics", group: "data" },
+      { id: "cases", icon: "\u{1F5C2}\uFE0F", labelKey: "knowledge.section.cases", group: "situations" },
+      { id: "templates", icon: "\u{1F4C4}", labelKey: "knowledge.section.templates", group: "situations" }
     ];
-    const groups = ["FONDATIONS", "CYCLE EMPLOY\xC9", "TALENT", "COMPLIANCE", "DONN\xC9ES", "SITUATIONS"];
+    const groups = [
+      { id: "foundations", labelKey: "knowledge.group.foundations" },
+      { id: "cycle", labelKey: "knowledge.group.cycle" },
+      { id: "talent", labelKey: "knowledge.group.talent" },
+      { id: "compliance", labelKey: "knowledge.group.compliance" },
+      { id: "data", labelKey: "knowledge.group.data" },
+      { id: "situations", labelKey: "knowledge.group.situations" }
+    ];
     const SEARCH_INDEX = {
       rhythms: "cadence r\xE9union bihebdo directeur mensuel trimestriel annuel calibration talent",
       model: "mod\xE8le op\xE9rationnel strat\xE9gique conseil op\xE9rationnel valeur principes",
@@ -24567,7 +24707,7 @@ CLOSING: ${s.closing}`;
       const tiles = SECTIONS.filter((s) => s.id !== "home");
       const byGroup = {};
       groups.forEach((g) => {
-        byGroup[g] = tiles.filter((s) => s.group === g);
+        byGroup[g.id] = tiles.filter((s) => s.group === g.id);
       });
       return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
         background: `linear-gradient(135deg, ${C.blue} 0%, #1a3550 100%)`,
@@ -24581,14 +24721,14 @@ CLOSING: ${s.closing}`;
         color: "rgba(255,255,255,.5)",
         textTransform: "uppercase",
         marginBottom: 6
-      } }, "HRBP OS \xB7 Groupe IT Qu\xE9bec"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 6 } }, "Base de connaissances"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: "rgba(255,255,255,.65)", lineHeight: 1.6 } }, "14 sections \xB7 Performance \xB7 Immigration \xB7 L\xE9gal \xB7 Analytics \xB7 Cas fr\xE9quents IT \xB7 Templates")), groups.map((g) => /* @__PURE__ */ React.createElement("div", { key: g, style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      } }, t2("knowledge.banner.brand")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 6 } }, t2("knowledge.banner.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: "rgba(255,255,255,.65)", lineHeight: 1.6 } }, t2("knowledge.banner.subtitle"))), groups.map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: {
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: 2,
         color: C.textD,
         textTransform: "uppercase",
         marginBottom: 8
-      } }, g), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: 8 } }, byGroup[g].map((s) => /* @__PURE__ */ React.createElement(
+      } }, t2(g.labelKey)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: 8 } }, byGroup[g.id].map((s) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: s.id,
@@ -24607,7 +24747,7 @@ CLOSING: ${s.closing}`;
           onMouseLeave: (e) => e.currentTarget.style.borderColor = C.border
         },
         /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, marginBottom: 5 } }, s.icon),
-        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, s.label)
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, t2(s.labelKey))
       ))))));
     }
     function renderRhythms() {
@@ -24664,7 +24804,7 @@ CLOSING: ${s.closing}`;
       )));
     }
     function renderModel() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "model-modes", title: "Les 3 modes du HRBP", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "model-modes", title: t2("knowledge.title.modelModes"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(
         KTable,
         {
           headers: ["Mode", "Description", "Cible"],
@@ -24674,7 +24814,7 @@ CLOSING: ${s.closing}`;
             ["Op\xE9rationnel", "Immigration, CNESST, Workday, documentation", "20%"]
           ]
         }
-      ), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "Si l'op\xE9rationnel d\xE9passe 40%, quelque chose doit \xEAtre automatis\xE9 (Power Automate) ou d\xE9l\xE9gu\xE9." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "model-value", title: "Valeur HRBP \u2014 Langage tech corporate", accent: C.em }, /* @__PURE__ */ React.createElement(
+      ), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "Si l'op\xE9rationnel d\xE9passe 40%, quelque chose doit \xEAtre automatis\xE9 (Power Automate) ou d\xE9l\xE9gu\xE9." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "model-value", title: t2("knowledge.title.modelValue"), accent: C.em }, /* @__PURE__ */ React.createElement(
         KTable,
         {
           headers: ["Besoin d'affaires", "R\xE9ponse HRBP"],
@@ -24690,7 +24830,7 @@ CLOSING: ${s.closing}`;
       )));
     }
     function renderOnboarding() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "onb-4c", title: "Mod\xE8le 4C \u2014 Adapt\xE9 IT corporate", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "onb-4c", title: t2("knowledge.title.onb4C"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(
         KTable,
         {
           headers: ["Dimension", "Contenu cl\xE9 en contexte IT"],
@@ -24701,7 +24841,7 @@ CLOSING: ${s.closing}`;
             ["Connexion", "Buddy technique, intro stakeholders cl\xE9s, participation aux c\xE9r\xE9monies d'\xE9quipe, 1:1 r\xE9guliers"]
           ]
         }
-      )), /* @__PURE__ */ React.createElement(SectionCard, { id: "onb-checklist", title: "Checklist d'accueil \u2014 Touchpoints HRBP", accent: C.em }, /* @__PURE__ */ React.createElement(Phase, { steps: [
+      )), /* @__PURE__ */ React.createElement(SectionCard, { id: "onb-checklist", title: t2("knowledge.title.onbChecklist"), accent: C.em }, /* @__PURE__ */ React.createElement(Phase, { steps: [
         { phase: "Avant le Jour 1", tasks: ["Acc\xE8s syst\xE8mes IT (Workday, GitHub, Jira, Slack, VPN) \u2014 J-5", "Permis de travail v\xE9rifi\xE9 et consign\xE9", "Buddy technique assign\xE9"] },
         { phase: "Jour 1", tasks: ["Orientation RH : politiques, avantages, code de conduite", "PAE et ressources bien-\xEAtre pr\xE9sent\xE9s"] },
         { phase: "Semaine 1", tasks: ["Plan 30/60/90 co-cr\xE9\xE9 gestionnaire + employ\xE9", "Crit\xE8res de probation clarifi\xE9s par \xE9crit"] },
@@ -24727,12 +24867,12 @@ CLOSING: ${s.closing}`;
       });
       const rowLabels = ["Haut", "Moyen", "Bas"];
       const colLabels = ["Faible", "Moyen", "\xC9lev\xE9"];
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "perf-criteria", title: "Crit\xE8res de performance par profil tech", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Profil", "Crit\xE8res principaux"], rows: [
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "perf-criteria", title: t2("knowledge.title.perfCriteria"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Profil", "Crit\xE8res principaux"], rows: [
         ["Dev / Analyst / IC", "Qualit\xE9 des livrables, autonomie, documentation, impact au-del\xE0 de son squad"],
         ["Tech Lead / Senior Lead", "Livrables + multiplicateur d'impact \xE9quipe, qualit\xE9 du mentoring et des code reviews"],
         ["Engineering Manager", "Sant\xE9 d'\xE9quipe (r\xE9tention, engagement), d\xE9veloppement des talents, d\xE9cisions de priorisation"],
         ["Director", "Strat\xE9gie org, pipeline de leadership, culture d'\xE9quipe, communication ex\xE9cutif"]
-      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "perf-9box", title: "Grille 9-Cases \u2014 Cliquer sur une case", accent: C.em, defaultOpen: true }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: 360, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 70, fontSize: 10, color: C.textD, textAlign: "right", paddingRight: 8 } }, "Perf \u2193 Pot \u2192"), colLabels.map((l, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, textAlign: "center", fontSize: 10, fontWeight: 700, color: C.textM } }, l))), grid.map((row, ri) => /* @__PURE__ */ React.createElement("div", { key: ri, style: { display: "flex", alignItems: "stretch", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "perf-9box", title: t2("knowledge.title.perf9Box"), accent: C.em, defaultOpen: true }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: 360, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 70, fontSize: 10, color: C.textD, textAlign: "right", paddingRight: 8 } }, "Perf \u2193 Pot \u2192"), colLabels.map((l, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, textAlign: "center", fontSize: 10, fontWeight: 700, color: C.textM } }, l))), grid.map((row, ri) => /* @__PURE__ */ React.createElement("div", { key: ri, style: { display: "flex", alignItems: "stretch", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("div", { style: {
         width: 70,
         display: "flex",
         alignItems: "center",
@@ -24770,7 +24910,7 @@ CLOSING: ${s.closing}`;
         borderRadius: 8,
         padding: "10px 14px",
         marginTop: 8
-      } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: selected9.color, marginBottom: 4 } }, selected9.label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6 } }, selected9.action))), /* @__PURE__ */ React.createElement(SectionCard, { id: "perf-bias", title: "Biais de calibration \u2014 Fr\xE9quents en IT", accent: C.amber }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Biais", "Manifestation en IT", "Contre-mesure HRBP"], rows: [
+      } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: selected9.color, marginBottom: 4 } }, selected9.label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6 } }, selected9.action))), /* @__PURE__ */ React.createElement(SectionCard, { id: "perf-bias", title: t2("knowledge.title.perfBias"), accent: C.amber }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Biais", "Manifestation en IT", "Contre-mesure HRBP"], rows: [
         ["Halo technique", "Dev brillant \u2192 cote globale gonfl\xE9e", "Demander des exemples sur chaque dimension s\xE9par\xE9ment"],
         ["Recency bias", "Grand lancement en novembre \u2192 oubli du Q1-Q2", "Revoir les notes de 1:1 sur toute l'ann\xE9e"],
         ["Affinit\xE9", "Manager rate plus haut ceux qui pensent comme lui", "Analyser la distribution par genre, origine, anciennet\xE9"],
@@ -24779,13 +24919,13 @@ CLOSING: ${s.closing}`;
       ] })));
     }
     function renderPip() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "En contexte tech, la sous-performance a souvent une cause syst\xE9mique avant d'\xEAtre individuelle. Avant d'escalader : v\xE9rifier le gestionnaire, le projet, la charge, et les outils." }), /* @__PURE__ */ React.createElement(SectionCard, { id: "pip-scale", title: "\xC9chelle d'escalade \u2014 Processus progressif", accent: C.red, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "En contexte tech, la sous-performance a souvent une cause syst\xE9mique avant d'\xEAtre individuelle. Avant d'escalader : v\xE9rifier le gestionnaire, le projet, la charge, et les outils." }), /* @__PURE__ */ React.createElement(SectionCard, { id: "pip-scale", title: t2("knowledge.title.pipScale"), accent: C.red, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
         { phase: "\xC9tape 1 \u2014 Coaching informel (2-4 sem.)", tasks: ["Gestionnaire nomme l'enjeu directement (SBI)", "Pas de documentation formelle \u2014 noter dans tes notes HRBP avec la date"] },
         { phase: "\xC9tape 2 \u2014 Avertissement verbal document\xE9", tasks: ["Rencontre formelle \u2014 HRBP pr\xE9sent recommand\xE9", "Document interne sign\xE9 \u2014 accus\xE9 de r\xE9ception"] },
         { phase: "\xC9tape 3 \u2014 Avertissement \xE9crit", tasks: ["Lettre formelle consign\xE9e dans Workday", "D\xE9lai : 30-60 jours selon la nature de l'enjeu"] },
         { phase: "\xC9tape 4 \u2014 PIP formel", tasks: ["Document PIP cr\xE9\xE9 et sign\xE9 \u2014 HRBP facilite", "Objectifs SMART avec outils de mesure IT", "Rencontres hebdomadaires gestionnaire + employ\xE9"] },
         { phase: "\xC9tape 5 \u2014 Terminaison ou sortie", tasks: ["R\xE9vision l\xE9gale syst\xE9matique (anciennet\xE9, LNT art. 124)", "IT access revocation le jour m\xEAme", "Communication d'\xE9quipe pr\xE9par\xE9e \xE0 l'avance"] }
-      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "danger", text: "Anciennet\xE9 2 ans+ = art. 124 LNT applicable. Consultation juridique obligatoire avant toute terminaison." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "pip-smart", title: "Objectifs SMART en contexte IT", accent: C.blue }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Crit\xE8re", "D\xE9finition", "Exemple IT"], rows: [
+      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "danger", text: "Anciennet\xE9 2 ans+ = art. 124 LNT applicable. Consultation juridique obligatoire avant toute terminaison." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "pip-smart", title: t2("knowledge.title.pipSmart"), accent: C.blue }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Crit\xE8re", "D\xE9finition", "Exemple IT"], rows: [
         ["Sp\xE9cifique", "Action pr\xE9cise et observ\xE9e", "R\xE9duire les bugs en production dans les PR soumises"],
         ["Mesurable", "Indicateur quantifiable", "< 2 bugs critiques par sprint sur 4 sprints cons\xE9cutifs"],
         ["Atteignable", "R\xE9aliste avec le support offert", "Support pair programming hebdomadaire inclus"],
@@ -24794,34 +24934,34 @@ CLOSING: ${s.closing}`;
       ] })));
     }
     function renderCoaching() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "coa-archetypes", title: "Les 5 arch\xE9types tech \u2014 Guide de coaching", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Arch\xE9type", "D\xE9fi", "Strat\xE9gie HRBP"], rows: [
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "coa-archetypes", title: t2("knowledge.title.coaArchetypes"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Arch\xE9type", "D\xE9fi", "Strat\xE9gie HRBP"], rows: [
         ["Tech lead promu", "Continue de faire le travail lui-m\xEAme", "Reframage du leadership comme multiplicateur. GROW r\xE9gulier. Jeux de r\xF4le de conversations de perf."],
         ["L'\xE9viteur de conflits", "Retarde la r\xE9tro n\xE9gative", "Quantifier le co\xFBt de l'inaction. Pratiquer SBI. \xCAtre pr\xE9sent lors des premi\xE8res conversations difficiles."],
         ["Le micromanager", "Goulot d'\xE9tranglement sur toutes les d\xE9cisions", "Cadre de d\xE9l\xE9gation. Lier \xE0 ses objectifs personnels de capacit\xE9."],
         ["Le gestionnaire d\xE9bord\xE9", "Trop de directs, trop de projets", "Conversation de design org (span of control). Syst\xE8me minimal de 1:1s."],
         ["Le gestionnaire \xE0 fort ego", "R\xE9siste au coaching, d\xE9fensif", "Approche par les donn\xE9es (eNPS, attrition). Framing par les objectifs d'affaires."]
-      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "coa-grow", title: "Mod\xE8le GROW \u2014 Questions adapt\xE9es au contexte tech", accent: C.em, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
+      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "coa-grow", title: t2("knowledge.title.coaGrow"), accent: C.em, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
         { phase: "G \u2014 Goal", tasks: ["Quel enjeu de management veux-tu progresser dans les 90 prochains jours?", "Si ton \xE9quipe performait exactement comme tu le voudrais, qu'est-ce qui serait diff\xE9rent?"] },
         { phase: "R \u2014 Reality", tasks: ["Qu'est-ce qui se passe concr\xE8tement avec [employ\xE9 / \xE9quipe]?", "Honn\xEAtement \u2014 quelle est ta part de responsabilit\xE9 dans la situation?"] },
         { phase: "O \u2014 Options", tasks: ["Si tu n'avais pas peur de la r\xE9action de l'employ\xE9, qu'est-ce que tu ferais?", "Qu'est-ce qu'un gestionnaire que tu admires ferait dans cette situation?"] },
         { phase: "W \u2014 Will", tasks: ["Concr\xE8tement, quelle conversation vas-tu avoir avant notre prochaine rencontre?", "\xC0 quel point es-tu confiant de le faire (1-10)?"] }
-      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "coa-sbi", title: "Mod\xE8le SBI \u2014 Feedback structur\xE9", accent: C.amber }, /* @__PURE__ */ React.createElement(KTable, { headers: ["\xC9l\xE9ment", "Description", "Exemple IT"], rows: [
+      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "coa-sbi", title: t2("knowledge.title.coaSbi"), accent: C.amber }, /* @__PURE__ */ React.createElement(KTable, { headers: ["\xC9l\xE9ment", "Description", "Exemple IT"], rows: [
         ["S \u2014 Situation", "Le contexte observable, pas l'interpr\xE9tation", "Lors du sprint review de mardi dernier"],
         ["B \u2014 Behavior", "Le comportement sp\xE9cifique et observable", "Tu as interrompu deux d\xE9veloppeurs avant qu'ils aient termin\xE9 d'expliquer leur approche"],
         ["I \u2014 Impact", "L'impact sur l'\xE9quipe ou les r\xE9sultats", "\xC7a a cr\xE9\xE9 une h\xE9sitation dans l'\xE9quipe \xE0 partager des id\xE9es non finalis\xE9es"]
       ] }), /* @__PURE__ */ React.createElement(Alert, { type: "info", text: "SBI fonctionne pour le feedback positif ET correctif. Pour le feedback positif : pr\xE9ciser pourquoi ce comportement m\xE9rite d'\xEAtre r\xE9p\xE9t\xE9." })));
     }
     function renderDevelopment() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "dev-transition", title: "Transition IC \u2192 Manager \u2014 Playbook (6 mois)", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "dev-transition", title: t2("knowledge.title.devTransition"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
         { phase: "Mois 1", tasks: ["Clarifier les attentes du r\xF4le manag\xE9rial par \xE9crit + premi\xE8re session GROW", "Distinguer : ce qu'il/elle fait vs. ce que le r\xF4le exige"] },
         { phase: "Mois 2-3", tasks: ["Coaching fondamentaux : 1:1s structur\xE9s, feedback SBI, gestion de la charge", "Observer : d\xE9l\xE8gue-t-il/elle ou fait-il/elle encore le travail?"] },
         { phase: "Mois 4-5", tasks: ["Premi\xE8re conversation de performance difficile \u2014 HRBP coache avant, debrief apr\xE8s", "Bilan mi-parcours sur les indicateurs d'efficacit\xE9 manag\xE9riale"] },
         { phase: "Mois 6 \u2014 D\xE9cision", tasks: ["Sur la bonne trajectoire? Ajuster le plan.", "Si pas de progr\xE8s : conversation sur le fit du r\xF4le"] }
-      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "Si \xE0 6 mois la transition ne progresse pas, avoir une conversation honn\xEAte sur le fit. Cr\xE9er une voie IC senior est plus sain que forcer un manager m\xE9diocre." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "dev-70-20-10", title: "Mod\xE8le 70/20/10 \u2014 Exemples concrets en IT", accent: C.em }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Proportion", "Levier", "Exemples IT"], rows: [
+      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "Si \xE0 6 mois la transition ne progresse pas, avoir une conversation honn\xEAte sur le fit. Cr\xE9er une voie IC senior est plus sain que forcer un manager m\xE9diocre." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "dev-70-20-10", title: t2("knowledge.title.dev702010"), accent: C.em }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Proportion", "Levier", "Exemples IT"], rows: [
         ["70% Exp\xE9rience", "Mandats avec responsabilit\xE9 accrue", "Lead technique d'un sous-projet, rotation transversale, r\xF4le d'acting manager 3 mois"],
         ["20% Exposition", "Apprentissage par les autres", "Mentorat d'un VP Eng, pr\xE9sentation en all-hands, pair programming avec expert externe"],
         ["10% \xC9ducation", "Formation formelle", "AWS/GCP certification, cours de leadership, conf\xE9rence QCon ou LeadDev"]
-      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "dev-ic-track", title: "Voie IC vs. Management \u2014 Crit\xE8res de choix", accent: C.amber }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Voie IC", "Voie Management"], rows: [
+      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "dev-ic-track", title: t2("knowledge.title.devIcTrack"), accent: C.amber }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Voie IC", "Voie Management"], rows: [
         ["Expertise technique profonde comme moteur principal", "Leadership des personnes comme priorit\xE9 naturelle"],
         ["Impact via la qualit\xE9 du code / de l'architecture", "Impact via la performance de l'\xE9quipe"],
         ["Faible int\xE9r\xEAt pour la gestion de conflits", "\xC0 l'aise avec les conversations difficiles"],
@@ -24829,12 +24969,12 @@ CLOSING: ${s.closing}`;
       ] }), /* @__PURE__ */ React.createElement(Alert, { type: "info", text: "Les voies IC senior (Staff, Principal, Fellow) sont \xE9quivalentes en r\xE9mun\xE9ration et impact \xE0 la voie manag\xE9riale. Ne pas forcer quelqu'un vers la gestion pour le 'r\xE9compenser'." })));
     }
     function renderCompensation() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "comp-ratio", title: "Compa-ratio \u2014 Guide d'interpr\xE9tation", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Compa-ratio", "Interpr\xE9tation", "Action recommand\xE9e"], rows: [
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "comp-ratio", title: t2("knowledge.title.compRatio"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Compa-ratio", "Interpr\xE9tation", "Action recommand\xE9e"], rows: [
         ["< 80%", "Sous-pay\xE9", "R\xE9vision prioritaire \u2014 risque de d\xE9part \xE9lev\xE9 (offres march\xE9 15-25% sup\xE9rieures)"],
         ["80-100%", "En d\xE9veloppement", "Normal pour nouveaux dans le niveau"],
         ["100-120%", "Pleinement comp\xE9tent", "Cible pour les contributeurs solides confirm\xE9s"],
         ["> 120%", "Au plafond", "Limiter les augmentations \u2014 pr\xE9parer une progression de niveau"]
-      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "En tech : les seniors devs et architects re\xE7oivent des offres 15-25% sup\xE9rieures. Un compa-ratio < 90% dans ce segment est un risque de r\xE9tention actif." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "comp-levers", title: "Leviers de r\xE9mun\xE9ration totale", accent: C.em }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Levier", "Usage", "Contraintes"], rows: [
+      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "En tech : les seniors devs et architects re\xE7oivent des offres 15-25% sup\xE9rieures. Un compa-ratio < 90% dans ce segment est un risque de r\xE9tention actif." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "comp-levers", title: t2("knowledge.title.compLevers"), accent: C.em }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Levier", "Usage", "Contraintes"], rows: [
         ["Augmentation base", "Progressions standards dans la bande", "Budget annuel, approbation VP"],
         ["Augmentation hors-cycle", "R\xE9tention urgente, correction d'\xE9quit\xE9", "N\xE9cessite justification HRBP + budget sp\xE9cial"],
         ["Bonus de r\xE9tention", "High performer \xE0 risque de d\xE9part", "Engagement de 12 mois recommand\xE9"],
@@ -24843,22 +24983,22 @@ CLOSING: ${s.closing}`;
       ] })));
     }
     function renderImmigration() {
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-types", title: "Types de permis \u2014 R\xE9f\xE9rence rapide", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Type", "Description", "Points d'attention HRBP"], rows: [
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-types", title: t2("knowledge.title.immTypes"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Type", "Description", "Points d'attention HRBP"], rows: [
         ["Permis ferm\xE9 (EIMT)", "Li\xE9 \xE0 un employeur + poste sp\xE9cifique", "Tout changement de titre OU de salaire peut invalider \u2014 v\xE9rifier avant toute promo"],
         ["Permis ouvert", "Travail pour tout employeur", "V\xE9rifier les conditions sp\xE9cifiques; certains ont des restrictions"],
         ["PGWP", "Pour dipl\xF4m\xE9s d'universit\xE9s canadiennes", "Dur\xE9e max 3 ans; planifier la RP ou EIMT avant expiration"],
         ["CSQ + RP", "R\xE9sidence permanente via voie qu\xE9b\xE9coise", "D\xE9lais cumul\xE9s 12-24 mois; anticiper t\xF4t"]
-      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-implicit", title: "Statut implicite \u2014 Ce que tout HRBP doit ma\xEEtriser", accent: C.red }, /* @__PURE__ */ React.createElement(KTable, { headers: ["\xC9l\xE9ment", "D\xE9tail"], rows: [
+      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-implicit", title: t2("knowledge.title.immImplicit"), accent: C.red }, /* @__PURE__ */ React.createElement(KTable, { headers: ["\xC9l\xE9ment", "D\xE9tail"], rows: [
         ["D\xE9finition", "Employ\xE9 dont le permis expire MAIS qui a soumis une demande AVANT l'expiration peut continuer \xE0 travailler l\xE9galement"],
         ["Condition 1", "La demande doit \xEAtre soumise AVANT l'expiration"],
         ["Condition 2", "L'employ\xE9 doit travailler pour le m\xEAme employeur (si permis ferm\xE9)"],
         ["Documentation requise", "Conserver la confirmation de d\xE9p\xF4t dans le dossier RH SharePoint"]
-      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "danger", text: "Si la demande est soumise APR\xC8S l'expiration \u2014 statut implicite ne s'applique PAS. Arr\xEAt de travail imm\xE9diat requis." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-timeline", title: "Calendrier d'action \u2014 Jalon par jalon", accent: C.em, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
+      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "danger", text: "Si la demande est soumise APR\xC8S l'expiration \u2014 statut implicite ne s'applique PAS. Arr\xEAt de travail imm\xE9diat requis." })), /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-timeline", title: t2("knowledge.title.immTimeline"), accent: C.em, defaultOpen: true }, /* @__PURE__ */ React.createElement(Phase, { steps: [
         { phase: "J-90 jours", tasks: ["Initier avec le cabinet (Galileo)", "V\xE9rifier : titre et salaire ont-ils chang\xE9 depuis l'\xE9mission du permis?"] },
         { phase: "J-60 jours", tasks: ["Confirmer que les documents sont en collecte", "V\xE9rifier si nouvel EIMT n\xE9cessaire (3-6 mois de d\xE9lai si LMIA requise)"] },
         { phase: "J-30 jours", tasks: ["Statut de la demande confirm\xE9", "Si non soumise : escalader imm\xE9diatement"] },
         { phase: "J-0 (expiration)", tasks: ["Si demande soumise avant : statut implicite actif \u2014 conserver la preuve", "Si non soumise : arr\xEAt de travail + contact cabinet urgence"] }
-      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-promo", title: "Promotions & permis ferm\xE9s \u2014 Protocole", accent: C.amber }, /* @__PURE__ */ React.createElement(KList, { items: [
+      ] })), /* @__PURE__ */ React.createElement(SectionCard, { id: "imm-promo", title: t2("knowledge.title.immPromo"), accent: C.amber }, /* @__PURE__ */ React.createElement(KList, { items: [
         "Bloquer toute mise \xE0 jour Workday avant confirmation du cabinet",
         "Contacter Galileo dans les 24h suivant la d\xE9cision de promotion",
         "V\xE9rifier si le nouveau titre + salaire sont couverts par le permis actuel",
@@ -24868,13 +25008,13 @@ CLOSING: ${s.closing}`;
     }
     function renderLegal() {
       const blocks = [
-        { title: "Terminaison d'emploi (Qu\xE9bec)", level: "danger", items: ["Anciennet\xE9 2 ans+ : protection contre cong\xE9diement sans cause juste (LNT art. 124)", "Processus disciplinaire progressif doit \xEAtre respect\xE9 et document\xE9", "Calcul LNT minimum : 1 semaine par ann\xE9e de service", "R\xE9vocation acc\xE8s TI le jour m\xEAme de la terminaison \u2014 coordonner avec IT", "Ne jamais promettre verbalement une terminaison avant la validation l\xE9gale"] },
-        { title: "CNESST \u2014 Points de vigilance", level: "warn", items: ["Tout accident ou l\xE9sion doit \xEAtre d\xE9clar\xE9 \xE0 la CNESST \u2014 aucune exception", "L'employeur a l'obligation de maintenir le lien d'emploi pendant la r\xE9cup\xE9ration", "Plan de retour au travail progressif obligatoire \u2014 ne pas attendre le 100%", "Documenter tous les accommodements offerts \u2014 c'est ta protection l\xE9gale"] },
-        { title: "Harc\xE8lement psychologique \u2014 Obligation d'agir", level: "danger", items: ["Obligation d'agir d\xE8s qu'une plainte est re\xE7ue \u2014 formelle ou informelle (LNT art. 81.19)", "L'inaction constitue elle-m\xEAme une violation l\xE9gale", "Enqu\xEAte interne impartiale obligatoire", "D\xE9lai de prescription : 2 ans \xE0 partir du dernier acte reproch\xE9", "Ne jamais promettre la confidentialit\xE9 totale \u2014 tu as une obligation d'agir"] },
-        { title: "Loi 25 \u2014 Protection des renseignements personnels", level: "info", items: ["Les donn\xE9es RH (salaire, \xE9valuations, dossiers m\xE9dicaux, immigration) sont prot\xE9g\xE9es", "Acc\xE8s restreint et document\xE9 pour chaque type de donn\xE9es", "L'employ\xE9 a le droit d'acc\xE8s \xE0 son propre dossier", "Tout incident de s\xE9curit\xE9 sur des donn\xE9es RH doit \xEAtre d\xE9clar\xE9"] }
+        { titleKey: "knowledge.title.legalTermination", level: "danger", items: ["Anciennet\xE9 2 ans+ : protection contre cong\xE9diement sans cause juste (LNT art. 124)", "Processus disciplinaire progressif doit \xEAtre respect\xE9 et document\xE9", "Calcul LNT minimum : 1 semaine par ann\xE9e de service", "R\xE9vocation acc\xE8s TI le jour m\xEAme de la terminaison \u2014 coordonner avec IT", "Ne jamais promettre verbalement une terminaison avant la validation l\xE9gale"] },
+        { titleKey: "knowledge.title.legalCnesst", level: "warn", items: ["Tout accident ou l\xE9sion doit \xEAtre d\xE9clar\xE9 \xE0 la CNESST \u2014 aucune exception", "L'employeur a l'obligation de maintenir le lien d'emploi pendant la r\xE9cup\xE9ration", "Plan de retour au travail progressif obligatoire \u2014 ne pas attendre le 100%", "Documenter tous les accommodements offerts \u2014 c'est ta protection l\xE9gale"] },
+        { titleKey: "knowledge.title.legalHarassment", level: "danger", items: ["Obligation d'agir d\xE8s qu'une plainte est re\xE7ue \u2014 formelle ou informelle (LNT art. 81.19)", "L'inaction constitue elle-m\xEAme une violation l\xE9gale", "Enqu\xEAte interne impartiale obligatoire", "D\xE9lai de prescription : 2 ans \xE0 partir du dernier acte reproch\xE9", "Ne jamais promettre la confidentialit\xE9 totale \u2014 tu as une obligation d'agir"] },
+        { titleKey: "knowledge.title.legalLaw25", level: "info", items: ["Les donn\xE9es RH (salaire, \xE9valuations, dossiers m\xE9dicaux, immigration) sont prot\xE9g\xE9es", "Acc\xE8s restreint et document\xE9 pour chaque type de donn\xE9es", "L'employ\xE9 a le droit d'acc\xE8s \xE0 son propre dossier", "Tout incident de s\xE9curit\xE9 sur des donn\xE9es RH doit \xEAtre d\xE9clar\xE9"] }
       ];
       const lmap = { danger: C.red, warn: C.amber, info: C.blue };
-      return /* @__PURE__ */ React.createElement("div", null, blocks.map((b, i) => /* @__PURE__ */ React.createElement(SectionCard, { key: i, id: `legal-${i}`, title: b.title, accent: lmap[b.level], defaultOpen: i < 2 }, /* @__PURE__ */ React.createElement(KList, { items: b.items, color: lmap[b.level] }))), /* @__PURE__ */ React.createElement(SectionCard, { id: "legal-calc", title: "Calcul du pr\xE9avis LNT \u2014 R\xE9f\xE9rence rapide", accent: C.blue }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Anciennet\xE9", "Pr\xE9avis minimum LNT", "Notes"], rows: [
+      return /* @__PURE__ */ React.createElement("div", null, blocks.map((b, i) => /* @__PURE__ */ React.createElement(SectionCard, { key: i, id: `legal-${i}`, title: t2(b.titleKey), accent: lmap[b.level], defaultOpen: i < 2 }, /* @__PURE__ */ React.createElement(KList, { items: b.items, color: lmap[b.level] }))), /* @__PURE__ */ React.createElement(SectionCard, { id: "legal-calc", title: t2("knowledge.title.legalCalc"), accent: C.blue }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Anciennet\xE9", "Pr\xE9avis minimum LNT", "Notes"], rows: [
         ["< 3 mois", "Aucun (probation)", "V\xE9rifier la politique interne \u2014 peut \xEAtre plus g\xE9n\xE9reuse"],
         ["3 mois \u2013 1 an", "1 semaine", "LNT minimum"],
         ["1 \u2013 5 ans", "2 semaines", "LNT minimum"],
@@ -24963,17 +25103,17 @@ CLOSING: ${s.closing}`;
           actions: ["Si eNPS < 0 dans une \xE9quipe : rencontres individuelles cibl\xE9es pour identifier les irritants", "Pr\xE9senter les r\xE9sultats au gestionnaire avec donn\xE9es sp\xE9cifiques \u2014 pas juste le score global", "Co-construire un plan d'action avec le gestionnaire \u2014 2-3 am\xE9liorations concr\xE8tes et mesurables"]
         }
       ];
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "analytics-summary", title: "Tableau de bord \u2014 Seuils d'alerte synth\xE8se", accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionCard, { id: "analytics-summary", title: t2("knowledge.title.analyticsSummary"), accent: C.blue, defaultOpen: true }, /* @__PURE__ */ React.createElement(
         KTable,
         {
           headers: ["KPI", "Formule simplifi\xE9e", "Normal", "\u{1F534} Alerte", "Fr\xE9quence"],
           rows: kpis.map((k) => [k.icon + " " + k.label, k.formula, k.normal, k.alert, k.freq])
         }
-      )), /* @__PURE__ */ React.createElement(SectionCard, { id: "analytics-powerbi", title: "Structure Power BI \u2014 3 pages recommand\xE9es", accent: C.em }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Page", "Contenu", "Fr\xE9quence"], rows: [
+      )), /* @__PURE__ */ React.createElement(SectionCard, { id: "analytics-powerbi", title: t2("knowledge.title.analyticsPowerBi"), accent: C.em }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Page", "Contenu", "Fr\xE9quence"], rows: [
         ["Vue executive", "Effectif + delta, taux de roulement vs. cible, postes ouverts, absent\xE9isme, alerte immigration", "Mensuel"],
         ["Vue gestionnaire", "Headcount \xE9quipe, distribution perf, signaux r\xE9tention, plans de dev actifs", "Bi-hebdomadaire"],
         ["Analytique talent", "Distribution 9-cases, pipeline succession, promotions, \xE9quit\xE9 de r\xE9mun\xE9ration", "Trimestriel/Annuel"]
-      ] })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text, margin: "16px 0 10px" } }, "Interpr\xE9tations d\xE9taill\xE9es par KPI"), kpis.map((kpi, i) => {
+      ] })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text, margin: "16px 0 10px" } }, t2("knowledge.kpi.detailsHeading")), kpis.map((kpi, i) => {
         const isOpen = openKpi === i;
         return /* @__PURE__ */ React.createElement("div", { key: i, style: { border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 8, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { onClick: () => setOpenKpi(isOpen ? null : i), style: {
           display: "flex",
@@ -25012,14 +25152,14 @@ CLOSING: ${s.closing}`;
           textTransform: "uppercase",
           letterSpacing: 1,
           marginBottom: 8
-        } }, "Interpr\xE9tations"), /* @__PURE__ */ React.createElement(KList, { items: kpi.interpretations, color: kpi.color })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
+        } }, t2("knowledge.kpi.interpretations")), /* @__PURE__ */ React.createElement(KList, { items: kpi.interpretations, color: kpi.color })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
           fontSize: 11,
           fontWeight: 700,
           color: C.textD,
           textTransform: "uppercase",
           letterSpacing: 1,
           marginBottom: 8
-        } }, "Actions HRBP"), /* @__PURE__ */ React.createElement(KList, { items: kpi.actions, color: C.em, icon: "\u2192" }))));
+        } }, t2("knowledge.kpi.actions")), /* @__PURE__ */ React.createElement(KList, { items: kpi.actions, color: C.em, icon: "\u2192" }))));
       }));
     }
     function renderCases() {
@@ -25091,7 +25231,7 @@ CLOSING: ${s.closing}`;
       ];
       const copied = copiedCase;
       const setCopied = setCopiedCase;
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { style: { fontSize: 13, color: C.textM, marginBottom: 14, lineHeight: 1.6 } }, "Les 7 situations RH les plus fr\xE9quentes en contexte IT corporate \u2014 risques, actions recommand\xE9es et message pr\xEAt \xE0 envoyer."), cases.map((c, i) => {
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { style: { fontSize: 13, color: C.textM, marginBottom: 14, lineHeight: 1.6 } }, t2("knowledge.cases.intro")), cases.map((c, i) => {
         const rc = RC[c.risk] || C.blue;
         const isOpen = openCase === i;
         return /* @__PURE__ */ React.createElement("div", { key: i, style: {
@@ -25104,7 +25244,7 @@ CLOSING: ${s.closing}`;
           padding: "12px 16px",
           cursor: "pointer",
           background: isOpen ? rc + "08" : C.surfL
-        } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, marginRight: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 5 } }, c.title), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, c.tags.map((t2, j) => /* @__PURE__ */ React.createElement("span", { key: j, style: {
+        } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, marginRight: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 5 } }, c.title), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, c.tags.map((t3, j) => /* @__PURE__ */ React.createElement("span", { key: j, style: {
           background: C.blue + "15",
           color: C.blue,
           border: `1px solid ${C.blue}30`,
@@ -25112,7 +25252,7 @@ CLOSING: ${s.closing}`;
           padding: "1px 8px",
           fontSize: 10,
           fontWeight: 600
-        } }, t2)), /* @__PURE__ */ React.createElement("span", { style: {
+        } }, t3)), /* @__PURE__ */ React.createElement("span", { style: {
           background: rc + "15",
           color: rc,
           border: `1px solid ${rc}30`,
@@ -25120,7 +25260,7 @@ CLOSING: ${s.closing}`;
           padding: "1px 8px",
           fontSize: 10,
           fontWeight: 600
-        } }, "Risque : ", c.risk))), /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontSize: 16 } }, isOpen ? "\u2212" : "+"))), isOpen && /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 16px", borderTop: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("div", { style: {
+        } }, t2("knowledge.cases.riskPrefix"), c.risk))), /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontSize: 16 } }, isOpen ? "\u2212" : "+"))), isOpen && /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 16px", borderTop: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("div", { style: {
           fontSize: 12,
           color: C.textM,
           lineHeight: 1.7,
@@ -25135,14 +25275,14 @@ CLOSING: ${s.closing}`;
           textTransform: "uppercase",
           letterSpacing: 1,
           marginBottom: 6
-        } }, "Risques"), /* @__PURE__ */ React.createElement(KList, { items: c.risks, color: C.red, icon: "\u26A0" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
+        } }, t2("knowledge.cases.risks")), /* @__PURE__ */ React.createElement(KList, { items: c.risks, color: C.red, icon: "\u26A0" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
           fontSize: 11,
           fontWeight: 700,
           color: C.em,
           textTransform: "uppercase",
           letterSpacing: 1,
           marginBottom: 6
-        } }, "Actions recommand\xE9es"), /* @__PURE__ */ React.createElement(KList, { items: c.actions, color: C.em }))), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.textD, textTransform: "uppercase", letterSpacing: 1 } }, "Message sugg\xE9r\xE9"), /* @__PURE__ */ React.createElement(
+        } }, t2("knowledge.cases.actions")), /* @__PURE__ */ React.createElement(KList, { items: c.actions, color: C.em }))), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.textD, textTransform: "uppercase", letterSpacing: 1 } }, t2("knowledge.cases.suggestedMsg")), /* @__PURE__ */ React.createElement(
           "button",
           {
             onClick: () => {
@@ -25162,7 +25302,7 @@ CLOSING: ${s.closing}`;
               fontFamily: "inherit"
             }
           },
-          copied === i ? "\u2713 Copi\xE9" : "Copier"
+          copied === i ? t2("knowledge.copied") : t2("knowledge.copy")
         )), /* @__PURE__ */ React.createElement("div", { style: {
           background: C.surfL,
           border: `1px solid ${C.border}`,
@@ -25348,7 +25488,7 @@ Signature gestionnaire : _____ Date : _____`
       const setSel = setTemplateSel;
       const copied = templateCopied;
       const setCopied = setTemplateCopied;
-      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 210, flexShrink: 0 } }, TMPLS.map((t2, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSel(i), style: {
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 210, flexShrink: 0 } }, TMPLS.map((t3, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSel(i), style: {
         width: "100%",
         background: sel === i ? C.blue + "12" : C.surfL,
         border: `1px solid ${sel === i ? C.blue : C.border}`,
@@ -25364,15 +25504,15 @@ Signature gestionnaire : _____ Date : _____`
         color: sel === i ? C.blue : C.text,
         lineHeight: 1.3,
         marginBottom: 4
-      } }, t2.title), /* @__PURE__ */ React.createElement("span", { style: {
-        background: t2.color + "15",
-        color: t2.color,
-        border: `1px solid ${t2.color}30`,
+      } }, t3.title), /* @__PURE__ */ React.createElement("span", { style: {
+        background: t3.color + "15",
+        color: t3.color,
+        border: `1px solid ${t3.color}30`,
         borderRadius: 20,
         padding: "1px 7px",
         fontSize: 9,
         fontWeight: 700
-      } }, t2.badge)))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 280 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      } }, t3.badge)))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 280 } }, /* @__PURE__ */ React.createElement("div", { style: {
         border: `1px solid ${C.border}`,
         borderLeft: `3px solid ${TMPLS[sel].color}`,
         borderRadius: 10,
@@ -25414,7 +25554,7 @@ Signature gestionnaire : _____ Date : _____`
             fontFamily: "inherit"
           }
         },
-        copied ? "\u2713 Copi\xE9!" : "Copier"
+        copied ? t2("knowledge.copiedBang") : t2("knowledge.copy")
       )), /* @__PURE__ */ React.createElement("pre", { style: {
         background: C.surfL,
         padding: "14px 16px",
@@ -25460,7 +25600,7 @@ Signature gestionnaire : _____ Date : _____`
         onChange: (e) => {
           setSearch(e.target.value);
         },
-        placeholder: "Rechercher dans la Base de connaissances...",
+        placeholder: t2("knowledge.search.placeholder"),
         style: {
           width: "100%",
           padding: "10px 14px 10px 38px",
@@ -25486,7 +25626,7 @@ Signature gestionnaire : _____ Date : _____`
       cursor: "pointer",
       color: C.textD,
       fontSize: 16
-    } }, "\xD7")), search.trim().length > 1 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, searchResults.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, padding: "8px 0" } }, 'Aucun r\xE9sultat pour "', search, '"') : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, searchResults.map((s) => /* @__PURE__ */ React.createElement(
+    } }, "\xD7")), search.trim().length > 1 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, searchResults.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, padding: "8px 0" } }, t2("knowledge.search.noResults"), " \xAB ", search, " \xBB") : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, searchResults.map((s) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: s.id,
@@ -25508,7 +25648,7 @@ Signature gestionnaire : _____ Date : _____`
       },
       s.icon,
       " ",
-      s.label
+      t2(s.labelKey)
     )))), activeSection !== "home" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => setActiveSection("home"), style: {
       background: C.surfL,
       border: `1px solid ${C.border}`,
@@ -25518,7 +25658,7 @@ Signature gestionnaire : _____ Date : _____`
       cursor: "pointer",
       color: C.textM,
       fontFamily: "inherit"
-    } }, "\u2190 Vue d'ensemble"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, current?.icon, " ", current?.label)), activeSection === "home" ? null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 } }, SECTIONS.filter((s) => s.id !== "home" && s.group === current?.group).map((s) => /* @__PURE__ */ React.createElement("button", { key: s.id, onClick: () => setActiveSection(s.id), style: {
+    } }, t2("knowledge.nav.back")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: C.text } }, current?.icon, " ", current ? t2(current.labelKey) : "")), activeSection === "home" ? null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 } }, SECTIONS.filter((s) => s.id !== "home" && s.group === current?.group).map((s) => /* @__PURE__ */ React.createElement("button", { key: s.id, onClick: () => setActiveSection(s.id), style: {
       background: s.id === activeSection ? C.blue : C.surfL,
       color: s.id === activeSection ? "#fff" : C.textM,
       border: `1px solid ${s.id === activeSection ? C.blue : C.border}`,
@@ -25528,7 +25668,7 @@ Signature gestionnaire : _____ Date : _____`
       fontWeight: 600,
       cursor: "pointer",
       fontFamily: "inherit"
-    } }, s.icon, " ", s.label))), RENDERERS[activeSection] && RENDERERS[activeSection]());
+    } }, s.icon, " ", t2(s.labelKey)))), RENDERERS[activeSection] && RENDERERS[activeSection]());
   }
 
   // src/modules/Decisions.jsx

@@ -1,8 +1,10 @@
 // Source: HRBP_OS.jsx L.9671-10654
 import { useState } from "react";
 import { C } from '../theme.js';
+import { useT } from '../lib/i18n.js';
 
 export default function ModuleKnowledge() {
+  const { t } = useT();
   const [activeSection, setActiveSection] = useState("home");
   const [search, setSearch] = useState("");
   const [openCards, setOpenCards] = useState({});
@@ -17,23 +19,30 @@ export default function ModuleKnowledge() {
   // ── DATA ──────────────────────────────────────────────────────────────────
 
   const SECTIONS = [
-    { id:"home",        icon:"🏠", label:"Vue d'ensemble",       group:"NAV" },
-    { id:"rhythms",     icon:"🗓", label:"Cadences & Réunions",   group:"FONDATIONS" },
-    { id:"model",       icon:"⚙️", label:"Modèle opérationnel",  group:"FONDATIONS" },
-    { id:"onboarding",  icon:"🚀", label:"Accueil & Départ",      group:"CYCLE EMPLOYÉ" },
-    { id:"performance", icon:"📊", label:"Performance & 9-Box",   group:"CYCLE EMPLOYÉ" },
-    { id:"pip",         icon:"⚠️", label:"PIPs & Correctif",     group:"CYCLE EMPLOYÉ" },
-    { id:"coaching",    icon:"🎙️", label:"Coaching Gestionnaires",group:"TALENT" },
-    { id:"development", icon:"🌱", label:"Développement IT",      group:"TALENT" },
-    { id:"compensation",icon:"💰", label:"Rémunération",          group:"TALENT" },
-    { id:"immigration", icon:"✈️", label:"Immigration",           group:"COMPLIANCE" },
-    { id:"legal",       icon:"⚖️", label:"Légal & Guardrails",   group:"COMPLIANCE" },
-    { id:"analytics",   icon:"📈", label:"Analytics & KPIs",      group:"DONNÉES" },
-    { id:"cases",       icon:"🗂️", label:"Cas fréquents IT",     group:"SITUATIONS" },
-    { id:"templates",   icon:"📄", label:"Templates FR/EN",       group:"SITUATIONS" },
+    { id:"home",        icon:"🏠", labelKey:"knowledge.section.home",         group:"NAV" },
+    { id:"rhythms",     icon:"🗓", labelKey:"knowledge.section.rhythms",      group:"foundations" },
+    { id:"model",       icon:"⚙️", labelKey:"knowledge.section.model",        group:"foundations" },
+    { id:"onboarding",  icon:"🚀", labelKey:"knowledge.section.onboarding",   group:"cycle" },
+    { id:"performance", icon:"📊", labelKey:"knowledge.section.performance",  group:"cycle" },
+    { id:"pip",         icon:"⚠️", labelKey:"knowledge.section.pip",          group:"cycle" },
+    { id:"coaching",    icon:"🎙️", labelKey:"knowledge.section.coaching",     group:"talent" },
+    { id:"development", icon:"🌱", labelKey:"knowledge.section.development",  group:"talent" },
+    { id:"compensation",icon:"💰", labelKey:"knowledge.section.compensation", group:"talent" },
+    { id:"immigration", icon:"✈️", labelKey:"knowledge.section.immigration",  group:"compliance" },
+    { id:"legal",       icon:"⚖️", labelKey:"knowledge.section.legal",        group:"compliance" },
+    { id:"analytics",   icon:"📈", labelKey:"knowledge.section.analytics",    group:"data" },
+    { id:"cases",       icon:"🗂️", labelKey:"knowledge.section.cases",        group:"situations" },
+    { id:"templates",   icon:"📄", labelKey:"knowledge.section.templates",    group:"situations" },
   ];
 
-  const groups = ["FONDATIONS","CYCLE EMPLOYÉ","TALENT","COMPLIANCE","DONNÉES","SITUATIONS"];
+  const groups = [
+    { id:"foundations", labelKey:"knowledge.group.foundations" },
+    { id:"cycle",       labelKey:"knowledge.group.cycle" },
+    { id:"talent",      labelKey:"knowledge.group.talent" },
+    { id:"compliance",  labelKey:"knowledge.group.compliance" },
+    { id:"data",        labelKey:"knowledge.group.data" },
+    { id:"situations",  labelKey:"knowledge.group.situations" },
+  ];
 
   const SEARCH_INDEX = {
     rhythms:    "cadence réunion bihebdo directeur mensuel trimestriel annuel calibration talent",
@@ -147,24 +156,24 @@ export default function ModuleKnowledge() {
   function renderHome() {
     const tiles = SECTIONS.filter(s => s.id !== "home");
     const byGroup = {};
-    groups.forEach(g => { byGroup[g] = tiles.filter(s => s.group === g); });
+    groups.forEach(g => { byGroup[g.id] = tiles.filter(s => s.group === g.id); });
     return (
       <div>
         <div style={{ background:`linear-gradient(135deg, ${C.blue} 0%, #1a3550 100%)`,
           borderRadius:12, padding:"22px 26px", marginBottom:20 }}>
           <div style={{ fontSize:11, fontWeight:700, letterSpacing:2, color:"rgba(255,255,255,.5)",
-            textTransform:"uppercase", marginBottom:6 }}>HRBP OS · Groupe IT Québec</div>
-          <div style={{ fontSize:20, fontWeight:800, color:"#fff", marginBottom:6 }}>Base de connaissances</div>
+            textTransform:"uppercase", marginBottom:6 }}>{t("knowledge.banner.brand")}</div>
+          <div style={{ fontSize:20, fontWeight:800, color:"#fff", marginBottom:6 }}>{t("knowledge.banner.title")}</div>
           <div style={{ fontSize:13, color:"rgba(255,255,255,.65)", lineHeight:1.6 }}>
-            14 sections · Performance · Immigration · Légal · Analytics · Cas fréquents IT · Templates
+            {t("knowledge.banner.subtitle")}
           </div>
         </div>
         {groups.map(g => (
-          <div key={g} style={{ marginBottom:16 }}>
+          <div key={g.id} style={{ marginBottom:16 }}>
             <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:C.textD,
-              textTransform:"uppercase", marginBottom:8 }}>{g}</div>
+              textTransform:"uppercase", marginBottom:8 }}>{t(g.labelKey)}</div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px,1fr))", gap:8 }}>
-              {byGroup[g].map(s => (
+              {byGroup[g.id].map(s => (
                 <button key={s.id} onClick={()=>setActiveSection(s.id)} style={{
                   background:C.surfL, border:`1px solid ${C.border}`, borderRadius:9,
                   padding:"12px 14px", cursor:"pointer", textAlign:"left", fontFamily:"inherit",
@@ -172,7 +181,7 @@ export default function ModuleKnowledge() {
                   onMouseEnter={e=>e.currentTarget.style.borderColor=C.blue}
                   onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
                   <div style={{ fontSize:18, marginBottom:5 }}>{s.icon}</div>
-                  <div style={{ fontSize:12, fontWeight:600, color:C.text }}>{s.label}</div>
+                  <div style={{ fontSize:12, fontWeight:600, color:C.text }}>{t(s.labelKey)}</div>
                 </button>
               ))}
             </div>
@@ -214,7 +223,7 @@ export default function ModuleKnowledge() {
   function renderModel() {
     return (
       <div>
-        <SectionCard id="model-modes" title="Les 3 modes du HRBP" accent={C.blue} defaultOpen>
+        <SectionCard id="model-modes" title={t("knowledge.title.modelModes")} accent={C.blue} defaultOpen>
           <KTable
             headers={["Mode","Description","Cible"]}
             rows={[
@@ -224,7 +233,7 @@ export default function ModuleKnowledge() {
             ]}/>
           <Alert type="warn" text="Si l'opérationnel dépasse 40%, quelque chose doit être automatisé (Power Automate) ou délégué."/>
         </SectionCard>
-        <SectionCard id="model-value" title="Valeur HRBP — Langage tech corporate" accent={C.em}>
+        <SectionCard id="model-value" title={t("knowledge.title.modelValue")} accent={C.em}>
           <KTable
             headers={["Besoin d'affaires","Réponse HRBP"]}
             rows={[
@@ -243,7 +252,7 @@ export default function ModuleKnowledge() {
   function renderOnboarding() {
     return (
       <div>
-        <SectionCard id="onb-4c" title="Modèle 4C — Adapté IT corporate" accent={C.blue} defaultOpen>
+        <SectionCard id="onb-4c" title={t("knowledge.title.onb4C")} accent={C.blue} defaultOpen>
           <KTable
             headers={["Dimension","Contenu clé en contexte IT"]}
             rows={[
@@ -253,7 +262,7 @@ export default function ModuleKnowledge() {
               ["Connexion","Buddy technique, intro stakeholders clés, participation aux cérémonies d'équipe, 1:1 réguliers"],
             ]}/>
         </SectionCard>
-        <SectionCard id="onb-checklist" title="Checklist d'accueil — Touchpoints HRBP" accent={C.em}>
+        <SectionCard id="onb-checklist" title={t("knowledge.title.onbChecklist")} accent={C.em}>
           <Phase steps={[
             { phase:"Avant le Jour 1", tasks:["Accès systèmes IT (Workday, GitHub, Jira, Slack, VPN) — J-5","Permis de travail vérifié et consigné","Buddy technique assigné"] },
             { phase:"Jour 1", tasks:["Orientation RH : politiques, avantages, code de conduite","PAE et ressources bien-être présentés"] },
@@ -284,7 +293,7 @@ export default function ModuleKnowledge() {
     const colLabels = ["Faible","Moyen","Élevé"];
     return (
       <div>
-        <SectionCard id="perf-criteria" title="Critères de performance par profil tech" accent={C.blue} defaultOpen>
+        <SectionCard id="perf-criteria" title={t("knowledge.title.perfCriteria")} accent={C.blue} defaultOpen>
           <KTable headers={["Profil","Critères principaux"]} rows={[
             ["Dev / Analyst / IC","Qualité des livrables, autonomie, documentation, impact au-delà de son squad"],
             ["Tech Lead / Senior Lead","Livrables + multiplicateur d'impact équipe, qualité du mentoring et des code reviews"],
@@ -292,7 +301,7 @@ export default function ModuleKnowledge() {
             ["Director","Stratégie org, pipeline de leadership, culture d'équipe, communication exécutif"],
           ]}/>
         </SectionCard>
-        <SectionCard id="perf-9box" title="Grille 9-Cases — Cliquer sur une case" accent={C.em} defaultOpen>
+        <SectionCard id="perf-9box" title={t("knowledge.title.perf9Box")} accent={C.em} defaultOpen>
           <div style={{ overflowX:"auto" }}>
             <div style={{ minWidth:360, marginBottom:8 }}>
               <div style={{ display:"flex", alignItems:"center", marginBottom:4 }}>
@@ -325,7 +334,7 @@ export default function ModuleKnowledge() {
             </div>
           )}
         </SectionCard>
-        <SectionCard id="perf-bias" title="Biais de calibration — Fréquents en IT" accent={C.amber}>
+        <SectionCard id="perf-bias" title={t("knowledge.title.perfBias")} accent={C.amber}>
           <KTable headers={["Biais","Manifestation en IT","Contre-mesure HRBP"]} rows={[
             ["Halo technique","Dev brillant → cote globale gonflée","Demander des exemples sur chaque dimension séparément"],
             ["Recency bias","Grand lancement en novembre → oubli du Q1-Q2","Revoir les notes de 1:1 sur toute l'année"],
@@ -342,7 +351,7 @@ export default function ModuleKnowledge() {
     return (
       <div>
         <Alert type="warn" text="En contexte tech, la sous-performance a souvent une cause systémique avant d'être individuelle. Avant d'escalader : vérifier le gestionnaire, le projet, la charge, et les outils."/>
-        <SectionCard id="pip-scale" title="Échelle d'escalade — Processus progressif" accent={C.red} defaultOpen>
+        <SectionCard id="pip-scale" title={t("knowledge.title.pipScale")} accent={C.red} defaultOpen>
           <Phase steps={[
             { phase:"Étape 1 — Coaching informel (2-4 sem.)", tasks:["Gestionnaire nomme l'enjeu directement (SBI)","Pas de documentation formelle — noter dans tes notes HRBP avec la date"] },
             { phase:"Étape 2 — Avertissement verbal documenté", tasks:["Rencontre formelle — HRBP présent recommandé","Document interne signé — accusé de réception"] },
@@ -352,7 +361,7 @@ export default function ModuleKnowledge() {
           ]}/>
           <Alert type="danger" text="Ancienneté 2 ans+ = art. 124 LNT applicable. Consultation juridique obligatoire avant toute terminaison."/>
         </SectionCard>
-        <SectionCard id="pip-smart" title="Objectifs SMART en contexte IT" accent={C.blue}>
+        <SectionCard id="pip-smart" title={t("knowledge.title.pipSmart")} accent={C.blue}>
           <KTable headers={["Critère","Définition","Exemple IT"]} rows={[
             ["Spécifique","Action précise et observée","Réduire les bugs en production dans les PR soumises"],
             ["Mesurable","Indicateur quantifiable","< 2 bugs critiques par sprint sur 4 sprints consécutifs"],
@@ -368,7 +377,7 @@ export default function ModuleKnowledge() {
   function renderCoaching() {
     return (
       <div>
-        <SectionCard id="coa-archetypes" title="Les 5 archétypes tech — Guide de coaching" accent={C.blue} defaultOpen>
+        <SectionCard id="coa-archetypes" title={t("knowledge.title.coaArchetypes")} accent={C.blue} defaultOpen>
           <KTable headers={["Archétype","Défi","Stratégie HRBP"]} rows={[
             ["Tech lead promu","Continue de faire le travail lui-même","Reframage du leadership comme multiplicateur. GROW régulier. Jeux de rôle de conversations de perf."],
             ["L'éviteur de conflits","Retarde la rétro négative","Quantifier le coût de l'inaction. Pratiquer SBI. Être présent lors des premières conversations difficiles."],
@@ -377,7 +386,7 @@ export default function ModuleKnowledge() {
             ["Le gestionnaire à fort ego","Résiste au coaching, défensif","Approche par les données (eNPS, attrition). Framing par les objectifs d'affaires."],
           ]}/>
         </SectionCard>
-        <SectionCard id="coa-grow" title="Modèle GROW — Questions adaptées au contexte tech" accent={C.em} defaultOpen>
+        <SectionCard id="coa-grow" title={t("knowledge.title.coaGrow")} accent={C.em} defaultOpen>
           <Phase steps={[
             { phase:"G — Goal", tasks:["Quel enjeu de management veux-tu progresser dans les 90 prochains jours?","Si ton équipe performait exactement comme tu le voudrais, qu'est-ce qui serait différent?"] },
             { phase:"R — Reality", tasks:["Qu'est-ce qui se passe concrètement avec [employé / équipe]?","Honnêtement — quelle est ta part de responsabilité dans la situation?"] },
@@ -385,7 +394,7 @@ export default function ModuleKnowledge() {
             { phase:"W — Will", tasks:["Concrètement, quelle conversation vas-tu avoir avant notre prochaine rencontre?","À quel point es-tu confiant de le faire (1-10)?"] },
           ]}/>
         </SectionCard>
-        <SectionCard id="coa-sbi" title="Modèle SBI — Feedback structuré" accent={C.amber}>
+        <SectionCard id="coa-sbi" title={t("knowledge.title.coaSbi")} accent={C.amber}>
           <KTable headers={["Élément","Description","Exemple IT"]} rows={[
             ["S — Situation","Le contexte observable, pas l'interprétation","Lors du sprint review de mardi dernier"],
             ["B — Behavior","Le comportement spécifique et observable","Tu as interrompu deux développeurs avant qu'ils aient terminé d'expliquer leur approche"],
@@ -400,7 +409,7 @@ export default function ModuleKnowledge() {
   function renderDevelopment() {
     return (
       <div>
-        <SectionCard id="dev-transition" title="Transition IC → Manager — Playbook (6 mois)" accent={C.blue} defaultOpen>
+        <SectionCard id="dev-transition" title={t("knowledge.title.devTransition")} accent={C.blue} defaultOpen>
           <Phase steps={[
             { phase:"Mois 1", tasks:["Clarifier les attentes du rôle managérial par écrit + première session GROW","Distinguer : ce qu'il/elle fait vs. ce que le rôle exige"] },
             { phase:"Mois 2-3", tasks:["Coaching fondamentaux : 1:1s structurés, feedback SBI, gestion de la charge","Observer : délègue-t-il/elle ou fait-il/elle encore le travail?"] },
@@ -409,14 +418,14 @@ export default function ModuleKnowledge() {
           ]}/>
           <Alert type="warn" text="Si à 6 mois la transition ne progresse pas, avoir une conversation honnête sur le fit. Créer une voie IC senior est plus sain que forcer un manager médiocre."/>
         </SectionCard>
-        <SectionCard id="dev-70-20-10" title="Modèle 70/20/10 — Exemples concrets en IT" accent={C.em}>
+        <SectionCard id="dev-70-20-10" title={t("knowledge.title.dev702010")} accent={C.em}>
           <KTable headers={["Proportion","Levier","Exemples IT"]} rows={[
             ["70% Expérience","Mandats avec responsabilité accrue","Lead technique d'un sous-projet, rotation transversale, rôle d'acting manager 3 mois"],
             ["20% Exposition","Apprentissage par les autres","Mentorat d'un VP Eng, présentation en all-hands, pair programming avec expert externe"],
             ["10% Éducation","Formation formelle","AWS/GCP certification, cours de leadership, conférence QCon ou LeadDev"],
           ]}/>
         </SectionCard>
-        <SectionCard id="dev-ic-track" title="Voie IC vs. Management — Critères de choix" accent={C.amber}>
+        <SectionCard id="dev-ic-track" title={t("knowledge.title.devIcTrack")} accent={C.amber}>
           <KTable headers={["Voie IC","Voie Management"]} rows={[
             ["Expertise technique profonde comme moteur principal","Leadership des personnes comme priorité naturelle"],
             ["Impact via la qualité du code / de l'architecture","Impact via la performance de l'équipe"],
@@ -432,7 +441,7 @@ export default function ModuleKnowledge() {
   function renderCompensation() {
     return (
       <div>
-        <SectionCard id="comp-ratio" title="Compa-ratio — Guide d'interprétation" accent={C.blue} defaultOpen>
+        <SectionCard id="comp-ratio" title={t("knowledge.title.compRatio")} accent={C.blue} defaultOpen>
           <KTable headers={["Compa-ratio","Interprétation","Action recommandée"]} rows={[
             ["< 80%","Sous-payé","Révision prioritaire — risque de départ élevé (offres marché 15-25% supérieures)"],
             ["80-100%","En développement","Normal pour nouveaux dans le niveau"],
@@ -441,7 +450,7 @@ export default function ModuleKnowledge() {
           ]}/>
           <Alert type="warn" text="En tech : les seniors devs et architects reçoivent des offres 15-25% supérieures. Un compa-ratio < 90% dans ce segment est un risque de rétention actif."/>
         </SectionCard>
-        <SectionCard id="comp-levers" title="Leviers de rémunération totale" accent={C.em}>
+        <SectionCard id="comp-levers" title={t("knowledge.title.compLevers")} accent={C.em}>
           <KTable headers={["Levier","Usage","Contraintes"]} rows={[
             ["Augmentation base","Progressions standards dans la bande","Budget annuel, approbation VP"],
             ["Augmentation hors-cycle","Rétention urgente, correction d'équité","Nécessite justification HRBP + budget spécial"],
@@ -457,7 +466,7 @@ export default function ModuleKnowledge() {
   function renderImmigration() {
     return (
       <div>
-        <SectionCard id="imm-types" title="Types de permis — Référence rapide" accent={C.blue} defaultOpen>
+        <SectionCard id="imm-types" title={t("knowledge.title.immTypes")} accent={C.blue} defaultOpen>
           <KTable headers={["Type","Description","Points d'attention HRBP"]} rows={[
             ["Permis fermé (EIMT)","Lié à un employeur + poste spécifique","Tout changement de titre OU de salaire peut invalider — vérifier avant toute promo"],
             ["Permis ouvert","Travail pour tout employeur","Vérifier les conditions spécifiques; certains ont des restrictions"],
@@ -465,7 +474,7 @@ export default function ModuleKnowledge() {
             ["CSQ + RP","Résidence permanente via voie québécoise","Délais cumulés 12-24 mois; anticiper tôt"],
           ]}/>
         </SectionCard>
-        <SectionCard id="imm-implicit" title="Statut implicite — Ce que tout HRBP doit maîtriser" accent={C.red}>
+        <SectionCard id="imm-implicit" title={t("knowledge.title.immImplicit")} accent={C.red}>
           <KTable headers={["Élément","Détail"]} rows={[
             ["Définition","Employé dont le permis expire MAIS qui a soumis une demande AVANT l'expiration peut continuer à travailler légalement"],
             ["Condition 1","La demande doit être soumise AVANT l'expiration"],
@@ -474,7 +483,7 @@ export default function ModuleKnowledge() {
           ]}/>
           <Alert type="danger" text="Si la demande est soumise APRÈS l'expiration — statut implicite ne s'applique PAS. Arrêt de travail immédiat requis."/>
         </SectionCard>
-        <SectionCard id="imm-timeline" title="Calendrier d'action — Jalon par jalon" accent={C.em} defaultOpen>
+        <SectionCard id="imm-timeline" title={t("knowledge.title.immTimeline")} accent={C.em} defaultOpen>
           <Phase steps={[
             { phase:"J-90 jours", tasks:["Initier avec le cabinet (Galileo)","Vérifier : titre et salaire ont-ils changé depuis l'émission du permis?"] },
             { phase:"J-60 jours", tasks:["Confirmer que les documents sont en collecte","Vérifier si nouvel EIMT nécessaire (3-6 mois de délai si LMIA requise)"] },
@@ -482,7 +491,7 @@ export default function ModuleKnowledge() {
             { phase:"J-0 (expiration)", tasks:["Si demande soumise avant : statut implicite actif — conserver la preuve","Si non soumise : arrêt de travail + contact cabinet urgence"] },
           ]}/>
         </SectionCard>
-        <SectionCard id="imm-promo" title="Promotions & permis fermés — Protocole" accent={C.amber}>
+        <SectionCard id="imm-promo" title={t("knowledge.title.immPromo")} accent={C.amber}>
           <KList items={[
             "Bloquer toute mise à jour Workday avant confirmation du cabinet",
             "Contacter Galileo dans les 24h suivant la décision de promotion",
@@ -498,20 +507,20 @@ export default function ModuleKnowledge() {
 
   function renderLegal() {
     const blocks = [
-      { title:"Terminaison d'emploi (Québec)", level:"danger", items:["Ancienneté 2 ans+ : protection contre congédiement sans cause juste (LNT art. 124)","Processus disciplinaire progressif doit être respecté et documenté","Calcul LNT minimum : 1 semaine par année de service","Révocation accès TI le jour même de la terminaison — coordonner avec IT","Ne jamais promettre verbalement une terminaison avant la validation légale"] },
-      { title:"CNESST — Points de vigilance", level:"warn", items:["Tout accident ou lésion doit être déclaré à la CNESST — aucune exception","L'employeur a l'obligation de maintenir le lien d'emploi pendant la récupération","Plan de retour au travail progressif obligatoire — ne pas attendre le 100%","Documenter tous les accommodements offerts — c'est ta protection légale"] },
-      { title:"Harcèlement psychologique — Obligation d'agir", level:"danger", items:["Obligation d'agir dès qu'une plainte est reçue — formelle ou informelle (LNT art. 81.19)","L'inaction constitue elle-même une violation légale","Enquête interne impartiale obligatoire","Délai de prescription : 2 ans à partir du dernier acte reproché","Ne jamais promettre la confidentialité totale — tu as une obligation d'agir"] },
-      { title:"Loi 25 — Protection des renseignements personnels", level:"info", items:["Les données RH (salaire, évaluations, dossiers médicaux, immigration) sont protégées","Accès restreint et documenté pour chaque type de données","L'employé a le droit d'accès à son propre dossier","Tout incident de sécurité sur des données RH doit être déclaré"] },
+      { titleKey:"knowledge.title.legalTermination", level:"danger", items:["Ancienneté 2 ans+ : protection contre congédiement sans cause juste (LNT art. 124)","Processus disciplinaire progressif doit être respecté et documenté","Calcul LNT minimum : 1 semaine par année de service","Révocation accès TI le jour même de la terminaison — coordonner avec IT","Ne jamais promettre verbalement une terminaison avant la validation légale"] },
+      { titleKey:"knowledge.title.legalCnesst",      level:"warn",   items:["Tout accident ou lésion doit être déclaré à la CNESST — aucune exception","L'employeur a l'obligation de maintenir le lien d'emploi pendant la récupération","Plan de retour au travail progressif obligatoire — ne pas attendre le 100%","Documenter tous les accommodements offerts — c'est ta protection légale"] },
+      { titleKey:"knowledge.title.legalHarassment",  level:"danger", items:["Obligation d'agir dès qu'une plainte est reçue — formelle ou informelle (LNT art. 81.19)","L'inaction constitue elle-même une violation légale","Enquête interne impartiale obligatoire","Délai de prescription : 2 ans à partir du dernier acte reproché","Ne jamais promettre la confidentialité totale — tu as une obligation d'agir"] },
+      { titleKey:"knowledge.title.legalLaw25",       level:"info",   items:["Les données RH (salaire, évaluations, dossiers médicaux, immigration) sont protégées","Accès restreint et documenté pour chaque type de données","L'employé a le droit d'accès à son propre dossier","Tout incident de sécurité sur des données RH doit être déclaré"] },
     ];
     const lmap = { danger:C.red, warn:C.amber, info:C.blue };
     return (
       <div>
         {blocks.map((b,i) => (
-          <SectionCard key={i} id={`legal-${i}`} title={b.title} accent={lmap[b.level]} defaultOpen={i<2}>
+          <SectionCard key={i} id={`legal-${i}`} title={t(b.titleKey)} accent={lmap[b.level]} defaultOpen={i<2}>
             <KList items={b.items} color={lmap[b.level]}/>
           </SectionCard>
         ))}
-        <SectionCard id="legal-calc" title="Calcul du préavis LNT — Référence rapide" accent={C.blue}>
+        <SectionCard id="legal-calc" title={t("knowledge.title.legalCalc")} accent={C.blue}>
           <KTable headers={["Ancienneté","Préavis minimum LNT","Notes"]} rows={[
             ["< 3 mois","Aucun (probation)","Vérifier la politique interne — peut être plus généreuse"],
             ["3 mois – 1 an","1 semaine","LNT minimum"],
@@ -559,12 +568,12 @@ export default function ModuleKnowledge() {
     ];
     return (
       <div>
-        <SectionCard id="analytics-summary" title="Tableau de bord — Seuils d'alerte synthèse" accent={C.blue} defaultOpen>
+        <SectionCard id="analytics-summary" title={t("knowledge.title.analyticsSummary")} accent={C.blue} defaultOpen>
           <KTable
             headers={["KPI","Formule simplifiée","Normal","🔴 Alerte","Fréquence"]}
             rows={kpis.map(k=>[k.icon+" "+k.label, k.formula, k.normal, k.alert, k.freq])}/>
         </SectionCard>
-        <SectionCard id="analytics-powerbi" title="Structure Power BI — 3 pages recommandées" accent={C.em}>
+        <SectionCard id="analytics-powerbi" title={t("knowledge.title.analyticsPowerBi")} accent={C.em}>
           <KTable headers={["Page","Contenu","Fréquence"]} rows={[
             ["Vue executive","Effectif + delta, taux de roulement vs. cible, postes ouverts, absentéisme, alerte immigration","Mensuel"],
             ["Vue gestionnaire","Headcount équipe, distribution perf, signaux rétention, plans de dev actifs","Bi-hebdomadaire"],
@@ -572,7 +581,7 @@ export default function ModuleKnowledge() {
           ]}/>
         </SectionCard>
         <div style={{ fontSize:13, fontWeight:700, color:C.text, margin:"16px 0 10px" }}>
-          Interprétations détaillées par KPI
+          {t("knowledge.kpi.detailsHeading")}
         </div>
         {kpis.map((kpi,i) => {
           const isOpen = openKpi === i;
@@ -599,12 +608,12 @@ export default function ModuleKnowledge() {
                   display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
                   <div>
                     <div style={{ fontSize:11, fontWeight:700, color:C.textD, textTransform:"uppercase",
-                      letterSpacing:1, marginBottom:8 }}>Interprétations</div>
+                      letterSpacing:1, marginBottom:8 }}>{t("knowledge.kpi.interpretations")}</div>
                     <KList items={kpi.interpretations} color={kpi.color}/>
                   </div>
                   <div>
                     <div style={{ fontSize:11, fontWeight:700, color:C.textD, textTransform:"uppercase",
-                      letterSpacing:1, marginBottom:8 }}>Actions HRBP</div>
+                      letterSpacing:1, marginBottom:8 }}>{t("knowledge.kpi.actions")}</div>
                     <KList items={kpi.actions} color={C.em} icon="→"/>
                   </div>
                 </div>
@@ -659,7 +668,7 @@ export default function ModuleKnowledge() {
     return (
       <div>
         <p style={{ fontSize:13, color:C.textM, marginBottom:14, lineHeight:1.6 }}>
-          Les 7 situations RH les plus fréquentes en contexte IT corporate — risques, actions recommandées et message prêt à envoyer.
+          {t("knowledge.cases.intro")}
         </p>
         {cases.map((c,i) => {
           const rc = RC[c.risk] || C.blue;
@@ -676,7 +685,7 @@ export default function ModuleKnowledge() {
                       {c.tags.map((t,j)=><span key={j} style={{ background:C.blue+"15", color:C.blue,
                         border:`1px solid ${C.blue}30`, borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:600 }}>{t}</span>)}
                       <span style={{ background:rc+"15", color:rc, border:`1px solid ${rc}30`,
-                        borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:600 }}>Risque : {c.risk}</span>
+                        borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:600 }}>{t("knowledge.cases.riskPrefix")}{c.risk}</span>
                     </div>
                   </div>
                   <span style={{ color:C.textD, fontSize:16 }}>{isOpen?"−":"+"}</span>
@@ -689,23 +698,23 @@ export default function ModuleKnowledge() {
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:C.red, textTransform:"uppercase",
-                        letterSpacing:1, marginBottom:6 }}>Risques</div>
+                        letterSpacing:1, marginBottom:6 }}>{t("knowledge.cases.risks")}</div>
                       <KList items={c.risks} color={C.red} icon="⚠"/>
                     </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:C.em, textTransform:"uppercase",
-                        letterSpacing:1, marginBottom:6 }}>Actions recommandées</div>
+                        letterSpacing:1, marginBottom:6 }}>{t("knowledge.cases.actions")}</div>
                       <KList items={c.actions} color={C.em}/>
                     </div>
                   </div>
                   <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:C.textD, textTransform:"uppercase", letterSpacing:1 }}>Message suggéré</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:C.textD, textTransform:"uppercase", letterSpacing:1 }}>{t("knowledge.cases.suggestedMsg")}</div>
                       <button onClick={()=>{ navigator.clipboard.writeText(c.msg); setCopied(i); setTimeout(()=>setCopied(null),2000); }}
                         style={{ background:copied===i?C.em:C.blue+"15", color:copied===i?"#fff":C.blue,
                           border:`1px solid ${C.blue}30`, borderRadius:6, padding:"3px 10px", fontSize:11,
                           fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                        {copied===i?"✓ Copié":"Copier"}
+                        {copied===i?t("knowledge.copied"):t("knowledge.copy")}
                       </button>
                     </div>
                     <div style={{ background:C.surfL, border:`1px solid ${C.border}`, borderRadius:7,
@@ -894,7 +903,7 @@ Signature gestionnaire : _____ Date : _____` },
               <button onClick={()=>{ navigator.clipboard.writeText(TMPLS[sel].body); setCopied(true); setTimeout(()=>setCopied(false),2000); }}
                 style={{ background:copied?C.em:C.blue, color:"#fff", border:"none", borderRadius:7,
                   padding:"8px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                {copied?"✓ Copié!":"Copier"}
+                {copied?t("knowledge.copiedBang"):t("knowledge.copy")}
               </button>
             </div>
             <pre style={{ background:C.surfL, padding:"14px 16px", fontSize:12, lineHeight:1.7,
@@ -925,7 +934,7 @@ Signature gestionnaire : _____ Date : _____` },
         <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
           fontSize:15, pointerEvents:"none" }}>🔍</span>
         <input value={search} onChange={e=>{ setSearch(e.target.value); }}
-          placeholder="Rechercher dans la Base de connaissances..."
+          placeholder={t("knowledge.search.placeholder")}
           style={{ width:"100%", padding:"10px 14px 10px 38px", borderRadius:10, boxSizing:"border-box",
             border:`1px solid ${C.border}`, fontSize:13, fontFamily:"inherit",
             background:C.surfL, color:C.text, outline:"none" }}
@@ -939,14 +948,14 @@ Signature gestionnaire : _____ Date : _____` },
       {search.trim().length > 1 && (
         <div style={{ marginBottom:16 }}>
           {searchResults.length === 0
-            ? <div style={{ fontSize:12, color:C.textD, padding:"8px 0" }}>Aucun résultat pour "{search}"</div>
+            ? <div style={{ fontSize:12, color:C.textD, padding:"8px 0" }}>{t("knowledge.search.noResults")} « {search} »</div>
             : <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                 {searchResults.map(s=>(
                   <button key={s.id} onClick={()=>{ setActiveSection(s.id); setSearch(""); }}
                     style={{ background:C.blue+"12", color:C.blue, border:`1px solid ${C.blue}30`,
                       borderRadius:8, padding:"6px 12px", fontSize:12, fontWeight:600,
                       cursor:"pointer", fontFamily:"inherit" }}>
-                    {s.icon} {s.label}
+                    {s.icon} {t(s.labelKey)}
                   </button>
                 ))}
               </div>
@@ -959,8 +968,8 @@ Signature gestionnaire : _____ Date : _____` },
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
           <button onClick={()=>setActiveSection("home")} style={{ background:C.surfL,
             border:`1px solid ${C.border}`, borderRadius:7, padding:"5px 12px", fontSize:12,
-            cursor:"pointer", color:C.textM, fontFamily:"inherit" }}>← Vue d'ensemble</button>
-          <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{current?.icon} {current?.label}</span>
+            cursor:"pointer", color:C.textM, fontFamily:"inherit" }}>{t("knowledge.nav.back")}</button>
+          <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{current?.icon} {current ? t(current.labelKey) : ""}</span>
         </div>
       )}
 
@@ -974,7 +983,7 @@ Signature gestionnaire : _____ Date : _____` },
               border:`1px solid ${s.id===activeSection ? C.blue : C.border}`,
               borderRadius:20, padding:"5px 12px", fontSize:11, fontWeight:600,
               cursor:"pointer", fontFamily:"inherit" }}>
-              {s.icon} {s.label}
+              {s.icon} {t(s.labelKey)}
             </button>
           ))}
         </div>
