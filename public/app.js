@@ -959,6 +959,15 @@ ${LEGAL_GUARDRAIL}`;
       "meetings.type.org": "\u{1F504} Org & Change",
       "meetings.type.disciplinaire": "\u2696 Disciplinary",
       "meetings.type.initiatives": "\u{1F680} Initiatives",
+      "meetings.engineType.1on1": "\u{1F464} 1:1",
+      "meetings.engineType.disciplinaire": "\u2696\uFE0F Disciplinary",
+      "meetings.engineType.performance": "\u{1F4CA} Performance",
+      "meetings.engineType.coaching": "\u{1F3AF} Coaching / Development",
+      "meetings.engineType.recadrage": "\u{1F504} Reframing / Clarification",
+      "meetings.engineType.mediation": "\u{1F91D} Mediation / Conflict",
+      "meetings.engineType.enquete": "\u{1F50D} Investigation",
+      "meetings.engineType.suivi": "\u{1F4CB} Follow-up",
+      "meetings.engineType.transition": "\u{1F680} Transition",
       "meetings.section.summaryExec": "Executive summary",
       "meetings.section.summaryPortfolio": "Portfolio summary",
       "meetings.section.summaryPipeline": "Pipeline summary",
@@ -1520,6 +1529,15 @@ ${LEGAL_GUARDRAIL}`;
       "meetings.type.org": "\u{1F504} Org & Changement",
       "meetings.type.disciplinaire": "\u2696 Disciplinaire",
       "meetings.type.initiatives": "\u{1F680} Initiatives",
+      "meetings.engineType.1on1": "\u{1F464} 1:1",
+      "meetings.engineType.disciplinaire": "\u2696\uFE0F Disciplinaire",
+      "meetings.engineType.performance": "\u{1F4CA} Performance",
+      "meetings.engineType.coaching": "\u{1F3AF} Coaching / D\xE9veloppement",
+      "meetings.engineType.recadrage": "\u{1F504} Recadrage / Clarification",
+      "meetings.engineType.mediation": "\u{1F91D} M\xE9diation / Conflit",
+      "meetings.engineType.enquete": "\u{1F50D} Enqu\xEAte / Investigation",
+      "meetings.engineType.suivi": "\u{1F4CB} Suivi",
+      "meetings.engineType.transition": "\u{1F680} Transition",
       "meetings.section.summaryExec": "R\xE9sum\xE9 ex\xE9cutif",
       "meetings.section.summaryPortfolio": "R\xE9sum\xE9 portefeuille",
       "meetings.section.summaryPipeline": "R\xE9sum\xE9 pipeline",
@@ -31768,6 +31786,19 @@ REGLE TRANSVERSE caseEntry :
 
 Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. Ne jamais inventer d information absente du contexte fourni.`;
 
+  // src/utils/engineMeetingTypes.js
+  var ENGINE_MEETING_TYPES = [
+    { id: "1on1", label: "1:1", icon: "\u{1F464}", color: C.blue, legal: false, desc: "Rencontre r\xE9guli\xE8re de suivi avec un gestionnaire" },
+    { id: "disciplinaire", label: "Disciplinaire", icon: "\u2696\uFE0F", color: C.red, legal: true, desc: "Notifier formellement un manquement, documenter les faits" },
+    { id: "performance", label: "Performance", icon: "\u{1F4CA}", color: C.amber, legal: false, desc: "Discuter d'\xE9carts de performance et convenir d'un plan" },
+    { id: "coaching", label: "Coaching / D\xE9veloppement", icon: "\u{1F3AF}", color: C.teal, legal: false, desc: "Renforcer les forces, identifier les zones de croissance" },
+    { id: "recadrage", label: "Recadrage / Clarification", icon: "\u{1F504}", color: C.amber, legal: false, desc: "Recadrer un comportement pr\xE9cis sans escalade" },
+    { id: "mediation", label: "M\xE9diation / Conflit", icon: "\u{1F91D}", color: C.purple, legal: false, desc: "Faciliter une conversation entre deux parties en conflit" },
+    { id: "enquete", label: "Enqu\xEAte / Investigation", icon: "\u{1F50D}", color: C.red, legal: true, desc: "Recueillir des faits dans le cadre d'une enqu\xEAte formelle" },
+    { id: "suivi", label: "Suivi", icon: "\u{1F4CB}", color: C.blue, legal: false, desc: "Faire le suivi d'un engagement pris lors d'une rencontre ant\xE9rieure" },
+    { id: "transition", label: "Transition", icon: "\u{1F680}", color: C.em, legal: false, desc: "Annoncer ou accompagner un changement de r\xF4le, \xE9quipe ou structure" }
+  ];
+
   // src/modules/MeetingEngine.jsx
   function RiskBadge4({ level }) {
     const r = RISK[level] || RISK["Mod\xE9r\xE9"];
@@ -31909,17 +31940,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
       flow: ["Contexte", "Annonce claire", "Impacts", "Calendrier", "Soutien offert", "Questions et engagement"]
     }
   };
-  var ENGINE_TYPES = [
-    { id: "1on1", label: "1:1", icon: "\u{1F464}", color: C.blue, legal: false, desc: "Rencontre r\xE9guli\xE8re de suivi avec un gestionnaire" },
-    { id: "disciplinaire", label: "Disciplinaire", icon: "\u2696\uFE0F", color: C.red, legal: true, desc: "Notifier formellement un manquement, documenter les faits" },
-    { id: "performance", label: "Performance", icon: "\u{1F4CA}", color: C.amber, legal: false, desc: "Discuter d'\xE9carts de performance et convenir d'un plan" },
-    { id: "coaching", label: "Coaching / D\xE9veloppement", icon: "\u{1F3AF}", color: C.teal, legal: false, desc: "Renforcer les forces, identifier les zones de croissance" },
-    { id: "recadrage", label: "Recadrage / Clarification", icon: "\u{1F504}", color: C.amber, legal: false, desc: "Recadrer un comportement pr\xE9cis sans escalade" },
-    { id: "mediation", label: "M\xE9diation / Conflit", icon: "\u{1F91D}", color: C.purple, legal: false, desc: "Faciliter une conversation entre deux parties en conflit" },
-    { id: "enquete", label: "Enqu\xEAte / Investigation", icon: "\u{1F50D}", color: C.red, legal: true, desc: "Recueillir des faits dans le cadre d'une enqu\xEAte formelle" },
-    { id: "suivi", label: "Suivi", icon: "\u{1F4CB}", color: C.blue, legal: false, desc: "Faire le suivi d'un engagement pris lors d'une rencontre ant\xE9rieure" },
-    { id: "transition", label: "Transition", icon: "\u{1F680}", color: C.em, legal: false, desc: "Annoncer ou accompagner un changement de r\xF4le, \xE9quipe ou structure" }
-  ];
+  var ENGINE_TYPES = ENGINE_MEETING_TYPES;
   function PrepObsSelector2({ label, values }) {
     const [selected, setSelected] = (0, import_react17.useState)(null);
     const colors = [C.em, C.teal, C.amber, C.red];
@@ -33673,18 +33694,11 @@ ${t3}`;
       setView("list");
       return null;
     }
-    const MEETING_TYPES = [
-      { id: "executif", label: t2("meetings.type.executif") },
-      { id: "vp", label: t2("meetings.type.vp") },
-      { id: "director", label: t2("meetings.type.director") },
-      { id: "manager", label: t2("meetings.type.manager") },
-      { id: "hrbpteam", label: t2("meetings.type.hrbpteam") },
-      { id: "ta", label: t2("meetings.type.ta") },
-      { id: "talent", label: t2("meetings.type.talent") },
-      { id: "org", label: t2("meetings.type.org") },
-      { id: "disciplinaire", label: t2("meetings.type.disciplinaire") },
-      { id: "initiatives", label: t2("meetings.type.initiatives") }
-    ];
+    const MEETING_TYPES = ENGINE_MEETING_TYPES.map((et) => {
+      const key2 = `meetings.engineType.${et.id}`;
+      const translated = t2(key2);
+      return { id: et.id, label: translated === key2 ? et.label : translated };
+    });
     const linesToArr = (s) => (s || "").split("\n").map((x) => x.trim()).filter(Boolean);
     const arrToLines = (arr) => (Array.isArray(arr) ? arr : []).map((x) => typeof x === "string" ? x : x?.text || "").filter(Boolean).join("\n");
     const objsToPipeLines = (arr, fields) => (Array.isArray(arr) ? arr : []).map((o) => {

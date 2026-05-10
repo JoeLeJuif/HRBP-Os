@@ -19,6 +19,7 @@ import ProvinceBadge  from '../components/ProvinceBadge.jsx';
 import Module1on1Prep from './Prep1on1.jsx';
 import MeetingEngine  from './MeetingEngine.jsx';
 import { useT } from '../lib/i18n.js';
+import { ENGINE_MEETING_TYPES } from '../utils/engineMeetingTypes.js';
 
 // ── Inline shared helpers ─────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -497,19 +498,14 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     return null;
   }
 
-  // Session / result view
-  const MEETING_TYPES = [
-    {id:"executif",    label:t("meetings.type.executif")},
-    {id:"vp",          label:t("meetings.type.vp")},
-    {id:"director",    label:t("meetings.type.director")},
-    {id:"manager",     label:t("meetings.type.manager")},
-    {id:"hrbpteam",    label:t("meetings.type.hrbpteam")},
-    {id:"ta",          label:t("meetings.type.ta")},
-    {id:"talent",      label:t("meetings.type.talent")},
-    {id:"org",         label:t("meetings.type.org")},
-    {id:"disciplinaire",label:t("meetings.type.disciplinaire")},
-    {id:"initiatives", label:t("meetings.type.initiatives")},
-  ];
+  // Session / result view — Meeting Type dropdown reuses the 1:1 Engine list
+  // (ENGINE_MEETING_TYPES). Labels resolve via i18n key `meetings.engineType.<id>`,
+  // falling back to the shared FR label when no translation is registered.
+  const MEETING_TYPES = ENGINE_MEETING_TYPES.map(et => {
+    const key = `meetings.engineType.${et.id}`;
+    const translated = t(key);
+    return { id: et.id, label: translated === key ? et.label : translated };
+  });
 
   // Edit-mode helpers — convert between structured fields and editable text blocks.
   const linesToArr = (s) => (s || "").split("\n").map(x => x.trim()).filter(Boolean);
