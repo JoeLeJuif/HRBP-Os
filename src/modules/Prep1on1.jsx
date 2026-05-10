@@ -11,6 +11,7 @@ import { buildLegalPromptContext, isLegalSensitive } from '../utils/legal.js';
 import { normKey } from '../utils/format.js';
 import { toArray, normalizeMeetingOutput } from '../utils/meetingModel.js';
 import { callAI } from '../api/index.js';
+import { useT } from '../lib/i18n.js';
 import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
 import AILoader      from '../components/AILoader.jsx';
@@ -89,15 +90,22 @@ const GUIDANCE_DB = {
 };
 
 const PREP_MEETING_TYPES = [
-  {value:"regular",label:"1:1 régulier"},{value:"perf",label:"Discussion de performance"},
-  {value:"org",label:"Changement organisationnel"},{value:"talent",label:"Revue de talent"},
-  {value:"concern",label:"Enjeu RH sensible"},{value:"strategic",label:"Alignement stratégique"},
+  {value:"regular",  labelKey:"prep1on1.meetingType.regular"},
+  {value:"perf",     labelKey:"prep1on1.meetingType.perf"},
+  {value:"org",      labelKey:"prep1on1.meetingType.org"},
+  {value:"talent",   labelKey:"prep1on1.meetingType.talent"},
+  {value:"concern",  labelKey:"prep1on1.meetingType.concern"},
+  {value:"strategic",labelKey:"prep1on1.meetingType.strategic"},
 ];
 const PREP_FUNCTIONS = [
-  {value:"",label:"Sélectionner…"},{value:"IT",label:"Technologies de l'information"},
-  {value:"network",label:"Planification réseau"},{value:"ops",label:"Opérations"},
-  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporatif / Siège"},
-  {value:"hr",label:"Ressources humaines"},{value:"other",label:"Autre"},
+  {value:"",         labelKey:"prep1on1.function.placeholder"},
+  {value:"IT",       labelKey:"prep1on1.function.it"},
+  {value:"network",  labelKey:"prep1on1.function.network"},
+  {value:"ops",      labelKey:"prep1on1.function.ops"},
+  {value:"finance",  labelKey:"prep1on1.function.finance"},
+  {value:"corporate",labelKey:"prep1on1.function.corporate"},
+  {value:"hr",       labelKey:"prep1on1.function.hr"},
+  {value:"other",    labelKey:"prep1on1.function.other"},
 ];
 
 function PrepObsSelector({ label, values }) {
@@ -143,6 +151,7 @@ const LEVEL_CONTEXT = {
 };
 
 export default function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
+  const { t } = useT();
 
   // ── State ────────────────────────────────────────────────────────────────
   const [pTab, setPTab]           = useState("context");
@@ -307,48 +316,48 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
   // ── Static data ───────────────────────────────────────────────────────────
   const PTABS = [
-    {id:"guidance", icon:"🧭", label:"Guidance",      color:C.teal},
-    {id:"context",  icon:"📋", label:"Contexte",      color:C.blue},
-    {id:"history",  icon:"🕐", label:"Historique",    color:C.purple, badge:histCount||null},
-    {id:"prep",     icon:"🎯", label:"Préparation",   color:C.em,     badge:prep?"✓":null},
-    {id:"analyse",  icon:"🎙️", label:"Analyse meeting", color:C.blue, badge:(meetingAnalysis.transcript||meetingAnalysis.keyPoints)?"✓":null},
-    {id:"signals",  icon:"📡", label:"Signaux",       color:C.amber},
-    {id:"notes",    icon:"📝", label:"Notes",         color:C.blue},
-    {id:"output",   icon:"📊", label:"Output",        color:C.red,    badge:output?"✓":null},
+    {id:"guidance", icon:"🧭", labelKey:"prep1on1.tab.guidance", color:C.teal},
+    {id:"context",  icon:"📋", labelKey:"prep1on1.tab.context",  color:C.blue},
+    {id:"history",  icon:"🕐", labelKey:"prep1on1.tab.history",  color:C.purple, badge:histCount||null},
+    {id:"prep",     icon:"🎯", labelKey:"prep1on1.tab.prep",     color:C.em,     badge:prep?"✓":null},
+    {id:"analyse",  icon:"🎙️", labelKey:"prep1on1.tab.analyse",  color:C.blue,   badge:(meetingAnalysis.transcript||meetingAnalysis.keyPoints)?"✓":null},
+    {id:"signals",  icon:"📡", labelKey:"prep1on1.tab.signals",  color:C.amber},
+    {id:"notes",    icon:"📝", labelKey:"prep1on1.tab.notes",    color:C.blue},
+    {id:"output",   icon:"📊", labelKey:"prep1on1.tab.output",   color:C.red,    badge:output?"✓":null},
   ];
   const PREP_CATS = [
-    {key:"objectives",label:"Objectifs HRBP",       icon:"🎯",color:C.em},
-    {key:"strategic", label:"Questions stratégiques",icon:"♟", color:C.blue},
-    {key:"people",    label:"Personnes",             icon:"👥",color:C.teal},
-    {key:"org",       label:"Organisation",          icon:"🏗", color:C.amber},
-    {key:"leadership",label:"Leadership",            icon:"🧭",color:C.purple},
-    {key:"performance",label:"Performance & Talent", icon:"📈",color:C.red},
-    {key:"capacity",  label:"Capacité & Structure",  icon:"⚖️",color:C.em},
+    {key:"objectives", labelKey:"prep1on1.prepCat.objectives",  icon:"🎯", color:C.em},
+    {key:"strategic",  labelKey:"prep1on1.prepCat.strategic",   icon:"♟",  color:C.blue},
+    {key:"people",     labelKey:"prep1on1.prepCat.people",      icon:"👥", color:C.teal},
+    {key:"org",        labelKey:"prep1on1.prepCat.org",         icon:"🏗", color:C.amber},
+    {key:"leadership", labelKey:"prep1on1.prepCat.leadership",  icon:"🧭", color:C.purple},
+    {key:"performance",labelKey:"prep1on1.prepCat.performance", icon:"📈", color:C.red},
+    {key:"capacity",   labelKey:"prep1on1.prepCat.capacity",    icon:"⚖️", color:C.em},
   ];
   const SIGNAL_CATS = [
-    {key:"disengagement",label:"Désengagement",        icon:"🌡",color:C.amber},
-    {key:"burnout",      label:"Épuisement / Surcharge",icon:"🔥",color:C.red},
-    {key:"retention",    label:"Risques de rétention", icon:"✈", color:C.purple},
-    {key:"tensions",     label:"Tensions d équipe",    icon:"⚡",color:C.amber},
-    {key:"leadership",   label:"Enjeux de leadership", icon:"🧭",color:C.blue},
-    {key:"org",          label:"Enjeux organisationnels",icon:"🏗",color:C.teal},
-    {key:"succession",   label:"Succession & Capacités",icon:"🎯",color:C.em},
+    {key:"disengagement", labelKey:"prep1on1.signalCat.disengagement", icon:"🌡", color:C.amber},
+    {key:"burnout",       labelKey:"prep1on1.signalCat.burnout",       icon:"🔥", color:C.red},
+    {key:"retention",     labelKey:"prep1on1.signalCat.retention",     icon:"✈",  color:C.purple},
+    {key:"tensions",      labelKey:"prep1on1.signalCat.tensions",      icon:"⚡", color:C.amber},
+    {key:"leadership",    labelKey:"prep1on1.signalCat.leadership",    icon:"🧭", color:C.blue},
+    {key:"org",           labelKey:"prep1on1.signalCat.org",           icon:"🏗", color:C.teal},
+    {key:"succession",    labelKey:"prep1on1.signalCat.succession",    icon:"🎯", color:C.em},
   ];
   const GUIDE_CATS = [
-    {key:"positioning",label:"Me positionner",        icon:"♟",color:C.blue},
-    {key:"challenge",  label:"Challenger",            icon:"🧲",color:C.purple},
-    {key:"redirect",   label:"Rediriger vers le RH",  icon:"🔄",color:C.amber},
-    {key:"probe",      label:"Sonder pour des preuves",icon:"🔍",color:C.teal},
-    {key:"hidden_risks",label:"Risques cachés",       icon:"🎭",color:C.red},
+    {key:"positioning",  labelKey:"prep1on1.guideCat.positioning",  icon:"♟",  color:C.blue},
+    {key:"challenge",    labelKey:"prep1on1.guideCat.challenge",    icon:"🧲", color:C.purple},
+    {key:"redirect",     labelKey:"prep1on1.guideCat.redirect",     icon:"🔄", color:C.amber},
+    {key:"probe",        labelKey:"prep1on1.guideCat.probe",        icon:"🔍", color:C.teal},
+    {key:"hidden_risks", labelKey:"prep1on1.guideCat.hidden_risks", icon:"🎭", color:C.red},
   ];
   const NOTE_CATS = [
-    {key:"people",     label:"Personnes",  icon:"👥",color:C.teal},
-    {key:"performance",label:"Performance",icon:"📈",color:C.blue},
-    {key:"risks",      label:"Risques",    icon:"⚠", color:C.red},
-    {key:"org",        label:"Organisation",icon:"🏗",color:C.amber},
-    {key:"leadership", label:"Leadership", icon:"🧭",color:C.purple},
-    {key:"actions",    label:"Actions",    icon:"✅",color:C.em},
-    {key:"followups",  label:"Suivis HRBP",icon:"🔁",color:C.blue},
+    {key:"people",     labelKey:"prep1on1.noteCat.people",      icon:"👥", color:C.teal},
+    {key:"performance",labelKey:"prep1on1.noteCat.performance", icon:"📈", color:C.blue},
+    {key:"risks",      labelKey:"prep1on1.noteCat.risks",       icon:"⚠",  color:C.red},
+    {key:"org",        labelKey:"prep1on1.noteCat.org",         icon:"🏗", color:C.amber},
+    {key:"leadership", labelKey:"prep1on1.noteCat.leadership",  icon:"🧭", color:C.purple},
+    {key:"actions",    labelKey:"prep1on1.noteCat.actions",     icon:"✅", color:C.em},
+    {key:"followups",  labelKey:"prep1on1.noteCat.followups",   icon:"🔁", color:C.blue},
   ];
   const RISK_C = {Critique:C.red,Eleve:C.amber,Élevé:C.amber,Elevé:C.amber,Modere:C.blue,Modéré:C.blue,Moderé:C.blue,Faible:C.em};
   const normPrio = v => { if (!v) return v; const l = v.toLowerCase(); if (l==="faible"||l==="low") return "Faible"; if (l==="modéré"||l==="modere"||l==="moyen"||l==="medium") return "Modéré"; if (l==="élevé"||l==="eleve"||l==="elevé"||l==="haute"||l==="high") return "Élevé"; return v; };
@@ -357,12 +366,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
   // ── FLOW STEPS ────────────────────────────────────────────────────────────
   const flowSteps = [
-    { n:"1", label:"Contexte",         done:!!ctx.managerName,       tab:"context"  },
-    { n:"2", label:"Historique",       done:histCount>0,             tab:"history"  },
-    { n:"3", label:"Génère questions", done:!!prep,                  tab:"prep"     },
-    { n:"4", label:"Fais le meeting",  done:false,                   nav:"meetings" },
-    { n:"5", label:"Analyse meeting",done:false,                  nav:"meetings" },
-    { n:"6", label:"Output + Archiver",done:!!output && saved1on1,   tab:"output"   },
+    { n:"1", label:t("prep1on1.flow.context"),           done:!!ctx.managerName,       tab:"context"  },
+    { n:"2", label:t("prep1on1.flow.history"),           done:histCount>0,             tab:"history"  },
+    { n:"3", label:t("prep1on1.flow.generateQuestions"), done:!!prep,                  tab:"prep"     },
+    { n:"4", label:t("prep1on1.flow.runMeeting"),        done:false,                   nav:"meetings" },
+    { n:"5", label:t("prep1on1.flow.analyzeMeeting"),    done:false,                   nav:"meetings" },
+    { n:"6", label:t("prep1on1.flow.outputArchive"),     done:!!output && saved1on1,   tab:"output"   },
   ];
 
   // ── RENDER ────────────────────────────────────────────────────────────────
@@ -377,14 +386,14 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
         {/* Header */}
         <div style={{ padding:"16px 14px 12px", borderBottom:`1px solid ${C.border}` }}>
           <div style={{ fontSize:9, fontFamily:"'DM Mono',monospace", color:C.em,
-                        letterSpacing:2, marginBottom:3 }}>MEETINGS</div>
-          <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Préparation 1:1</div>
+                        letterSpacing:2, marginBottom:3 }}>{t("prep1on1.sidebar.brand")}</div>
+          <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t("prep1on1.sidebar.title")}</div>
           {ctx.managerName && (
             <div style={{ marginTop:8, padding:"6px 9px", background:C.emD+"30",
                           borderRadius:6, border:`1px solid ${C.emD}` }}>
               <div style={{ fontSize:12, color:C.em, fontWeight:700 }}>{ctx.managerName}</div>
               <div style={{ fontSize:10, color:C.textD }}>
-                {histCount > 0 ? `${histCount} meeting(s) archivé(s)` : "Nouveau gestionnaire"}
+                {histCount > 0 ? `${histCount} ${t("prep1on1.sidebar.archivedSuffix")}` : t("prep1on1.sidebar.newManager")}
               </div>
             </div>
           )}
@@ -393,7 +402,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
         {/* Flow tracker */}
         <div style={{ padding:"12px 13px", borderBottom:`1px solid ${C.border}` }}>
           <div style={{ fontSize:9, color:C.textD, fontFamily:"'DM Mono',monospace",
-                        letterSpacing:1, marginBottom:8 }}>CYCLE EN COURS</div>
+                        letterSpacing:1, marginBottom:8 }}>{t("prep1on1.sidebar.cycle")}</div>
           {flowSteps.map((s, i) => (
             <div key={i}
               onClick={() => s.tab ? setPTab(s.tab) : s.nav ? onNavigate(s.nav) : null}
@@ -418,25 +427,25 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
         {/* Tab nav */}
         <nav style={{ flex:1, padding:"8px 7px", display:"flex", flexDirection:"column", gap:2,
                       overflowY:"auto" }}>
-          {PTABS.map(t => {
-            const active = pTab === t.id;
+          {PTABS.map(tab => {
+            const active = pTab === tab.id;
             return (
-              <button key={t.id} onClick={()=>setPTab(t.id)} style={{
+              <button key={tab.id} onClick={()=>setPTab(tab.id)} style={{
                 display:"flex", alignItems:"center", gap:8, padding:"8px 9px",
                 borderRadius:7, border:"none", cursor:"pointer", width:"100%",
-                background: active ? t.color+"22" : "transparent",
+                background: active ? tab.color+"22" : "transparent",
                 fontFamily:"'DM Sans',sans-serif", transition:"all .15s",
               }}>
-                <span style={{ fontSize:13 }}>{t.icon}</span>
+                <span style={{ fontSize:13 }}>{tab.icon}</span>
                 <span style={{ fontSize:12, fontWeight:active?600:400,
-                                color:active?t.color:C.textM, flex:1, textAlign:"left" }}>
-                  {t.label}
+                                color:active?tab.color:C.textM, flex:1, textAlign:"left" }}>
+                  {t(tab.labelKey)}
                 </span>
-                {t.badge && (
-                  <span style={{ background:t.color+"33", color:t.color, borderRadius:10,
+                {tab.badge && (
+                  <span style={{ background:tab.color+"33", color:tab.color, borderRadius:10,
                                   padding:"1px 6px", fontSize:9,
                                   fontFamily:"'DM Mono',monospace" }}>
-                    {t.badge}
+                    {tab.badge}
                   </span>
                 )}
               </button>
@@ -455,11 +464,11 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       background:C.surf, display:"flex", alignItems:"center",
                       gap:10, flexShrink:0, flexWrap:"wrap" }}>
           <span style={{ fontSize:15 }}>{activePTab?.icon}</span>
-          <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{activePTab?.label}</div>
+          <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{activePTab ? t(activePTab.labelKey) : ""}</div>
           {ctx.managerName && (
             <div style={{ fontSize:11, color:C.textD }}>
               {ctx.managerName}
-              {ctx.team ? " · " + (PREP_FUNCTIONS.find(f=>f.value===ctx.team)?.label||ctx.team) : ""}
+              {ctx.team ? " · " + (() => { const f = PREP_FUNCTIONS.find(f=>f.value===ctx.team); return f ? t(f.labelKey) : ctx.team; })() : ""}
             </div>
           )}
 
@@ -467,13 +476,13 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
             {/* Prep tab actions */}
             {pTab==="prep" && (
               <>
-                {prepAI && <Badge label="✦ IA" color={C.em}/>}
-                {histCount > 0 && <Badge label={`${histCount} meetings en mémoire`} color={C.purple}/>}
+                {prepAI && <Badge label={t("prep1on1.topbar.aiBadge")} color={C.em}/>}
+                {histCount > 0 && <Badge label={`${histCount} ${t("prep1on1.topbar.memorySuffix")}`} color={C.purple}/>}
                 <button onClick={generatePrep} disabled={!ctx.managerName||prepLoading}
                   style={{ ...css.btn(C.em), padding:"6px 14px", fontSize:12,
                             opacity:!ctx.managerName?.5:1 }}>
-                  {prepLoading ? "Génération…"
-                    : histCount > 0 ? `✦ Générer avec historique` : "✦ Générer"}
+                  {prepLoading ? t("prep1on1.topbar.generating")
+                    : histCount > 0 ? t("prep1on1.topbar.generateWithHistory") : t("prep1on1.topbar.generate")}
                 </button>
               </>
             )}
@@ -483,19 +492,19 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                 {output && (
                   <button onClick={copyOutput}
                     style={{ ...css.btn(C.blue,true), padding:"6px 12px", fontSize:11 }}>
-                    {copied ? "✓ Copié" : "📋 Copier"}
+                    {copied ? t("prep1on1.topbar.copied") : t("prep1on1.topbar.copy")}
                   </button>
                 )}
                 {output && (
                   <button onClick={save1on1} disabled={saved1on1}
                     style={{ ...css.btn(saved1on1?C.textD:C.purple,true),
                               padding:"6px 12px", fontSize:11 }}>
-                    {saved1on1 ? "✓ Archivé" : "💾 Archiver"}
+                    {saved1on1 ? t("prep1on1.topbar.archived") : t("prep1on1.topbar.archive")}
                   </button>
                 )}
                 <button onClick={generateOutput} disabled={outputLoading}
                   style={{ ...css.btn(C.em), padding:"6px 14px", fontSize:12 }}>
-                  {outputLoading ? "Génération…" : "✦ Générer l'output"}
+                  {outputLoading ? t("prep1on1.topbar.generating") : t("prep1on1.topbar.generateOutput")}
                 </button>
               </>
             )}
@@ -510,10 +519,10 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
             <div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
                 <div style={{...css.card}}>
-                  <Mono color={C.blue} size={9}>IDENTIFICATION</Mono>
+                  <Mono color={C.blue} size={9}>{t("prep1on1.context.identification")}</Mono>
                   <div style={{marginTop:10}}>
-                    {[["Nom du gestionnaire","managerName","ex. Marie Tremblay"],
-                      ["Date de la rencontre","date",new Date().toLocaleDateString("fr-CA")]
+                    {[[t("prep1on1.context.managerName"),"managerName",t("prep1on1.context.managerNamePh")],
+                      [t("prep1on1.context.meetingDate"),"date",new Date().toLocaleDateString("fr-CA")]
                     ].map(([label,key,ph]) => (
                       <div key={key} style={{marginBottom:12}}>
                         <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
@@ -528,33 +537,33 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                     ))}
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Équipe / Fonction
+                        {t("prep1on1.context.team")}
                       </div>
                       <select value={ctx.team}
                         onChange={e=>setCtx(p=>({...p,team:e.target.value}))}
                         style={{...css.select}}>
                         {PREP_FUNCTIONS.map(o =>
                           <option key={o.value} value={o.value}
-                            style={{background:C.surfL}}>{o.label}</option>
+                            style={{background:C.surfL}}>{t(o.labelKey)}</option>
                         )}
                       </select>
                     </div>
                     <div>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Type de rencontre
+                        {t("prep1on1.context.meetingType")}
                       </div>
                       <select value={ctx.meetingType}
                         onChange={e=>setCtx(p=>({...p,meetingType:e.target.value}))}
                         style={{...css.select}}>
                         {PREP_MEETING_TYPES.map(o =>
                           <option key={o.value} value={o.value}
-                            style={{background:C.surfL}}>{o.label}</option>
+                            style={{background:C.surfL}}>{t(o.labelKey)}</option>
                         )}
                       </select>
                     </div>
                     <div style={{marginTop:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Province
+                        {t("prep1on1.context.province")}
                       </div>
                       <ProvinceSelect
                         value={ctx.province||data.profile?.defaultProvince||"QC"}
@@ -565,12 +574,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                 </div>
 
                 <div style={{...css.card}}>
-                  <Mono color={C.em} size={9}>INTENTION STRATÉGIQUE</Mono>
+                  <Mono color={C.em} size={9}>{t("prep1on1.context.intent")}</Mono>
                   <div style={{marginTop:10}}>
-                    {[["Objectif principal","purpose",
-                        "ex. Faire le point sur la rétention suite aux changements…",4],
-                      ["Contexte / notes de fond","background",
-                        "ex. Dernier 1:1 il y a 3 semaines — conflit inter-équipes…",5]
+                    {[[t("prep1on1.context.purpose"),"purpose",
+                        t("prep1on1.context.purposePh"),4],
+                      [t("prep1on1.context.background"),"background",
+                        t("prep1on1.context.backgroundPh"),5]
                     ].map(([label,key,ph,rows]) => (
                       <div key={key} style={{marginBottom:12}}>
                         <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
@@ -588,14 +597,14 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
               </div>
 
               <div style={{...css.card, borderLeft:`3px solid ${C.amber}`}}>
-                <Mono color={C.amber} size={9}>SIGNAUX CONNUS AVANT LA RENCONTRE</Mono>
+                <Mono color={C.amber} size={9}>{t("prep1on1.context.knownSignals")}</Mono>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:10}}>
-                  {[["Dossiers actifs","activeCases",
-                      "ex. PIP en cours, plainte déposée…",3],
-                    ["Données récentes","recentData",
-                      "ex. 2 départs Q4, taux abs en hausse…",3],
-                    ["Tensions / alertes","alerts",
-                      "ex. Tensions avec l équipe de Morgan…",3]
+                  {[[t("prep1on1.context.activeCases"),"activeCases",
+                      t("prep1on1.context.activeCasesPh"),3],
+                    [t("prep1on1.context.recentData"),"recentData",
+                      t("prep1on1.context.recentDataPh"),3],
+                    [t("prep1on1.context.alerts"),"alerts",
+                      t("prep1on1.context.alertsPh"),3]
                   ].map(([label,key,ph,rows]) => (
                     <div key={key}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
@@ -619,13 +628,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                               border:`1px solid ${C.purple}40`,borderRadius:8,
                               display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <span style={{fontSize:12,color:C.purple}}>
-                    🕐 <strong>{histCount} meeting(s)</strong> trouvé(s) pour{" "}
-                    <strong>{ctx.managerName}</strong> —
-                    l'historique sera injecté dans la génération des questions.
+                    🕐 <strong>{histCount} {t("prep1on1.context.banner.foundFor")}</strong>{" "}
+                    <strong>{ctx.managerName}</strong> {t("prep1on1.context.banner.injected")}
                   </span>
                   <button onClick={()=>setPTab("history")}
                     style={{...css.btn(C.purple,true),padding:"5px 12px",fontSize:11}}>
-                    Voir l'historique →
+                    {t("prep1on1.context.banner.viewHistory")}
                   </button>
                 </div>
               )}
@@ -634,8 +642,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                               background:C.emD+"20",border:`1px solid ${C.emD}`,
                               borderRadius:8}}>
                   <span style={{fontSize:11,color:C.em}}>
-                    🆕 Premier 1:1 avec <strong>{ctx.managerName}</strong> —
-                    les questions seront génériques. À chaque cycle, l'historique s'enrichit.
+                    🆕 {t("prep1on1.context.banner.firstWith")} <strong>{ctx.managerName}</strong> {t("prep1on1.context.banner.firstNote")}
                   </span>
                 </div>
               )}
@@ -650,23 +657,23 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                               borderRadius:12,padding:"48px 24px",textAlign:"center"}}>
                   <div style={{fontSize:36,marginBottom:12}}>🕐</div>
                   <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:8}}>
-                    Aucun historique
+                    {t("prep1on1.history.empty.title")}
                   </div>
                   <div style={{fontSize:12,color:C.textD,maxWidth:360,margin:"0 auto",
                                 marginBottom:16}}>
                     {ctx.managerName
-                      ? `Aucun transcript analysé pour "${ctx.managerName}". Chaque meeting analysé dans le module Meetings alimentera automatiquement cet historique.`
-                      : "Remplis le nom du gestionnaire dans Contexte pour voir son historique."}
+                      ? `${t("prep1on1.history.empty.bodyWith")} "${ctx.managerName}"${t("prep1on1.history.empty.bodyWithEnd")}`
+                      : t("prep1on1.history.empty.bodyNoMgr")}
                   </div>
                 </div>
               ) : (
                 <div>
                   <div style={{marginBottom:16}}>
                     <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>
-                      Historique — {ctx.managerName}
+                      {t("prep1on1.history.heading")} {ctx.managerName}
                     </div>
                     <div style={{fontSize:12,color:C.textD}}>
-                      {histCount} transcript(s) analysé(s) · Les 3 plus récents alimentent la génération des questions.
+                      {histCount} {t("prep1on1.history.subtitleA")}
                     </div>
                   </div>
 
@@ -676,7 +683,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       <div style={{display:"flex",alignItems:"center",
                                     justifyContent:"space-between",marginBottom:10}}>
                         <Mono color={C.em} size={9}>
-                          DERNIER MEETING — {lastMeeting.savedAt}
+                          {t("prep1on1.history.lastMeeting")} {lastMeeting.savedAt}
                         </Mono>
                         <RiskBadge level={lastAnalysis.overallRisk||"Faible"}/>
                       </div>
@@ -687,7 +694,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       {/* Key signals from last meeting */}
                       {toArray(lastAnalysis.risks).length > 0 && (
                         <div style={{marginBottom:12}}>
-                          <Mono color={C.red} size={8}>RISQUES IDENTIFIÉS</Mono>
+                          <Mono color={C.red} size={8}>{t("prep1on1.history.risksIdentified")}</Mono>
                           {toArray(lastAnalysis.risks).slice(0,3).map((r,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:7,
                                                   padding:"7px 10px",
@@ -707,7 +714,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       {/* Actions from last meeting — to follow up on */}
                       {toArray(lastAnalysis.actions).length > 0 && (
                         <div style={{marginBottom:12}}>
-                          <Mono color={C.amber} size={8}>ACTIONS — À VÉRIFIER CE MEETING</Mono>
+                          <Mono color={C.amber} size={8}>{t("prep1on1.history.actionsToCheck")}</Mono>
                           {toArray(lastAnalysis.actions).slice(0,4).map((a,i) => (
                             <div key={i} style={{display:"flex",alignItems:"center",
                                                   gap:8,marginTop:6,padding:"7px 10px",
@@ -725,7 +732,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       {/* Suggested questions from last analysis */}
                       {toArray(lastAnalysis.questions).length > 0 && (
                         <div>
-                          <Mono color={C.blue} size={8}>QUESTIONS DU DERNIER MEETING — À FAIRE ÉVOLUER</Mono>
+                          <Mono color={C.blue} size={8}>{t("prep1on1.history.questionsEvolve")}</Mono>
                           {toArray(lastAnalysis.questions).slice(0,3).map((q,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:6}}>
                               <span style={{color:C.blue,fontFamily:"'DM Mono',monospace",
@@ -743,7 +750,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   )}
 
                   {/* All past meetings — collapsible timeline */}
-                  <Mono color={C.textD} size={9}>TOUS LES MEETINGS ({histCount})</Mono>
+                  <Mono color={C.textD} size={9}>{t("prep1on1.history.allMeetings")} ({histCount})</Mono>
                   <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:7}}>
                     {managerHistory.map((m,i) => {
                       const a = m.analysis || {};
@@ -793,7 +800,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   <div style={{marginTop:14,display:"flex",gap:10}}>
                     <button onClick={()=>setPTab("prep")}
                       style={{...css.btn(C.em),flex:1}}>
-                      🎯 Générer les questions avec cet historique →
+                      {t("prep1on1.history.generateWithCta")}
                     </button>
                   </div>
                 </div>
@@ -811,24 +818,24 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                               marginBottom:16}}>
                   <div style={{fontSize:32,marginBottom:10}}>🎯</div>
                   <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>
-                    Questions non générées
+                    {t("prep1on1.prep.empty.title")}
                   </div>
                   <div style={{fontSize:12,color:C.textD,marginBottom:16,maxWidth:420,margin:"0 auto 16px"}}>
                     {histCount > 0
-                      ? `L'IA va s'appuyer sur les ${histCount} meeting(s) avec ${ctx.managerName||"ce gestionnaire"} pour personnaliser les questions et faire des liens avec les enjeux non résolus.`
-                      : "Remplis le contexte puis génère des questions stratégiques pour ce 1:1."}
+                      ? `${t("prep1on1.prep.empty.bodyHistA")} ${histCount} ${t("prep1on1.prep.empty.bodyHistB")} ${ctx.managerName||t("prep1on1.prep.empty.thisManager")} ${t("prep1on1.prep.empty.bodyHistC")}`
+                      : t("prep1on1.prep.empty.bodyNoHist")}
                   </div>
                   <button onClick={generatePrep} disabled={!ctx.managerName}
                     style={{...css.btn(!ctx.managerName?C.textD:C.em),
                               opacity:!ctx.managerName?.5:1}}>
                     {histCount > 0
-                      ? `✦ Générer avec l'historique (${histCount} meetings)`
-                      : "✦ Générer les questions"}
+                      ? `${t("prep1on1.prep.empty.btnHistA")}${histCount} ${t("prep1on1.prep.empty.btnHistB")}`
+                      : t("prep1on1.prep.empty.btnNoHist")}
                   </button>
                 </div>
               )}
 
-              {prepLoading && <AILoader label="Génération des questions…"/>}
+              {prepLoading && <AILoader label={t("prep1on1.prep.loader")}/>}
 
               {/* ── Plan d'intervention structuré ── */}
               {prep && (
@@ -836,24 +843,24 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
                   {/* Priorité globale */}
                   {prep.overallPriority && <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                    <Mono color={C.textD} size={9}>PRIORITÉ GLOBALE</Mono>
+                    <Mono color={C.textD} size={9}>{t("prep1on1.prep.overallPriority")}</Mono>
                     <Badge label={normPrio(prep.overallPriority)} color={{"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(prep.overallPriority)]||C.textM}/>
                   </div>}
 
                   {/* 1. Objectif */}
                   {prep.objective && <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                    <Mono color={C.em} size={9}>🎯 OBJECTIF DU 1:1</Mono>
+                    <Mono color={C.em} size={9}>{t("prep1on1.prep.objective")}</Mono>
                     <div style={{marginTop:10}}>
-                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>But</div>
+                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.purpose")}</div>
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65,marginBottom:10}}>{prep.objective.purpose}</div>
-                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Résultat attendu</div>
+                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.expectedOutcome")}</div>
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.objective.expectedOutcome}</div>
                     </div>
                   </div>}
 
                   {/* 2. Enjeux prioritaires */}
                   {prep.priorityIssues?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
-                    <Mono color={C.red} size={9}>⚠ ENJEUX PRIORITAIRES</Mono>
+                    <Mono color={C.red} size={9}>{t("prep1on1.prep.priorityIssues")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:10}}>
                       {prep.priorityIssues.map((issue,i) => {
                         const rc = {"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(issue.riskLevel)]||C.textM;
@@ -870,12 +877,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
                   {/* 3. Contexte */}
                   {prep.context && <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
-                    <Mono color={C.blue} size={9}>📋 CONTEXTE</Mono>
+                    <Mono color={C.blue} size={9}>{t("prep1on1.prep.context")}</Mono>
                     <div style={{marginTop:10}}>
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65,marginBottom:prep.context.keySignals?.length>0||prep.context.relevantHistory?10:0}}>{prep.context.summary}</div>
-                      {prep.context.relevantHistory && prep.context.relevantHistory!=="Non disponible" && <div style={{marginBottom:10,padding:"7px 10px",background:C.blue+"0D",borderRadius:7,fontSize:12,color:C.textM,lineHeight:1.55}}><span style={{color:C.blue,fontWeight:600}}>Historique → </span>{prep.context.relevantHistory}</div>}
+                      {prep.context.relevantHistory && prep.context.relevantHistory!=="Non disponible" && <div style={{marginBottom:10,padding:"7px 10px",background:C.blue+"0D",borderRadius:7,fontSize:12,color:C.textM,lineHeight:1.55}}><span style={{color:C.blue,fontWeight:600}}>{t("prep1on1.prep.historyArrow")}</span>{prep.context.relevantHistory}</div>}
                       {prep.context.keySignals?.length > 0 && <div>
-                        <Mono color={C.blue} size={8}>Signaux à garder en tête</Mono>
+                        <Mono color={C.blue} size={8}>{t("prep1on1.prep.keySignals")}</Mono>
                         {prep.context.keySignals.map((sig,i) => <div key={i} style={{display:"flex",gap:8,marginTop:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.blue,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{sig}</span></div>)}
                       </div>}
                     </div>
@@ -885,20 +892,20 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   {prep.followUpFromLast1on1 && (prep.followUpFromLast1on1.evolutions?.length>0||prep.followUpFromLast1on1.stagnations?.length>0||prep.followUpFromLast1on1.newRisks?.length>0) && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.purple}`}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                        <Mono color={C.purple} size={9}>🔁 SUIVI DEPUIS LE DERNIER 1:1</Mono>
-                        <Badge label="Basé sur l'historique" color={C.purple}/>
+                        <Mono color={C.purple} size={9}>{t("prep1on1.prep.followUp")}</Mono>
+                        <Badge label={t("prep1on1.prep.basedOnHistory")} color={C.purple}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         {prep.followUpFromLast1on1.evolutions?.length > 0 && <div>
-                          <Mono color={C.em} size={8}>Évolutions</Mono>
+                          <Mono color={C.em} size={8}>{t("prep1on1.prep.evolutions")}</Mono>
                           {prep.followUpFromLast1on1.evolutions.map((e,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.em,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{e}</span></div>)}
                         </div>}
                         {prep.followUpFromLast1on1.stagnations?.length > 0 && <div>
-                          <Mono color={C.amber} size={8}>Stagnations</Mono>
+                          <Mono color={C.amber} size={8}>{t("prep1on1.prep.stagnations")}</Mono>
                           {prep.followUpFromLast1on1.stagnations.map((s,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.amber,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{s}</span></div>)}
                         </div>}
                         {prep.followUpFromLast1on1.newRisks?.length > 0 && <div>
-                          <Mono color={C.red} size={8}>Nouveaux risques</Mono>
+                          <Mono color={C.red} size={8}>{t("prep1on1.prep.newRisks")}</Mono>
                           {prep.followUpFromLast1on1.newRisks.map((r,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.red,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{r}</span></div>)}
                         </div>}
                       </div>
@@ -907,18 +914,18 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
                   {/* 5. Approche recommandée */}
                   {prep.recommendedApproach && <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
-                    <Mono color={C.amber} size={9}>🧭 APPROCHE RECOMMANDÉE</Mono>
+                    <Mono color={C.amber} size={9}>{t("prep1on1.prep.approach")}</Mono>
                     <div style={{marginTop:10}}>
                       <div style={{marginBottom:10}}>
-                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Comment aborder</div>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.howToApproach")}</div>
                         <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.how}</div>
                       </div>
                       <div style={{marginBottom:prep.recommendedApproach.pitfalls?.length>0?10:0}}>
-                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Ton à adopter</div>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.tone")}</div>
                         <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.tone}</div>
                       </div>
                       {prep.recommendedApproach.pitfalls?.length > 0 && <div>
-                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:6}}>Pièges à éviter</div>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:6}}>{t("prep1on1.prep.pitfalls")}</div>
                         {prep.recommendedApproach.pitfalls.map((p,i) => <div key={i} style={{display:"flex",gap:8,marginBottom:5}}><span style={{color:C.amber,fontSize:11,flexShrink:0,marginTop:2}}>⚠</span><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{p}</span></div>)}
                       </div>}
                     </div>
@@ -926,13 +933,13 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
                   {/* 6. Phrases suggérées */}
                   {prep.suggestedPhrasing?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
-                    <Mono color={C.teal} size={9}>💬 PHRASES SUGGÉRÉES</Mono>
+                    <Mono color={C.teal} size={9}>{t("prep1on1.prep.phrasing")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                       {prep.suggestedPhrasing.map((ph,i) => {
                         const pc = {"Ouverture":C.em,"Recadrage":C.amber,"Confrontation":C.amber,"Suivi":C.blue}[ph.type]||C.teal;
                         return <div key={i} style={{borderRadius:8,border:`1px solid ${pc}28`,overflow:"hidden"}}>
                           <div style={{background:pc+"18",borderLeft:`3px solid ${pc}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:8}}>
-                            <Badge label={ph.type||"Script"} color={pc} size={10}/>
+                            <Badge label={ph.type||t("prep1on1.prep.phrasing.script")} color={pc} size={10}/>
                           </div>
                           <div style={{padding:"10px 13px",background:C.surfL,borderLeft:`3px solid ${pc}`}}>
                             <div style={{fontSize:13,color:C.text,lineHeight:1.7,fontStyle:"italic"}}>"{ph.text||ph}"</div>
@@ -944,7 +951,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
                   {/* 7. Actions recommandées */}
                   {prep.recommendedActions?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                    <Mono color={C.em} size={9}>✅ ACTIONS RECOMMANDÉES</Mono>
+                    <Mono color={C.em} size={9}>{t("prep1on1.prep.actions")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
                       {prep.recommendedActions.map((a,i) => {
                         const ac = {"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(a.priority)]||C.textM;
@@ -965,7 +972,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                               background:C.em+"10",
                               border:`1px solid ${C.em}33`,borderRadius:8}}>
                   <span style={{fontSize:12,color:C.em}}>
-                    ✅ Plan d'intervention prêt. Fais ton meeting, puis reviens analyser le transcript.
+                    {t("prep1on1.prep.readyBanner")}
                   </span>
                 </div>
               )}
@@ -990,7 +997,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       <div style={{display:"flex",alignItems:"center",gap:9}}>
                         <span style={{fontSize:15}}>{cat.icon}</span>
                         <span style={{fontSize:13,fontWeight:600,color:C.text}}>
-                          {cat.label}
+                          {t(cat.labelKey)}
                         </span>
                       </div>
                       <span style={{color:cat.color,fontSize:14,fontWeight:700}}>
@@ -1014,14 +1021,14 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
               {/* Observation grid */}
               <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                <Mono color={C.em} size={9}>GRILLE D'OBSERVATION — PENDANT LA RENCONTRE</Mono>
+                <Mono color={C.em} size={9}>{t("prep1on1.signals.observation")}</Mono>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",
                               gap:12,marginTop:12}}>
                   {[
-                    {label:"Énergie générale",  values:["Haute","Normale","Basse","Épuisée"]},
-                    {label:"Ouverture",          values:["Très ouverte","Normale","Réservée","Défensive"]},
-                    {label:"Clarté / équipe",    values:["Excellente","Bonne","Partielle","Floue"]},
-                    {label:"Alerte globale",     values:["Aucune","Légère","Modérée","Élevée"]},
+                    {label:t("prep1on1.signals.obs.energy"),   values:[t("prep1on1.signals.energy.high"),t("prep1on1.signals.energy.normal"),t("prep1on1.signals.energy.low"),t("prep1on1.signals.energy.exhausted")]},
+                    {label:t("prep1on1.signals.obs.openness"), values:[t("prep1on1.signals.openness.veryOpen"),t("prep1on1.signals.openness.normal"),t("prep1on1.signals.openness.reserved"),t("prep1on1.signals.openness.defensive")]},
+                    {label:t("prep1on1.signals.obs.clarity"),  values:[t("prep1on1.signals.clarity.excellent"),t("prep1on1.signals.clarity.good"),t("prep1on1.signals.clarity.partial"),t("prep1on1.signals.clarity.unclear")]},
+                    {label:t("prep1on1.signals.obs.alert"),    values:[t("prep1on1.signals.alert.none"),t("prep1on1.signals.alert.light"),t("prep1on1.signals.alert.moderate"),t("prep1on1.signals.alert.high")]},
                   ].map((obs,i) => (
                     <PrepObsSelector key={i} label={obs.label} values={obs.values}/>
                   ))}
@@ -1038,7 +1045,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   style={{...css.card,borderLeft:`3px solid ${cat.color}`}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                     <span style={{fontSize:15}}>{cat.icon}</span>
-                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{cat.label}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{t(cat.labelKey)}</div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     {GUIDANCE_DB[cat.key].map((tip,i) => (
@@ -1067,12 +1074,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
               <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                   <span style={{fontSize:13}}>🎙️</span>
-                  <Mono color={C.blue} size={9}>TRANSCRIPT / NOTES DU MEETING</Mono>
+                  <Mono color={C.blue} size={9}>{t("prep1on1.analyse.transcript")}</Mono>
                 </div>
                 <textarea
                   value={meetingAnalysis.transcript}
                   onChange={e=>setMeetingAnalysis(p=>({...p,transcript:e.target.value}))}
-                  placeholder="Colle ici le transcript ou les notes du meeting avec ce gestionnaire..."
+                  placeholder={t("prep1on1.analyse.transcriptPh")}
                   rows={8}
                   style={{...css.textarea,fontSize:12}}
                   onFocus={e=>e.target.style.borderColor=C.blue}
@@ -1081,12 +1088,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
               <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                   <span style={{fontSize:13}}>⭐</span>
-                  <Mono color={C.amber} size={9}>POINTS CLÉS OBSERVÉS (optionnel)</Mono>
+                  <Mono color={C.amber} size={9}>{t("prep1on1.analyse.keyPoints")}</Mono>
                 </div>
                 <textarea
                   value={meetingAnalysis.keyPoints}
                   onChange={e=>setMeetingAnalysis(p=>({...p,keyPoints:e.target.value}))}
-                  placeholder="Points saillants, tensions, signaux observés pendant la rencontre..."
+                  placeholder={t("prep1on1.analyse.keyPointsPh")}
                   rows={4}
                   style={{...css.textarea,fontSize:12}}
                   onFocus={e=>e.target.style.borderColor=C.amber}
@@ -1095,7 +1102,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
               <div style={{padding:"10px 14px",background:C.blue+"10",
                             border:`1px solid ${C.blue}33`,borderRadius:8}}>
                 <span style={{fontSize:11,color:C.blue}}>
-                  💡 Ces données seront injectées dans le prompt IA lors de la génération de l'Output.
+                  {t("prep1on1.analyse.injectedNote")}
                 </span>
               </div>
             </div>
@@ -1105,28 +1112,30 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
           {pTab==="notes" && (
             <div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                {NOTE_CATS.map(cat => (
+                {NOTE_CATS.map(cat => {
+                  const catLabel = t(cat.labelKey);
+                  return (
                   <div key={cat.key}
                     style={{...css.card,borderLeft:`3px solid ${cat.color}`}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                       <span style={{fontSize:13}}>{cat.icon}</span>
-                      <Mono color={cat.color} size={9}>{cat.label}</Mono>
+                      <Mono color={cat.color} size={9}>{catLabel}</Mono>
                     </div>
                     <textarea value={notes[cat.key]||""}
                       onChange={e=>setNotes(p=>({...p,[cat.key]:e.target.value}))}
-                      placeholder={`Notes sur ${cat.label.toLowerCase()}…`}
+                      placeholder={`${t("prep1on1.notes.placeholderPrefix")} ${catLabel.toLowerCase()}…`}
                       rows={4} style={{...css.textarea,fontSize:12}}
                       onFocus={e=>e.target.style.borderColor=cat.color}
                       onBlur={e=>e.target.style.borderColor=C.border}/>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div style={{marginTop:12,padding:"10px 14px",
                             background:C.teal+"10",
                             border:`1px solid ${C.teal}33`,borderRadius:8}}>
                 <span style={{fontSize:11,color:C.teal}}>
-                  💾 Ces notes sont indépendantes du transcript. Génère l'output pour les consolider.
-                  Si tu as analysé le transcript dans Meetings, les deux analyses se complètent.
+                  {t("prep1on1.notes.helper")}
                 </span>
               </div>
             </div>
@@ -1135,22 +1144,21 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
           {/* ════════════════ OUTPUT ════════════════ */}
           {pTab==="output" && (
             <div>
-              {outputLoading && <AILoader label="Génération du compte-rendu…"/>}
+              {outputLoading && <AILoader label={t("prep1on1.output.loader")}/>}
 
               {!output && !outputLoading && (
                 <div style={{background:C.surfL,border:`2px dashed ${C.border}`,
                               borderRadius:12,padding:"48px 24px",textAlign:"center"}}>
                   <div style={{fontSize:36,marginBottom:12}}>📊</div>
                   <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>
-                    Aucun output généré
+                    {t("prep1on1.output.empty.title")}
                   </div>
                   <div style={{fontSize:12,color:C.textD,maxWidth:400,margin:"0 auto 16px"}}>
-                    Complète les notes pendant ou après le meeting, puis génère le compte-rendu.
-                    Cet output deviendra le contexte de ton prochain 1:1 avec ce gestionnaire.
+                    {t("prep1on1.output.empty.body")}
                   </div>
                   <button onClick={generateOutput}
                     style={{...css.btn(C.em)}}>
-                    ✦ Générer le compte-rendu
+                    {t("prep1on1.output.empty.cta")}
                   </button>
                 </div>
               )}
@@ -1161,7 +1169,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12}}>
                     <div style={{...css.card,
                                   borderLeft:`3px solid ${RISK_C[output.overallRisk]||C.em}`}}>
-                      <Mono color={C.em} size={9}>RÉSUMÉ EXÉCUTIF</Mono>
+                      <Mono color={C.em} size={9}>{t("prep1on1.output.executiveSummary")}</Mono>
                       <p style={{fontSize:13,color:C.text,margin:"10px 0 0",lineHeight:1.7}}>
                         {output.executiveSummary}
                       </p>
@@ -1170,7 +1178,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                                   border:`2px solid ${RISK_C[output.overallRisk]||C.em}`,
                                   borderRadius:10,padding:"16px 20px",
                                   textAlign:"center",minWidth:110,flexShrink:0}}>
-                      <Mono color={RISK_C[output.overallRisk]||C.em} size={9}>RISQUE</Mono>
+                      <Mono color={RISK_C[output.overallRisk]||C.em} size={9}>{t("prep1on1.output.risk")}</Mono>
                       <div style={{fontSize:18,fontWeight:800,
                                     color:RISK_C[output.overallRisk]||C.em,marginTop:8}}>
                         {output.overallRisk}
@@ -1181,13 +1189,13 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                   {/* 4-quadrant cards */}
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                     {[
-                      {title:"📡 Signaux clés",    key:"keySignals",          color:C.amber},
-                      {title:"⚠ Risques",           key:"mainRisks",           color:C.red},
-                      {title:"🔁 Suivis HRBP",      key:"hrbpFollowups",       color:C.em},
-                      {title:"❓ Prochain meeting", key:"nextMeetingQuestions", color:C.blue},
-                    ].map(({title,key,color}) => (
+                      {titleKey:"prep1on1.output.quadrant.signals",   key:"keySignals",           color:C.amber},
+                      {titleKey:"prep1on1.output.quadrant.risks",     key:"mainRisks",            color:C.red},
+                      {titleKey:"prep1on1.output.quadrant.followups", key:"hrbpFollowups",        color:C.em},
+                      {titleKey:"prep1on1.output.quadrant.next",      key:"nextMeetingQuestions", color:C.blue},
+                    ].map(({titleKey,key,color}) => (
                       <div key={key} style={{...css.card,borderLeft:`3px solid ${color}`}}>
-                        <Mono color={color} size={9}>{title}</Mono>
+                        <Mono color={color} size={9}>{t(titleKey)}</Mono>
                         <div style={{marginTop:10}}>
                           {(output[key]||[]).map((item,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginBottom:7}}>
@@ -1205,7 +1213,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
 
                   {/* Action plan */}
                   <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                    <Mono color={C.em} size={9}>PLAN D'ACTION</Mono>
+                    <Mono color={C.em} size={9}>{t("prep1on1.output.actionPlan")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
                       {(output.actionPlan||[]).map((a,i) => (
                         <div key={i}
@@ -1250,8 +1258,8 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                           display:"flex", alignItems:"center", justifyContent:"center",
                           fontSize:14, flexShrink:0 }}>🧠</div>
                         <div>
-                          <div style={{ fontSize:13, fontWeight:700, color:C.purple }}>Stratégie HRBP</div>
-                          <div style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:0.5 }}>ANALYSE STRATÉGIQUE — AVANT LE MEETING</div>
+                          <div style={{ fontSize:13, fontWeight:700, color:C.purple }}>{t("prep1on1.strategy.title")}</div>
+                          <div style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace", letterSpacing:0.5 }}>{t("prep1on1.strategy.subtitle")}</div>
                         </div>
                       </div>
 
@@ -1260,7 +1268,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                         {/* Lecture gestionnaire */}
                         {s.lectureGestionnaire && (
                           <div>
-                            <Mono color={C.purple} size={9}>LECTURE DU GESTIONNAIRE</Mono>
+                            <Mono color={C.purple} size={9}>{t("prep1on1.strategy.managerRead")}</Mono>
                             <div style={{ marginTop:8, display:"flex", gap:10, flexWrap:"wrap", alignItems:"flex-start" }}>
                               <div style={{ background:C.purple+"18", border:`1px solid ${C.purple}40`,
                                 borderRadius:7, padding:"5px 12px", fontSize:12,
@@ -1281,7 +1289,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                             {s.lectureGestionnaire.angles && (
                               <div style={{ marginTop:8, padding:"7px 10px", background:C.purple+"10",
                                 borderRadius:7, fontSize:12, color:C.text, lineHeight:1.6 }}>
-                                <span style={{ color:C.purple, fontWeight:600 }}>Angle → </span>
+                                <span style={{ color:C.purple, fontWeight:600 }}>{t("prep1on1.strategy.angleArrow")}</span>
                                 {s.lectureGestionnaire.angles}
                               </div>
                             )}
@@ -1291,18 +1299,18 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                         {/* Santé équipe */}
                         {s.santeEquipe && (
                           <div>
-                            <Mono color={C.purple} size={9}>SANTÉ DE L'ÉQUIPE</Mono>
+                            <Mono color={C.purple} size={9}>{t("prep1on1.strategy.teamHealth")}</Mono>
                             <div style={{ marginTop:8, display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
                               <div style={{ display:"flex", gap:6, alignItems:"center",
                                 padding:"5px 11px", borderRadius:7, background:perfColor+"15",
                                 border:`1px solid ${perfColor}35` }}>
-                                <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>PERF</span>
+                                <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>{t("prep1on1.strategy.perf")}</span>
                                 <span style={{ fontSize:12, fontWeight:700, color:perfColor }}>{s.santeEquipe.performance}</span>
                               </div>
                               <div style={{ display:"flex", gap:6, alignItems:"center",
                                 padding:"5px 11px", borderRadius:7, background:engColor+"15",
                                 border:`1px solid ${engColor}35` }}>
-                                <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>ENG</span>
+                                <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>{t("prep1on1.strategy.eng")}</span>
                                 <span style={{ fontSize:12, fontWeight:700, color:engColor }}>{s.santeEquipe.engagement}</span>
                               </div>
                             </div>
@@ -1319,7 +1327,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                           <div style={{ padding:"10px 12px", background:riskColor+"10",
                             border:`1px solid ${riskColor}30`, borderRadius:8 }}>
                             <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:6 }}>
-                              <Mono color={riskColor} size={9}>RISQUE CLÉ</Mono>
+                              <Mono color={riskColor} size={9}>{t("prep1on1.strategy.keyRisk")}</Mono>
                               <div style={{ background:riskColor+"20", border:`1px solid ${riskColor}50`,
                                 borderRadius:5, padding:"2px 8px", fontSize:10,
                                 fontWeight:700, color:riskColor }}>
@@ -1339,7 +1347,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                           {s.postureHRBP && (
                             <div>
-                              <Mono color={C.purple} size={9}>POSTURE HRBP</Mono>
+                              <Mono color={C.purple} size={9}>{t("prep1on1.strategy.posture")}</Mono>
                               <div style={{ marginTop:8, display:"flex", gap:8, alignItems:"center",
                                 padding:"8px 12px", background:postureColor+"15",
                                 border:`2px solid ${postureColor}50`, borderRadius:8 }}>
@@ -1359,7 +1367,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                           )}
                           {s.objectifRencontre && (
                             <div>
-                              <Mono color={C.purple} size={9}>OBJECTIF MEETING</Mono>
+                              <Mono color={C.purple} size={9}>{t("prep1on1.strategy.objective")}</Mono>
                               <div style={{ marginTop:8, padding:"8px 12px",
                                 background:C.em+"10", border:`1px solid ${C.em}30`,
                                 borderRadius:8, fontSize:12, color:C.text,
@@ -1373,7 +1381,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                         {/* Stratégie d'influence */}
                         {s.strategieInfluence && (
                           <div>
-                            <Mono color={C.purple} size={9}>STRATÉGIE D'INFLUENCE</Mono>
+                            <Mono color={C.purple} size={9}>{t("prep1on1.strategy.influence")}</Mono>
                             <div style={{ marginTop:8, padding:"9px 12px",
                               background:C.purple+"10", border:`1px solid ${C.purple}25`,
                               borderRadius:8, fontSize:12, color:C.text, lineHeight:1.7,
@@ -1398,12 +1406,12 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:700,
                                       color:C.purple,marginBottom:5}}>
-                          🔄 Préparer le prochain 1:1 avec cet output
+                          {t("prep1on1.cycle.title")}
                         </div>
                         <div style={{fontSize:12,color:C.textD,marginBottom:10}}>
                           {output.nextMeetingContext
                             ? output.nextMeetingContext
-                            : "Les risques, signaux et questions de suivi seront injectés comme contexte dans le prochain cycle."}
+                            : t("prep1on1.cycle.fallbackBody")}
                         </div>
                         {output.nextMeetingQuestions?.length > 0 && (
                           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -1422,7 +1430,7 @@ Reponds UNIQUEMENT en JSON strict. Aucun texte avant ou apres. Aucune apostrophe
                       <button onClick={startNextCycle}
                         style={{...css.btn(C.purple),padding:"10px 18px",
                                   fontSize:13,whiteSpace:"nowrap",flexShrink:0}}>
-                        🔄 Nouveau cycle →
+                        {t("prep1on1.cycle.cta")}
                       </button>
                     </div>
                   </div>

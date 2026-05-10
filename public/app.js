@@ -1240,7 +1240,197 @@ ${LEGAL_GUARDRAIL}`;
       "knowledge.title.legalLaw25": "Bill 25 \u2014 Personal information protection",
       "knowledge.title.legalCalc": "LNT notice calculation \u2014 Quick reference",
       "knowledge.title.analyticsSummary": "Dashboard \u2014 Synthesis alert thresholds",
-      "knowledge.title.analyticsPowerBi": "Power BI structure \u2014 3 recommended pages"
+      "knowledge.title.analyticsPowerBi": "Power BI structure \u2014 3 recommended pages",
+      // ── Prep1on1 module ───────────────────────────────────────────────────
+      "prep1on1.sidebar.brand": "MEETINGS",
+      "prep1on1.sidebar.title": "1:1 Preparation",
+      "prep1on1.sidebar.newManager": "New manager",
+      "prep1on1.sidebar.archivedSuffix": "meeting(s) archived",
+      "prep1on1.sidebar.cycle": "CURRENT CYCLE",
+      "prep1on1.flow.context": "Context",
+      "prep1on1.flow.history": "History",
+      "prep1on1.flow.generateQuestions": "Generate questions",
+      "prep1on1.flow.runMeeting": "Run the meeting",
+      "prep1on1.flow.analyzeMeeting": "Analyze the meeting",
+      "prep1on1.flow.outputArchive": "Output + Archive",
+      "prep1on1.tab.guidance": "Guidance",
+      "prep1on1.tab.context": "Context",
+      "prep1on1.tab.history": "History",
+      "prep1on1.tab.prep": "Preparation",
+      "prep1on1.tab.analyse": "Meeting analysis",
+      "prep1on1.tab.signals": "Signals",
+      "prep1on1.tab.notes": "Notes",
+      "prep1on1.tab.output": "Output",
+      "prep1on1.topbar.aiBadge": "\u2726 AI",
+      "prep1on1.topbar.memorySuffix": "meetings in memory",
+      "prep1on1.topbar.generating": "Generating\u2026",
+      "prep1on1.topbar.generateWithHistory": "\u2726 Generate with history",
+      "prep1on1.topbar.generate": "\u2726 Generate",
+      "prep1on1.topbar.copied": "\u2713 Copied",
+      "prep1on1.topbar.copy": "\u{1F4CB} Copy",
+      "prep1on1.topbar.archived": "\u2713 Archived",
+      "prep1on1.topbar.archive": "\u{1F4BE} Archive",
+      "prep1on1.topbar.generateOutput": "\u2726 Generate output",
+      "prep1on1.context.identification": "IDENTIFICATION",
+      "prep1on1.context.managerName": "Manager name",
+      "prep1on1.context.managerNamePh": "e.g. Marie Tremblay",
+      "prep1on1.context.meetingDate": "Meeting date",
+      "prep1on1.context.team": "Team / Function",
+      "prep1on1.context.meetingType": "Meeting type",
+      "prep1on1.context.province": "Province",
+      "prep1on1.context.intent": "STRATEGIC INTENT",
+      "prep1on1.context.purpose": "Main objective",
+      "prep1on1.context.purposePh": "e.g. Take stock of retention after recent changes\u2026",
+      "prep1on1.context.background": "Background / context notes",
+      "prep1on1.context.backgroundPh": "e.g. Last 1:1 was 3 weeks ago \u2014 cross-team conflict\u2026",
+      "prep1on1.context.knownSignals": "KNOWN SIGNALS BEFORE THE MEETING",
+      "prep1on1.context.activeCases": "Active cases",
+      "prep1on1.context.activeCasesPh": "e.g. PIP in progress, complaint filed\u2026",
+      "prep1on1.context.recentData": "Recent data",
+      "prep1on1.context.recentDataPh": "e.g. 2 Q4 departures, absenteeism rising\u2026",
+      "prep1on1.context.alerts": "Tensions / alerts",
+      "prep1on1.context.alertsPh": "e.g. Tensions with Morgan's team\u2026",
+      "prep1on1.context.banner.foundFor": "meeting(s) found for",
+      "prep1on1.context.banner.injected": "\u2014 history will be injected into the question generation.",
+      "prep1on1.context.banner.viewHistory": "View history \u2192",
+      "prep1on1.context.banner.firstWith": "First 1:1 with",
+      "prep1on1.context.banner.firstNote": "\u2014 questions will be generic. History grows with each cycle.",
+      "prep1on1.history.empty.title": "No history",
+      "prep1on1.history.empty.bodyWith": "No transcript analyzed for",
+      "prep1on1.history.empty.bodyWithEnd": ". Each meeting analyzed in the Meetings module will automatically feed this history.",
+      "prep1on1.history.empty.bodyNoMgr": "Fill in the manager name in Context to view their history.",
+      "prep1on1.history.heading": "History \u2014",
+      "prep1on1.history.subtitleA": "transcript(s) analyzed \xB7 The 3 most recent feed the question generation.",
+      "prep1on1.history.lastMeeting": "LAST MEETING \u2014",
+      "prep1on1.history.risksIdentified": "RISKS IDENTIFIED",
+      "prep1on1.history.actionsToCheck": "ACTIONS \u2014 TO CHECK THIS MEETING",
+      "prep1on1.history.questionsEvolve": "QUESTIONS FROM LAST MEETING \u2014 TO EVOLVE",
+      "prep1on1.history.allMeetings": "ALL MEETINGS",
+      "prep1on1.history.generateWithCta": "\u{1F3AF} Generate questions with this history \u2192",
+      "prep1on1.prep.empty.title": "Questions not yet generated",
+      "prep1on1.prep.empty.bodyHistA": "AI will draw on the",
+      "prep1on1.prep.empty.bodyHistB": "meeting(s) with",
+      "prep1on1.prep.empty.bodyHistC": "to personalize the questions and link to unresolved issues.",
+      "prep1on1.prep.empty.bodyNoHist": "Fill in the context, then generate strategic questions for this 1:1.",
+      "prep1on1.prep.empty.thisManager": "this manager",
+      "prep1on1.prep.empty.btnHistA": "\u2726 Generate with history (",
+      "prep1on1.prep.empty.btnHistB": "meetings)",
+      "prep1on1.prep.empty.btnNoHist": "\u2726 Generate questions",
+      "prep1on1.prep.loader": "Generating questions\u2026",
+      "prep1on1.prep.overallPriority": "OVERALL PRIORITY",
+      "prep1on1.prep.objective": "\u{1F3AF} 1:1 OBJECTIVE",
+      "prep1on1.prep.purpose": "Goal",
+      "prep1on1.prep.expectedOutcome": "Expected outcome",
+      "prep1on1.prep.priorityIssues": "\u26A0 PRIORITY ISSUES",
+      "prep1on1.prep.context": "\u{1F4CB} CONTEXT",
+      "prep1on1.prep.historyArrow": "History \u2192 ",
+      "prep1on1.prep.keySignals": "Key signals to keep in mind",
+      "prep1on1.prep.followUp": "\u{1F501} FOLLOW-UP FROM LAST 1:1",
+      "prep1on1.prep.basedOnHistory": "Based on history",
+      "prep1on1.prep.evolutions": "Evolutions",
+      "prep1on1.prep.stagnations": "Stagnations",
+      "prep1on1.prep.newRisks": "New risks",
+      "prep1on1.prep.approach": "\u{1F9ED} RECOMMENDED APPROACH",
+      "prep1on1.prep.howToApproach": "How to approach",
+      "prep1on1.prep.tone": "Tone to adopt",
+      "prep1on1.prep.pitfalls": "Pitfalls to avoid",
+      "prep1on1.prep.phrasing": "\u{1F4AC} SUGGESTED PHRASING",
+      "prep1on1.prep.phrasing.script": "Script",
+      "prep1on1.prep.actions": "\u2705 RECOMMENDED ACTIONS",
+      "prep1on1.prep.readyBanner": "\u2705 Action plan ready. Run your meeting, then come back to analyze the transcript.",
+      "prep1on1.signals.observation": "OBSERVATION GRID \u2014 DURING THE MEETING",
+      "prep1on1.signals.obs.energy": "Overall energy",
+      "prep1on1.signals.obs.openness": "Openness",
+      "prep1on1.signals.obs.clarity": "Clarity / team",
+      "prep1on1.signals.obs.alert": "Overall alert",
+      "prep1on1.signals.energy.high": "High",
+      "prep1on1.signals.energy.normal": "Normal",
+      "prep1on1.signals.energy.low": "Low",
+      "prep1on1.signals.energy.exhausted": "Exhausted",
+      "prep1on1.signals.openness.veryOpen": "Very open",
+      "prep1on1.signals.openness.normal": "Normal",
+      "prep1on1.signals.openness.reserved": "Reserved",
+      "prep1on1.signals.openness.defensive": "Defensive",
+      "prep1on1.signals.clarity.excellent": "Excellent",
+      "prep1on1.signals.clarity.good": "Good",
+      "prep1on1.signals.clarity.partial": "Partial",
+      "prep1on1.signals.clarity.unclear": "Unclear",
+      "prep1on1.signals.alert.none": "None",
+      "prep1on1.signals.alert.light": "Light",
+      "prep1on1.signals.alert.moderate": "Moderate",
+      "prep1on1.signals.alert.high": "High",
+      "prep1on1.analyse.transcript": "MEETING TRANSCRIPT / NOTES",
+      "prep1on1.analyse.transcriptPh": "Paste here the transcript or notes of the meeting with this manager\u2026",
+      "prep1on1.analyse.keyPoints": "KEY POINTS OBSERVED (optional)",
+      "prep1on1.analyse.keyPointsPh": "Salient points, tensions, signals observed during the meeting\u2026",
+      "prep1on1.analyse.injectedNote": "\u{1F4A1} This data will be injected into the AI prompt when generating the Output.",
+      "prep1on1.notes.placeholderPrefix": "Notes on",
+      "prep1on1.notes.helper": "\u{1F4BE} These notes are independent of the transcript. Generate the output to consolidate them. If you analyzed the transcript in Meetings, the two analyses complement each other.",
+      "prep1on1.output.loader": "Generating the report\u2026",
+      "prep1on1.output.empty.title": "No output generated",
+      "prep1on1.output.empty.body": "Complete the notes during or after the meeting, then generate the report. This output becomes the context for your next 1:1 with this manager.",
+      "prep1on1.output.empty.cta": "\u2726 Generate the report",
+      "prep1on1.output.executiveSummary": "EXECUTIVE SUMMARY",
+      "prep1on1.output.risk": "RISK",
+      "prep1on1.output.quadrant.signals": "\u{1F4E1} Key signals",
+      "prep1on1.output.quadrant.risks": "\u26A0 Risks",
+      "prep1on1.output.quadrant.followups": "\u{1F501} HRBP follow-ups",
+      "prep1on1.output.quadrant.next": "\u2753 Next meeting",
+      "prep1on1.output.actionPlan": "ACTION PLAN",
+      "prep1on1.strategy.title": "HRBP Strategy",
+      "prep1on1.strategy.subtitle": "STRATEGIC ANALYSIS \u2014 BEFORE THE MEETING",
+      "prep1on1.strategy.managerRead": "MANAGER READ",
+      "prep1on1.strategy.angleArrow": "Angle \u2192 ",
+      "prep1on1.strategy.teamHealth": "TEAM HEALTH",
+      "prep1on1.strategy.perf": "PERF",
+      "prep1on1.strategy.eng": "ENG",
+      "prep1on1.strategy.keyRisk": "KEY RISK",
+      "prep1on1.strategy.posture": "HRBP POSTURE",
+      "prep1on1.strategy.objective": "MEETING OBJECTIVE",
+      "prep1on1.strategy.influence": "INFLUENCE STRATEGY",
+      "prep1on1.cycle.title": "\u{1F504} Prepare the next 1:1 with this output",
+      "prep1on1.cycle.fallbackBody": "Risks, signals and follow-up questions will be injected as context in the next cycle.",
+      "prep1on1.cycle.cta": "\u{1F504} New cycle \u2192",
+      "prep1on1.meetingType.regular": "Regular 1:1",
+      "prep1on1.meetingType.perf": "Performance discussion",
+      "prep1on1.meetingType.org": "Organizational change",
+      "prep1on1.meetingType.talent": "Talent review",
+      "prep1on1.meetingType.concern": "Sensitive HR concern",
+      "prep1on1.meetingType.strategic": "Strategic alignment",
+      "prep1on1.function.placeholder": "Select\u2026",
+      "prep1on1.function.it": "Information technology",
+      "prep1on1.function.network": "Network planning",
+      "prep1on1.function.ops": "Operations",
+      "prep1on1.function.finance": "Finance",
+      "prep1on1.function.corporate": "Corporate / HQ",
+      "prep1on1.function.hr": "Human resources",
+      "prep1on1.function.other": "Other",
+      "prep1on1.prepCat.objectives": "HRBP objectives",
+      "prep1on1.prepCat.strategic": "Strategic questions",
+      "prep1on1.prepCat.people": "People",
+      "prep1on1.prepCat.org": "Organization",
+      "prep1on1.prepCat.leadership": "Leadership",
+      "prep1on1.prepCat.performance": "Performance & Talent",
+      "prep1on1.prepCat.capacity": "Capacity & Structure",
+      "prep1on1.signalCat.disengagement": "Disengagement",
+      "prep1on1.signalCat.burnout": "Burnout / Overload",
+      "prep1on1.signalCat.retention": "Retention risks",
+      "prep1on1.signalCat.tensions": "Team tensions",
+      "prep1on1.signalCat.leadership": "Leadership issues",
+      "prep1on1.signalCat.org": "Organizational issues",
+      "prep1on1.signalCat.succession": "Succession & Capacity",
+      "prep1on1.guideCat.positioning": "Positioning",
+      "prep1on1.guideCat.challenge": "Challenge",
+      "prep1on1.guideCat.redirect": "Redirect to HR",
+      "prep1on1.guideCat.probe": "Probe for evidence",
+      "prep1on1.guideCat.hidden_risks": "Hidden risks",
+      "prep1on1.noteCat.people": "People",
+      "prep1on1.noteCat.performance": "Performance",
+      "prep1on1.noteCat.risks": "Risks",
+      "prep1on1.noteCat.org": "Organization",
+      "prep1on1.noteCat.leadership": "Leadership",
+      "prep1on1.noteCat.actions": "Actions",
+      "prep1on1.noteCat.followups": "HRBP follow-ups"
     },
     fr: {
       // ── Navigation ────────────────────────────────────────────────────────
@@ -1988,7 +2178,197 @@ ${LEGAL_GUARDRAIL}`;
       "knowledge.title.legalLaw25": "Loi 25 \u2014 Protection des renseignements personnels",
       "knowledge.title.legalCalc": "Calcul du pr\xE9avis LNT \u2014 R\xE9f\xE9rence rapide",
       "knowledge.title.analyticsSummary": "Tableau de bord \u2014 Seuils d'alerte synth\xE8se",
-      "knowledge.title.analyticsPowerBi": "Structure Power BI \u2014 3 pages recommand\xE9es"
+      "knowledge.title.analyticsPowerBi": "Structure Power BI \u2014 3 pages recommand\xE9es",
+      // ── Prep1on1 module ───────────────────────────────────────────────────
+      "prep1on1.sidebar.brand": "MEETINGS",
+      "prep1on1.sidebar.title": "Pr\xE9paration 1:1",
+      "prep1on1.sidebar.newManager": "Nouveau gestionnaire",
+      "prep1on1.sidebar.archivedSuffix": "meeting(s) archiv\xE9(s)",
+      "prep1on1.sidebar.cycle": "CYCLE EN COURS",
+      "prep1on1.flow.context": "Contexte",
+      "prep1on1.flow.history": "Historique",
+      "prep1on1.flow.generateQuestions": "G\xE9n\xE8re questions",
+      "prep1on1.flow.runMeeting": "Fais le meeting",
+      "prep1on1.flow.analyzeMeeting": "Analyse meeting",
+      "prep1on1.flow.outputArchive": "Output + Archiver",
+      "prep1on1.tab.guidance": "Guidage",
+      "prep1on1.tab.context": "Contexte",
+      "prep1on1.tab.history": "Historique",
+      "prep1on1.tab.prep": "Pr\xE9paration",
+      "prep1on1.tab.analyse": "Analyse meeting",
+      "prep1on1.tab.signals": "Signaux",
+      "prep1on1.tab.notes": "Notes",
+      "prep1on1.tab.output": "Output",
+      "prep1on1.topbar.aiBadge": "\u2726 IA",
+      "prep1on1.topbar.memorySuffix": "meetings en m\xE9moire",
+      "prep1on1.topbar.generating": "G\xE9n\xE9ration\u2026",
+      "prep1on1.topbar.generateWithHistory": "\u2726 G\xE9n\xE9rer avec historique",
+      "prep1on1.topbar.generate": "\u2726 G\xE9n\xE9rer",
+      "prep1on1.topbar.copied": "\u2713 Copi\xE9",
+      "prep1on1.topbar.copy": "\u{1F4CB} Copier",
+      "prep1on1.topbar.archived": "\u2713 Archiv\xE9",
+      "prep1on1.topbar.archive": "\u{1F4BE} Archiver",
+      "prep1on1.topbar.generateOutput": "\u2726 G\xE9n\xE9rer l'output",
+      "prep1on1.context.identification": "IDENTIFICATION",
+      "prep1on1.context.managerName": "Nom du gestionnaire",
+      "prep1on1.context.managerNamePh": "ex. Marie Tremblay",
+      "prep1on1.context.meetingDate": "Date de la rencontre",
+      "prep1on1.context.team": "\xC9quipe / Fonction",
+      "prep1on1.context.meetingType": "Type de rencontre",
+      "prep1on1.context.province": "Province",
+      "prep1on1.context.intent": "INTENTION STRAT\xC9GIQUE",
+      "prep1on1.context.purpose": "Objectif principal",
+      "prep1on1.context.purposePh": "ex. Faire le point sur la r\xE9tention suite aux changements\u2026",
+      "prep1on1.context.background": "Contexte / notes de fond",
+      "prep1on1.context.backgroundPh": "ex. Dernier 1:1 il y a 3 semaines \u2014 conflit inter-\xE9quipes\u2026",
+      "prep1on1.context.knownSignals": "SIGNAUX CONNUS AVANT LA RENCONTRE",
+      "prep1on1.context.activeCases": "Dossiers actifs",
+      "prep1on1.context.activeCasesPh": "ex. PIP en cours, plainte d\xE9pos\xE9e\u2026",
+      "prep1on1.context.recentData": "Donn\xE9es r\xE9centes",
+      "prep1on1.context.recentDataPh": "ex. 2 d\xE9parts Q4, taux d'absent\xE9isme en hausse\u2026",
+      "prep1on1.context.alerts": "Tensions / alertes",
+      "prep1on1.context.alertsPh": "ex. Tensions avec l'\xE9quipe de Morgan\u2026",
+      "prep1on1.context.banner.foundFor": "meeting(s) trouv\xE9(s) pour",
+      "prep1on1.context.banner.injected": "\u2014 l'historique sera inject\xE9 dans la g\xE9n\xE9ration des questions.",
+      "prep1on1.context.banner.viewHistory": "Voir l'historique \u2192",
+      "prep1on1.context.banner.firstWith": "Premier 1:1 avec",
+      "prep1on1.context.banner.firstNote": "\u2014 les questions seront g\xE9n\xE9riques. \xC0 chaque cycle, l'historique s'enrichit.",
+      "prep1on1.history.empty.title": "Aucun historique",
+      "prep1on1.history.empty.bodyWith": "Aucun transcript analys\xE9 pour",
+      "prep1on1.history.empty.bodyWithEnd": ". Chaque meeting analys\xE9 dans le module Meetings alimentera automatiquement cet historique.",
+      "prep1on1.history.empty.bodyNoMgr": "Remplis le nom du gestionnaire dans Contexte pour voir son historique.",
+      "prep1on1.history.heading": "Historique \u2014",
+      "prep1on1.history.subtitleA": "transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration des questions.",
+      "prep1on1.history.lastMeeting": "DERNIER MEETING \u2014",
+      "prep1on1.history.risksIdentified": "RISQUES IDENTIFI\xC9S",
+      "prep1on1.history.actionsToCheck": "ACTIONS \u2014 \xC0 V\xC9RIFIER CE MEETING",
+      "prep1on1.history.questionsEvolve": "QUESTIONS DU DERNIER MEETING \u2014 \xC0 FAIRE \xC9VOLUER",
+      "prep1on1.history.allMeetings": "TOUS LES MEETINGS",
+      "prep1on1.history.generateWithCta": "\u{1F3AF} G\xE9n\xE9rer les questions avec cet historique \u2192",
+      "prep1on1.prep.empty.title": "Questions non g\xE9n\xE9r\xE9es",
+      "prep1on1.prep.empty.bodyHistA": "L'IA va s'appuyer sur les",
+      "prep1on1.prep.empty.bodyHistB": "meeting(s) avec",
+      "prep1on1.prep.empty.bodyHistC": "pour personnaliser les questions et faire des liens avec les enjeux non r\xE9solus.",
+      "prep1on1.prep.empty.bodyNoHist": "Remplis le contexte puis g\xE9n\xE8re des questions strat\xE9giques pour ce 1:1.",
+      "prep1on1.prep.empty.thisManager": "ce gestionnaire",
+      "prep1on1.prep.empty.btnHistA": "\u2726 G\xE9n\xE9rer avec l'historique (",
+      "prep1on1.prep.empty.btnHistB": "meetings)",
+      "prep1on1.prep.empty.btnNoHist": "\u2726 G\xE9n\xE9rer les questions",
+      "prep1on1.prep.loader": "G\xE9n\xE9ration des questions\u2026",
+      "prep1on1.prep.overallPriority": "PRIORIT\xC9 GLOBALE",
+      "prep1on1.prep.objective": "\u{1F3AF} OBJECTIF DU 1:1",
+      "prep1on1.prep.purpose": "But",
+      "prep1on1.prep.expectedOutcome": "R\xE9sultat attendu",
+      "prep1on1.prep.priorityIssues": "\u26A0 ENJEUX PRIORITAIRES",
+      "prep1on1.prep.context": "\u{1F4CB} CONTEXTE",
+      "prep1on1.prep.historyArrow": "Historique \u2192 ",
+      "prep1on1.prep.keySignals": "Signaux \xE0 garder en t\xEAte",
+      "prep1on1.prep.followUp": "\u{1F501} SUIVI DEPUIS LE DERNIER 1:1",
+      "prep1on1.prep.basedOnHistory": "Bas\xE9 sur l'historique",
+      "prep1on1.prep.evolutions": "\xC9volutions",
+      "prep1on1.prep.stagnations": "Stagnations",
+      "prep1on1.prep.newRisks": "Nouveaux risques",
+      "prep1on1.prep.approach": "\u{1F9ED} APPROCHE RECOMMAND\xC9E",
+      "prep1on1.prep.howToApproach": "Comment aborder",
+      "prep1on1.prep.tone": "Ton \xE0 adopter",
+      "prep1on1.prep.pitfalls": "Pi\xE8ges \xE0 \xE9viter",
+      "prep1on1.prep.phrasing": "\u{1F4AC} PHRASES SUGG\xC9R\xC9ES",
+      "prep1on1.prep.phrasing.script": "Script",
+      "prep1on1.prep.actions": "\u2705 ACTIONS RECOMMAND\xC9ES",
+      "prep1on1.prep.readyBanner": "\u2705 Plan d'intervention pr\xEAt. Fais ton meeting, puis reviens analyser le transcript.",
+      "prep1on1.signals.observation": "GRILLE D'OBSERVATION \u2014 PENDANT LA RENCONTRE",
+      "prep1on1.signals.obs.energy": "\xC9nergie g\xE9n\xE9rale",
+      "prep1on1.signals.obs.openness": "Ouverture",
+      "prep1on1.signals.obs.clarity": "Clart\xE9 / \xE9quipe",
+      "prep1on1.signals.obs.alert": "Alerte globale",
+      "prep1on1.signals.energy.high": "Haute",
+      "prep1on1.signals.energy.normal": "Normale",
+      "prep1on1.signals.energy.low": "Basse",
+      "prep1on1.signals.energy.exhausted": "\xC9puis\xE9e",
+      "prep1on1.signals.openness.veryOpen": "Tr\xE8s ouverte",
+      "prep1on1.signals.openness.normal": "Normale",
+      "prep1on1.signals.openness.reserved": "R\xE9serv\xE9e",
+      "prep1on1.signals.openness.defensive": "D\xE9fensive",
+      "prep1on1.signals.clarity.excellent": "Excellente",
+      "prep1on1.signals.clarity.good": "Bonne",
+      "prep1on1.signals.clarity.partial": "Partielle",
+      "prep1on1.signals.clarity.unclear": "Floue",
+      "prep1on1.signals.alert.none": "Aucune",
+      "prep1on1.signals.alert.light": "L\xE9g\xE8re",
+      "prep1on1.signals.alert.moderate": "Mod\xE9r\xE9e",
+      "prep1on1.signals.alert.high": "\xC9lev\xE9e",
+      "prep1on1.analyse.transcript": "TRANSCRIPT / NOTES DU MEETING",
+      "prep1on1.analyse.transcriptPh": "Colle ici le transcript ou les notes du meeting avec ce gestionnaire\u2026",
+      "prep1on1.analyse.keyPoints": "POINTS CL\xC9S OBSERV\xC9S (optionnel)",
+      "prep1on1.analyse.keyPointsPh": "Points saillants, tensions, signaux observ\xE9s pendant la rencontre\u2026",
+      "prep1on1.analyse.injectedNote": "\u{1F4A1} Ces donn\xE9es seront inject\xE9es dans le prompt IA lors de la g\xE9n\xE9ration de l'Output.",
+      "prep1on1.notes.placeholderPrefix": "Notes sur",
+      "prep1on1.notes.helper": "\u{1F4BE} Ces notes sont ind\xE9pendantes du transcript. G\xE9n\xE8re l'output pour les consolider. Si tu as analys\xE9 le transcript dans Meetings, les deux analyses se compl\xE8tent.",
+      "prep1on1.output.loader": "G\xE9n\xE9ration du compte-rendu\u2026",
+      "prep1on1.output.empty.title": "Aucun output g\xE9n\xE9r\xE9",
+      "prep1on1.output.empty.body": "Compl\xE8te les notes pendant ou apr\xE8s le meeting, puis g\xE9n\xE8re le compte-rendu. Cet output deviendra le contexte de ton prochain 1:1 avec ce gestionnaire.",
+      "prep1on1.output.empty.cta": "\u2726 G\xE9n\xE9rer le compte-rendu",
+      "prep1on1.output.executiveSummary": "R\xC9SUM\xC9 EX\xC9CUTIF",
+      "prep1on1.output.risk": "RISQUE",
+      "prep1on1.output.quadrant.signals": "\u{1F4E1} Signaux cl\xE9s",
+      "prep1on1.output.quadrant.risks": "\u26A0 Risques",
+      "prep1on1.output.quadrant.followups": "\u{1F501} Suivis HRBP",
+      "prep1on1.output.quadrant.next": "\u2753 Prochain meeting",
+      "prep1on1.output.actionPlan": "PLAN D'ACTION",
+      "prep1on1.strategy.title": "Strat\xE9gie HRBP",
+      "prep1on1.strategy.subtitle": "ANALYSE STRAT\xC9GIQUE \u2014 AVANT LE MEETING",
+      "prep1on1.strategy.managerRead": "LECTURE DU GESTIONNAIRE",
+      "prep1on1.strategy.angleArrow": "Angle \u2192 ",
+      "prep1on1.strategy.teamHealth": "SANT\xC9 DE L'\xC9QUIPE",
+      "prep1on1.strategy.perf": "PERF",
+      "prep1on1.strategy.eng": "ENG",
+      "prep1on1.strategy.keyRisk": "RISQUE CL\xC9",
+      "prep1on1.strategy.posture": "POSTURE HRBP",
+      "prep1on1.strategy.objective": "OBJECTIF MEETING",
+      "prep1on1.strategy.influence": "STRAT\xC9GIE D'INFLUENCE",
+      "prep1on1.cycle.title": "\u{1F504} Pr\xE9parer le prochain 1:1 avec cet output",
+      "prep1on1.cycle.fallbackBody": "Les risques, signaux et questions de suivi seront inject\xE9s comme contexte dans le prochain cycle.",
+      "prep1on1.cycle.cta": "\u{1F504} Nouveau cycle \u2192",
+      "prep1on1.meetingType.regular": "1:1 r\xE9gulier",
+      "prep1on1.meetingType.perf": "Discussion de performance",
+      "prep1on1.meetingType.org": "Changement organisationnel",
+      "prep1on1.meetingType.talent": "Revue de talent",
+      "prep1on1.meetingType.concern": "Enjeu RH sensible",
+      "prep1on1.meetingType.strategic": "Alignement strat\xE9gique",
+      "prep1on1.function.placeholder": "S\xE9lectionner\u2026",
+      "prep1on1.function.it": "Technologies de l'information",
+      "prep1on1.function.network": "Planification r\xE9seau",
+      "prep1on1.function.ops": "Op\xE9rations",
+      "prep1on1.function.finance": "Finance",
+      "prep1on1.function.corporate": "Corporatif / Si\xE8ge",
+      "prep1on1.function.hr": "Ressources humaines",
+      "prep1on1.function.other": "Autre",
+      "prep1on1.prepCat.objectives": "Objectifs HRBP",
+      "prep1on1.prepCat.strategic": "Questions strat\xE9giques",
+      "prep1on1.prepCat.people": "Personnes",
+      "prep1on1.prepCat.org": "Organisation",
+      "prep1on1.prepCat.leadership": "Leadership",
+      "prep1on1.prepCat.performance": "Performance & Talent",
+      "prep1on1.prepCat.capacity": "Capacit\xE9 & Structure",
+      "prep1on1.signalCat.disengagement": "D\xE9sengagement",
+      "prep1on1.signalCat.burnout": "\xC9puisement / Surcharge",
+      "prep1on1.signalCat.retention": "Risques de r\xE9tention",
+      "prep1on1.signalCat.tensions": "Tensions d'\xE9quipe",
+      "prep1on1.signalCat.leadership": "Enjeux de leadership",
+      "prep1on1.signalCat.org": "Enjeux organisationnels",
+      "prep1on1.signalCat.succession": "Succession & Capacit\xE9s",
+      "prep1on1.guideCat.positioning": "Me positionner",
+      "prep1on1.guideCat.challenge": "Challenger",
+      "prep1on1.guideCat.redirect": "Rediriger vers le RH",
+      "prep1on1.guideCat.probe": "Sonder pour des preuves",
+      "prep1on1.guideCat.hidden_risks": "Risques cach\xE9s",
+      "prep1on1.noteCat.people": "Personnes",
+      "prep1on1.noteCat.performance": "Performance",
+      "prep1on1.noteCat.risks": "Risques",
+      "prep1on1.noteCat.org": "Organisation",
+      "prep1on1.noteCat.leadership": "Leadership",
+      "prep1on1.noteCat.actions": "Actions",
+      "prep1on1.noteCat.followups": "Suivis HRBP"
     }
   };
   function readStoredLang() {
@@ -30933,22 +31313,22 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     hidden_risks: ["Ce qui n'est PAS dit est souvent plus r\xE9v\xE9lateur que ce qui l'est \u2014 noter les silences.", "Les enjeux fram\xE9s comme 'op\xE9rationnels' cachent souvent des enjeux relationnels.", "Un gestionnaire tr\xE8s 'tout va bien' sans nuances m\xE9rite une attention particuli\xE8re.", "Les changements de ton, de rythme de parole ou d'\xE9nergie sont des donn\xE9es RH."]
   };
   var PREP_MEETING_TYPES = [
-    { value: "regular", label: "1:1 r\xE9gulier" },
-    { value: "perf", label: "Discussion de performance" },
-    { value: "org", label: "Changement organisationnel" },
-    { value: "talent", label: "Revue de talent" },
-    { value: "concern", label: "Enjeu RH sensible" },
-    { value: "strategic", label: "Alignement strat\xE9gique" }
+    { value: "regular", labelKey: "prep1on1.meetingType.regular" },
+    { value: "perf", labelKey: "prep1on1.meetingType.perf" },
+    { value: "org", labelKey: "prep1on1.meetingType.org" },
+    { value: "talent", labelKey: "prep1on1.meetingType.talent" },
+    { value: "concern", labelKey: "prep1on1.meetingType.concern" },
+    { value: "strategic", labelKey: "prep1on1.meetingType.strategic" }
   ];
   var PREP_FUNCTIONS = [
-    { value: "", label: "S\xE9lectionner\u2026" },
-    { value: "IT", label: "Technologies de l'information" },
-    { value: "network", label: "Planification r\xE9seau" },
-    { value: "ops", label: "Op\xE9rations" },
-    { value: "finance", label: "Finance" },
-    { value: "corporate", label: "Corporatif / Si\xE8ge" },
-    { value: "hr", label: "Ressources humaines" },
-    { value: "other", label: "Autre" }
+    { value: "", labelKey: "prep1on1.function.placeholder" },
+    { value: "IT", labelKey: "prep1on1.function.it" },
+    { value: "network", labelKey: "prep1on1.function.network" },
+    { value: "ops", labelKey: "prep1on1.function.ops" },
+    { value: "finance", labelKey: "prep1on1.function.finance" },
+    { value: "corporate", labelKey: "prep1on1.function.corporate" },
+    { value: "hr", labelKey: "prep1on1.function.hr" },
+    { value: "other", labelKey: "prep1on1.function.other" }
   ];
   function PrepObsSelector({ label, values }) {
     const [selected, setSelected] = (0, import_react16.useState)(null);
@@ -30986,6 +31366,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
   };
   function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
+    const { t: t2 } = useT();
     const [pTab, setPTab] = (0, import_react16.useState)("context");
     const [ctx, setCtx] = (0, import_react16.useState)({
       managerName: "",
@@ -31183,48 +31564,48 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       });
     };
     const PTABS = [
-      { id: "guidance", icon: "\u{1F9ED}", label: "Guidance", color: C.teal },
-      { id: "context", icon: "\u{1F4CB}", label: "Contexte", color: C.blue },
-      { id: "history", icon: "\u{1F550}", label: "Historique", color: C.purple, badge: histCount || null },
-      { id: "prep", icon: "\u{1F3AF}", label: "Pr\xE9paration", color: C.em, badge: prep ? "\u2713" : null },
-      { id: "analyse", icon: "\u{1F399}\uFE0F", label: "Analyse meeting", color: C.blue, badge: meetingAnalysis.transcript || meetingAnalysis.keyPoints ? "\u2713" : null },
-      { id: "signals", icon: "\u{1F4E1}", label: "Signaux", color: C.amber },
-      { id: "notes", icon: "\u{1F4DD}", label: "Notes", color: C.blue },
-      { id: "output", icon: "\u{1F4CA}", label: "Output", color: C.red, badge: output ? "\u2713" : null }
+      { id: "guidance", icon: "\u{1F9ED}", labelKey: "prep1on1.tab.guidance", color: C.teal },
+      { id: "context", icon: "\u{1F4CB}", labelKey: "prep1on1.tab.context", color: C.blue },
+      { id: "history", icon: "\u{1F550}", labelKey: "prep1on1.tab.history", color: C.purple, badge: histCount || null },
+      { id: "prep", icon: "\u{1F3AF}", labelKey: "prep1on1.tab.prep", color: C.em, badge: prep ? "\u2713" : null },
+      { id: "analyse", icon: "\u{1F399}\uFE0F", labelKey: "prep1on1.tab.analyse", color: C.blue, badge: meetingAnalysis.transcript || meetingAnalysis.keyPoints ? "\u2713" : null },
+      { id: "signals", icon: "\u{1F4E1}", labelKey: "prep1on1.tab.signals", color: C.amber },
+      { id: "notes", icon: "\u{1F4DD}", labelKey: "prep1on1.tab.notes", color: C.blue },
+      { id: "output", icon: "\u{1F4CA}", labelKey: "prep1on1.tab.output", color: C.red, badge: output ? "\u2713" : null }
     ];
     const PREP_CATS = [
-      { key: "objectives", label: "Objectifs HRBP", icon: "\u{1F3AF}", color: C.em },
-      { key: "strategic", label: "Questions strat\xE9giques", icon: "\u265F", color: C.blue },
-      { key: "people", label: "Personnes", icon: "\u{1F465}", color: C.teal },
-      { key: "org", label: "Organisation", icon: "\u{1F3D7}", color: C.amber },
-      { key: "leadership", label: "Leadership", icon: "\u{1F9ED}", color: C.purple },
-      { key: "performance", label: "Performance & Talent", icon: "\u{1F4C8}", color: C.red },
-      { key: "capacity", label: "Capacit\xE9 & Structure", icon: "\u2696\uFE0F", color: C.em }
+      { key: "objectives", labelKey: "prep1on1.prepCat.objectives", icon: "\u{1F3AF}", color: C.em },
+      { key: "strategic", labelKey: "prep1on1.prepCat.strategic", icon: "\u265F", color: C.blue },
+      { key: "people", labelKey: "prep1on1.prepCat.people", icon: "\u{1F465}", color: C.teal },
+      { key: "org", labelKey: "prep1on1.prepCat.org", icon: "\u{1F3D7}", color: C.amber },
+      { key: "leadership", labelKey: "prep1on1.prepCat.leadership", icon: "\u{1F9ED}", color: C.purple },
+      { key: "performance", labelKey: "prep1on1.prepCat.performance", icon: "\u{1F4C8}", color: C.red },
+      { key: "capacity", labelKey: "prep1on1.prepCat.capacity", icon: "\u2696\uFE0F", color: C.em }
     ];
     const SIGNAL_CATS = [
-      { key: "disengagement", label: "D\xE9sengagement", icon: "\u{1F321}", color: C.amber },
-      { key: "burnout", label: "\xC9puisement / Surcharge", icon: "\u{1F525}", color: C.red },
-      { key: "retention", label: "Risques de r\xE9tention", icon: "\u2708", color: C.purple },
-      { key: "tensions", label: "Tensions d \xE9quipe", icon: "\u26A1", color: C.amber },
-      { key: "leadership", label: "Enjeux de leadership", icon: "\u{1F9ED}", color: C.blue },
-      { key: "org", label: "Enjeux organisationnels", icon: "\u{1F3D7}", color: C.teal },
-      { key: "succession", label: "Succession & Capacit\xE9s", icon: "\u{1F3AF}", color: C.em }
+      { key: "disengagement", labelKey: "prep1on1.signalCat.disengagement", icon: "\u{1F321}", color: C.amber },
+      { key: "burnout", labelKey: "prep1on1.signalCat.burnout", icon: "\u{1F525}", color: C.red },
+      { key: "retention", labelKey: "prep1on1.signalCat.retention", icon: "\u2708", color: C.purple },
+      { key: "tensions", labelKey: "prep1on1.signalCat.tensions", icon: "\u26A1", color: C.amber },
+      { key: "leadership", labelKey: "prep1on1.signalCat.leadership", icon: "\u{1F9ED}", color: C.blue },
+      { key: "org", labelKey: "prep1on1.signalCat.org", icon: "\u{1F3D7}", color: C.teal },
+      { key: "succession", labelKey: "prep1on1.signalCat.succession", icon: "\u{1F3AF}", color: C.em }
     ];
     const GUIDE_CATS = [
-      { key: "positioning", label: "Me positionner", icon: "\u265F", color: C.blue },
-      { key: "challenge", label: "Challenger", icon: "\u{1F9F2}", color: C.purple },
-      { key: "redirect", label: "Rediriger vers le RH", icon: "\u{1F504}", color: C.amber },
-      { key: "probe", label: "Sonder pour des preuves", icon: "\u{1F50D}", color: C.teal },
-      { key: "hidden_risks", label: "Risques cach\xE9s", icon: "\u{1F3AD}", color: C.red }
+      { key: "positioning", labelKey: "prep1on1.guideCat.positioning", icon: "\u265F", color: C.blue },
+      { key: "challenge", labelKey: "prep1on1.guideCat.challenge", icon: "\u{1F9F2}", color: C.purple },
+      { key: "redirect", labelKey: "prep1on1.guideCat.redirect", icon: "\u{1F504}", color: C.amber },
+      { key: "probe", labelKey: "prep1on1.guideCat.probe", icon: "\u{1F50D}", color: C.teal },
+      { key: "hidden_risks", labelKey: "prep1on1.guideCat.hidden_risks", icon: "\u{1F3AD}", color: C.red }
     ];
     const NOTE_CATS = [
-      { key: "people", label: "Personnes", icon: "\u{1F465}", color: C.teal },
-      { key: "performance", label: "Performance", icon: "\u{1F4C8}", color: C.blue },
-      { key: "risks", label: "Risques", icon: "\u26A0", color: C.red },
-      { key: "org", label: "Organisation", icon: "\u{1F3D7}", color: C.amber },
-      { key: "leadership", label: "Leadership", icon: "\u{1F9ED}", color: C.purple },
-      { key: "actions", label: "Actions", icon: "\u2705", color: C.em },
-      { key: "followups", label: "Suivis HRBP", icon: "\u{1F501}", color: C.blue }
+      { key: "people", labelKey: "prep1on1.noteCat.people", icon: "\u{1F465}", color: C.teal },
+      { key: "performance", labelKey: "prep1on1.noteCat.performance", icon: "\u{1F4C8}", color: C.blue },
+      { key: "risks", labelKey: "prep1on1.noteCat.risks", icon: "\u26A0", color: C.red },
+      { key: "org", labelKey: "prep1on1.noteCat.org", icon: "\u{1F3D7}", color: C.amber },
+      { key: "leadership", labelKey: "prep1on1.noteCat.leadership", icon: "\u{1F9ED}", color: C.purple },
+      { key: "actions", labelKey: "prep1on1.noteCat.actions", icon: "\u2705", color: C.em },
+      { key: "followups", labelKey: "prep1on1.noteCat.followups", icon: "\u{1F501}", color: C.blue }
     ];
     const RISK_C = { Critique: C.red, Eleve: C.amber, \u00C9lev\u00E9: C.amber, Elev\u00E9: C.amber, Modere: C.blue, Mod\u00E9r\u00E9: C.blue, Moder\u00E9: C.blue, Faible: C.em };
     const normPrio = (v) => {
@@ -31235,15 +31616,15 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       if (l === "\xE9lev\xE9" || l === "eleve" || l === "elev\xE9" || l === "haute" || l === "high") return "\xC9lev\xE9";
       return v;
     };
-    const activePTab = PTABS.find((t2) => t2.id === pTab);
+    const activePTab = PTABS.find((t3) => t3.id === pTab);
     const questions = prep || PREP_QUESTIONS_DB;
     const flowSteps = [
-      { n: "1", label: "Contexte", done: !!ctx.managerName, tab: "context" },
-      { n: "2", label: "Historique", done: histCount > 0, tab: "history" },
-      { n: "3", label: "G\xE9n\xE8re questions", done: !!prep, tab: "prep" },
-      { n: "4", label: "Fais le meeting", done: false, nav: "meetings" },
-      { n: "5", label: "Analyse meeting", done: false, nav: "meetings" },
-      { n: "6", label: "Output + Archiver", done: !!output && saved1on1, tab: "output" }
+      { n: "1", label: t2("prep1on1.flow.context"), done: !!ctx.managerName, tab: "context" },
+      { n: "2", label: t2("prep1on1.flow.history"), done: histCount > 0, tab: "history" },
+      { n: "3", label: t2("prep1on1.flow.generateQuestions"), done: !!prep, tab: "prep" },
+      { n: "4", label: t2("prep1on1.flow.runMeeting"), done: false, nav: "meetings" },
+      { n: "5", label: t2("prep1on1.flow.analyzeMeeting"), done: false, nav: "meetings" },
+      { n: "6", label: t2("prep1on1.flow.outputArchive"), done: !!output && saved1on1, tab: "output" }
     ];
     return /* @__PURE__ */ React.createElement("div", { style: {
       display: "flex",
@@ -31264,19 +31645,19 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       color: C.em,
       letterSpacing: 2,
       marginBottom: 3
-    } }, "MEETINGS"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 800, color: C.text } }, "Pr\xE9paration 1:1"), ctx.managerName && /* @__PURE__ */ React.createElement("div", { style: {
+    } }, t2("prep1on1.sidebar.brand")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 800, color: C.text } }, t2("prep1on1.sidebar.title")), ctx.managerName && /* @__PURE__ */ React.createElement("div", { style: {
       marginTop: 8,
       padding: "6px 9px",
       background: C.emD + "30",
       borderRadius: 6,
       border: `1px solid ${C.emD}`
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em, fontWeight: 700 } }, ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD } }, histCount > 0 ? `${histCount} meeting(s) archiv\xE9(s)` : "Nouveau gestionnaire"))), /* @__PURE__ */ React.createElement("div", { style: { padding: "12px 13px", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.em, fontWeight: 700 } }, ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD } }, histCount > 0 ? `${histCount} ${t2("prep1on1.sidebar.archivedSuffix")}` : t2("prep1on1.sidebar.newManager")))), /* @__PURE__ */ React.createElement("div", { style: { padding: "12px 13px", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("div", { style: {
       fontSize: 9,
       color: C.textD,
       fontFamily: "'DM Mono',monospace",
       letterSpacing: 1,
       marginBottom: 8
-    } }, "CYCLE EN COURS"), flowSteps.map((s, i) => /* @__PURE__ */ React.createElement(
+    } }, t2("prep1on1.sidebar.cycle")), flowSteps.map((s, i) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: i,
@@ -31313,9 +31694,9 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       flexDirection: "column",
       gap: 2,
       overflowY: "auto"
-    } }, PTABS.map((t2) => {
-      const active = pTab === t2.id;
-      return /* @__PURE__ */ React.createElement("button", { key: t2.id, onClick: () => setPTab(t2.id), style: {
+    } }, PTABS.map((tab) => {
+      const active = pTab === tab.id;
+      return /* @__PURE__ */ React.createElement("button", { key: tab.id, onClick: () => setPTab(tab.id), style: {
         display: "flex",
         alignItems: "center",
         gap: 8,
@@ -31324,23 +31705,23 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         border: "none",
         cursor: "pointer",
         width: "100%",
-        background: active ? t2.color + "22" : "transparent",
+        background: active ? tab.color + "22" : "transparent",
         fontFamily: "'DM Sans',sans-serif",
         transition: "all .15s"
-      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, t2.icon), /* @__PURE__ */ React.createElement("span", { style: {
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, tab.icon), /* @__PURE__ */ React.createElement("span", { style: {
         fontSize: 12,
         fontWeight: active ? 600 : 400,
-        color: active ? t2.color : C.textM,
+        color: active ? tab.color : C.textM,
         flex: 1,
         textAlign: "left"
-      } }, t2.label), t2.badge && /* @__PURE__ */ React.createElement("span", { style: {
-        background: t2.color + "33",
-        color: t2.color,
+      } }, t2(tab.labelKey)), tab.badge && /* @__PURE__ */ React.createElement("span", { style: {
+        background: tab.color + "33",
+        color: tab.color,
         borderRadius: 10,
         padding: "1px 6px",
         fontSize: 9,
         fontFamily: "'DM Mono',monospace"
-      } }, t2.badge));
+      } }, tab.badge));
     }))), /* @__PURE__ */ React.createElement("div", { style: {
       flex: 1,
       display: "flex",
@@ -31356,7 +31737,10 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       gap: 10,
       flexShrink: 0,
       flexWrap: "wrap"
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, activePTab?.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text } }, activePTab?.label), ctx.managerName && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD } }, ctx.managerName, ctx.team ? " \xB7 " + (PREP_FUNCTIONS.find((f) => f.value === ctx.team)?.label || ctx.team) : ""), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, pTab === "prep" && /* @__PURE__ */ React.createElement(React.Fragment, null, prepAI && /* @__PURE__ */ React.createElement(Badge, { label: "\u2726 IA", color: C.em }), histCount > 0 && /* @__PURE__ */ React.createElement(Badge, { label: `${histCount} meetings en m\xE9moire`, color: C.purple }), /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, activePTab?.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text } }, activePTab ? t2(activePTab.labelKey) : ""), ctx.managerName && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD } }, ctx.managerName, ctx.team ? " \xB7 " + (() => {
+      const f = PREP_FUNCTIONS.find((f2) => f2.value === ctx.team);
+      return f ? t2(f.labelKey) : ctx.team;
+    })() : ""), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, pTab === "prep" && /* @__PURE__ */ React.createElement(React.Fragment, null, prepAI && /* @__PURE__ */ React.createElement(Badge, { label: t2("prep1on1.topbar.aiBadge"), color: C.em }), histCount > 0 && /* @__PURE__ */ React.createElement(Badge, { label: `${histCount} ${t2("prep1on1.topbar.memorySuffix")}`, color: C.purple }), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: generatePrep,
@@ -31368,14 +31752,14 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
           opacity: !ctx.managerName ? 0.5 : 1
         }
       },
-      prepLoading ? "G\xE9n\xE9ration\u2026" : histCount > 0 ? `\u2726 G\xE9n\xE9rer avec historique` : "\u2726 G\xE9n\xE9rer"
+      prepLoading ? t2("prep1on1.topbar.generating") : histCount > 0 ? t2("prep1on1.topbar.generateWithHistory") : t2("prep1on1.topbar.generate")
     )), pTab === "output" && /* @__PURE__ */ React.createElement(React.Fragment, null, output && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: copyOutput,
         style: { ...css.btn(C.blue, true), padding: "6px 12px", fontSize: 11 }
       },
-      copied ? "\u2713 Copi\xE9" : "\u{1F4CB} Copier"
+      copied ? t2("prep1on1.topbar.copied") : t2("prep1on1.topbar.copy")
     ), output && /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -31387,7 +31771,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
           fontSize: 11
         }
       },
-      saved1on1 ? "\u2713 Archiv\xE9" : "\u{1F4BE} Archiver"
+      saved1on1 ? t2("prep1on1.topbar.archived") : t2("prep1on1.topbar.archive")
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -31395,10 +31779,10 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         disabled: outputLoading,
         style: { ...css.btn(C.em), padding: "6px 14px", fontSize: 12 }
       },
-      outputLoading ? "G\xE9n\xE9ration\u2026" : "\u2726 G\xE9n\xE9rer l'output"
-    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "20px 22px" } }, pTab === "context" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "IDENTIFICATION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
-      ["Nom du gestionnaire", "managerName", "ex. Marie Tremblay"],
-      ["Date de la rencontre", "date", (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")]
+      outputLoading ? t2("prep1on1.topbar.generating") : t2("prep1on1.topbar.generateOutput")
+    )))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "20px 22px" } }, pTab === "context" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, t2("prep1on1.context.identification")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
+      [t2("prep1on1.context.managerName"), "managerName", t2("prep1on1.context.managerNamePh")],
+      [t2("prep1on1.context.meetingDate"), "date", (/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")]
     ].map(([label, key2, ph]) => /* @__PURE__ */ React.createElement("div", { key: key2, style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -31409,7 +31793,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         onFocus: (e) => e.target.style.borderColor = C.em,
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "\xC9quipe / Fonction"), /* @__PURE__ */ React.createElement(
+    ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.team")), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: ctx.team,
@@ -31424,10 +31808,10 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
             value: o.value,
             style: { background: C.surfL }
           },
-          o.label
+          t2(o.labelKey)
         )
       )
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Type de rencontre"), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.meetingType")), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: ctx.meetingType,
@@ -31442,27 +31826,27 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
             value: o.value,
             style: { background: C.surfL }
           },
-          o.label
+          t2(o.labelKey)
         )
       )
-    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Province"), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.province")), /* @__PURE__ */ React.createElement(
       ProvinceSelect,
       {
         value: ctx.province || data.profile?.defaultProvince || "QC",
         onChange: (e) => setCtx((p) => ({ ...p, province: e.target.value })),
         style: { width: "100%" }
       }
-    )))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "INTENTION STRAT\xC9GIQUE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
+    )))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.context.intent")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, [
       [
-        "Objectif principal",
+        t2("prep1on1.context.purpose"),
         "purpose",
-        "ex. Faire le point sur la r\xE9tention suite aux changements\u2026",
+        t2("prep1on1.context.purposePh"),
         4
       ],
       [
-        "Contexte / notes de fond",
+        t2("prep1on1.context.background"),
         "background",
-        "ex. Dernier 1:1 il y a 3 semaines \u2014 conflit inter-\xE9quipes\u2026",
+        t2("prep1on1.context.backgroundPh"),
         5
       ]
     ].map(([label, key2, ph, rows]) => /* @__PURE__ */ React.createElement("div", { key: key2, style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement(
@@ -31476,23 +31860,23 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         onFocus: (e) => e.target.style.borderColor = C.em,
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    )))))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "SIGNAUX CONNUS AVANT LA RENCONTRE"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 10 } }, [
+    )))))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("prep1on1.context.knownSignals")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 10 } }, [
       [
-        "Dossiers actifs",
+        t2("prep1on1.context.activeCases"),
         "activeCases",
-        "ex. PIP en cours, plainte d\xE9pos\xE9e\u2026",
+        t2("prep1on1.context.activeCasesPh"),
         3
       ],
       [
-        "Donn\xE9es r\xE9centes",
+        t2("prep1on1.context.recentData"),
         "recentData",
-        "ex. 2 d\xE9parts Q4, taux abs en hausse\u2026",
+        t2("prep1on1.context.recentDataPh"),
         3
       ],
       [
-        "Tensions / alertes",
+        t2("prep1on1.context.alerts"),
         "alerts",
-        "ex. Tensions avec l \xE9quipe de Morgan\u2026",
+        t2("prep1on1.context.alertsPh"),
         3
       ]
     ].map(([label, key2, ph, rows]) => /* @__PURE__ */ React.createElement("div", { key: key2 }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement(
@@ -31515,37 +31899,37 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between"
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.purple } }, "\u{1F550} ", /* @__PURE__ */ React.createElement("strong", null, histCount, " meeting(s)"), " trouv\xE9(s) pour", " ", /* @__PURE__ */ React.createElement("strong", null, ctx.managerName), " \u2014 l'historique sera inject\xE9 dans la g\xE9n\xE9ration des questions."), /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.purple } }, "\u{1F550} ", /* @__PURE__ */ React.createElement("strong", null, histCount, " ", t2("prep1on1.context.banner.foundFor")), " ", /* @__PURE__ */ React.createElement("strong", null, ctx.managerName), " ", t2("prep1on1.context.banner.injected")), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => setPTab("history"),
         style: { ...css.btn(C.purple, true), padding: "5px 12px", fontSize: 11 }
       },
-      "Voir l'historique \u2192"
+      t2("prep1on1.context.banner.viewHistory")
     )), ctx.managerName && histCount === 0 && /* @__PURE__ */ React.createElement("div", { style: {
       marginTop: 12,
       padding: "10px 14px",
       background: C.emD + "20",
       border: `1px solid ${C.emD}`,
       borderRadius: 8
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em } }, "\u{1F195} Premier 1:1 avec ", /* @__PURE__ */ React.createElement("strong", null, ctx.managerName), " \u2014 les questions seront g\xE9n\xE9riques. \xC0 chaque cycle, l'historique s'enrichit."))), pTab === "history" && /* @__PURE__ */ React.createElement("div", null, histCount === 0 ? /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.em } }, "\u{1F195} ", t2("prep1on1.context.banner.firstWith"), " ", /* @__PURE__ */ React.createElement("strong", null, ctx.managerName), " ", t2("prep1on1.context.banner.firstNote")))), pTab === "history" && /* @__PURE__ */ React.createElement("div", null, histCount === 0 ? /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surfL,
       border: `2px dashed ${C.border}`,
       borderRadius: 12,
       padding: "48px 24px",
       textAlign: "center"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F550}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun historique"), /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F550}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 } }, t2("prep1on1.history.empty.title")), /* @__PURE__ */ React.createElement("div", { style: {
       fontSize: 12,
       color: C.textD,
       maxWidth: 360,
       margin: "0 auto",
       marginBottom: 16
-    } }, ctx.managerName ? `Aucun transcript analys\xE9 pour "${ctx.managerName}". Chaque meeting analys\xE9 dans le module Meetings alimentera automatiquement cet historique.` : "Remplis le nom du gestionnaire dans Contexte pour voir son historique.")) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Historique \u2014 ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " transcript(s) analys\xE9(s) \xB7 Les 3 plus r\xE9cents alimentent la g\xE9n\xE9ration des questions.")), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: {
+    } }, ctx.managerName ? `${t2("prep1on1.history.empty.bodyWith")} "${ctx.managerName}"${t2("prep1on1.history.empty.bodyWithEnd")}` : t2("prep1on1.history.empty.bodyNoMgr"))) : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("prep1on1.history.heading"), " ", ctx.managerName), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD } }, histCount, " ", t2("prep1on1.history.subtitleA"))), lastAnalysis && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}`, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 10
-    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "DERNIER MEETING \u2014 ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge3, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), toArray(lastAnalysis.risks).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "RISQUES IDENTIFI\xC9S"), toArray(lastAnalysis.risks).slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.history.lastMeeting"), " ", lastMeeting.savedAt), /* @__PURE__ */ React.createElement(RiskBadge3, { level: lastAnalysis.overallRisk || "Faible" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 } }, lastAnalysis.meetingTitle), toArray(lastAnalysis.risks).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, t2("prep1on1.history.risksIdentified")), toArray(lastAnalysis.risks).slice(0, 3).map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
       display: "flex",
       gap: 8,
       marginTop: 7,
@@ -31558,7 +31942,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       fontSize: 10,
       flexShrink: 0,
       marginTop: 2
-    } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r)))), toArray(lastAnalysis.actions).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "ACTIONS \u2014 \xC0 V\xC9RIFIER CE MEETING"), toArray(lastAnalysis.actions).slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
+    } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r.risk || r)))), toArray(lastAnalysis.actions).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, t2("prep1on1.history.actionsToCheck")), toArray(lastAnalysis.actions).slice(0, 4).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: {
       display: "flex",
       alignItems: "center",
       gap: 8,
@@ -31566,13 +31950,13 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       padding: "7px 10px",
       background: C.amber + "10",
       borderRadius: 7
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), a.delay && /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), toArray(lastAnalysis.questions).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "QUESTIONS DU DERNIER MEETING \u2014 \xC0 FAIRE \xC9VOLUER"), toArray(lastAnalysis.questions).slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, flex: 1 } }, a.action || a), a.delay && /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: C.amber, size: 9 }), a.owner && /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 9 })))), toArray(lastAnalysis.questions).length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, t2("prep1on1.history.questionsEvolve")), toArray(lastAnalysis.questions).slice(0, 3).map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
       color: C.blue,
       fontFamily: "'DM Mono',monospace",
       fontSize: 10,
       flexShrink: 0,
       marginTop: 2
-    } }, "Q", i + 1), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, q.question || q))))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "TOUS LES MEETINGS (", histCount, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 7 } }, managerHistory.map((m, i) => {
+    } }, "Q", i + 1), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, q.question || q))))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("prep1on1.history.allMeetings"), " (", histCount, ")"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 7 } }, managerHistory.map((m, i) => {
       const a = m.analysis || {};
       const r = RISK[a.overallRisk] || RISK["Faible"];
       const open = histExp[i];
@@ -31632,7 +32016,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         onClick: () => setPTab("prep"),
         style: { ...css.btn(C.em), flex: 1 }
       },
-      "\u{1F3AF} G\xE9n\xE9rer les questions avec cet historique \u2192"
+      t2("prep1on1.history.generateWithCta")
     )))), pTab === "prep" && /* @__PURE__ */ React.createElement("div", null, !prep && !prepLoading && /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surfL,
       border: `2px dashed ${C.border}`,
@@ -31640,7 +32024,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       padding: "32px 24px",
       textAlign: "center",
       marginBottom: 16
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 10 } }, "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 } }, "Questions non g\xE9n\xE9r\xE9es"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginBottom: 16, maxWidth: 420, margin: "0 auto 16px" } }, histCount > 0 ? `L'IA va s'appuyer sur les ${histCount} meeting(s) avec ${ctx.managerName || "ce gestionnaire"} pour personnaliser les questions et faire des liens avec les enjeux non r\xE9solus.` : "Remplis le contexte puis g\xE9n\xE8re des questions strat\xE9giques pour ce 1:1."), /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 10 } }, "\u{1F3AF}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 } }, t2("prep1on1.prep.empty.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginBottom: 16, maxWidth: 420, margin: "0 auto 16px" } }, histCount > 0 ? `${t2("prep1on1.prep.empty.bodyHistA")} ${histCount} ${t2("prep1on1.prep.empty.bodyHistB")} ${ctx.managerName || t2("prep1on1.prep.empty.thisManager")} ${t2("prep1on1.prep.empty.bodyHistC")}` : t2("prep1on1.prep.empty.bodyNoHist")), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: generatePrep,
@@ -31650,14 +32034,14 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
           opacity: !ctx.managerName ? 0.5 : 1
         }
       },
-      histCount > 0 ? `\u2726 G\xE9n\xE9rer avec l'historique (${histCount} meetings)` : "\u2726 G\xE9n\xE9rer les questions"
-    )), prepLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "G\xE9n\xE9ration des questions\u2026" }), prep && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, prep.overallPriority && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "PRIORIT\xC9 GLOBALE"), /* @__PURE__ */ React.createElement(Badge, { label: normPrio(prep.overallPriority), color: { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(prep.overallPriority)] || C.textM })), prep.objective && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "\u{1F3AF} OBJECTIF DU 1:1"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "But"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 10 } }, prep.objective.purpose), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "R\xE9sultat attendu"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.objective.expectedOutcome))), prep.priorityIssues?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "\u26A0 ENJEUX PRIORITAIRES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 10 } }, prep.priorityIssues.map((issue, i) => {
+      histCount > 0 ? `${t2("prep1on1.prep.empty.btnHistA")}${histCount} ${t2("prep1on1.prep.empty.btnHistB")}` : t2("prep1on1.prep.empty.btnNoHist")
+    )), prepLoading && /* @__PURE__ */ React.createElement(AILoader, { label: t2("prep1on1.prep.loader") }), prep && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, prep.overallPriority && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("prep1on1.prep.overallPriority")), /* @__PURE__ */ React.createElement(Badge, { label: normPrio(prep.overallPriority), color: { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(prep.overallPriority)] || C.textM })), prep.objective && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.prep.objective")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, t2("prep1on1.prep.purpose")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: 10 } }, prep.objective.purpose), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, t2("prep1on1.prep.expectedOutcome")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.objective.expectedOutcome))), prep.priorityIssues?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, t2("prep1on1.prep.priorityIssues")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 10 } }, prep.priorityIssues.map((issue, i) => {
       const rc = { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(issue.riskLevel)] || C.textM;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "10px 12px", background: rc + "0D", borderRadius: 8, border: `1px solid ${rc}25` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: issue.why ? 6 : 0 } }, /* @__PURE__ */ React.createElement(Badge, { label: normPrio(issue.riskLevel) || issue.riskLevel, color: rc, size: 10 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, issue.issue)), issue.why && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.55, fontStyle: "italic" } }, issue.why));
-    }))), prep.context && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "\u{1F4CB} CONTEXTE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: prep.context.keySignals?.length > 0 || prep.context.relevantHistory ? 10 : 0 } }, prep.context.summary), prep.context.relevantHistory && prep.context.relevantHistory !== "Non disponible" && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10, padding: "7px 10px", background: C.blue + "0D", borderRadius: 7, fontSize: 12, color: C.textM, lineHeight: 1.55 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontWeight: 600 } }, "Historique \u2192 "), prep.context.relevantHistory), prep.context.keySignals?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, "Signaux \xE0 garder en t\xEAte"), prep.context.keySignals.map((sig, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.blue, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, sig)))))), prep.followUpFromLast1on1 && (prep.followUpFromLast1on1.evolutions?.length > 0 || prep.followUpFromLast1on1.stagnations?.length > 0 || prep.followUpFromLast1on1.newRisks?.length > 0) && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "\u{1F501} SUIVI DEPUIS LE DERNIER 1:1"), /* @__PURE__ */ React.createElement(Badge, { label: "Bas\xE9 sur l'historique", color: C.purple })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, prep.followUpFromLast1on1.evolutions?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, "\xC9volutions"), prep.followUpFromLast1on1.evolutions.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.em, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, e)))), prep.followUpFromLast1on1.stagnations?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, "Stagnations"), prep.followUpFromLast1on1.stagnations.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.amber, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))), prep.followUpFromLast1on1.newRisks?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, "Nouveaux risques"), prep.followUpFromLast1on1.newRisks.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.red, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r)))))), prep.recommendedApproach && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "\u{1F9ED} APPROCHE RECOMMAND\xC9E"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "Comment aborder"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.recommendedApproach.how)), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: prep.recommendedApproach.pitfalls?.length > 0 ? 10 : 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, "Ton \xE0 adopter"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.recommendedApproach.tone)), prep.recommendedApproach.pitfalls?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 6 } }, "Pi\xE8ges \xE0 \xE9viter"), prep.recommendedApproach.pitfalls.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber, fontSize: 11, flexShrink: 0, marginTop: 2 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, p)))))), prep.suggestedPhrasing?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.teal}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.teal, size: 9 }, "\u{1F4AC} PHRASES SUGG\xC9R\xC9ES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, prep.suggestedPhrasing.map((ph, i) => {
+    }))), prep.context && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, t2("prep1on1.prep.context")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65, marginBottom: prep.context.keySignals?.length > 0 || prep.context.relevantHistory ? 10 : 0 } }, prep.context.summary), prep.context.relevantHistory && prep.context.relevantHistory !== "Non disponible" && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10, padding: "7px 10px", background: C.blue + "0D", borderRadius: 7, fontSize: 12, color: C.textM, lineHeight: 1.55 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.blue, fontWeight: 600 } }, t2("prep1on1.prep.historyArrow")), prep.context.relevantHistory), prep.context.keySignals?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 8 }, t2("prep1on1.prep.keySignals")), prep.context.keySignals.map((sig, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.blue, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, sig)))))), prep.followUpFromLast1on1 && (prep.followUpFromLast1on1.evolutions?.length > 0 || prep.followUpFromLast1on1.stagnations?.length > 0 || prep.followUpFromLast1on1.newRisks?.length > 0) && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.prep.followUp")), /* @__PURE__ */ React.createElement(Badge, { label: t2("prep1on1.prep.basedOnHistory"), color: C.purple })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, prep.followUpFromLast1on1.evolutions?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8 }, t2("prep1on1.prep.evolutions")), prep.followUpFromLast1on1.evolutions.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.em, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, e)))), prep.followUpFromLast1on1.stagnations?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 8 }, t2("prep1on1.prep.stagnations")), prep.followUpFromLast1on1.stagnations.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.amber, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, s)))), prep.followUpFromLast1on1.newRisks?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 8 }, t2("prep1on1.prep.newRisks")), prep.followUpFromLast1on1.newRisks.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 5 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 4, height: 4, borderRadius: "50%", background: C.red, marginTop: 7, flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, r)))))), prep.recommendedApproach && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("prep1on1.prep.approach")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, t2("prep1on1.prep.howToApproach")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.recommendedApproach.how)), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: prep.recommendedApproach.pitfalls?.length > 0 ? 10 : 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 3 } }, t2("prep1on1.prep.tone")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, prep.recommendedApproach.tone)), prep.recommendedApproach.pitfalls?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 6 } }, t2("prep1on1.prep.pitfalls")), prep.recommendedApproach.pitfalls.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber, fontSize: 11, flexShrink: 0, marginTop: 2 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, p)))))), prep.suggestedPhrasing?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.teal}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.teal, size: 9 }, t2("prep1on1.prep.phrasing")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, prep.suggestedPhrasing.map((ph, i) => {
       const pc = { "Ouverture": C.em, "Recadrage": C.amber, "Confrontation": C.amber, "Suivi": C.blue }[ph.type] || C.teal;
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: { borderRadius: 8, border: `1px solid ${pc}28`, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { background: pc + "18", borderLeft: `3px solid ${pc}`, padding: "6px 12px", display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: ph.type || "Script", color: pc, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 13px", background: C.surfL, borderLeft: `3px solid ${pc}` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, fontStyle: "italic" } }, '"', ph.text || ph, '"')));
-    }))), prep.recommendedActions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "\u2705 ACTIONS RECOMMAND\xC9ES"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, prep.recommendedActions.map((a, i) => {
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { borderRadius: 8, border: `1px solid ${pc}28`, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { background: pc + "18", borderLeft: `3px solid ${pc}`, padding: "6px 12px", display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: ph.type || t2("prep1on1.prep.phrasing.script"), color: pc, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 13px", background: C.surfL, borderLeft: `3px solid ${pc}` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7, fontStyle: "italic" } }, '"', ph.text || ph, '"')));
+    }))), prep.recommendedActions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.prep.actions")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, prep.recommendedActions.map((a, i) => {
       const ac = { "Faible": C.em, "Mod\xE9r\xE9": C.amber, "\xC9lev\xE9": C.red }[normPrio(a.priority)] || C.textM;
       return /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", background: C.surfLL, borderRadius: 8, border: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0 } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, flex: 1, lineHeight: 1.5 } }, a.action), /* @__PURE__ */ React.createElement(Badge, { label: normPrio(a.priority) || a.priority, color: ac, size: 10 }));
     })))), prep && /* @__PURE__ */ React.createElement("div", { style: {
@@ -31666,7 +32050,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       background: C.em + "10",
       border: `1px solid ${C.em}33`,
       borderRadius: 8
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.em } }, "\u2705 Plan d'intervention pr\xEAt. Fais ton meeting, puis reviens analyser le transcript."))), pTab === "signals" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 } }, SIGNAL_CATS.map((cat) => /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.em } }, t2("prep1on1.prep.readyBanner")))), pTab === "signals" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 } }, SIGNAL_CATS.map((cat) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: cat.key,
@@ -31695,7 +32079,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
             fontFamily: "'DM Sans',sans-serif"
           }
         },
-        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, cat.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, cat.label)),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, cat.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t2(cat.labelKey))),
         /* @__PURE__ */ React.createElement("span", { style: { color: cat.color, fontSize: 14, fontWeight: 700 } }, sigExp[cat.key] ? "\u2212" : "+")
       ),
       sigExp[cat.key] && /* @__PURE__ */ React.createElement("div", { style: { padding: "0 13px 12px" } }, SIGNALS_DB[cat.key].map((sig, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 7 } }, /* @__PURE__ */ React.createElement("div", { style: {
@@ -31706,23 +32090,23 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         marginTop: 7,
         flexShrink: 0
       } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, sig))))
-    ))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "GRILLE D'OBSERVATION \u2014 PENDANT LA RENCONTRE"), /* @__PURE__ */ React.createElement("div", { style: {
+    ))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.signals.observation")), /* @__PURE__ */ React.createElement("div", { style: {
       display: "grid",
       gridTemplateColumns: "repeat(4,1fr)",
       gap: 12,
       marginTop: 12
     } }, [
-      { label: "\xC9nergie g\xE9n\xE9rale", values: ["Haute", "Normale", "Basse", "\xC9puis\xE9e"] },
-      { label: "Ouverture", values: ["Tr\xE8s ouverte", "Normale", "R\xE9serv\xE9e", "D\xE9fensive"] },
-      { label: "Clart\xE9 / \xE9quipe", values: ["Excellente", "Bonne", "Partielle", "Floue"] },
-      { label: "Alerte globale", values: ["Aucune", "L\xE9g\xE8re", "Mod\xE9r\xE9e", "\xC9lev\xE9e"] }
+      { label: t2("prep1on1.signals.obs.energy"), values: [t2("prep1on1.signals.energy.high"), t2("prep1on1.signals.energy.normal"), t2("prep1on1.signals.energy.low"), t2("prep1on1.signals.energy.exhausted")] },
+      { label: t2("prep1on1.signals.obs.openness"), values: [t2("prep1on1.signals.openness.veryOpen"), t2("prep1on1.signals.openness.normal"), t2("prep1on1.signals.openness.reserved"), t2("prep1on1.signals.openness.defensive")] },
+      { label: t2("prep1on1.signals.obs.clarity"), values: [t2("prep1on1.signals.clarity.excellent"), t2("prep1on1.signals.clarity.good"), t2("prep1on1.signals.clarity.partial"), t2("prep1on1.signals.clarity.unclear")] },
+      { label: t2("prep1on1.signals.obs.alert"), values: [t2("prep1on1.signals.alert.none"), t2("prep1on1.signals.alert.light"), t2("prep1on1.signals.alert.moderate"), t2("prep1on1.signals.alert.high")] }
     ].map((obs, i) => /* @__PURE__ */ React.createElement(PrepObsSelector, { key: i, label: obs.label, values: obs.values }))))), pTab === "guidance" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, GUIDE_CATS.map((cat) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: cat.key,
         style: { ...css.card, borderLeft: `3px solid ${cat.color}` }
       },
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, cat.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text } }, cat.label)),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, cat.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text } }, t2(cat.labelKey))),
       /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, GUIDANCE_DB[cat.key].map((tip, i) => /* @__PURE__ */ React.createElement(
         "div",
         {
@@ -31745,23 +32129,23 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         } }, String(i + 1).padStart(2, "0")),
         /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, tip)
       )))
-    ))), pTab === "analyse" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, "TRANSCRIPT / NOTES DU MEETING")), /* @__PURE__ */ React.createElement(
+    ))), pTab === "analyse" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.blue}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement(Mono, { color: C.blue, size: 9 }, t2("prep1on1.analyse.transcript"))), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         value: meetingAnalysis.transcript,
         onChange: (e) => setMeetingAnalysis((p) => ({ ...p, transcript: e.target.value })),
-        placeholder: "Colle ici le transcript ou les notes du meeting avec ce gestionnaire...",
+        placeholder: t2("prep1on1.analyse.transcriptPh"),
         rows: 8,
         style: { ...css.textarea, fontSize: 12 },
         onFocus: (e) => e.target.style.borderColor = C.blue,
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u2B50"), /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "POINTS CL\xC9S OBSERV\xC9S (optionnel)")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, "\u2B50"), /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("prep1on1.analyse.keyPoints"))), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         value: meetingAnalysis.keyPoints,
         onChange: (e) => setMeetingAnalysis((p) => ({ ...p, keyPoints: e.target.value })),
-        placeholder: "Points saillants, tensions, signaux observ\xE9s pendant la rencontre...",
+        placeholder: t2("prep1on1.analyse.keyPointsPh"),
         rows: 4,
         style: { ...css.textarea, fontSize: 12 },
         onFocus: (e) => e.target.style.borderColor = C.amber,
@@ -31772,48 +32156,51 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       background: C.blue + "10",
       border: `1px solid ${C.blue}33`,
       borderRadius: 8
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.blue } }, "\u{1F4A1} Ces donn\xE9es seront inject\xE9es dans le prompt IA lors de la g\xE9n\xE9ration de l'Output."))), pTab === "notes" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, NOTE_CATS.map((cat) => /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        key: cat.key,
-        style: { ...css.card, borderLeft: `3px solid ${cat.color}` }
-      },
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, cat.icon), /* @__PURE__ */ React.createElement(Mono, { color: cat.color, size: 9 }, cat.label)),
-      /* @__PURE__ */ React.createElement(
-        "textarea",
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.blue } }, t2("prep1on1.analyse.injectedNote")))), pTab === "notes" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, NOTE_CATS.map((cat) => {
+      const catLabel = t2(cat.labelKey);
+      return /* @__PURE__ */ React.createElement(
+        "div",
         {
-          value: notes[cat.key] || "",
-          onChange: (e) => setNotes((p) => ({ ...p, [cat.key]: e.target.value })),
-          placeholder: `Notes sur ${cat.label.toLowerCase()}\u2026`,
-          rows: 4,
-          style: { ...css.textarea, fontSize: 12 },
-          onFocus: (e) => e.target.style.borderColor = cat.color,
-          onBlur: (e) => e.target.style.borderColor = C.border
-        }
-      )
-    ))), /* @__PURE__ */ React.createElement("div", { style: {
+          key: cat.key,
+          style: { ...css.card, borderLeft: `3px solid ${cat.color}` }
+        },
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, cat.icon), /* @__PURE__ */ React.createElement(Mono, { color: cat.color, size: 9 }, catLabel)),
+        /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            value: notes[cat.key] || "",
+            onChange: (e) => setNotes((p) => ({ ...p, [cat.key]: e.target.value })),
+            placeholder: `${t2("prep1on1.notes.placeholderPrefix")} ${catLabel.toLowerCase()}\u2026`,
+            rows: 4,
+            style: { ...css.textarea, fontSize: 12 },
+            onFocus: (e) => e.target.style.borderColor = cat.color,
+            onBlur: (e) => e.target.style.borderColor = C.border
+          }
+        )
+      );
+    })), /* @__PURE__ */ React.createElement("div", { style: {
       marginTop: 12,
       padding: "10px 14px",
       background: C.teal + "10",
       border: `1px solid ${C.teal}33`,
       borderRadius: 8
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.teal } }, "\u{1F4BE} Ces notes sont ind\xE9pendantes du transcript. G\xE9n\xE8re l'output pour les consolider. Si tu as analys\xE9 le transcript dans Meetings, les deux analyses se compl\xE8tent."))), pTab === "output" && /* @__PURE__ */ React.createElement("div", null, outputLoading && /* @__PURE__ */ React.createElement(AILoader, { label: "G\xE9n\xE9ration du compte-rendu\u2026" }), !output && !outputLoading && /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.teal } }, t2("prep1on1.notes.helper")))), pTab === "output" && /* @__PURE__ */ React.createElement("div", null, outputLoading && /* @__PURE__ */ React.createElement(AILoader, { label: t2("prep1on1.output.loader") }), !output && !outputLoading && /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surfL,
       border: `2px dashed ${C.border}`,
       borderRadius: 12,
       padding: "48px 24px",
       textAlign: "center"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F4CA}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 } }, "Aucun output g\xE9n\xE9r\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 400, margin: "0 auto 16px" } }, "Compl\xE8te les notes pendant ou apr\xE8s le meeting, puis g\xE9n\xE8re le compte-rendu. Cet output deviendra le contexte de ton prochain 1:1 avec ce gestionnaire."), /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 12 } }, "\u{1F4CA}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 8 } }, t2("prep1on1.output.empty.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 400, margin: "0 auto 16px" } }, t2("prep1on1.output.empty.body")), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: generateOutput,
         style: { ...css.btn(C.em) }
       },
-      "\u2726 G\xE9n\xE9rer le compte-rendu"
+      t2("prep1on1.output.empty.cta")
     )), output && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr auto", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: {
       ...css.card,
       borderLeft: `3px solid ${RISK_C[output.overallRisk] || C.em}`
-    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "R\xC9SUM\xC9 EX\xC9CUTIF"), /* @__PURE__ */ React.createElement("p", { style: { fontSize: 13, color: C.text, margin: "10px 0 0", lineHeight: 1.7 } }, output.executiveSummary)), /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.output.executiveSummary")), /* @__PURE__ */ React.createElement("p", { style: { fontSize: 13, color: C.text, margin: "10px 0 0", lineHeight: 1.7 } }, output.executiveSummary)), /* @__PURE__ */ React.createElement("div", { style: {
       background: (RISK_C[output.overallRisk] || C.em) + "18",
       border: `2px solid ${RISK_C[output.overallRisk] || C.em}`,
       borderRadius: 10,
@@ -31821,24 +32208,24 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       textAlign: "center",
       minWidth: 110,
       flexShrink: 0
-    } }, /* @__PURE__ */ React.createElement(Mono, { color: RISK_C[output.overallRisk] || C.em, size: 9 }, "RISQUE"), /* @__PURE__ */ React.createElement("div", { style: {
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: RISK_C[output.overallRisk] || C.em, size: 9 }, t2("prep1on1.output.risk")), /* @__PURE__ */ React.createElement("div", { style: {
       fontSize: 18,
       fontWeight: 800,
       color: RISK_C[output.overallRisk] || C.em,
       marginTop: 8
     } }, output.overallRisk))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, [
-      { title: "\u{1F4E1} Signaux cl\xE9s", key: "keySignals", color: C.amber },
-      { title: "\u26A0 Risques", key: "mainRisks", color: C.red },
-      { title: "\u{1F501} Suivis HRBP", key: "hrbpFollowups", color: C.em },
-      { title: "\u2753 Prochain meeting", key: "nextMeetingQuestions", color: C.blue }
-    ].map(({ title, key: key2, color }) => /* @__PURE__ */ React.createElement("div", { key: key2, style: { ...css.card, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, title), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, (output[key2] || []).map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 7 } }, /* @__PURE__ */ React.createElement("div", { style: {
+      { titleKey: "prep1on1.output.quadrant.signals", key: "keySignals", color: C.amber },
+      { titleKey: "prep1on1.output.quadrant.risks", key: "mainRisks", color: C.red },
+      { titleKey: "prep1on1.output.quadrant.followups", key: "hrbpFollowups", color: C.em },
+      { titleKey: "prep1on1.output.quadrant.next", key: "nextMeetingQuestions", color: C.blue }
+    ].map(({ titleKey, key: key2, color }) => /* @__PURE__ */ React.createElement("div", { key: key2, style: { ...css.card, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, t2(titleKey)), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, (output[key2] || []).map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 7 } }, /* @__PURE__ */ React.createElement("div", { style: {
       width: 5,
       height: 5,
       borderRadius: "50%",
       background: color,
       marginTop: 6,
       flexShrink: 0
-    } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, item))))))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "PLAN D'ACTION"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, (output.actionPlan || []).map((a, i) => /* @__PURE__ */ React.createElement(
+    } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.5 } }, item))))))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.output.actionPlan")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, (output.actionPlan || []).map((a, i) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: i,
@@ -31902,7 +32289,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         justifyContent: "center",
         fontSize: 14,
         flexShrink: 0
-      } }, "\u{1F9E0}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.purple } }, "Strat\xE9gie HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, "ANALYSE STRAT\xC9GIQUE \u2014 AVANT LE MEETING"))), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 } }, s.lectureGestionnaire && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "LECTURE DU GESTIONNAIRE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      } }, "\u{1F9E0}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.purple } }, t2("prep1on1.strategy.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, t2("prep1on1.strategy.subtitle")))), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 } }, s.lectureGestionnaire && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.managerRead")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: {
         background: C.purple + "18",
         border: `1px solid ${C.purple}40`,
         borderRadius: 7,
@@ -31918,7 +32305,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         fontSize: 12,
         color: C.text,
         lineHeight: 1.6
-      } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontWeight: 600 } }, "Angle \u2192 "), s.lectureGestionnaire.angles)), s.santeEquipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "SANT\xC9 DE L'\xC9QUIPE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontWeight: 600 } }, t2("prep1on1.strategy.angleArrow")), s.lectureGestionnaire.angles)), s.santeEquipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.teamHealth")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: {
         display: "flex",
         gap: 6,
         alignItems: "center",
@@ -31926,7 +32313,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         borderRadius: 7,
         background: perfColor + "15",
         border: `1px solid ${perfColor}35`
-      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "PERF"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: perfColor } }, s.santeEquipe.performance)), /* @__PURE__ */ React.createElement("div", { style: {
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("prep1on1.strategy.perf")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: perfColor } }, s.santeEquipe.performance)), /* @__PURE__ */ React.createElement("div", { style: {
         display: "flex",
         gap: 6,
         alignItems: "center",
@@ -31934,12 +32321,12 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         borderRadius: 7,
         background: engColor + "15",
         border: `1px solid ${engColor}35`
-      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, "ENG"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: engColor } }, s.santeEquipe.engagement))), s.santeEquipe.dynamique && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM, lineHeight: 1.6 } }, s.santeEquipe.dynamique)), s.risqueCle && /* @__PURE__ */ React.createElement("div", { style: {
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("prep1on1.strategy.eng")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: engColor } }, s.santeEquipe.engagement))), s.santeEquipe.dynamique && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM, lineHeight: 1.6 } }, s.santeEquipe.dynamique)), s.risqueCle && /* @__PURE__ */ React.createElement("div", { style: {
         padding: "10px 12px",
         background: riskColor + "10",
         border: `1px solid ${riskColor}30`,
         borderRadius: 8
-      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: riskColor, size: 9 }, "RISQUE CL\xC9"), /* @__PURE__ */ React.createElement("div", { style: {
+      } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: riskColor, size: 9 }, t2("prep1on1.strategy.keyRisk")), /* @__PURE__ */ React.createElement("div", { style: {
         background: riskColor + "20",
         border: `1px solid ${riskColor}50`,
         borderRadius: 5,
@@ -31947,7 +32334,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         fontSize: 10,
         fontWeight: 700,
         color: riskColor
-      } }, s.risqueCle.niveau), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: riskColor } }, s.risqueCle.nature)), s.risqueCle.rationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, s.risqueCle.rationale)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, s.postureHRBP && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "POSTURE HRBP"), /* @__PURE__ */ React.createElement("div", { style: {
+      } }, s.risqueCle.niveau), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: riskColor } }, s.risqueCle.nature)), s.risqueCle.rationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, s.risqueCle.rationale)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, s.postureHRBP && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.posture")), /* @__PURE__ */ React.createElement("div", { style: {
         marginTop: 8,
         display: "flex",
         gap: 8,
@@ -31956,7 +32343,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         background: postureColor + "15",
         border: `2px solid ${postureColor}50`,
         borderRadius: 8
-      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18, flexShrink: 0 } }, { "Coach": "\u{1F3AF}", "Challenge": "\u26A1", "Directif": "\u{1F534}", "Escalader": "\u{1F6A8}" }[s.postureHRBP.mode] || "\u{1F9E0}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: postureColor } }, s.postureHRBP.mode), s.postureHRBP.justification && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5, marginTop: 2 } }, s.postureHRBP.justification)))), s.objectifRencontre && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "OBJECTIF MEETING"), /* @__PURE__ */ React.createElement("div", { style: {
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18, flexShrink: 0 } }, { "Coach": "\u{1F3AF}", "Challenge": "\u26A1", "Directif": "\u{1F534}", "Escalader": "\u{1F6A8}" }[s.postureHRBP.mode] || "\u{1F9E0}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: postureColor } }, s.postureHRBP.mode), s.postureHRBP.justification && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5, marginTop: 2 } }, s.postureHRBP.justification)))), s.objectifRencontre && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.objective")), /* @__PURE__ */ React.createElement("div", { style: {
         marginTop: 8,
         padding: "8px 12px",
         background: C.em + "10",
@@ -31965,7 +32352,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
         fontSize: 12,
         color: C.text,
         lineHeight: 1.65
-      } }, s.objectifRencontre))), s.strategieInfluence && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "STRAT\xC9GIE D'INFLUENCE"), /* @__PURE__ */ React.createElement("div", { style: {
+      } }, s.objectifRencontre))), s.strategieInfluence && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.influence")), /* @__PURE__ */ React.createElement("div", { style: {
         marginTop: 8,
         padding: "9px 12px",
         background: C.purple + "10",
@@ -31991,7 +32378,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
       fontWeight: 700,
       color: C.purple,
       marginBottom: 5
-    } }, "\u{1F504} Pr\xE9parer le prochain 1:1 avec cet output"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginBottom: 10 } }, output.nextMeetingContext ? output.nextMeetingContext : "Les risques, signaux et questions de suivi seront inject\xE9s comme contexte dans le prochain cycle."), output.nextMeetingQuestions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, output.nextMeetingQuestions.map((q, i) => /* @__PURE__ */ React.createElement(
+    } }, t2("prep1on1.cycle.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginBottom: 10 } }, output.nextMeetingContext ? output.nextMeetingContext : t2("prep1on1.cycle.fallbackBody")), output.nextMeetingQuestions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, output.nextMeetingQuestions.map((q, i) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: i,
@@ -32017,7 +32404,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
           flexShrink: 0
         }
       },
-      "\u{1F504} Nouveau cycle \u2192"
+      t2("prep1on1.cycle.cta")
     ))))))));
   }
 
