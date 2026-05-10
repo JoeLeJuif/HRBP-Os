@@ -12,6 +12,7 @@ import { MEETING_ENGINE_SP } from '../prompts/meetingEngine.js';
 import { normalizeMeetingOutput, toArray } from '../utils/meetingModel.js';
 import { generateInvestigationTitle } from './Investigation.jsx';
 import { ENGINE_MEETING_TYPES } from '../utils/engineMeetingTypes.js';
+import { useT } from '../lib/i18n.js';
 import Mono          from '../components/Mono.jsx';
 import Badge         from '../components/Badge.jsx';
 import AILoader      from '../components/AILoader.jsx';
@@ -115,15 +116,22 @@ const LEVEL_CONTEXT = {
 };
 
 const PREP_MEETING_TYPES = [
-  {value:"regular",label:"1:1 régulier"},{value:"perf",label:"Discussion de performance"},
-  {value:"org",label:"Changement organisationnel"},{value:"talent",label:"Revue de talent"},
-  {value:"concern",label:"Enjeu RH sensible"},{value:"strategic",label:"Alignement stratégique"},
+  {value:"regular",  labelKey:"prep1on1.meetingType.regular"},
+  {value:"perf",     labelKey:"prep1on1.meetingType.perf"},
+  {value:"org",      labelKey:"prep1on1.meetingType.org"},
+  {value:"talent",   labelKey:"prep1on1.meetingType.talent"},
+  {value:"concern",  labelKey:"prep1on1.meetingType.concern"},
+  {value:"strategic",labelKey:"prep1on1.meetingType.strategic"},
 ];
 const PREP_FUNCTIONS = [
-  {value:"",label:"Sélectionner…"},{value:"IT",label:"Technologies de l'information"},
-  {value:"network",label:"Planification réseau"},{value:"ops",label:"Opérations"},
-  {value:"finance",label:"Finance"},{value:"corporate",label:"Corporatif / Siège"},
-  {value:"hr",label:"Ressources humaines"},{value:"other",label:"Autre"},
+  {value:"",         labelKey:"prep1on1.function.placeholder"},
+  {value:"IT",       labelKey:"prep1on1.function.it"},
+  {value:"network",  labelKey:"prep1on1.function.network"},
+  {value:"ops",      labelKey:"prep1on1.function.ops"},
+  {value:"finance",  labelKey:"prep1on1.function.finance"},
+  {value:"corporate",labelKey:"prep1on1.function.corporate"},
+  {value:"hr",       labelKey:"prep1on1.function.hr"},
+  {value:"other",    labelKey:"prep1on1.function.other"},
 ];
 
 // ── Prep metadata per engine type (checklist + flow) ─────────────────────────
@@ -360,7 +368,7 @@ function buildInvestigationCtxBlock(inv) {
 }
 
 // ── Manager dropdown + free-text fallback ─────────────────────────────────────
-function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
+function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t }) {
   const leadersList = Object.values(data.leaders || {})
     .map(l => l.name || "")
     .filter(Boolean)
@@ -378,7 +386,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
   return (
     <div style={{marginBottom:12}}>
       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-        Nom du gestionnaire
+        {t("prep1on1.context.managerName")}
       </div>
       <select
         value={selectVal}
@@ -393,17 +401,17 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
           }
         }}
         style={{...css.select}}>
-        <option value="" style={{background:C.surfL}}>— Sélectionner un gestionnaire —</option>
+        <option value="" style={{background:C.surfL}}>{t("meetingEngine.manager.selectPh")}</option>
         {leadersList.map(n => (
           <option key={n} value={n} style={{background:C.surfL}}>{n}</option>
         ))}
-        <option value="__manual__" style={{background:C.surfL}}>Autre (saisir manuellement)</option>
+        <option value="__manual__" style={{background:C.surfL}}>{t("meetingEngine.manager.manualOption")}</option>
       </select>
       {managerManual && (
         <input
           value={ctx.managerName}
           onChange={e => setCtx(p => ({...p, managerName: e.target.value}))}
-          placeholder="ex. Marie Tremblay"
+          placeholder={t("prep1on1.context.managerNamePh")}
           style={{...css.input, marginTop:6}}
           onFocus={e => e.target.style.borderColor = C.em}
           onBlur={e => e.target.style.borderColor = C.border}
@@ -414,6 +422,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual }) {
 }
 
 export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
+  const { t } = useT();
 
   // ── State ────────────────────────────────────────────────────────────────
   const [pTab, setPTab]           = useState("context");
@@ -889,50 +898,50 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
       .then(() => { setCopied(true); setTimeout(()=>setCopied(false),2000); });
   };
 
-  // ── Static tab/category data ──────────────────────────────────────────────
+  // ── Static tab/category data (labelKey resolved via t() at render time) ──
   const PTABS = [
-    {id:"guidance", icon:"🧭", label:"Guidage",         color:C.teal},
-    {id:"context",  icon:"📋", label:"Contexte",        color:C.blue},
-    {id:"history",  icon:"🕐", label:"Historique",      color:C.purple, badge:histCount||null},
-    {id:"prep",     icon:"🎯", label:"Préparation",     color:C.em,     badge:prep?"✓":null},
-    {id:"analyse",  icon:"🎙️", label:"Analyse meeting", color:C.blue,   badge:(meetingAnalysis.transcript||meetingAnalysis.keyPoints)?"✓":null},
-    {id:"signals",  icon:"📡", label:"Signaux",         color:C.amber},
-    {id:"notes",    icon:"📝", label:"Notes",           color:C.blue},
-    {id:"output",   icon:"📊", label:"Output",          color:C.red,    badge:output?"✓":null},
+    {id:"guidance", icon:"🧭", labelKey:"prep1on1.tab.guidance", color:C.teal},
+    {id:"context",  icon:"📋", labelKey:"prep1on1.tab.context",  color:C.blue},
+    {id:"history",  icon:"🕐", labelKey:"prep1on1.tab.history",  color:C.purple, badge:histCount||null},
+    {id:"prep",     icon:"🎯", labelKey:"prep1on1.tab.prep",     color:C.em,     badge:prep?"✓":null},
+    {id:"analyse",  icon:"🎙️", labelKey:"prep1on1.tab.analyse",  color:C.blue,   badge:(meetingAnalysis.transcript||meetingAnalysis.keyPoints)?"✓":null},
+    {id:"signals",  icon:"📡", labelKey:"prep1on1.tab.signals",  color:C.amber},
+    {id:"notes",    icon:"📝", labelKey:"prep1on1.tab.notes",    color:C.blue},
+    {id:"output",   icon:"📊", labelKey:"prep1on1.tab.output",   color:C.red,    badge:output?"✓":null},
   ];
   const PREP_CATS = [
-    {key:"objectives",label:"Objectifs HRBP",       icon:"🎯",color:C.em},
-    {key:"strategic", label:"Questions stratégiques",icon:"♟", color:C.blue},
-    {key:"people",    label:"Personnes",             icon:"👥",color:C.teal},
-    {key:"org",       label:"Organisation",          icon:"🏗", color:C.amber},
-    {key:"leadership",label:"Leadership",            icon:"🧭",color:C.purple},
-    {key:"performance",label:"Performance & Talent", icon:"📈",color:C.red},
-    {key:"capacity",  label:"Capacité & Structure",  icon:"⚖️",color:C.em},
+    {key:"objectives", labelKey:"prep1on1.prepCat.objectives",  icon:"🎯", color:C.em},
+    {key:"strategic",  labelKey:"prep1on1.prepCat.strategic",   icon:"♟",  color:C.blue},
+    {key:"people",     labelKey:"prep1on1.prepCat.people",      icon:"👥", color:C.teal},
+    {key:"org",        labelKey:"prep1on1.prepCat.org",         icon:"🏗", color:C.amber},
+    {key:"leadership", labelKey:"prep1on1.prepCat.leadership",  icon:"🧭", color:C.purple},
+    {key:"performance",labelKey:"prep1on1.prepCat.performance", icon:"📈", color:C.red},
+    {key:"capacity",   labelKey:"prep1on1.prepCat.capacity",    icon:"⚖️", color:C.em},
   ];
   const SIGNAL_CATS = [
-    {key:"disengagement",label:"Désengagement",        icon:"🌡",color:C.amber},
-    {key:"burnout",      label:"Épuisement / Surcharge",icon:"🔥",color:C.red},
-    {key:"retention",    label:"Risques de rétention", icon:"✈", color:C.purple},
-    {key:"tensions",     label:"Tensions d équipe",    icon:"⚡",color:C.amber},
-    {key:"leadership",   label:"Enjeux de leadership", icon:"🧭",color:C.blue},
-    {key:"org",          label:"Enjeux organisationnels",icon:"🏗",color:C.teal},
-    {key:"succession",   label:"Succession & Capacités",icon:"🎯",color:C.em},
+    {key:"disengagement", labelKey:"prep1on1.signalCat.disengagement", icon:"🌡", color:C.amber},
+    {key:"burnout",       labelKey:"prep1on1.signalCat.burnout",       icon:"🔥", color:C.red},
+    {key:"retention",     labelKey:"prep1on1.signalCat.retention",     icon:"✈",  color:C.purple},
+    {key:"tensions",      labelKey:"prep1on1.signalCat.tensions",      icon:"⚡", color:C.amber},
+    {key:"leadership",    labelKey:"prep1on1.signalCat.leadership",    icon:"🧭", color:C.blue},
+    {key:"org",           labelKey:"prep1on1.signalCat.org",           icon:"🏗", color:C.teal},
+    {key:"succession",    labelKey:"prep1on1.signalCat.succession",    icon:"🎯", color:C.em},
   ];
   const GUIDE_CATS = [
-    {key:"positioning",label:"Me positionner",        icon:"♟",color:C.blue},
-    {key:"challenge",  label:"Challenger",            icon:"🧲",color:C.purple},
-    {key:"redirect",   label:"Rediriger vers le RH",  icon:"🔄",color:C.amber},
-    {key:"probe",      label:"Sonder pour des preuves",icon:"🔍",color:C.teal},
-    {key:"hidden_risks",label:"Risques cachés",       icon:"🎭",color:C.red},
+    {key:"positioning",  labelKey:"prep1on1.guideCat.positioning",  icon:"♟",  color:C.blue},
+    {key:"challenge",    labelKey:"prep1on1.guideCat.challenge",    icon:"🧲", color:C.purple},
+    {key:"redirect",     labelKey:"prep1on1.guideCat.redirect",     icon:"🔄", color:C.amber},
+    {key:"probe",        labelKey:"prep1on1.guideCat.probe",        icon:"🔍", color:C.teal},
+    {key:"hidden_risks", labelKey:"prep1on1.guideCat.hidden_risks", icon:"🎭", color:C.red},
   ];
   const NOTE_CATS = [
-    {key:"people",     label:"Personnes",  icon:"👥",color:C.teal},
-    {key:"performance",label:"Performance",icon:"📈",color:C.blue},
-    {key:"risks",      label:"Risques",    icon:"⚠", color:C.red},
-    {key:"org",        label:"Organisation",icon:"🏗",color:C.amber},
-    {key:"leadership", label:"Leadership", icon:"🧭",color:C.purple},
-    {key:"actions",    label:"Actions",    icon:"✅",color:C.em},
-    {key:"followups",  label:"Suivis HRBP",icon:"🔁",color:C.blue},
+    {key:"people",     labelKey:"prep1on1.noteCat.people",      icon:"👥", color:C.teal},
+    {key:"performance",labelKey:"prep1on1.noteCat.performance", icon:"📈", color:C.blue},
+    {key:"risks",      labelKey:"prep1on1.noteCat.risks",       icon:"⚠",  color:C.red},
+    {key:"org",        labelKey:"prep1on1.noteCat.org",         icon:"🏗", color:C.amber},
+    {key:"leadership", labelKey:"prep1on1.noteCat.leadership",  icon:"🧭", color:C.purple},
+    {key:"actions",    labelKey:"prep1on1.noteCat.actions",     icon:"✅", color:C.em},
+    {key:"followups",  labelKey:"prep1on1.noteCat.followups",   icon:"🔁", color:C.blue},
   ];
   const RISK_C = {Critique:C.red,Eleve:C.amber,"Élevé":C.amber,"Elevé":C.amber,Modere:C.blue,"Modéré":C.blue,"Moderé":C.blue,Faible:C.em};
   const AMPLEUR_C = {"Isole":C.blue,"Isolé":C.blue,"Recurrent":C.amber,"Récurrent":C.amber,"Systemique":C.red,"Systémique":C.red};
@@ -954,12 +963,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
   // ── FLOW STEPS ────────────────────────────────────────────────────────────
   const flowSteps = [
-    { n:"1", label:"Contexte",           done:!!ctx.managerName,       tab:"context"  },
-    { n:"2", label:"Historique",         done:histCount>0,             tab:"history"  },
-    { n:"3", label:"Génère questions",   done:!!prep,                  tab:"prep"     },
-    { n:"4", label:"Fais le meeting",    done:false },
-    { n:"5", label:"Analyse meeting",    done:!!(meetingAnalysis.transcript||meetingAnalysis.keyPoints), tab:"analyse" },
-    { n:"6", label:"Output + Archiver",  done:!!output && saved1on1,   tab:"output"   },
+    { n:"1", label:t("prep1on1.flow.context"),           done:!!ctx.managerName,       tab:"context"  },
+    { n:"2", label:t("prep1on1.flow.history"),           done:histCount>0,             tab:"history"  },
+    { n:"3", label:t("prep1on1.flow.generateQuestions"), done:!!prep,                  tab:"prep"     },
+    { n:"4", label:t("prep1on1.flow.runMeeting"),        done:false },
+    { n:"5", label:t("prep1on1.flow.analyzeMeeting"),    done:!!(meetingAnalysis.transcript||meetingAnalysis.keyPoints), tab:"analyse" },
+    { n:"6", label:t("prep1on1.flow.outputArchive"),     done:!!output && saved1on1,   tab:"output"   },
   ];
 
   // ── RENDER ────────────────────────────────────────────────────────────────
@@ -975,14 +984,14 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         {/* Header */}
         <div style={{ padding:"16px 14px 12px", borderBottom:`1px solid ${C.border}` }}>
           <div style={{ fontSize:9, fontFamily:"'DM Mono',monospace", color:C.em,
-                        letterSpacing:2, marginBottom:3 }}>MEETING ENGINE</div>
-          <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Analyse & Stratégie</div>
+                        letterSpacing:2, marginBottom:3 }}>{t("meetingEngine.sidebar.brand")}</div>
+          <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t("meetingEngine.sidebar.title")}</div>
           {ctx.managerName && (
             <div style={{ marginTop:8, padding:"6px 9px", background:C.emD+"30",
                           borderRadius:6, border:`1px solid ${C.emD}` }}>
               <div style={{ fontSize:12, color:C.em, fontWeight:700 }}>{ctx.managerName}</div>
               <div style={{ fontSize:10, color:C.textD }}>
-                {histCount > 0 ? `${histCount} meeting(s) archivé(s)` : "Nouveau gestionnaire"}
+                {histCount > 0 ? `${histCount} ${t("prep1on1.sidebar.archivedSuffix")}` : t("prep1on1.sidebar.newManager")}
               </div>
             </div>
           )}
@@ -997,7 +1006,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         {/* Flow tracker */}
         <div style={{ padding:"12px 13px", borderBottom:`1px solid ${C.border}` }}>
           <div style={{ fontSize:9, color:C.textD, fontFamily:"'DM Mono',monospace",
-                        letterSpacing:1, marginBottom:8 }}>CYCLE EN COURS</div>
+                        letterSpacing:1, marginBottom:8 }}>{t("prep1on1.sidebar.cycle")}</div>
           {flowSteps.map((s, i) => (
             <div key={i}
               onClick={() => s.tab ? setPTab(s.tab) : null}
@@ -1022,25 +1031,25 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         {/* Tab nav */}
         <nav style={{ flex:1, padding:"8px 7px", display:"flex", flexDirection:"column", gap:2,
                       overflowY:"auto" }}>
-          {PTABS.map(t => {
-            const active = pTab === t.id;
+          {PTABS.map(tab => {
+            const active = pTab === tab.id;
             return (
-              <button key={t.id} onClick={()=>setPTab(t.id)} style={{
+              <button key={tab.id} onClick={()=>setPTab(tab.id)} style={{
                 display:"flex", alignItems:"center", gap:8, padding:"8px 9px",
                 borderRadius:7, border:"none", cursor:"pointer", width:"100%",
-                background: active ? t.color+"22" : "transparent",
+                background: active ? tab.color+"22" : "transparent",
                 fontFamily:"'DM Sans',sans-serif", transition:"all .15s",
               }}>
-                <span style={{ fontSize:13 }}>{t.icon}</span>
+                <span style={{ fontSize:13 }}>{tab.icon}</span>
                 <span style={{ fontSize:12, fontWeight:active?600:400,
-                                color:active?t.color:C.textM, flex:1, textAlign:"left" }}>
-                  {t.label}
+                                color:active?tab.color:C.textM, flex:1, textAlign:"left" }}>
+                  {t(tab.labelKey)}
                 </span>
-                {t.badge && (
-                  <span style={{ background:t.color+"33", color:t.color, borderRadius:10,
+                {tab.badge && (
+                  <span style={{ background:tab.color+"33", color:tab.color, borderRadius:10,
                                   padding:"1px 6px", fontSize:9,
                                   fontFamily:"'DM Mono',monospace" }}>
-                    {t.badge}
+                    {tab.badge}
                   </span>
                 )}
               </button>
@@ -1059,24 +1068,24 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       background:C.surf, display:"flex", alignItems:"center",
                       gap:10, flexShrink:0, flexWrap:"wrap" }}>
           <span style={{ fontSize:15 }}>{activePTab?.icon}</span>
-          <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{activePTab?.label}</div>
+          <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{activePTab ? t(activePTab.labelKey) : ""}</div>
           {ctx.managerName && (
             <div style={{ fontSize:11, color:C.textD }}>
               {ctx.managerName}
-              {ctx.team ? " · " + (PREP_FUNCTIONS.find(f=>f.value===ctx.team)?.label||ctx.team) : ""}
+              {ctx.team ? " · " + (() => { const f = PREP_FUNCTIONS.find(f=>f.value===ctx.team); return f ? t(f.labelKey) : ctx.team; })() : ""}
             </div>
           )}
 
           <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
             {pTab==="prep" && (
               <>
-                {prepAI && <Badge label="✦ IA" color={C.em}/>}
-                {histCount > 0 && <Badge label={`${histCount} meetings en mémoire`} color={C.purple}/>}
+                {prepAI && <Badge label={t("prep1on1.topbar.aiBadge")} color={C.em}/>}
+                {histCount > 0 && <Badge label={`${histCount} ${t("prep1on1.topbar.memorySuffix")}`} color={C.purple}/>}
                 <button onClick={generatePrep} disabled={!ctx.managerName||prepLoading}
                   style={{ ...css.btn(C.em), padding:"6px 14px", fontSize:12,
                             opacity:!ctx.managerName?.5:1 }}>
-                  {prepLoading ? "Génération…"
-                    : histCount > 0 ? `✦ Générer avec historique` : "✦ Générer"}
+                  {prepLoading ? t("prep1on1.topbar.generating")
+                    : histCount > 0 ? t("prep1on1.topbar.generateWithHistory") : t("prep1on1.topbar.generate")}
                 </button>
               </>
             )}
@@ -1085,20 +1094,20 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 {output && (
                   <button onClick={copyOutput}
                     style={{ ...css.btn(C.blue,true), padding:"6px 12px", fontSize:11 }}>
-                    {copied ? "✓ Copié" : "📋 Copier"}
+                    {copied ? t("prep1on1.topbar.copied") : t("prep1on1.topbar.copy")}
                   </button>
                 )}
                 {output && (
                   <button onClick={save1on1} disabled={saved1on1}
                     style={{ ...css.btn(saved1on1?C.textD:C.purple,true),
                               padding:"6px 12px", fontSize:11 }}>
-                    {saved1on1 ? "✓ Archivé" : "💾 Archiver"}
+                    {saved1on1 ? t("prep1on1.topbar.archived") : t("prep1on1.topbar.archive")}
                   </button>
                 )}
                 <button onClick={generateOutput} disabled={outputLoading || needsInvestigationLink}
-                  title={needsInvestigationLink ? "Rattacher un dossier d'enquête avant de générer" : undefined}
+                  title={needsInvestigationLink ? t("meetingEngine.context.linkRequiredTip") : undefined}
                   style={{ ...css.btn(needsInvestigationLink ? C.textD : C.em), padding:"6px 14px", fontSize:12, opacity: needsInvestigationLink ? 0.6 : 1 }}>
-                  {outputLoading ? "Génération…" : "✦ Générer l'output"}
+                  {outputLoading ? t("prep1on1.topbar.generating") : t("prep1on1.topbar.generateOutput")}
                 </button>
               </>
             )}
@@ -1113,7 +1122,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
             <div>
               {/* Engine type selector — cards */}
               <div style={{...css.card, borderLeft:`3px solid ${activeEngine?.color||C.blue}`, marginBottom:14}}>
-                <Mono color={C.blue} size={9}>TYPE D'ANALYSE</Mono>
+                <Mono color={C.blue} size={9}>{t("meetingEngine.engineType.title")}</Mono>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:8, marginTop:10 }}>
                   {ENGINE_TYPES.map(t => {
                     const active = engineType === t.id;
@@ -1135,7 +1144,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 </div>
                 {activeEngine?.legal && (
                   <div style={{ marginTop:10, fontSize:11, color:C.red, fontStyle:"italic" }}>
-                    ⚖ Le cadre juridique provincial sera injecté automatiquement dans l'analyse.
+                    {t("meetingEngine.engineType.legalWarning")}
                   </div>
                 )}
               </div>
@@ -1149,12 +1158,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 return (
                   <div style={{ ...css.card, borderLeft:`3px solid ${INV_RED}`, marginBottom:14 }}>
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
-                      <Mono color={INV_RED} size={9}>DOSSIER D'ENQUÊTE {linkedInv ? "· LIÉ" : "· REQUIS"}</Mono>
+                      <Mono color={INV_RED} size={9}>{linkedInv ? t("meetingEngine.inv.titleLinked") : t("meetingEngine.inv.titleRequired")}</Mono>
                       {linkedInv && (
                         <button onClick={() => setLinkedInvestigationId(null)}
                           style={{ background:"transparent", border:`1px solid ${C.border}`, color:C.textM,
                             borderRadius:6, padding:"3px 8px", fontSize:10, cursor:"pointer" }}>
-                          Détacher
+                          {t("meetingEngine.inv.detach")}
                         </button>
                       )}
                     </div>
@@ -1167,14 +1176,14 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                           <span style={{ marginLeft:8, fontSize:10, padding:"2px 6px", borderRadius:4,
                             background:C.surfLL, border:`1px solid ${C.border}`, color:C.textM,
                             fontFamily:"'DM Mono',monospace", letterSpacing:0.5 }}>
-                            BROUILLON
+                            {t("meetingEngine.inv.draftBadge")}
                           </span>
                         )}
                       </div>
                     ) : (
                       <div style={{ marginTop:10 }}>
                         <div style={{ fontSize:11, color:C.textM, marginBottom:10, lineHeight:1.5 }}>
-                          Un meeting d'enquête doit toujours appartenir à un dossier. Rattache-le à un dossier existant, ou ouvre-en un nouveau (brouillon — enrichissable ensuite depuis le module Enquête).
+                          {t("meetingEngine.inv.body")}
                         </div>
                         <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
                           <select value=""
@@ -1184,19 +1193,19 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                               background:C.surfL, color:C.text, border:`1px solid ${C.border}`,
                               borderRadius:7, fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
                             <option value="">
-                              {invs.length === 0 ? "Aucun dossier disponible" : "— Sélectionner un dossier existant —"}
+                              {invs.length === 0 ? t("meetingEngine.inv.noFiles") : t("meetingEngine.inv.selectExisting")}
                             </option>
                             {invs.slice().reverse().map(inv => (
                               <option key={inv.id} value={inv.id}>
-                                {(inv.caseId || inv.id?.toString().slice(-6) || "?")} — {generateInvestigationTitle(inv)}{inv.status === "draft" ? " (brouillon)" : ""}
+                                {(inv.caseId || inv.id?.toString().slice(-6) || "?")} — {generateInvestigationTitle(inv)}{inv.status === "draft" ? t("meetingEngine.inv.draftSuffix") : ""}
                               </option>
                             ))}
                           </select>
-                          <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>OU</span>
+                          <span style={{ fontSize:10, color:C.textD, fontFamily:"'DM Mono',monospace" }}>{t("meetingEngine.inv.or")}</span>
                           <button onClick={createDraftInvestigation}
-                            title="Crée un dossier minimal rattaché immédiatement. Les sections IA pourront être générées plus tard dans le module Enquête."
+                            title={t("meetingEngine.inv.createTooltip")}
                             style={{ ...css.btn(INV_RED, true), padding:"8px 12px", fontSize:11 }}>
-                            + Créer un dossier
+                            {t("meetingEngine.inv.create")}
                           </button>
                         </div>
                       </div>
@@ -1207,15 +1216,15 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
                 <div style={{...css.card}}>
-                  <Mono color={C.blue} size={9}>IDENTIFICATION</Mono>
+                  <Mono color={C.blue} size={9}>{t("prep1on1.context.identification")}</Mono>
                   <div style={{marginTop:10}}>
                     {/* ── Manager dropdown + fallback libre ── */}
                     <ManagerField data={data} ctx={ctx} setCtx={setCtx}
-                      managerManual={managerManual} setManagerManual={setManagerManual}/>
+                      managerManual={managerManual} setManagerManual={setManagerManual} t={t}/>
                     {/* Date field */}
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Date de la rencontre
+                        {t("prep1on1.context.meetingDate")}
                       </div>
                       <input value={ctx.date}
                         onChange={e=>setCtx(p=>({...p,date:e.target.value}))}
@@ -1225,50 +1234,50 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                     </div>
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Niveau
+                        {t("meetingEngine.context.level")}
                       </div>
                       <select value={niveau}
                         onChange={e=>setNiveau(e.target.value)}
                         style={{...css.select}}>
-                        <option value="employe" style={{background:C.surfL}}>Employé</option>
-                        <option value="gestionnaire" style={{background:C.surfL}}>Gestionnaire</option>
-                        <option value="directeur" style={{background:C.surfL}}>Directeur</option>
-                        <option value="vp" style={{background:C.surfL}}>VP</option>
-                        <option value="executif" style={{background:C.surfL}}>Exécutif</option>
-                        <option value="hrbp_team" style={{background:C.surfL}}>HRBP Team</option>
-                        <option value="ta_team" style={{background:C.surfL}}>TA Team</option>
-                        <option value="autres" style={{background:C.surfL}}>Autres</option>
+                        <option value="employe" style={{background:C.surfL}}>{t("leader.level.employe")}</option>
+                        <option value="gestionnaire" style={{background:C.surfL}}>{t("leader.level.gestionnaire")}</option>
+                        <option value="directeur" style={{background:C.surfL}}>{t("leader.level.directeur")}</option>
+                        <option value="vp" style={{background:C.surfL}}>{t("leader.level.vp")}</option>
+                        <option value="executif" style={{background:C.surfL}}>{t("leader.level.executif")}</option>
+                        <option value="hrbp_team" style={{background:C.surfL}}>{t("leader.level.hrbp_team")}</option>
+                        <option value="ta_team" style={{background:C.surfL}}>{t("leader.level.ta_team")}</option>
+                        <option value="autres" style={{background:C.surfL}}>{t("leader.level.autres")}</option>
                       </select>
                     </div>
                     <div style={{marginBottom:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Équipe / Fonction
+                        {t("prep1on1.context.team")}
                       </div>
                       <select value={ctx.team}
                         onChange={e=>setCtx(p=>({...p,team:e.target.value}))}
                         style={{...css.select}}>
                         {PREP_FUNCTIONS.map(o =>
                           <option key={o.value} value={o.value}
-                            style={{background:C.surfL}}>{o.label}</option>
+                            style={{background:C.surfL}}>{t(o.labelKey)}</option>
                         )}
                       </select>
                     </div>
                     <div>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Type de rencontre
+                        {t("prep1on1.context.meetingType")}
                       </div>
                       <select value={ctx.meetingType}
                         onChange={e=>setCtx(p=>({...p,meetingType:e.target.value}))}
                         style={{...css.select}}>
                         {PREP_MEETING_TYPES.map(o =>
                           <option key={o.value} value={o.value}
-                            style={{background:C.surfL}}>{o.label}</option>
+                            style={{background:C.surfL}}>{t(o.labelKey)}</option>
                         )}
                       </select>
                     </div>
                     <div style={{marginTop:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        Province
+                        {t("prep1on1.context.province")}
                       </div>
                       <ProvinceSelect
                         value={ctx.province||data.profile?.defaultProvince||"QC"}
@@ -1279,12 +1288,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 </div>
 
                 <div style={{...css.card}}>
-                  <Mono color={C.em} size={9}>INTENTION STRATÉGIQUE</Mono>
+                  <Mono color={C.em} size={9}>{t("prep1on1.context.intent")}</Mono>
                   <div style={{marginTop:10}}>
-                    {[["Objectif principal","purpose",
-                        "ex. Faire le point sur la rétention suite aux changements…",4],
-                      ["Contexte / notes de fond","background",
-                        "ex. Dernier 1:1 il y a 3 semaines — conflit inter-équipes…",5]
+                    {[[t("prep1on1.context.purpose"),"purpose",
+                        t("prep1on1.context.purposePh"),4],
+                      [t("prep1on1.context.background"),"background",
+                        t("prep1on1.context.backgroundPh"),5]
                     ].map(([label,key,ph,rows]) => (
                       <div key={key} style={{marginBottom:12}}>
                         <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
@@ -1302,11 +1311,11 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
               </div>
 
               <div style={{...css.card, borderLeft:`3px solid ${C.amber}`}}>
-                <Mono color={C.amber} size={9}>SIGNAUX CONNUS AVANT LA RENCONTRE</Mono>
+                <Mono color={C.amber} size={9}>{t("prep1on1.context.knownSignals")}</Mono>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:10}}>
-                  {[["Dossiers actifs","activeCases","ex. PIP en cours, plainte déposée…",3],
-                    ["Données récentes","recentData","ex. 2 départs Q4, taux abs en hausse…",3],
-                    ["Tensions / alertes","alerts","ex. Tensions avec l équipe de Morgan…",3]
+                  {[[t("prep1on1.context.activeCases"),"activeCases",t("prep1on1.context.activeCasesPh"),3],
+                    [t("prep1on1.context.recentData"),"recentData",t("prep1on1.context.recentDataPh"),3],
+                    [t("prep1on1.context.alerts"),"alerts",t("prep1on1.context.alertsPh"),3]
                   ].map(([label,key,ph,rows]) => (
                     <div key={key}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>{label}</div>
@@ -1327,12 +1336,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                               border:`1px solid ${C.purple}40`,borderRadius:8,
                               display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <span style={{fontSize:12,color:C.purple}}>
-                    🕐 <strong>{histCount} meeting(s)</strong> trouvé(s) pour{" "}
+                    🕐 <strong>{histCount} {t("prep1on1.context.banner.foundFor")}</strong>{" "}
                     <strong>{ctx.managerName}</strong>
                   </span>
                   <button onClick={()=>setPTab("history")}
                     style={{...css.btn(C.purple,true),padding:"5px 12px",fontSize:11}}>
-                    Voir l'historique →
+                    {t("prep1on1.context.banner.viewHistory")}
                   </button>
                 </div>
               )}
@@ -1341,8 +1350,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                               background:C.emD+"20",border:`1px solid ${C.emD}`,
                               borderRadius:8}}>
                   <span style={{fontSize:11,color:C.em}}>
-                    🆕 Premier 1:1 avec <strong>{ctx.managerName}</strong> —
-                    les questions seront génériques. À chaque cycle, l'historique s'enrichit.
+                    🆕 {t("prep1on1.context.banner.firstWith")} <strong>{ctx.managerName}</strong> {t("prep1on1.context.banner.firstNote")}
                   </span>
                 </div>
               )}
@@ -1356,31 +1364,31 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 <div style={{background:C.surfL,border:`2px dashed ${C.border}`,
                               borderRadius:12,padding:"48px 24px",textAlign:"center"}}>
                   <div style={{fontSize:36,marginBottom:12}}>🕐</div>
-                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:8}}>Aucun historique</div>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:8}}>{t("prep1on1.history.empty.title")}</div>
                   <div style={{fontSize:12,color:C.textD,maxWidth:360,margin:"0 auto",marginBottom:16}}>
                     {ctx.managerName
-                      ? `Aucun transcript analysé pour "${ctx.managerName}". Chaque meeting analysé dans Meetings Hub alimentera automatiquement cet historique.`
-                      : "Remplis le nom du gestionnaire dans Contexte pour voir son historique."}
+                      ? `${t("meetingEngine.history.empty.bodyWith")} "${ctx.managerName}"${t("meetingEngine.history.empty.bodyWithEnd")}`
+                      : t("prep1on1.history.empty.bodyNoMgr")}
                   </div>
                 </div>
               ) : (
                 <div>
                   <div style={{marginBottom:16}}>
-                    <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>Historique — {ctx.managerName}</div>
-                    <div style={{fontSize:12,color:C.textD}}>{histCount} transcript(s) analysé(s) · Les 3 plus récents alimentent la génération.</div>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>{t("prep1on1.history.heading")} {ctx.managerName}</div>
+                    <div style={{fontSize:12,color:C.textD}}>{histCount} {t("meetingEngine.history.subtitleA")}</div>
                   </div>
 
                   {lastAnalysis && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.em}`,marginBottom:14}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                        <Mono color={C.em} size={9}>DERNIER MEETING — {lastMeeting.savedAt}</Mono>
+                        <Mono color={C.em} size={9}>{t("prep1on1.history.lastMeeting")} {lastMeeting.savedAt}</Mono>
                         <RiskBadge level={lastAnalysis.overallRisk||"Faible"}/>
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:12}}>{lastAnalysis.meetingTitle}</div>
 
                       {toArray(lastAnalysis.risks).length > 0 && (
                         <div style={{marginBottom:12}}>
-                          <Mono color={C.red} size={8}>RISQUES IDENTIFIÉS</Mono>
+                          <Mono color={C.red} size={8}>{t("prep1on1.history.risksIdentified")}</Mono>
                           {toArray(lastAnalysis.risks).slice(0,3).map((r,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:7,padding:"7px 10px",background:C.red+"10",borderRadius:7}}>
                               <span style={{color:C.red,fontFamily:"'DM Mono',monospace",fontSize:10,flexShrink:0,marginTop:2}}>{String(i+1).padStart(2,"0")}</span>
@@ -1392,7 +1400,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                       {toArray(lastAnalysis.actions).length > 0 && (
                         <div style={{marginBottom:12}}>
-                          <Mono color={C.amber} size={8}>ACTIONS — À VÉRIFIER</Mono>
+                          <Mono color={C.amber} size={8}>{t("meetingEngine.history.actionsToCheck")}</Mono>
                           {toArray(lastAnalysis.actions).slice(0,4).map((a,i) => (
                             <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginTop:6,padding:"7px 10px",background:C.amber+"10",borderRadius:7}}>
                               <span style={{fontSize:12,color:C.textM,flex:1}}>{a.action||a}</span>
@@ -1405,7 +1413,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                       {toArray(lastAnalysis.questions).length > 0 && (
                         <div>
-                          <Mono color={C.blue} size={8}>QUESTIONS DU DERNIER MEETING</Mono>
+                          <Mono color={C.blue} size={8}>{t("meetingEngine.history.questionsLast")}</Mono>
                           {toArray(lastAnalysis.questions).slice(0,3).map((q,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginTop:6}}>
                               <span style={{color:C.blue,fontFamily:"'DM Mono',monospace",fontSize:10,flexShrink:0,marginTop:2}}>Q{i+1}</span>
@@ -1417,7 +1425,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                     </div>
                   )}
 
-                  <Mono color={C.textD} size={9}>TOUS LES MEETINGS ({histCount})</Mono>
+                  <Mono color={C.textD} size={9}>{t("prep1on1.history.allMeetings")} ({histCount})</Mono>
                   <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:7}}>
                     {managerHistory.map((m,i) => {
                       const a = m.analysis || {};
@@ -1428,7 +1436,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                           <button onClick={()=>setHistExp(p=>({...p,[i]:!p[i]}))}
                             style={{width:"100%",background:"none",border:"none",padding:"11px 13px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                             <div style={{width:7,height:7,borderRadius:"50%",background:r.color,flexShrink:0}}/>
-                            <span style={{fontSize:13,color:C.text,flex:1,textAlign:"left",fontWeight:500}}>{a.meetingTitle||"Meeting"}</span>
+                            <span style={{fontSize:13,color:C.text,flex:1,textAlign:"left",fontWeight:500}}>{a.meetingTitle||t("leader.bloc.history.fallback.meeting")}</span>
                             <RiskBadge level={a.overallRisk||"Faible"}/>
                             <Mono color={C.textD} size={8}>{m.savedAt}</Mono>
                             <span style={{color:C.textD,fontSize:12,marginLeft:4}}>{open?"▲":"▼"}</span>
@@ -1450,7 +1458,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                   <div style={{marginTop:14,display:"flex",gap:10}}>
                     <button onClick={()=>setPTab("prep")} style={{...css.btn(C.em),flex:1}}>
-                      🎯 Générer les questions avec cet historique →
+                      {t("prep1on1.history.generateWithCta")}
                     </button>
                   </div>
                 </div>
@@ -1464,34 +1472,34 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
               {!prep && !prepLoading && (
                 <div style={{background:C.surfL,border:`2px dashed ${C.border}`,borderRadius:12,padding:"32px 24px",textAlign:"center",marginBottom:16}}>
                   <div style={{fontSize:32,marginBottom:10}}>🎯</div>
-                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>Questions non générées</div>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>{t("prep1on1.prep.empty.title")}</div>
                   <div style={{fontSize:12,color:C.textD,marginBottom:16,maxWidth:420,margin:"0 auto 16px"}}>
                     {histCount > 0
-                      ? `L'IA va s'appuyer sur les ${histCount} meeting(s) avec ${ctx.managerName||"ce gestionnaire"} pour personnaliser les questions.`
-                      : "Remplis le contexte puis génère des questions stratégiques."}
+                      ? t("meetingEngine.prep.empty.bodyHist").replace("{n}", histCount).replace("{name}", ctx.managerName||t("meetingEngine.prep.thisManager"))
+                      : t("meetingEngine.prep.empty.bodyNoHist")}
                   </div>
                   <button onClick={generatePrep} disabled={!ctx.managerName}
                     style={{...css.btn(!ctx.managerName?C.textD:C.em),opacity:!ctx.managerName?.5:1}}>
-                    {histCount > 0 ? `✦ Générer avec l'historique (${histCount} meetings)` : "✦ Générer les questions"}
+                    {histCount > 0 ? `${t("prep1on1.prep.empty.btnHistA")}${histCount} ${t("prep1on1.prep.empty.btnHistB")}` : t("prep1on1.prep.empty.btnNoHist")}
                   </button>
                 </div>
               )}
 
-              {prepLoading && <AILoader label="Génération des questions…"/>}
+              {prepLoading && <AILoader label={t("prep1on1.prep.loader")}/>}
 
               {prep && (
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   {prep.overallPriority && <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                    <Mono color={C.textD} size={9}>PRIORITÉ GLOBALE</Mono>
+                    <Mono color={C.textD} size={9}>{t("prep1on1.prep.overallPriority")}</Mono>
                     <Badge label={normPrio(prep.overallPriority)} color={{"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(prep.overallPriority)]||C.textM}/>
                   </div>}
 
                   {prep.objective && <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                    <Mono color={C.em} size={9}>🎯 OBJECTIF DU 1:1</Mono>
+                    <Mono color={C.em} size={9}>{t("prep1on1.prep.objective")}</Mono>
                     <div style={{marginTop:10}}>
-                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>But</div>
+                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.purpose")}</div>
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65,marginBottom:10}}>{prep.objective.purpose}</div>
-                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Résultat attendu</div>
+                      <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.expectedOutcome")}</div>
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.objective.expectedOutcome}</div>
                     </div>
                   </div>}
@@ -1502,7 +1510,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                     if (!pm) return null;
                     return <>
                       {pm.checklist?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
-                        <Mono color={C.teal} size={9}>✓ CHECKLIST DE PRÉPARATION</Mono>
+                        <Mono color={C.teal} size={9}>{t("meetingEngine.output.checklist")}</Mono>
                         <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:5}}>
                           {pm.checklist.map((item,i) => (
                             <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
@@ -1513,7 +1521,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                         </div>
                       </div>}
                       {pm.flow?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
-                        <Mono color={C.blue} size={9}>🗺 DÉROULEMENT SUGGÉRÉ</Mono>
+                        <Mono color={C.blue} size={9}>{t("meetingEngine.output.flow")}</Mono>
                         <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:6}}>
                           {pm.flow.map((step,i) => (
                             <span key={i} style={{background:C.blue+"14",border:`1px solid ${C.blue}30`,
@@ -1527,7 +1535,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   })()}
 
                   {prep.priorityIssues?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
-                    <Mono color={C.red} size={9}>⚠ ENJEUX PRIORITAIRES</Mono>
+                    <Mono color={C.red} size={9}>{t("prep1on1.prep.priorityIssues")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:10}}>
                       {prep.priorityIssues.map((issue,i) => {
                         const rc = {"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(issue.riskLevel)]||C.textM;
@@ -1543,12 +1551,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   </div>}
 
                   {prep.context && <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
-                    <Mono color={C.blue} size={9}>📋 CONTEXTE</Mono>
+                    <Mono color={C.blue} size={9}>{t("prep1on1.prep.context")}</Mono>
                     <div style={{marginTop:10}}>
                       <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.context.summary}</div>
-                      {prep.context.relevantHistory && prep.context.relevantHistory!=="Non disponible" && <div style={{marginTop:10,padding:"7px 10px",background:C.blue+"0D",borderRadius:7,fontSize:12,color:C.textM,lineHeight:1.55}}><span style={{color:C.blue,fontWeight:600}}>Historique → </span>{prep.context.relevantHistory}</div>}
+                      {prep.context.relevantHistory && prep.context.relevantHistory!=="Non disponible" && <div style={{marginTop:10,padding:"7px 10px",background:C.blue+"0D",borderRadius:7,fontSize:12,color:C.textM,lineHeight:1.55}}><span style={{color:C.blue,fontWeight:600}}>{t("prep1on1.prep.historyArrow")}</span>{prep.context.relevantHistory}</div>}
                       {prep.context.keySignals?.length > 0 && <div style={{marginTop:10}}>
-                        <Mono color={C.blue} size={8}>Signaux à garder en tête</Mono>
+                        <Mono color={C.blue} size={8}>{t("prep1on1.prep.keySignals")}</Mono>
                         {prep.context.keySignals.map((sig,i) => <div key={i} style={{display:"flex",gap:8,marginTop:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.blue,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{sig}</span></div>)}
                       </div>}
                     </div>
@@ -1557,20 +1565,20 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {prep.followUpFromLast1on1 && (prep.followUpFromLast1on1.evolutions?.length>0||prep.followUpFromLast1on1.stagnations?.length>0||prep.followUpFromLast1on1.newRisks?.length>0) && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.purple}`}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                        <Mono color={C.purple} size={9}>🔁 SUIVI DEPUIS LE DERNIER 1:1</Mono>
-                        <Badge label="Basé sur l'historique" color={C.purple}/>
+                        <Mono color={C.purple} size={9}>{t("prep1on1.prep.followUp")}</Mono>
+                        <Badge label={t("prep1on1.prep.basedOnHistory")} color={C.purple}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         {prep.followUpFromLast1on1.evolutions?.length > 0 && <div>
-                          <Mono color={C.em} size={8}>Évolutions</Mono>
+                          <Mono color={C.em} size={8}>{t("prep1on1.prep.evolutions")}</Mono>
                           {prep.followUpFromLast1on1.evolutions.map((e,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.em,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{e}</span></div>)}
                         </div>}
                         {prep.followUpFromLast1on1.stagnations?.length > 0 && <div>
-                          <Mono color={C.amber} size={8}>Stagnations</Mono>
+                          <Mono color={C.amber} size={8}>{t("prep1on1.prep.stagnations")}</Mono>
                           {prep.followUpFromLast1on1.stagnations.map((s,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.amber,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{s}</span></div>)}
                         </div>}
                         {prep.followUpFromLast1on1.newRisks?.length > 0 && <div>
-                          <Mono color={C.red} size={8}>Nouveaux risques</Mono>
+                          <Mono color={C.red} size={8}>{t("prep1on1.prep.newRisks")}</Mono>
                           {prep.followUpFromLast1on1.newRisks.map((r,i) => <div key={i} style={{display:"flex",gap:8,marginTop:5}}><div style={{width:4,height:4,borderRadius:"50%",background:C.red,marginTop:7,flexShrink:0}}/><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{r}</span></div>)}
                         </div>}
                       </div>
@@ -1578,24 +1586,24 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   )}
 
                   {prep.recommendedApproach && <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
-                    <Mono color={C.amber} size={9}>🧭 APPROCHE RECOMMANDÉE</Mono>
+                    <Mono color={C.amber} size={9}>{t("prep1on1.prep.approach")}</Mono>
                     <div style={{marginTop:10}}>
-                      <div style={{marginBottom:10}}><div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Comment aborder</div><div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.how}</div></div>
-                      <div style={{marginBottom:prep.recommendedApproach.pitfalls?.length>0?10:0}}><div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>Ton à adopter</div><div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.tone}</div></div>
+                      <div style={{marginBottom:10}}><div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.howToApproach")}</div><div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.how}</div></div>
+                      <div style={{marginBottom:prep.recommendedApproach.pitfalls?.length>0?10:0}}><div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:3}}>{t("prep1on1.prep.tone")}</div><div style={{fontSize:13,color:C.text,lineHeight:1.65}}>{prep.recommendedApproach.tone}</div></div>
                       {prep.recommendedApproach.pitfalls?.length > 0 && <div>
-                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:6}}>Pièges à éviter</div>
+                        <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:6}}>{t("prep1on1.prep.pitfalls")}</div>
                         {prep.recommendedApproach.pitfalls.map((p,i) => <div key={i} style={{display:"flex",gap:8,marginBottom:5}}><span style={{color:C.amber,fontSize:11,flexShrink:0,marginTop:2}}>⚠</span><span style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{p}</span></div>)}
                       </div>}
                     </div>
                   </div>}
 
                   {prep.suggestedPhrasing?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
-                    <Mono color={C.teal} size={9}>💬 PHRASES SUGGÉRÉES</Mono>
+                    <Mono color={C.teal} size={9}>{t("prep1on1.prep.phrasing")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                       {prep.suggestedPhrasing.map((ph,i) => {
                         const pc = {"Ouverture":C.em,"Recadrage":C.amber,"Confrontation":C.amber,"Suivi":C.blue}[ph.type]||C.teal;
                         return <div key={i} style={{borderRadius:8,border:`1px solid ${pc}28`,overflow:"hidden"}}>
-                          <div style={{background:pc+"18",borderLeft:`3px solid ${pc}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:8}}><Badge label={ph.type||"Script"} color={pc} size={10}/></div>
+                          <div style={{background:pc+"18",borderLeft:`3px solid ${pc}`,padding:"6px 12px",display:"flex",alignItems:"center",gap:8}}><Badge label={ph.type||t("prep1on1.prep.phrasing.script")} color={pc} size={10}/></div>
                           <div style={{padding:"10px 13px",background:C.surfL,borderLeft:`3px solid ${pc}`}}><div style={{fontSize:13,color:C.text,lineHeight:1.7,fontStyle:"italic"}}>"{ph.text||ph}"</div></div>
                         </div>;
                       })}
@@ -1603,7 +1611,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   </div>}
 
                   {prep.recommendedActions?.length > 0 && <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                    <Mono color={C.em} size={9}>✅ ACTIONS RECOMMANDÉES</Mono>
+                    <Mono color={C.em} size={9}>{t("prep1on1.prep.actions")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
                       {prep.recommendedActions.map((a,i) => {
                         const ac = {"Faible":C.em,"Modéré":C.amber,"Élevé":C.red}[normPrio(a.priority)]||C.textM;
@@ -1621,7 +1629,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
               {prep && (
                 <div style={{marginTop:14,padding:"11px 14px",background:C.em+"10",border:`1px solid ${C.em}33`,borderRadius:8}}>
                   <span style={{fontSize:12,color:C.em}}>
-                    ✅ Plan d'intervention prêt. Fais ton meeting, puis reviens dans l'onglet Analyse meeting.
+                    {t("meetingEngine.prep.readyBanner")}
                   </span>
                 </div>
               )}
@@ -1639,7 +1647,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       style={{width:"100%",background:"none",border:"none",padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                       <div style={{display:"flex",alignItems:"center",gap:9}}>
                         <span style={{fontSize:15}}>{cat.icon}</span>
-                        <span style={{fontSize:13,fontWeight:600,color:C.text}}>{cat.label}</span>
+                        <span style={{fontSize:13,fontWeight:600,color:C.text}}>{t(cat.labelKey)}</span>
                       </div>
                       <span style={{color:cat.color,fontSize:14,fontWeight:700}}>{sigExp[cat.key]?"−":"+"}</span>
                     </button>
@@ -1658,13 +1666,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
               </div>
 
               <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                <Mono color={C.em} size={9}>GRILLE D'OBSERVATION — PENDANT LA RENCONTRE</Mono>
+                <Mono color={C.em} size={9}>{t("prep1on1.signals.observation")}</Mono>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginTop:12}}>
                   {[
-                    {label:"Énergie générale",  values:["Haute","Normale","Basse","Épuisée"]},
-                    {label:"Ouverture",          values:["Très ouverte","Normale","Réservée","Défensive"]},
-                    {label:"Clarté / équipe",    values:["Excellente","Bonne","Partielle","Floue"]},
-                    {label:"Alerte globale",     values:["Aucune","Légère","Modérée","Élevée"]},
+                    {label:t("prep1on1.signals.obs.energy"),   values:[t("prep1on1.signals.energy.high"),t("prep1on1.signals.energy.normal"),t("prep1on1.signals.energy.low"),t("prep1on1.signals.energy.exhausted")]},
+                    {label:t("prep1on1.signals.obs.openness"), values:[t("prep1on1.signals.openness.veryOpen"),t("prep1on1.signals.openness.normal"),t("prep1on1.signals.openness.reserved"),t("prep1on1.signals.openness.defensive")]},
+                    {label:t("prep1on1.signals.obs.clarity"),  values:[t("prep1on1.signals.clarity.excellent"),t("prep1on1.signals.clarity.good"),t("prep1on1.signals.clarity.partial"),t("prep1on1.signals.clarity.unclear")]},
+                    {label:t("prep1on1.signals.obs.alert"),    values:[t("prep1on1.signals.alert.none"),t("prep1on1.signals.alert.light"),t("prep1on1.signals.alert.moderate"),t("prep1on1.signals.alert.high")]},
                   ].map((obs,i) => (
                     <PrepObsSelector key={i} label={obs.label} values={obs.values}/>
                   ))}
@@ -1680,7 +1688,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                 <div key={cat.key} style={{...css.card,borderLeft:`3px solid ${cat.color}`}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                     <span style={{fontSize:15}}>{cat.icon}</span>
-                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{cat.label}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{t(cat.labelKey)}</div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     {GUIDANCE_DB[cat.key].map((tip,i) => (
@@ -1701,12 +1709,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
               <div style={{...css.card,borderLeft:`3px solid ${C.blue}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                   <span style={{fontSize:13}}>🎙️</span>
-                  <Mono color={C.blue} size={9}>TRANSCRIPT / NOTES DU MEETING</Mono>
+                  <Mono color={C.blue} size={9}>{t("prep1on1.analyse.transcript")}</Mono>
                 </div>
                 <textarea
                   value={meetingAnalysis.transcript}
                   onChange={e=>setMeetingAnalysis(p=>({...p,transcript:e.target.value}))}
-                  placeholder="Colle ici le transcript ou les notes du meeting avec ce gestionnaire..."
+                  placeholder={t("prep1on1.analyse.transcriptPh")}
                   rows={8} style={{...css.textarea,fontSize:12}}
                   onFocus={e=>e.target.style.borderColor=C.blue}
                   onBlur={e=>e.target.style.borderColor=C.border}/>
@@ -1714,19 +1722,19 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
               <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                   <span style={{fontSize:13}}>⭐</span>
-                  <Mono color={C.amber} size={9}>POINTS CLÉS OBSERVÉS (optionnel)</Mono>
+                  <Mono color={C.amber} size={9}>{t("prep1on1.analyse.keyPoints")}</Mono>
                 </div>
                 <textarea
                   value={meetingAnalysis.keyPoints}
                   onChange={e=>setMeetingAnalysis(p=>({...p,keyPoints:e.target.value}))}
-                  placeholder="Points saillants, tensions, signaux observés pendant la rencontre..."
+                  placeholder={t("prep1on1.analyse.keyPointsPh")}
                   rows={4} style={{...css.textarea,fontSize:12}}
                   onFocus={e=>e.target.style.borderColor=C.amber}
                   onBlur={e=>e.target.style.borderColor=C.border}/>
               </div>
               <div style={{padding:"10px 14px",background:C.blue+"10",border:`1px solid ${C.blue}33`,borderRadius:8}}>
                 <span style={{fontSize:11,color:C.blue}}>
-                  💡 Ces données seront injectées dans le prompt IA lors de la génération de l'Output.
+                  {t("prep1on1.analyse.injectedNote")}
                 </span>
               </div>
             </div>
@@ -1736,24 +1744,27 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
           {pTab==="notes" && (
             <div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                {NOTE_CATS.map(cat => (
+                {NOTE_CATS.map(cat => {
+                  const catLabel = t(cat.labelKey);
+                  return (
                   <div key={cat.key} style={{...css.card,borderLeft:`3px solid ${cat.color}`}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                       <span style={{fontSize:13}}>{cat.icon}</span>
-                      <Mono color={cat.color} size={9}>{cat.label}</Mono>
+                      <Mono color={cat.color} size={9}>{catLabel}</Mono>
                     </div>
                     <textarea value={notes[cat.key]||""}
                       onChange={e=>setNotes(p=>({...p,[cat.key]:e.target.value}))}
-                      placeholder={`Notes sur ${cat.label.toLowerCase()}…`}
+                      placeholder={`${t("prep1on1.notes.placeholderPrefix")} ${catLabel.toLowerCase()}…`}
                       rows={4} style={{...css.textarea,fontSize:12}}
                       onFocus={e=>e.target.style.borderColor=cat.color}
                       onBlur={e=>e.target.style.borderColor=C.border}/>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div style={{marginTop:12,padding:"10px 14px",background:C.teal+"10",border:`1px solid ${C.teal}33`,borderRadius:8}}>
                 <span style={{fontSize:11,color:C.teal}}>
-                  💾 Ces notes alimentent directement l'output. Sois précis — l'IA s'appuie sur ce contenu.
+                  {t("meetingEngine.notes.helper")}
                 </span>
               </div>
             </div>
@@ -1762,21 +1773,21 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
           {/* ════════════════ OUTPUT ════════════════ */}
           {pTab==="output" && (
             <div>
-              {outputLoading && <AILoader label="Génération de l'analyse complète…"/>}
+              {outputLoading && <AILoader label={t("meetingEngine.output.loaderFull")}/>}
 
               {!output && !outputLoading && (
                 <div style={{background:C.surfL,border:`2px dashed ${C.border}`,borderRadius:12,padding:"48px 24px",textAlign:"center"}}>
                   <div style={{fontSize:36,marginBottom:12}}>📊</div>
-                  <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>Aucun output généré</div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>{t("prep1on1.output.empty.title")}</div>
                   <div style={{fontSize:12,color:C.textD,maxWidth:400,margin:"0 auto 16px"}}>
                     {needsInvestigationLink
-                      ? "Ce meeting d'enquête doit être rattaché à un dossier avant d'être analysé. Retourne à l'onglet Contexte."
-                      : "Complète les notes et/ou le transcript, puis génère l'analyse enrichie."}
+                      ? t("meetingEngine.output.empty.bodyBlocked")
+                      : t("meetingEngine.output.empty.body")}
                   </div>
                   <button onClick={generateOutput} disabled={needsInvestigationLink}
-                    title={needsInvestigationLink ? "Rattacher un dossier d'enquête avant de générer" : undefined}
+                    title={needsInvestigationLink ? t("meetingEngine.context.linkRequiredTip") : undefined}
                     style={{...css.btn(needsInvestigationLink ? C.textD : C.em), opacity: needsInvestigationLink ? 0.6 : 1}}>
-                    ✦ Générer l'output
+                    {t("prep1on1.topbar.generateOutput")}
                   </button>
                 </div>
               )}
@@ -1788,8 +1799,8 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12}}>
                     <div style={{...css.card,borderLeft:`3px solid ${RISK_C[output.overallRisk]||C.em}`}}>
                       {output.meetingTitle && <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>{output.meetingTitle}</div>}
-                      {output.director && <div style={{fontSize:11,color:C.textD,marginBottom:8}}>Gestionnaire : {output.director}</div>}
-                      <Mono color={C.em} size={9}>RÉSUMÉ</Mono>
+                      {output.director && <div style={{fontSize:11,color:C.textD,marginBottom:8}}>{t("meetingEngine.output.managerLabel")} {output.director}</div>}
+                      <Mono color={C.em} size={9}>{t("meetingEngine.output.summaryHeader")}</Mono>
                       <div style={{marginTop:8}}>
                         {(output.summary||[]).map((s,i) => (
                           <div key={i} style={{display:"flex",gap:8,marginBottom:6}}>
@@ -1800,13 +1811,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </div>
                       {output.hrbpKeyMessage && (
                         <div style={{marginTop:10,padding:"8px 11px",background:C.purple+"10",border:`1px solid ${C.purple}25`,borderRadius:7}}>
-                          <span style={{fontSize:11,color:C.purple,fontWeight:600}}>Message clé HRBP → </span>
+                          <span style={{fontSize:11,color:C.purple,fontWeight:600}}>{t("meetingEngine.output.keyMessageArrow")}</span>
                           <span style={{fontSize:12,color:C.text,lineHeight:1.6}}>{output.hrbpKeyMessage}</span>
                         </div>
                       )}
                     </div>
                     <div style={{background:(RISK_C[output.overallRisk]||C.em)+"18",border:`2px solid ${RISK_C[output.overallRisk]||C.em}`,borderRadius:10,padding:"16px 20px",textAlign:"center",minWidth:110,flexShrink:0}}>
-                      <Mono color={RISK_C[output.overallRisk]||C.em} size={9}>RISQUE</Mono>
+                      <Mono color={RISK_C[output.overallRisk]||C.em} size={9}>{t("prep1on1.output.risk")}</Mono>
                       <div style={{fontSize:18,fontWeight:800,color:RISK_C[output.overallRisk]||C.em,marginTop:8}}>{output.overallRisk}</div>
                       {output.overallRiskRationale && <div style={{fontSize:10,color:C.textM,marginTop:6,lineHeight:1.4}}>{output.overallRiskRationale}</div>}
                     </div>
@@ -1815,7 +1826,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* ── Section 2: Signaux & Risques enrichis ── */}
                   {(output.signals||[]).length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
-                      <Mono color={C.amber} size={9}>📡 SIGNAUX DÉTAILLÉS</Mono>
+                      <Mono color={C.amber} size={9}>{t("meetingEngine.output.signalsDetailed")}</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:10}}>
                         {output.signals.map((s,i) => (
                           <div key={i} style={{padding:"10px 12px",background:C.amber+"08",borderRadius:8,border:`1px solid ${C.amber}20`}}>
@@ -1825,7 +1836,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                               {s.categorie && <Badge label={s.categorie} color={C.textD} size={9}/>}
                             </div>
                             {s.interpretation && <div style={{fontSize:12,color:C.textM,lineHeight:1.5}}>{s.interpretation}</div>}
-                            {s.consequence && <div style={{fontSize:11,color:C.red,fontStyle:"italic",marginTop:4}}>Si non adressé : {s.consequence}</div>}
+                            {s.consequence && <div style={{fontSize:11,color:C.red,fontStyle:"italic",marginTop:4}}>{t("meetingEngine.output.signalsIfUnaddressed")}{s.consequence}</div>}
                           </div>
                         ))}
                       </div>
@@ -1834,7 +1845,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                   {(output.risks||[]).length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
-                      <Mono color={C.red} size={9}>⚠ RISQUES DÉTAILLÉS</Mono>
+                      <Mono color={C.red} size={9}>{t("meetingEngine.output.risksDetailed")}</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                         {output.risks.map((r,i) => (
                           <div key={i} style={{padding:"9px 12px",background:C.red+"08",borderRadius:8,border:`1px solid ${C.red}20`}}>
@@ -1854,14 +1865,14 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {output.people && (
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
                       {[
-                        {key:"performance",label:"Performance",icon:"📈",color:C.blue},
-                        {key:"leadership", label:"Leadership", icon:"🧭",color:C.purple},
-                        {key:"engagement", label:"Engagement", icon:"🌡", color:C.amber},
-                      ].map(({key,label,icon,color}) => (
+                        {key:"performance",labelKey:"prep1on1.noteCat.performance",icon:"📈",color:C.blue},
+                        {key:"leadership", labelKey:"prep1on1.noteCat.leadership", icon:"🧭",color:C.purple},
+                        {key:"engagement", labelKey:"prep1on1.signalCat.disengagement", icon:"🌡", color:C.amber},
+                      ].map(({key,labelKey,icon,color}) => (
                         <div key={key} style={{...css.card,borderLeft:`3px solid ${color}`}}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                             <span style={{fontSize:13}}>{icon}</span>
-                            <Mono color={color} size={9}>{label}</Mono>
+                            <Mono color={color} size={9}>{key === "engagement" ? "Engagement" : t(labelKey)}</Mono>
                           </div>
                           <div style={{fontSize:12,color:C.textM,lineHeight:1.6}}>
                             {typeof output.people[key] === "string" ? output.people[key]
@@ -1876,28 +1887,28 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* ── Variante: Disciplinaire ── */}
                   {(engineType === "disciplinaire" || engineType === "enquete") && output.cadreJuridique && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.red}`,background:C.red+"06"}}>
-                      <Mono color={C.red} size={9}>⚖ CADRE JURIDIQUE</Mono>
+                      <Mono color={C.red} size={9}>{t("meetingEngine.output.cadre.title")}</Mono>
                       <div style={{marginTop:10}}>
                         {output.cadreJuridique.politiquesVisees?.length > 0 && <div style={{marginBottom:8}}>
-                          <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:4}}>Politiques visées</div>
+                          <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:4}}>{t("meetingEngine.output.cadre.policies")}</div>
                           {output.cadreJuridique.politiquesVisees.map((p,i) => <div key={i} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:C.red,fontSize:10}}>•</span><span style={{fontSize:12,color:C.textM}}>{p}</span></div>)}
                         </div>}
                         {output.cadreJuridique.loisApplicables?.length > 0 && <div style={{marginBottom:8}}>
-                          <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:4}}>Lois applicables</div>
+                          <div style={{fontSize:11,color:C.textD,fontWeight:600,marginBottom:4}}>{t("meetingEngine.output.cadre.laws")}</div>
                           {output.cadreJuridique.loisApplicables.map((l,i) => <div key={i} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:C.purple,fontSize:10}}>•</span><span style={{fontSize:12,color:C.textM}}>{l}</span></div>)}
                         </div>}
-                        {output.cadreJuridique.progressivite && <div style={{padding:"6px 10px",background:C.amber+"10",borderRadius:6,fontSize:11,color:C.amber}}>Progressivité : {output.cadreJuridique.progressivite}{output.cadreJuridique.progressiviteNote ? ` — ${output.cadreJuridique.progressiviteNote}` : ""}</div>}
+                        {output.cadreJuridique.progressivite && <div style={{padding:"6px 10px",background:C.amber+"10",borderRadius:6,fontSize:11,color:C.amber}}>{t("meetingEngine.output.cadre.progressivityPrefix")}{output.cadreJuridique.progressivite}{output.cadreJuridique.progressiviteNote ? ` — ${output.cadreJuridique.progressiviteNote}` : ""}</div>}
                       </div>
                     </div>
                   )}
                   {(engineType === "disciplinaire" || engineType === "enquete") && output.sanctions?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.red}`}}>
-                      <Mono color={C.red} size={9}>🔴 SANCTIONS</Mono>
+                      <Mono color={C.red} size={9}>{t("meetingEngine.output.sanctions.title")}</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                         {output.sanctions.map((s,i) => (
                           <div key={i} style={{padding:"8px 12px",background:C.red+"08",borderRadius:7}}>
                             <div style={{fontSize:13,fontWeight:600,color:C.red}}>{s.type}</div>
-                            {s.duree && <div style={{fontSize:11,color:C.textM,marginTop:3}}>Durée : {s.duree}</div>}
+                            {s.duree && <div style={{fontSize:11,color:C.textM,marginTop:3}}>{t("meetingEngine.output.sanctions.duration")}{s.duree}</div>}
                             {s.conditions?.length > 0 && <div style={{marginTop:6}}>{s.conditions.map((c,j) => <div key={j} style={{fontSize:11,color:C.textM}}>→ {c}</div>)}</div>}
                           </div>
                         ))}
@@ -1906,7 +1917,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   )}
                   {(engineType === "disciplinaire" || engineType === "enquete") && output.risquesLegaux?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.amber}`}}>
-                      <Mono color={C.amber} size={9}>🚨 RISQUES LÉGAUX</Mono>
+                      <Mono color={C.amber} size={9}>{t("meetingEngine.output.legalRisks")}</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                         {output.risquesLegaux.map((r,i) => (
                           <div key={i} style={{padding:"8px 12px",background:C.amber+"08",borderRadius:7}}>
@@ -1921,16 +1932,16 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* ── Variante: Mediation ── */}
                   {engineType === "mediation" && (output.partieA || output.partieB) && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.purple}`}}>
-                      <Mono color={C.purple} size={9}>🤝 PARTIES EN PRESENCE</Mono>
+                      <Mono color={C.purple} size={9}>{t("meetingEngine.output.parties.title")}</Mono>
                       <div style={{marginTop:10,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                        {[{key:"partieA",label:"Partie A",data:output.partieA},{key:"partieB",label:"Partie B",data:output.partieB}].map((p) => p.data && (
+                        {[{key:"partieA",label:t("meetingEngine.output.parties.partyA"),data:output.partieA},{key:"partieB",label:t("meetingEngine.output.parties.partyB"),data:output.partieB}].map((p) => p.data && (
                           <div key={p.key} style={{padding:"10px 12px",background:C.purple+"08",borderRadius:7,border:`1px solid ${C.purple}25`}}>
                             <div style={{fontSize:12,fontWeight:700,color:C.purple,marginBottom:6}}>{p.label}{p.data.nom ? ` — ${p.data.nom}` : ""}</div>
-                            {p.data.position && <div style={{fontSize:11,color:C.textM,marginBottom:6}}><span style={{color:C.textD,fontWeight:600}}>Position : </span>{p.data.position}</div>}
-                            {p.data.perception && <div style={{fontSize:11,color:C.textM,marginBottom:6}}><span style={{color:C.textD,fontWeight:600}}>Perception : </span>{p.data.perception}</div>}
+                            {p.data.position && <div style={{fontSize:11,color:C.textM,marginBottom:6}}><span style={{color:C.textD,fontWeight:600}}>{t("meetingEngine.output.parties.position")}</span>{p.data.position}</div>}
+                            {p.data.perception && <div style={{fontSize:11,color:C.textM,marginBottom:6}}><span style={{color:C.textD,fontWeight:600}}>{t("meetingEngine.output.parties.perception")}</span>{p.data.perception}</div>}
                             {p.data.attentes?.length > 0 && (
                               <div>
-                                <div style={{fontSize:10,color:C.textD,fontWeight:600,marginBottom:3}}>Attentes</div>
+                                <div style={{fontSize:10,color:C.textD,fontWeight:600,marginBottom:3}}>{t("meetingEngine.output.parties.expectations")}</div>
                                 {p.data.attentes.map((a,j) => <div key={j} style={{display:"flex",gap:6,marginBottom:2}}><span style={{color:C.purple,fontSize:10}}>→</span><span style={{fontSize:11,color:C.textM}}>{a}</span></div>)}
                               </div>
                             )}
@@ -1943,10 +1954,10 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* ── Variante: TA ── */}
                   {engineType === "ta" && output.postes?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
-                      <Mono color={C.teal} size={9}>🎯 PIPELINE — POSTES</Mono>
+                      <Mono color={C.teal} size={9}>{t("meetingEngine.output.ta.title")}</Mono>
                       {output.pipeline && (
                         <div style={{display:"flex",gap:10,marginTop:8,marginBottom:12,flexWrap:"wrap"}}>
-                          {[{l:"Actifs",v:output.pipeline.postesActifs,c:C.blue},{l:"En offre",v:output.pipeline.enOffre,c:C.amber},{l:"Fermés",v:output.pipeline.fermes,c:C.teal}].map((m,i) => (
+                          {[{l:t("meetingEngine.output.ta.active"),v:output.pipeline.postesActifs,c:C.blue},{l:t("meetingEngine.output.ta.inOffer"),v:output.pipeline.enOffre,c:C.amber},{l:t("meetingEngine.output.ta.closed"),v:output.pipeline.fermes,c:C.teal}].map((m,i) => (
                             <div key={i} style={{background:m.c+"12",border:`1px solid ${m.c}30`,borderRadius:7,padding:"8px 14px",textAlign:"center"}}>
                               <div style={{fontSize:18,fontWeight:800,color:m.c}}>{m.v ?? "—"}</div>
                               <div style={{fontSize:9,color:C.textD,fontFamily:"'DM Mono',monospace"}}>{m.l.toUpperCase()}</div>
@@ -1972,7 +1983,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* ── Variante: Initiatives ── */}
                   {engineType === "initiatives" && output.initiatives?.length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                      <Mono color={C.em} size={9}>🚀 SUIVI DES INITIATIVES</Mono>
+                      <Mono color={C.em} size={9}>{t("meetingEngine.output.initiatives")}</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                         {output.initiatives.map((init,i) => {
                           const sc = {"En cours":C.em,"Planifiee":C.blue,"Planifiée":C.blue,"Bloquee":C.red,"Bloquée":C.red,"Completee":C.teal,"Complétée":C.teal}[init.statut]||C.blue;
@@ -1993,7 +2004,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                   {/* ── Section 4: Plan d'action ── */}
                   <div style={{...css.card,borderLeft:`3px solid ${C.em}`}}>
-                    <Mono color={C.em} size={9}>PLAN D'ACTION</Mono>
+                    <Mono color={C.em} size={9}>{t("prep1on1.output.actionPlan")}</Mono>
                     <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:7}}>
                       {(output.actions||[]).map((a,i) => (
                         <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 11px",background:C.surfLL,borderRadius:8,border:`1px solid ${C.border}`}}>
@@ -2019,7 +2030,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.purple}25`,display:"flex",alignItems:"center",gap:10,background:C.purple+"10"}}>
                         <div style={{width:28,height:28,background:C.purple,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🧠</div>
                         <div>
-                          <div style={{fontSize:13,fontWeight:700,color:C.purple}}>Stratégie HRBP</div>
+                          <div style={{fontSize:13,fontWeight:700,color:C.purple}}>{t("prep1on1.strategy.title")}</div>
                           <div style={{fontSize:10,color:C.textD,fontFamily:"'DM Mono',monospace",letterSpacing:0.5}}>ANALYSE STRATÉGIQUE</div>
                         </div>
                       </div>
@@ -2027,7 +2038,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       <div style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:14}}>
                         {s.lectureGestionnaire && (
                           <div>
-                            <Mono color={C.purple} size={9}>LECTURE DU GESTIONNAIRE</Mono>
+                            <Mono color={C.purple} size={9}>{t("prep1on1.strategy.managerRead")}</Mono>
                             <div style={{marginTop:8,display:"flex",gap:10,flexWrap:"wrap",alignItems:"flex-start"}}>
                               <div style={{background:C.purple+"18",border:`1px solid ${C.purple}40`,borderRadius:7,padding:"5px 12px",fontSize:12,color:C.purple,fontWeight:600}}>{s.lectureGestionnaire.style}</div>
                             </div>
@@ -2039,7 +2050,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                             )}
                             {s.lectureGestionnaire.angle && (
                               <div style={{marginTop:8,padding:"7px 10px",background:C.purple+"10",borderRadius:7,fontSize:12,color:C.text,lineHeight:1.6}}>
-                                <span style={{color:C.purple,fontWeight:600}}>Angle → </span>{s.lectureGestionnaire.angle}
+                                <span style={{color:C.purple,fontWeight:600}}>{t("prep1on1.strategy.angleArrow")}</span>{s.lectureGestionnaire.angle}
                               </div>
                             )}
                           </div>
@@ -2047,14 +2058,14 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                         {s.santeEquipe && (
                           <div>
-                            <Mono color={C.purple} size={9}>SANTÉ DE L'ÉQUIPE</Mono>
+                            <Mono color={C.purple} size={9}>{t("prep1on1.strategy.teamHealth")}</Mono>
                             <div style={{marginTop:8,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                               <div style={{display:"flex",gap:6,alignItems:"center",padding:"5px 11px",borderRadius:7,background:perfColor+"15",border:`1px solid ${perfColor}35`}}>
-                                <span style={{fontSize:10,color:C.textD,fontFamily:"'DM Mono',monospace"}}>PERF</span>
+                                <span style={{fontSize:10,color:C.textD,fontFamily:"'DM Mono',monospace"}}>{t("prep1on1.strategy.perf")}</span>
                                 <span style={{fontSize:12,fontWeight:700,color:perfColor}}>{s.santeEquipe.performance}</span>
                               </div>
                               <div style={{display:"flex",gap:6,alignItems:"center",padding:"5px 11px",borderRadius:7,background:engColor+"15",border:`1px solid ${engColor}35`}}>
-                                <span style={{fontSize:10,color:C.textD,fontFamily:"'DM Mono',monospace"}}>ENG</span>
+                                <span style={{fontSize:10,color:C.textD,fontFamily:"'DM Mono',monospace"}}>{t("prep1on1.strategy.eng")}</span>
                                 <span style={{fontSize:12,fontWeight:700,color:engColor}}>{s.santeEquipe.engagement}</span>
                               </div>
                             </div>
@@ -2065,7 +2076,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                         {s.risqueCle && (
                           <div style={{padding:"10px 12px",background:riskColor+"10",border:`1px solid ${riskColor}30`,borderRadius:8}}>
                             <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-                              <Mono color={riskColor} size={9}>RISQUE CLÉ</Mono>
+                              <Mono color={riskColor} size={9}>{t("prep1on1.strategy.keyRisk")}</Mono>
                               <div style={{background:riskColor+"20",border:`1px solid ${riskColor}50`,borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,color:riskColor}}>{s.risqueCle.niveau}</div>
                               <div style={{fontSize:12,fontWeight:600,color:riskColor}}>{s.risqueCle.nature}</div>
                             </div>
@@ -2076,7 +2087,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                           {s.postureHRBP && (
                             <div>
-                              <Mono color={C.purple} size={9}>POSTURE HRBP</Mono>
+                              <Mono color={C.purple} size={9}>{t("prep1on1.strategy.posture")}</Mono>
                               <div style={{marginTop:8,display:"flex",gap:8,alignItems:"center",padding:"8px 12px",background:postureColor+"15",border:`2px solid ${postureColor}50`,borderRadius:8}}>
                                 <span style={{fontSize:18,flexShrink:0}}>{{"Coach":"🎯","Challenge":"⚡","Directif":"🔴","Escalader":"🚨"}[s.postureHRBP.mode]||"🧠"}</span>
                                 <div>
@@ -2088,7 +2099,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                           )}
                           {s.objectifRencontre && (
                             <div>
-                              <Mono color={C.purple} size={9}>OBJECTIF MEETING</Mono>
+                              <Mono color={C.purple} size={9}>{t("prep1on1.strategy.objective")}</Mono>
                               <div style={{marginTop:8,padding:"8px 12px",background:C.em+"10",border:`1px solid ${C.em}30`,borderRadius:8,fontSize:12,color:C.text,lineHeight:1.65}}>{s.objectifRencontre}</div>
                             </div>
                           )}
@@ -2096,7 +2107,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
                         {s.strategieInfluence && (
                           <div>
-                            <Mono color={C.purple} size={9}>STRATÉGIE D'INFLUENCE</Mono>
+                            <Mono color={C.purple} size={9}>{t("prep1on1.strategy.influence")}</Mono>
                             <div style={{marginTop:8,padding:"9px 12px",background:C.purple+"10",border:`1px solid ${C.purple}25`,borderRadius:8,fontSize:12,color:C.text,lineHeight:1.7,fontStyle:"italic"}}>"{s.strategieInfluence}"</div>
                           </div>
                         )}
@@ -2108,13 +2119,13 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* ── Section 6: Prochain meeting + Cross-questions + Case ── */}
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                     {[
-                      {title:"📡 Signaux clés",    key:"keySignals",          color:C.amber},
-                      {title:"⚠ Risques",           key:"mainRisks",           color:C.red},
-                      {title:"🔁 Suivis HRBP",      key:"hrbpFollowups",       color:C.em},
-                      {title:"❓ Prochain meeting", key:"nextMeetingQuestions", color:C.blue},
-                    ].map(({title,key,color}) => (
+                      {titleKey:"prep1on1.output.quadrant.signals",   key:"keySignals",           color:C.amber},
+                      {titleKey:"prep1on1.output.quadrant.risks",     key:"mainRisks",            color:C.red},
+                      {titleKey:"prep1on1.output.quadrant.followups", key:"hrbpFollowups",        color:C.em},
+                      {titleKey:"prep1on1.output.quadrant.next",      key:"nextMeetingQuestions", color:C.blue},
+                    ].map(({titleKey,key,color}) => (
                       <div key={key} style={{...css.card,borderLeft:`3px solid ${color}`}}>
-                        <Mono color={color} size={9}>{title}</Mono>
+                        <Mono color={color} size={9}>{t(titleKey)}</Mono>
                         <div style={{marginTop:10}}>
                           {(output[key]||[]).map((item,i) => (
                             <div key={i} style={{display:"flex",gap:8,marginBottom:7}}>
@@ -2130,7 +2141,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* Cross-questions */}
                   {(output.crossQuestions||[]).length > 0 && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.teal}`}}>
-                      <Mono color={C.teal} size={9}>👥 QUESTIONS CROISÉES</Mono>
+                      <Mono color={C.teal} size={9}>{t("meetingEngine.output.crossQuestions")}</Mono>
                       <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
                         {output.crossQuestions.map((cq,i) => (
                           <div key={i} style={{padding:"9px 12px",background:C.teal+"08",borderRadius:7,border:`1px solid ${C.teal}20`}}>
@@ -2151,7 +2162,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {/* Case entry suggestion */}
                   {output.caseEntry && output.caseEntry.titre && (
                     <div style={{...css.card,borderLeft:`3px solid ${C.blue}`,background:C.blue+"06"}}>
-                      <Mono color={C.blue} size={9}>📂 CAS RH SUGGÉRÉ</Mono>
+                      <Mono color={C.blue} size={9}>{t("meetingEngine.output.caseEntry")}</Mono>
                       <div style={{marginTop:10}}>
                         <div style={{fontSize:14,fontWeight:600,color:C.text,marginBottom:6}}>{output.caseEntry.titre || output.caseEntry.title}</div>
                         <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
@@ -2167,7 +2178,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                   {linkedCases.length > 0 && (
                     <div style={{...css.card, borderLeft:`3px solid ${C.em}`, background:C.em+"06"}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                        <Mono color={C.em} size={9}>📎 CASES LIÉS</Mono>
+                        <Mono color={C.em} size={9}>{t("meetingEngine.output.linkedCases")}</Mono>
                         <span style={{fontSize:10,color:C.textD}}>{linkedCases.length}</span>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -2189,7 +2200,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                               onMouseLeave={clickable ? (e => { e.currentTarget.style.borderColor = C.border; }) : undefined}>
                               <div style={{flex:1, minWidth:0}}>
                                 <div style={{fontSize:12,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                                  {lc.title || "Sans titre"}
+                                  {lc.title || t("meetingEngine.output.linkedCases.fallback")}
                                 </div>
                               </div>
                               {lc.type && <Badge label={lc.type} color={C.blue} size={9}/>}
@@ -2207,10 +2218,10 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16}}>
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:700,color:C.purple,marginBottom:5}}>
-                          🔄 Préparer le prochain 1:1 avec cet output
+                          {t("prep1on1.cycle.title")}
                         </div>
                         <div style={{fontSize:12,color:C.textD,marginBottom:10}}>
-                          {output.nextMeetingContext || "Les risques, signaux et questions seront injectés dans le prochain cycle."}
+                          {output.nextMeetingContext || t("meetingEngine.cycle.fallback")}
                         </div>
                         {output.nextMeetingQuestions?.length > 0 && (
                           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2224,7 +2235,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </div>
                       <button onClick={startNextCycle}
                         style={{...css.btn(C.purple),padding:"10px 18px",fontSize:13,whiteSpace:"nowrap",flexShrink:0}}>
-                        🔄 Nouveau cycle →
+                        {t("prep1on1.cycle.cta")}
                       </button>
                     </div>
                   </div>
@@ -2253,12 +2264,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                         width:"min(720px, 100%)", maxHeight:"85vh", display:"flex",
                         flexDirection:"column", boxShadow:"0 20px 60px rgba(0,0,0,0.4)" }}>
             <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}` }}>
-              <Mono color={C.em} size={9}>MEETING ENGINE — CANDIDATS</Mono>
+              <Mono color={C.em} size={9}>{t("meetingEngine.candidates.header")}</Mono>
               <div style={{ fontSize:15, fontWeight:700, color:C.text, marginTop:4 }}>
-                📂 Candidats de cas RH détectés
+                {t("meetingEngine.candidates.title")}
               </div>
               <div style={{ fontSize:11, color:C.textD, marginTop:4 }}>
-                Aucun cas n'est créé automatiquement. Choisissez les candidats à transformer en dossiers.
+                {t("meetingEngine.candidates.subtitle")}
               </div>
             </div>
 
@@ -2289,18 +2300,18 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
                         {action === "created" ? (
-                          <span style={{ fontSize:11, color:C.em, fontWeight:600 }}>✓ Créé</span>
+                          <span style={{ fontSize:11, color:C.em, fontWeight:600 }}>{t("meetingEngine.candidates.created")}</span>
                         ) : action === "ignored" ? (
-                          <span style={{ fontSize:11, color:C.textD, fontWeight:600 }}>✕ Ignoré</span>
+                          <span style={{ fontSize:11, color:C.textD, fontWeight:600 }}>{t("meetingEngine.candidates.ignored")}</span>
                         ) : (
                           <>
                             <button onClick={() => createCaseFromCandidate(cand)}
                                     style={{ ...css.btn(C.em), padding:"6px 12px", fontSize:11 }}>
-                              Créer le case
+                              {t("meetingEngine.candidates.create")}
                             </button>
                             <button onClick={() => ignoreCandidate(cand)}
                                     style={{ ...css.btn(C.textD, true), padding:"6px 12px", fontSize:11 }}>
-                              Ignorer
+                              {t("meetingEngine.candidates.ignore")}
                             </button>
                           </>
                         )}
@@ -2317,21 +2328,21 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       style={{ ...css.btn(C.em), padding:"8px 14px", fontSize:12,
                                opacity: allDone ? 0.5 : 1,
                                cursor: allDone ? "not-allowed" : "pointer" }}>
-                Créer tous
+                {t("meetingEngine.candidates.createAll")}
               </button>
               <button onClick={ignoreAllCandidates} disabled={allDone}
                       style={{ ...css.btn(C.textD, true), padding:"8px 14px", fontSize:12,
                                opacity: allDone ? 0.5 : 1,
                                cursor: allDone ? "not-allowed" : "pointer" }}>
-                Ignorer tous
+                {t("meetingEngine.candidates.ignoreAll")}
               </button>
               <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
                 <span style={{ fontSize:11, color:C.textD }}>
-                  {pendingCount > 0 ? `${pendingCount} à traiter` : "Tous traités"}
+                  {pendingCount > 0 ? `${pendingCount} ${t("meetingEngine.candidates.pendingSuffix")}` : t("meetingEngine.candidates.allDone")}
                 </span>
                 <button onClick={closeCandidatesModal}
                         style={{ ...css.btn(C.blue, true), padding:"8px 14px", fontSize:12 }}>
-                  Fermer
+                  {t("meetingEngine.candidates.close")}
                 </button>
               </div>
             </div>
