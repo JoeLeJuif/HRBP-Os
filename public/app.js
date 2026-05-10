@@ -1064,7 +1064,117 @@ ${LEGAL_GUARDRAIL}`;
       "decisions.retro.missedAi": "Missed",
       "decisions.save.create": "\u{1F4BE} Create decision",
       "decisions.save.update": "\u{1F4BE} Save",
-      "decisions.cancel": "Cancel"
+      "decisions.cancel": "Cancel",
+      // ── Coaching module ───────────────────────────────────────────────────
+      "coaching.title": "Manager Coaching Playbook",
+      "coaching.subtitle.suffix": "plan(s) archived",
+      "coaching.scenario.perf": "Avoids perf conversations",
+      "coaching.scenario.conflict": "Conflict in their team",
+      "coaching.scenario.newmgr": "New FTM",
+      "coaching.scenario.delegation": "Struggles to delegate",
+      "coaching.scenario.micro": "Micromanager",
+      "coaching.scenario.feedback": "Hard feedback to give",
+      "coaching.scenario.retention": "Losing talent",
+      "coaching.scenario.credibility": "Manager credibility",
+      "coaching.errorPrefix": "Error: ",
+      "coaching.back": "\u2190 Back",
+      "coaching.archive": "\u{1F4BE} Archive",
+      "coaching.archived": "\u2713 Archived",
+      "coaching.section.newPlan": "New coaching plan",
+      "coaching.label.scenario": "Scenario",
+      "coaching.label.managerProfile": "Manager profile",
+      "coaching.ph.managerProfile": "E.g. Tech lead promoted 8 months ago, 5 reports...",
+      "coaching.label.situation": "Describe the situation",
+      "coaching.ph.situation": "Observed behaviors, context, concrete facts...",
+      "coaching.loader": "Preparing the coaching plan",
+      "coaching.button.generate": "\u{1F91D} Generate coaching plan",
+      "coaching.archivedPlans": "Archived plans",
+      "coaching.section.diagnostic": "HRBP Diagnostic",
+      "coaching.frameworkLabel": "Framework: ",
+      "coaching.section.script": "Conversation script",
+      "coaching.script.opening": "Opening",
+      "coaching.script.mainQuestion": "Pivot question",
+      "coaching.script.checkIn": "Check-in",
+      "coaching.script.closing": "Closing & commitment",
+      "coaching.section.questions": "Coaching questions",
+      "coaching.section.followUp": "Follow-up plan",
+      "coaching.followUp.next": "Next check-in",
+      "coaching.followUp.success": "Success criteria",
+      "coaching.followUp.escalation": "Escalation trigger",
+      "coaching.section.watchouts": "HR/Legal watchouts",
+      "coaching.section.notes": "Internal HRBP notes",
+      // ── Exit module ───────────────────────────────────────────────────────
+      "exit.title": "Exit Interview Analyzer",
+      "exit.subtitle.suffix": "interview(s) archived",
+      "exit.back": "\u2190 Back",
+      "exit.archive": "\u{1F4BE} Archive",
+      "exit.archived": "\u2713 Archived",
+      "exit.regrettablePrefix": "Regrettable: ",
+      "exit.section.summary": "Executive summary",
+      "exit.section.structuredInterview": "Structured interview summary",
+      "exit.interview.integration": "Integration",
+      "exit.interview.jobSatisfaction": "Job satisfaction",
+      "exit.interview.colleagueRelations": "Colleague relations",
+      "exit.interview.managementRelations": "Relationship with management",
+      "exit.interview.workingConditions": "Working conditions",
+      "exit.interview.notDiscussed": "Not discussed",
+      "exit.interview.positives": "Positives",
+      "exit.interview.irritants": "Irritants",
+      "exit.section.reasons": "Reasons for leaving",
+      "exit.reasons.statedVsReal": "Stated vs real: ",
+      "exit.section.feedback": "Management feedback",
+      "exit.management.coachingPrefix": "Coaching: ",
+      "exit.section.signals": "Weak signals",
+      "exit.signals.ifUnaddressed": "If unaddressed: ",
+      "exit.section.actions": "HRBP actions",
+      "exit.section.analyze": "Analyze an exit interview",
+      "exit.label.employee": "Employee",
+      "exit.label.role": "Role",
+      "exit.label.tenure": "Tenure",
+      "exit.label.seniority": "Seniority",
+      "exit.label.team": "Team",
+      "exit.label.manager": "Manager",
+      "exit.ph.employee": "E.g. Marie Dupont",
+      "exit.ph.role": "E.g. Tech Lead",
+      "exit.ph.tenure": "E.g. 2 years",
+      "exit.ph.seniority": "E.g. Senior",
+      "exit.ph.team": "E.g. IT Infra",
+      "exit.ph.manager": "E.g. Marie Tremblay",
+      "exit.label.date": "Interview date",
+      "exit.label.notes": "Notes / interview verbatims",
+      "exit.ph.notes": "Notes, answers, important verbatims, context...",
+      "exit.errorPrefix": "Error: ",
+      "exit.loader": "Analyzing the exit interview",
+      "exit.button.analyze": "\u{1F6AA} Analyze exit interview",
+      "exit.archivedInterviews": "Archived interviews",
+      // ── AutoPrompt module ─────────────────────────────────────────────────
+      "autoprompt.title": "Auto Prompt Engine",
+      "autoprompt.subtitle.prefix": "Context auto-detected \xB7 ",
+      "autoprompt.subtitle.one": "situation identified",
+      "autoprompt.subtitle.other": "situations identified",
+      "autoprompt.empty.title": "No situation detected",
+      "autoprompt.empty.body": "Feed the OS \u2014 add cases, meetings, signals or generate an Org Radar so the engine can detect situations.",
+      "autoprompt.section.detected": "DETECTED SITUATIONS",
+      "autoprompt.confidence.high": "\u2713 High",
+      "autoprompt.confidence.medium": "~ Medium",
+      "autoprompt.confidence.low": "? Low",
+      "autoprompt.mode.diagnose": "\u{1F50D} Diagnose",
+      "autoprompt.mode.act": "\u{1F3AF} Act",
+      "autoprompt.mode.say": "\u{1F4AC} Say",
+      "autoprompt.mode.diagnose.desc": "Read the situation in depth",
+      "autoprompt.mode.act.desc": "Action plan or next steps",
+      "autoprompt.mode.say.desc": "Exact wording for the conversation",
+      "autoprompt.bestMove": "BEST 10-MIN MOVE",
+      "autoprompt.chooseMode": "CHOOSE A MODE",
+      "autoprompt.generatedLabel": "GENERATED PROMPT \u2014 READY TO PASTE",
+      "autoprompt.variant.stronger": "\u2B06 Stronger",
+      "autoprompt.variant.direct": "\u2702 Shorter",
+      "autoprompt.variant.executive": "\u{1F399}\uFE0F Exec",
+      "autoprompt.copy.copied": "\u2713 Copied",
+      "autoprompt.copy.label": "\u{1F4CB} Copy",
+      "autoprompt.hint.chooseMode": "Choose a mode above to generate the prompt",
+      "autoprompt.hint.selectSit": "Select a situation to generate the prompt",
+      "autoprompt.error.modeUnavailable": "Mode not available for this template."
     },
     fr: {
       // ── Navigation ────────────────────────────────────────────────────────
@@ -1636,7 +1746,117 @@ ${LEGAL_GUARDRAIL}`;
       "decisions.retro.missedAi": "Manqu\xE9",
       "decisions.save.create": "\u{1F4BE} Cr\xE9er la d\xE9cision",
       "decisions.save.update": "\u{1F4BE} Enregistrer",
-      "decisions.cancel": "Annuler"
+      "decisions.cancel": "Annuler",
+      // ── Coaching module ───────────────────────────────────────────────────
+      "coaching.title": "Playbook de coaching gestionnaire",
+      "coaching.subtitle.suffix": "plan(s) archiv\xE9(s)",
+      "coaching.scenario.perf": "\xC9vite conversations perf",
+      "coaching.scenario.conflict": "Conflit dans son \xE9quipe",
+      "coaching.scenario.newmgr": "Nouveau gestionnaire FTM",
+      "coaching.scenario.delegation": "Difficult\xE9 \xE0 d\xE9l\xE9guer",
+      "coaching.scenario.micro": "Microgestionnaire",
+      "coaching.scenario.feedback": "Feedback difficile \xE0 donner",
+      "coaching.scenario.retention": "Perd des talents",
+      "coaching.scenario.credibility": "Cr\xE9dibilit\xE9 manag\xE9riale",
+      "coaching.errorPrefix": "Erreur : ",
+      "coaching.back": "\u2190 Retour",
+      "coaching.archive": "\u{1F4BE} Archiver",
+      "coaching.archived": "\u2713 Archiv\xE9",
+      "coaching.section.newPlan": "Nouveau plan de coaching",
+      "coaching.label.scenario": "Sc\xE9nario",
+      "coaching.label.managerProfile": "Profil gestionnaire",
+      "coaching.ph.managerProfile": "Ex. : Tech lead promu il y a 8 mois, 5 directs\u2026",
+      "coaching.label.situation": "D\xE9cris la situation",
+      "coaching.ph.situation": "Comportements observ\xE9s, contexte, faits concrets\u2026",
+      "coaching.loader": "Pr\xE9paration du plan de coaching",
+      "coaching.button.generate": "\u{1F91D} G\xE9n\xE9rer le plan de coaching",
+      "coaching.archivedPlans": "Plans archiv\xE9s",
+      "coaching.section.diagnostic": "Diagnostic HRBP",
+      "coaching.frameworkLabel": "Cadre : ",
+      "coaching.section.script": "Script de conversation",
+      "coaching.script.opening": "Ouverture",
+      "coaching.script.mainQuestion": "Question pivot",
+      "coaching.script.checkIn": "Check-in",
+      "coaching.script.closing": "Cl\xF4ture & engagement",
+      "coaching.section.questions": "Questions de coaching",
+      "coaching.section.followUp": "Plan de suivi",
+      "coaching.followUp.next": "Prochain check-in",
+      "coaching.followUp.success": "Crit\xE8res de succ\xE8s",
+      "coaching.followUp.escalation": "D\xE9clencheur d'escalade",
+      "coaching.section.watchouts": "Points de vigilance RH/l\xE9gaux",
+      "coaching.section.notes": "Notes internes HRBP",
+      // ── Exit module ───────────────────────────────────────────────────────
+      "exit.title": "Analyseur d'entrevues de d\xE9part",
+      "exit.subtitle.suffix": "entrevue(s) archiv\xE9e(s)",
+      "exit.back": "\u2190 Retour",
+      "exit.archive": "\u{1F4BE} Archiver",
+      "exit.archived": "\u2713 Archiv\xE9",
+      "exit.regrettablePrefix": "Regrettable : ",
+      "exit.section.summary": "R\xE9sum\xE9 ex\xE9cutif",
+      "exit.section.structuredInterview": "R\xE9sum\xE9 structur\xE9 de l'entrevue",
+      "exit.interview.integration": "Int\xE9gration",
+      "exit.interview.jobSatisfaction": "Satisfaction au travail",
+      "exit.interview.colleagueRelations": "Relations avec les coll\xE8gues",
+      "exit.interview.managementRelations": "Relation avec la gestion",
+      "exit.interview.workingConditions": "Conditions de travail",
+      "exit.interview.notDiscussed": "Non abord\xE9",
+      "exit.interview.positives": "Positifs",
+      "exit.interview.irritants": "Irritants",
+      "exit.section.reasons": "Raisons du d\xE9part",
+      "exit.reasons.statedVsReal": "D\xE9clar\xE9 vs r\xE9el : ",
+      "exit.section.feedback": "Feedback gestion",
+      "exit.management.coachingPrefix": "Coaching : ",
+      "exit.section.signals": "Signaux faibles",
+      "exit.signals.ifUnaddressed": "Si non adress\xE9 : ",
+      "exit.section.actions": "Actions HRBP",
+      "exit.section.analyze": "Analyser une entrevue de d\xE9part",
+      "exit.label.employee": "Employ\xE9",
+      "exit.label.role": "R\xF4le",
+      "exit.label.tenure": "Anciennet\xE9",
+      "exit.label.seniority": "Niveau",
+      "exit.label.team": "\xC9quipe",
+      "exit.label.manager": "Gestionnaire",
+      "exit.ph.employee": "Ex. : Marie Dupont",
+      "exit.ph.role": "Ex. : Tech Lead",
+      "exit.ph.tenure": "Ex. : 2 ans",
+      "exit.ph.seniority": "Ex. : Senior",
+      "exit.ph.team": "Ex. : Infra TI",
+      "exit.ph.manager": "Ex. : Marie Tremblay",
+      "exit.label.date": "Date de l'entrevue",
+      "exit.label.notes": "Notes / verbatims de l'entrevue",
+      "exit.ph.notes": "Notes, r\xE9ponses, verbatims importants, contexte\u2026",
+      "exit.errorPrefix": "Erreur : ",
+      "exit.loader": "Analyse de l'entrevue de d\xE9part",
+      "exit.button.analyze": "\u{1F6AA} Analyser l'entrevue de d\xE9part",
+      "exit.archivedInterviews": "Entrevues archiv\xE9es",
+      // ── AutoPrompt module ─────────────────────────────────────────────────
+      "autoprompt.title": "Moteur de prompts automatiques",
+      "autoprompt.subtitle.prefix": "Contexte d\xE9tect\xE9 automatiquement \xB7 ",
+      "autoprompt.subtitle.one": "situation identifi\xE9e",
+      "autoprompt.subtitle.other": "situations identifi\xE9es",
+      "autoprompt.empty.title": "Aucune situation d\xE9tect\xE9e",
+      "autoprompt.empty.body": "Alimente le OS \u2014 ajoute des cas, des meetings, des signaux ou g\xE9n\xE8re un Org Radar pour que le moteur d\xE9tecte des situations.",
+      "autoprompt.section.detected": "SITUATIONS D\xC9TECT\xC9ES",
+      "autoprompt.confidence.high": "\u2713 \xC9lev\xE9e",
+      "autoprompt.confidence.medium": "~ Moyenne",
+      "autoprompt.confidence.low": "? Faible",
+      "autoprompt.mode.diagnose": "\u{1F50D} Diagnose",
+      "autoprompt.mode.act": "\u{1F3AF} Act",
+      "autoprompt.mode.say": "\u{1F4AC} Say",
+      "autoprompt.mode.diagnose.desc": "Lire la situation en profondeur",
+      "autoprompt.mode.act.desc": "Plan d'action ou prochaines \xE9tapes",
+      "autoprompt.mode.say.desc": "Formulation exacte pour la conversation",
+      "autoprompt.bestMove": "MEILLEUR MOVE EN 10 MINUTES",
+      "autoprompt.chooseMode": "CHOISIR LE MODE",
+      "autoprompt.generatedLabel": "PROMPT G\xC9N\xC9R\xC9 \u2014 PR\xCAT \xC0 COLLER",
+      "autoprompt.variant.stronger": "\u2B06 Plus fort",
+      "autoprompt.variant.direct": "\u2702 Plus court",
+      "autoprompt.variant.executive": "\u{1F399}\uFE0F Exec",
+      "autoprompt.copy.copied": "\u2713 Copi\xE9",
+      "autoprompt.copy.label": "\u{1F4CB} Copier",
+      "autoprompt.hint.chooseMode": "Choisis un mode ci-dessus pour g\xE9n\xE9rer le prompt",
+      "autoprompt.hint.selectSit": "S\xE9lectionne une situation pour g\xE9n\xE9rer le prompt",
+      "autoprompt.error.modeUnavailable": "Mode non disponible pour ce template."
     }
   };
   function readStoredLang() {
@@ -25840,16 +26060,17 @@ R\xE9ponds UNIQUEMENT en JSON strict.
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
   }
   var COACHING_SCENARIOS = [
-    { id: "perf", icon: "\u{1F4C9}", label: "\xC9vite conversations perf", color: C.amber },
-    { id: "conflict", icon: "\u26A1", label: "Conflit dans son \xE9quipe", color: C.red },
-    { id: "newmgr", icon: "\u{1F331}", label: "Nouveau gestionnaire FTM", color: C.em },
-    { id: "delegation", icon: "\u{1F504}", label: "Difficult\xE9 \xE0 d\xE9l\xE9guer", color: C.blue },
-    { id: "micro", icon: "\u{1F52C}", label: "Microgestionnaire", color: C.purple },
-    { id: "feedback", icon: "\u{1F4AC}", label: "Feedback difficile \xE0 donner", color: C.teal },
-    { id: "retention", icon: "\u2708", label: "Perd des talents", color: C.red },
-    { id: "credibility", icon: "\u{1F3AF}", label: "Cr\xE9dibilit\xE9 manag\xE9riale", color: C.amber }
+    { id: "perf", icon: "\u{1F4C9}", labelKey: "coaching.scenario.perf", color: C.amber },
+    { id: "conflict", icon: "\u26A1", labelKey: "coaching.scenario.conflict", color: C.red },
+    { id: "newmgr", icon: "\u{1F331}", labelKey: "coaching.scenario.newmgr", color: C.em },
+    { id: "delegation", icon: "\u{1F504}", labelKey: "coaching.scenario.delegation", color: C.blue },
+    { id: "micro", icon: "\u{1F52C}", labelKey: "coaching.scenario.micro", color: C.purple },
+    { id: "feedback", icon: "\u{1F4AC}", labelKey: "coaching.scenario.feedback", color: C.teal },
+    { id: "retention", icon: "\u2708", labelKey: "coaching.scenario.retention", color: C.red },
+    { id: "credibility", icon: "\u{1F3AF}", labelKey: "coaching.scenario.credibility", color: C.amber }
   ];
   function ModuleCoaching({ data, onSave }) {
+    const { t: t2 } = useT();
     const [view, setView] = (0, import_react8.useState)("list");
     const [scenario, setScenario] = (0, import_react8.useState)("perf");
     const [managerDesc, setManagerDesc] = (0, import_react8.useState)("");
@@ -25869,17 +26090,17 @@ R\xE9ponds UNIQUEMENT en JSON strict.
       setResult(null);
       setSaved(false);
       try {
-        const _coachLegal = isLegalSensitive(situation + " " + (sc?.label || "")) ? `
+        const _coachLegal = isLegalSensitive(situation + " " + (sc ? t2(sc.labelKey) : "")) ? `
 ${buildLegalPromptContext(_coachProv)}
 ` : "";
-        const parsed = await callAI(COACHING_SP, `SC\xC9NARIO: ${sc?.label}
+        const parsed = await callAI(COACHING_SP, `SC\xC9NARIO: ${sc ? t2(sc.labelKey) : ""}
 PROFIL: ${managerDesc || "Non sp\xE9cifi\xE9"}${_coachLegal}
 SITUATION:
 ${situation}`);
         setResult(parsed);
         setView("result");
       } catch (e) {
-        setError("Erreur: " + e.message);
+        setError(t2("coaching.errorPrefix") + e.message);
       } finally {
         setLoading(false);
       }
@@ -25893,14 +26114,14 @@ ${situation}`);
       setView("list");
       setResult(null);
       setSituation("");
-    }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.coachingFocus), /* @__PURE__ */ React.createElement("button", { onClick: savePlan, disabled: saved, style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 } }, saved ? "\u2713 Archiv\xE9" : "\u{1F4BE} Archiver")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Badge, { label: result.managerProfile?.archetype || "", color: C.blue }), /* @__PURE__ */ React.createElement(Badge, { label: result.managerProfile?.maturit\u00E9 || "", color: C.textM }), /* @__PURE__ */ React.createElement(Badge, { label: result.recommendedFramework, color: C.em })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F9E0}", label: "Diagnostic HRBP", color: C.purple }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, result.managerProfile?.diagnosis), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM } }, "Framework: ", /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontWeight: 600 } }, result.recommendedFramework), " \u2014 ", result.frameworkRationale)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F4AC}", label: "Script de conversation", color: C.teal }), [["Ouverture", result.conversationScript?.opening, C.em], ["Question pivot", result.conversationScript?.mainQuestion, C.blue], ["Check-in", result.conversationScript?.checkIn, C.textM], ["Cl\xF4ture & engagement", result.conversationScript?.closing, C.amber]].map(([l, v, col], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: col, lineHeight: 1.7, marginTop: 4, fontStyle: "italic" } }, '"', v, '"')) : null)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u2753", label: "Questions de coaching", color: C.blue }), result.coachingQuestions?.map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, paddingBottom: 8, borderBottom: i < result.coachingQuestions.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontStyle: "italic", marginBottom: 4 } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.intent)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F4C5}", label: "Plan de suivi", color: C.amber }), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Prochain check-in"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginTop: 4 } }, result.followUpPlan?.nextCheckIn)), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Crit\xE8res de succ\xE8s"), result.followUpPlan?.successCriteria?.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.em, flexShrink: 0, marginTop: 6 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, s)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Trigger d'escalade"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.red, marginTop: 4 } }, result.followUpPlan?.escalationTrigger))), result.watchouts?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u26A0", label: "Watchouts RH/L\xE9gaux", color: C.red }), result.watchouts.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.red, flexShrink: 0, marginTop: 6 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, w)))), result.hrbpNotes && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.textD}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Notes internes HRBP"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, fontStyle: "italic", lineHeight: 1.65, marginTop: 6 } }, result.hrbpNotes)));
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Playbook de coaching gestionnaire"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, plans.length, " plan(s) archiv\xE9(s)")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F91D}", label: "Nouveau plan de coaching", color: C.teal }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Sc\xE9nario"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 8, marginBottom: 12 } }, COACHING_SCENARIOS.map((s) => /* @__PURE__ */ React.createElement("button", { key: s.id, onClick: () => setScenario(s.id), style: { background: scenario === s.id ? s.color + "22" : "none", color: scenario === s.id ? s.color : C.textM, border: `1px solid ${scenario === s.id ? s.color + "55" : C.border}`, borderRadius: 7, padding: "8px 6px", fontSize: 11, fontWeight: scenario === s.id ? 600 : 400, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, marginBottom: 3 } }, s.icon), s.label))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Profil gestionnaire"), /* @__PURE__ */ React.createElement("input", { value: managerDesc, onChange: (e) => setManagerDesc(e.target.value), placeholder: "Ex: Tech lead promu il y a 8 mois, 5 directs...", style: { ...css.input, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border })), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "D\xE9cris la situation"), /* @__PURE__ */ React.createElement("textarea", { rows: 4, value: situation, onChange: (e) => setSituation(e.target.value), placeholder: "Comportements observ\xE9s, contexte, faits concrets...", style: { ...css.textarea, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }), error && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", margin: "10px 0", fontSize: 12, color: C.red } }, "\u26A0 ", error), loading ? /* @__PURE__ */ React.createElement(AILoader, { label: "Pr\xE9paration du plan de coaching" }) : /* @__PURE__ */ React.createElement("button", { onClick: generate, disabled: situation.trim().length < 30, style: { ...css.btn(C.teal), width: "100%", marginTop: 12, opacity: situation.trim().length >= 30 ? 1 : 0.4 } }, "\u{1F91D} G\xE9n\xE9rer le plan de coaching")), plans.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Plans archiv\xE9s"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, plans.slice().reverse().map((p, i) => {
+    }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, t2("coaching.back")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.coachingFocus), /* @__PURE__ */ React.createElement("button", { onClick: savePlan, disabled: saved, style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 } }, saved ? t2("coaching.archived") : t2("coaching.archive"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } }, /* @__PURE__ */ React.createElement(Badge, { label: result.managerProfile?.archetype || "", color: C.blue }), /* @__PURE__ */ React.createElement(Badge, { label: result.managerProfile?.maturit\u00E9 || "", color: C.textM }), /* @__PURE__ */ React.createElement(Badge, { label: result.recommendedFramework, color: C.em })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F9E0}", label: t2("coaching.section.diagnostic"), color: C.purple }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.7 } }, result.managerProfile?.diagnosis), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM } }, t2("coaching.frameworkLabel"), /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontWeight: 600 } }, result.recommendedFramework), " \u2014 ", result.frameworkRationale)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F4AC}", label: t2("coaching.section.script"), color: C.teal }), [[t2("coaching.script.opening"), result.conversationScript?.opening, C.em], [t2("coaching.script.mainQuestion"), result.conversationScript?.mainQuestion, C.blue], [t2("coaching.script.checkIn"), result.conversationScript?.checkIn, C.textM], [t2("coaching.script.closing"), result.conversationScript?.closing, C.amber]].map(([l, v, col], i) => v ? /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: col, lineHeight: 1.7, marginTop: 4, fontStyle: "italic" } }, '"', v, '"')) : null)), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u2753", label: t2("coaching.section.questions"), color: C.blue }), result.coachingQuestions?.map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, paddingBottom: 8, borderBottom: i < result.coachingQuestions.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontStyle: "italic", marginBottom: 4 } }, '"', q.question, '"'), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em } }, "\u{1F4A1} "), q.intent)))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F4C5}", label: t2("coaching.section.followUp"), color: C.amber }), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.followUp.next")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginTop: 4 } }, result.followUpPlan?.nextCheckIn)), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.followUp.success")), result.followUpPlan?.successCriteria?.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginTop: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.em, flexShrink: 0, marginTop: 6 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, s)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.followUp.escalation")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.red, marginTop: 4 } }, result.followUpPlan?.escalationTrigger))), result.watchouts?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u26A0", label: t2("coaching.section.watchouts"), color: C.red }), result.watchouts.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: C.red, flexShrink: 0, marginTop: 6 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, w)))), result.hrbpNotes && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.textD}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.section.notes")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, fontStyle: "italic", lineHeight: 1.65, marginTop: 6 } }, result.hrbpNotes)));
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("coaching.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, plans.length, " ", t2("coaching.subtitle.suffix"))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement(SecHead3, { icon: "\u{1F91D}", label: t2("coaching.section.newPlan"), color: C.teal }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.label.scenario")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 8, marginBottom: 12 } }, COACHING_SCENARIOS.map((s) => /* @__PURE__ */ React.createElement("button", { key: s.id, onClick: () => setScenario(s.id), style: { background: scenario === s.id ? s.color + "22" : "none", color: scenario === s.id ? s.color : C.textM, border: `1px solid ${scenario === s.id ? s.color + "55" : C.border}`, borderRadius: 7, padding: "8px 6px", fontSize: 11, fontWeight: scenario === s.id ? 600 : 400, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, marginBottom: 3 } }, s.icon), t2(s.labelKey)))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.label.managerProfile")), /* @__PURE__ */ React.createElement("input", { value: managerDesc, onChange: (e) => setManagerDesc(e.target.value), placeholder: t2("coaching.ph.managerProfile"), style: { ...css.input, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border })), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.label.situation")), /* @__PURE__ */ React.createElement("textarea", { rows: 4, value: situation, onChange: (e) => setSituation(e.target.value), placeholder: t2("coaching.ph.situation"), style: { ...css.textarea, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }), error && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", margin: "10px 0", fontSize: 12, color: C.red } }, "\u26A0 ", error), loading ? /* @__PURE__ */ React.createElement(AILoader, { label: t2("coaching.loader") }) : /* @__PURE__ */ React.createElement("button", { onClick: generate, disabled: situation.trim().length < 30, style: { ...css.btn(C.teal), width: "100%", marginTop: 12, opacity: situation.trim().length >= 30 ? 1 : 0.4 } }, t2("coaching.button.generate"))), plans.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("coaching.archivedPlans")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, plans.slice().reverse().map((p, i) => {
       const sc = COACHING_SCENARIOS.find((s) => s.id === p.scenario);
       return /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => {
         setResult(p.result);
         setSaved(true);
         setView("result");
-      }, style: { background: C.surfL, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", cursor: "pointer", textAlign: "left", fontFamily: "'DM Sans',sans-serif", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, sc?.icon || "\u{1F91D}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontWeight: 500 } }, p.result?.coachingFocus), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM } }, sc?.label, " \xB7 ", p.savedAt)), /* @__PURE__ */ React.createElement(Badge, { label: p.result?.recommendedFramework || "", color: C.em }));
+      }, style: { background: C.surfL, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", cursor: "pointer", textAlign: "left", fontFamily: "'DM Sans',sans-serif", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, sc?.icon || "\u{1F91D}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, fontWeight: 500 } }, p.result?.coachingFocus), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM } }, sc ? t2(sc.labelKey) : "", " \xB7 ", p.savedAt)), /* @__PURE__ */ React.createElement(Badge, { label: p.result?.recommendedFramework || "", color: C.em }));
     }))));
   }
 
@@ -25929,6 +26150,7 @@ R\xE8gles :
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item === "string" ? item : item.text || JSON.stringify(item)))));
   }
   function ModuleExit({ data, onSave, focusExitId, onClearFocus }) {
+    const { t: t2 } = useT();
     const [view, setView] = (0, import_react9.useState)("list");
     const [exitDate, setExitDate] = (0, import_react9.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
     const [notes, setNotes] = (0, import_react9.useState)("");
@@ -25982,7 +26204,7 @@ ${notes}`);
         setResult(parsed);
         setView("result");
       } catch (e) {
-        setError("Erreur: " + e.message);
+        setError(t2("exit.errorPrefix") + e.message);
       } finally {
         setLoading(false);
       }
@@ -25997,12 +26219,12 @@ ${notes}`);
       setView("list");
       setResult(null);
       setNotes("");
-    }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, "\u2190 Retour"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.summary?.headline), /* @__PURE__ */ React.createElement("button", { onClick: saveExit, disabled: saved, style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 } }, saved ? "\u2713 Archiv\xE9" : "\u{1F4BE} Archiver")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(Badge, { label: result.summary?.departure_type || "", color: DC[result.summary?.departure_type] || C.textM }), /* @__PURE__ */ React.createElement(Badge, { label: `Regrettable: ${result.summary?.regrettable || "?"}`, color: result.summary?.regrettable === "Oui" ? C.red : C.em }), /* @__PURE__ */ React.createElement(Badge, { label: result.summary?.primaryTheme || "", color: C.purple }), result.employeeProfile?.role && /* @__PURE__ */ React.createElement(Badge, { label: result.employeeProfile.role, color: C.blue })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F4CB}", label: "R\xE9sum\xE9 ex\xE9cutif", color: C.em }), /* @__PURE__ */ React.createElement(BulletList, { items: result.summary?.executiveSummary, color: C.em }), result.summary?.confidentialityNote && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.amber, fontStyle: "italic" } }, "\u{1F512} ", result.summary.confidentialityNote)), result.structuredInterview && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F4DD}", label: "R\xE9sum\xE9 structur\xE9 de l'entrevue", color: C.blue }), [["\u{1F91D}", "Int\xE9gration", "integration"], ["\u{1F4BC}", "Satisfaction au travail", "jobSatisfaction"], ["\u{1F465}", "Relations avec les coll\xE8gues", "colleagueRelations"], ["\u{1F399}\uFE0F", "Relation avec la gestion", "managementRelations"], ["\u{1F3E2}", "Conditions de travail", "workingConditions"]].map(([icon, label, key2], i, arr) => {
+    }, style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 } }, t2("exit.back")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.summary?.headline), /* @__PURE__ */ React.createElement("button", { onClick: saveExit, disabled: saved, style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 } }, saved ? t2("exit.archived") : t2("exit.archive"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(Badge, { label: result.summary?.departure_type || "", color: DC[result.summary?.departure_type] || C.textM }), /* @__PURE__ */ React.createElement(Badge, { label: `${t2("exit.regrettablePrefix")}${result.summary?.regrettable || "?"}`, color: result.summary?.regrettable === "Oui" ? C.red : C.em }), /* @__PURE__ */ React.createElement(Badge, { label: result.summary?.primaryTheme || "", color: C.purple }), result.employeeProfile?.role && /* @__PURE__ */ React.createElement(Badge, { label: result.employeeProfile.role, color: C.blue })), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F4CB}", label: t2("exit.section.summary"), color: C.em }), /* @__PURE__ */ React.createElement(BulletList, { items: result.summary?.executiveSummary, color: C.em }), result.summary?.confidentialityNote && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, fontSize: 11, color: C.amber, fontStyle: "italic" } }, "\u{1F512} ", result.summary.confidentialityNote)), result.structuredInterview && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F4DD}", label: t2("exit.section.structuredInterview"), color: C.blue }), [["\u{1F91D}", t2("exit.interview.integration"), "integration"], ["\u{1F4BC}", t2("exit.interview.jobSatisfaction"), "jobSatisfaction"], ["\u{1F465}", t2("exit.interview.colleagueRelations"), "colleagueRelations"], ["\u{1F399}\uFE0F", t2("exit.interview.managementRelations"), "managementRelations"], ["\u{1F3E2}", t2("exit.interview.workingConditions"), "workingConditions"]].map(([icon, label, key2], i, arr) => {
       const s = result.structuredInterview[key2] || {};
       const absent = !s.summary || s.summary === "Non abord\xE9";
-      return /* @__PURE__ */ React.createElement("div", { key: key2, style: { paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, label), s.riskLevel && /* @__PURE__ */ React.createElement(Badge, { label: s.riskLevel, color: RL[s.riskLevel] || C.textM, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: s.positives?.length || s.irritants?.length ? 8 : 0, fontStyle: absent ? "italic" : "normal" } }, s.summary || "Non abord\xE9"), s.positives?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: s.irritants?.length > 0 ? 8 : 0 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, "Positifs"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ React.createElement(BulletList, { items: s.positives, color: C.em }))), s.irritants?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, "Irritants"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ React.createElement(BulletList, { items: s.irritants, color: C.red }))));
-    })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F50D}", label: "Raisons du d\xE9part", color: C.purple }), result.reasons?.primary?.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Badge, { label: r.confidence, color: r.confidence === "\xC9lev\xE9e" ? C.red : C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginTop: 4 } }, r.reason))), result.reasons?.statedVsReal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM, fontStyle: "italic" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber } }, "D\xE9clar\xE9 vs r\xE9el: "), result.reasons.statedVsReal)), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F399}\uFE0F", label: "Feedback management", color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: result.management?.overallSentiment || "", color: SC[result.management?.overallSentiment] || C.textM })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 6 } }, result.management?.managerImpact), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "Coaching: ", result.management?.coachingImplication))), result.signals?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F4E1}", label: "Signaux faibles", color: C.purple }), result.signals.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, paddingBottom: 8, borderBottom: i < result.signals.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: s.category, color: C.purple, size: 10 }), /* @__PURE__ */ React.createElement(Badge, { label: s.breadth, color: s.breadth === "Probablement syst\xE9mique" ? C.red : s.breadth === "Potentiellement r\xE9current" ? C.amber : C.em, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, s.signal), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginTop: 3 } }, "Si non adress\xE9: ", s.ifUnaddressed)))), result.hrbpActions?.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F3AF}", label: "Actions HRBP", color: C.em }), result.hrbpActions.map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 7 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: DELAY_C[a.delay] || C.blue, size: 10 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text } }, a.action)))));
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Analyseur d'entrevues de d\xE9part"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, exits.length, " entrevue(s) archiv\xE9e(s)")), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F6AA}", label: "Analyser une entrevue de d\xE9part", color: C.textM }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 12 } }, [["Employ\xE9", employeeName, setEmployeeName, "Ex: Marie Dupont"], ["R\xF4le", role, setRole, "Ex: Tech Lead"], ["Anciennet\xE9", tenure, setTenure, "Ex: 2 ans"], ["Niveau", seniority, setSeniority, "Ex: Senior"], ["\xC9quipe", team, setTeam, "Ex: IT Infra"], ["Gestionnaire", managerName, setManagerName, "Ex: Marie Tremblay"]].map(([l, v, s, ph], i) => /* @__PURE__ */ React.createElement("div", { key: i }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("input", { value: v, onChange: (e) => s(e.target.value), placeholder: ph, style: { ...css.input, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Province"), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: exitProvince, onChange: (e) => setExitProvince(e.target.value), style: { marginTop: 6, width: "100%" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Date de l'entrevue"), /* @__PURE__ */ React.createElement("input", { type: "date", value: exitDate, onChange: (e) => setExitDate(e.target.value), style: { ...css.input, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Notes / verbatims de l'entrevue"), /* @__PURE__ */ React.createElement("textarea", { rows: 8, value: notes, onChange: (e) => setNotes(e.target.value), placeholder: "Notes, r\xE9ponses, verbatims importants, contexte...", style: { ...css.textarea, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }), error && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", margin: "10px 0", fontSize: 12, color: C.red } }, "\u26A0 ", error), loading ? /* @__PURE__ */ React.createElement(AILoader, { label: "Analyse de l'entrevue de d\xE9part" }) : /* @__PURE__ */ React.createElement("button", { onClick: analyze, disabled: notes.trim().length < 60, style: { ...css.btn(C.purple), width: "100%", marginTop: 12, opacity: notes.trim().length >= 60 ? 1 : 0.4 } }, "\u{1F6AA} Analyser l'entrevue de d\xE9part")), exits.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, "Entrevues archiv\xE9es"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, exits.slice().reverse().map((e, i) => {
+      return /* @__PURE__ */ React.createElement("div", { key: key2, style: { paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: C.text } }, label), s.riskLevel && /* @__PURE__ */ React.createElement(Badge, { label: s.riskLevel, color: RL[s.riskLevel] || C.textM, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: s.positives?.length || s.irritants?.length ? 8 : 0, fontStyle: absent ? "italic" : "normal" } }, s.summary || t2("exit.interview.notDiscussed")), s.positives?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: s.irritants?.length > 0 ? 8 : 0 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("exit.interview.positives")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ React.createElement(BulletList, { items: s.positives, color: C.em }))), s.irritants?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, t2("exit.interview.irritants")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ React.createElement(BulletList, { items: s.irritants, color: C.red }))));
+    })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 } }, /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F50D}", label: t2("exit.section.reasons"), color: C.purple }), result.reasons?.primary?.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Badge, { label: r.confidence, color: r.confidence === "\xC9lev\xE9e" ? C.red : C.amber, size: 10 }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, marginTop: 4 } }, r.reason))), result.reasons?.statedVsReal && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM, fontStyle: "italic" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber } }, t2("exit.reasons.statedVsReal")), result.reasons.statedVsReal)), /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F399}\uFE0F", label: t2("exit.section.feedback"), color: C.red }), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement(Badge, { label: result.management?.overallSentiment || "", color: SC[result.management?.overallSentiment] || C.textM })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 6 } }, result.management?.managerImpact), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, t2("exit.management.coachingPrefix"), result.management?.coachingImplication))), result.signals?.length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F4E1}", label: t2("exit.section.signals"), color: C.purple }), result.signals.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { marginBottom: 10, paddingBottom: 8, borderBottom: i < result.signals.length - 1 ? `1px solid ${C.border}` : "none" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: s.category, color: C.purple, size: 10 }), /* @__PURE__ */ React.createElement(Badge, { label: s.breadth, color: s.breadth === "Probablement syst\xE9mique" ? C.red : s.breadth === "Potentiellement r\xE9current" ? C.amber : C.em, size: 10 })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text } }, s.signal), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginTop: 3 } }, t2("exit.signals.ifUnaddressed"), s.ifUnaddressed)))), result.hrbpActions?.length > 0 && /* @__PURE__ */ React.createElement(Card, null, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F3AF}", label: t2("exit.section.actions"), color: C.em }), result.hrbpActions.map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 7 } }, /* @__PURE__ */ React.createElement(Badge, { label: a.delay, color: DELAY_C[a.delay] || C.blue, size: 10 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text } }, a.action)))));
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("exit.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, exits.length, " ", t2("exit.subtitle.suffix"))), /* @__PURE__ */ React.createElement(Card, { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement(SecHead4, { icon: "\u{1F6AA}", label: t2("exit.section.analyze"), color: C.textM }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 12 } }, [[t2("exit.label.employee"), employeeName, setEmployeeName, t2("exit.ph.employee")], [t2("exit.label.role"), role, setRole, t2("exit.ph.role")], [t2("exit.label.tenure"), tenure, setTenure, t2("exit.ph.tenure")], [t2("exit.label.seniority"), seniority, setSeniority, t2("exit.ph.seniority")], [t2("exit.label.team"), team, setTeam, t2("exit.ph.team")], [t2("exit.label.manager"), managerName, setManagerName, t2("exit.ph.manager")]].map(([l, v, s, ph], i) => /* @__PURE__ */ React.createElement("div", { key: i }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, l), /* @__PURE__ */ React.createElement("input", { value: v, onChange: (e) => s(e.target.value), placeholder: ph, style: { ...css.input, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("common.province")), /* @__PURE__ */ React.createElement(ProvinceSelect, { value: exitProvince, onChange: (e) => setExitProvince(e.target.value), style: { marginTop: 6, width: "100%" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("exit.label.date")), /* @__PURE__ */ React.createElement("input", { type: "date", value: exitDate, onChange: (e) => setExitDate(e.target.value), style: { ...css.input, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }))), /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("exit.label.notes")), /* @__PURE__ */ React.createElement("textarea", { rows: 8, value: notes, onChange: (e) => setNotes(e.target.value), placeholder: t2("exit.ph.notes"), style: { ...css.textarea, marginTop: 6 }, onFocus: (e) => e.target.style.borderColor = C.em + "60", onBlur: (e) => e.target.style.borderColor = C.border }), error && /* @__PURE__ */ React.createElement("div", { style: { background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 7, padding: "8px 12px", margin: "10px 0", fontSize: 12, color: C.red } }, "\u26A0 ", error), loading ? /* @__PURE__ */ React.createElement(AILoader, { label: t2("exit.loader") }) : /* @__PURE__ */ React.createElement("button", { onClick: analyze, disabled: notes.trim().length < 60, style: { ...css.btn(C.purple), width: "100%", marginTop: 12, opacity: notes.trim().length >= 60 ? 1 : 0.4 } }, t2("exit.button.analyze"))), exits.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("exit.archivedInterviews")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, exits.slice().reverse().map((e, i) => {
       const dc = DC[e.result?.summary?.departure_type] || C.textM;
       return /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => {
         setResult(e.result);
@@ -30162,6 +30384,7 @@ Pr\xE9pare la conversation d'accueil:
 
   // src/modules/AutoPrompt.jsx
   function ModuleAutoPrompt({ data }) {
+    const { t: t2 } = useT();
     const [selected, setSelected] = (0, import_react15.useState)(null);
     const [mode, setMode] = (0, import_react15.useState)(null);
     const [generated, setGenerated] = (0, import_react15.useState)("");
@@ -30174,7 +30397,7 @@ Pr\xE9pare la conversation d'accueil:
       if (!tpl2) return;
       let base = tpl2[m]?.(sit.context) || "";
       if (!base) {
-        setGenerated("Mode non disponible pour ce template.");
+        setGenerated(t2("autoprompt.error.modeUnavailable"));
         return;
       }
       if (vari === "stronger") base += "\n\nSois encore plus direct. Moins de nuances. Plus de cons\xE9quences. Ne m'\xE9pargne pas.";
@@ -30206,12 +30429,12 @@ Pr\xE9pare la conversation d'accueil:
     const tpl = selected ? APE_TEMPLATES[selected.template] : null;
     const availableModes = tpl ? ["diagnose", "act", "say"].filter((m) => !!tpl[m]) : [];
     const MODE_META = {
-      diagnose: { label: "\u{1F50D} Diagnose", desc: "Lire la situation en profondeur", color: C.purple },
-      act: { label: "\u{1F3AF} Act", desc: "Plan d'action ou prochaines \xE9tapes", color: C.em },
-      say: { label: "\u{1F4AC} Say", desc: "Formulation exacte pour la conversation", color: C.blue }
+      diagnose: { labelKey: "autoprompt.mode.diagnose", descKey: "autoprompt.mode.diagnose.desc", color: C.purple },
+      act: { labelKey: "autoprompt.mode.act", descKey: "autoprompt.mode.act.desc", color: C.em },
+      say: { labelKey: "autoprompt.mode.say", descKey: "autoprompt.mode.say.desc", color: C.blue }
     };
     const URGENCY_C4 = (u) => ({ "Critique": C.red, "\xC9lev\xE9": C.amber, "Eleve": C.amber, "Mod\xE9r\xE9": C.blue, "Modere": C.blue })[u] || C.textD;
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 900, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.text } }, "Moteur de prompts automatiques"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Contexte d\xE9tect\xE9 automatiquement \xB7 ", situations.length, " situation", situations.length !== 1 ? "s" : "", " identifi\xE9e", situations.length !== 1 ? "s" : "")), situations.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 14 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.textM, marginBottom: 6 } }, "Aucune situation d\xE9tect\xE9e"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 380, margin: "0 auto" } }, "Alimente le OS \u2014 ajoute des cas, des meetings, des signaux ou g\xE9n\xE8re un Org Radar pour que le moteur d\xE9tecte des situations.")), situations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: selected ? "320px 1fr" : "1fr", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5 } }, selected && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8, style: { display: "block", marginBottom: 4 } }, "SITUATIONS D\xC9TECT\xC9ES"), situations.map((sit, i) => {
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 900, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.text } }, t2("autoprompt.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("autoprompt.subtitle.prefix"), situations.length, " ", situations.length === 1 ? t2("autoprompt.subtitle.one") : t2("autoprompt.subtitle.other"))), situations.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 20px", color: C.textD } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 14 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.textM, marginBottom: 6 } }, t2("autoprompt.empty.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, maxWidth: 380, margin: "0 auto" } }, t2("autoprompt.empty.body"))), situations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: selected ? "320px 1fr" : "1fr", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5 } }, selected && /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8, style: { display: "block", marginBottom: 4 } }, t2("autoprompt.section.detected")), situations.map((sit, i) => {
       const isSelected = selected?.id === sit.id;
       const uc = URGENCY_C4(sit.urgency);
       return /* @__PURE__ */ React.createElement(
@@ -30236,6 +30459,7 @@ Pr\xE9pare la conversation d'accueil:
         /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16, flexShrink: 0, marginTop: 1 } }, sit.icon),
         /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, sit.title), sit.confidence && (() => {
           const cc = { "\xC9lev\xE9e": C.em, "Moyenne": C.amber, "Faible": C.textD }[sit.confidence] || C.textD;
+          const confKey = sit.confidence === "\xC9lev\xE9e" ? "autoprompt.confidence.high" : sit.confidence === "Moyenne" ? "autoprompt.confidence.medium" : "autoprompt.confidence.low";
           return /* @__PURE__ */ React.createElement("div", { style: {
             background: cc + "18",
             border: `1px solid ${cc}35`,
@@ -30245,7 +30469,7 @@ Pr\xE9pare la conversation d'accueil:
             color: cc,
             fontWeight: 700,
             flexShrink: 0
-          } }, sit.confidence === "\xC9lev\xE9e" ? "\u2713 \xC9lev\xE9e" : sit.confidence === "Moyenne" ? "~ Moyenne" : "? Faible");
+          } }, t2(confKey));
         })()), sit.whyNow && /* @__PURE__ */ React.createElement("div", { style: {
           fontSize: 11,
           color: C.amber,
@@ -30310,10 +30534,12 @@ Pr\xE9pare la conversation d'accueil:
       justifyContent: "center",
       fontSize: 12,
       marginTop: 1
-    } }, "\u2192"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8, style: { display: "block", marginBottom: 4 } }, "MEILLEUR MOVE EN 10 MINUTES"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, selected.bestNextMove))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8, style: { display: "block", marginBottom: 6 } }, "CHOISIR LE MODE"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, ["diagnose", "act", "say"].map((m) => {
+    } }, "\u2192"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 8, style: { display: "block", marginBottom: 4 } }, t2("autoprompt.bestMove")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, selected.bestNextMove))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8, style: { display: "block", marginBottom: 6 } }, t2("autoprompt.chooseMode")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, ["diagnose", "act", "say"].map((m) => {
       const meta = MODE_META[m];
       const avail = availableModes.includes(m);
       const isActive = mode === m;
+      const fullLabel = t2(meta.labelKey);
+      const labelParts = fullLabel.split(" ");
       return /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -30332,19 +30558,19 @@ Pr\xE9pare la conversation d'accueil:
             opacity: avail ? 1 : 0.35
           }
         },
-        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, marginBottom: 3 } }, meta.label.split(" ")[0]),
-        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700 } }, meta.label.split(" ").slice(1).join(" ")),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, marginBottom: 3 } }, labelParts[0]),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700 } }, labelParts.slice(1).join(" ")),
         /* @__PURE__ */ React.createElement("div", { style: {
           fontSize: 9,
           marginTop: 2,
           opacity: 0.75,
           color: isActive ? "#fff" : meta.color
-        } }, meta.desc)
+        } }, t2(meta.descKey))
       );
-    }))), generated && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, "PROMPT G\xC9N\xC9R\xC9 \u2014 PR\xCAT \xC0 COLLER"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5 } }, [
-      { id: "stronger", label: "\u2B06 Plus fort" },
-      { id: "direct", label: "\u2702 Plus court" },
-      { id: "executive", label: "\u{1F399}\uFE0F Exec" }
+    }))), generated && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, t2("autoprompt.generatedLabel")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5 } }, [
+      { id: "stronger", labelKey: "autoprompt.variant.stronger" },
+      { id: "direct", labelKey: "autoprompt.variant.direct" },
+      { id: "executive", labelKey: "autoprompt.variant.executive" }
     ].map((v) => /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -30361,7 +30587,7 @@ Pr\xE9pare la conversation d'accueil:
           color: variant === v.id ? C.purple : C.textD
         }
       },
-      v.label
+      t2(v.labelKey)
     )), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -30372,7 +30598,7 @@ Pr\xE9pare la conversation d'accueil:
           fontSize: 11
         }
       },
-      copied ? "\u2713 Copi\xE9" : "\u{1F4CB} Copier"
+      copied ? t2("autoprompt.copy.copied") : t2("autoprompt.copy.label")
     ))), /* @__PURE__ */ React.createElement("div", { style: {
       background: C.bg,
       border: `1px solid ${C.border}`,
@@ -30393,13 +30619,13 @@ Pr\xE9pare la conversation d'accueil:
       background: C.surfL,
       borderRadius: 8,
       border: `1px solid ${C.border}`
-    } }, "Choisis un mode ci-dessus pour g\xE9n\xE9rer le prompt")), !selected && situations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+    } }, t2("autoprompt.hint.chooseMode"))), !selected && situations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
       marginTop: 8,
       textAlign: "center",
       padding: "20px",
       color: C.textD,
       fontSize: 12
-    } }, "S\xE9lectionne une situation pour g\xE9n\xE9rer le prompt")));
+    } }, t2("autoprompt.hint.selectSit"))));
   }
 
   // src/modules/Meetings.jsx

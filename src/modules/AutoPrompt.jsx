@@ -6,10 +6,12 @@ import { useState } from "react";
 import { C, css } from '../theme.js';
 import Mono from '../components/Mono.jsx';
 import { APE_TEMPLATES, detectSituations } from '../utils/situations.js';
+import { useT } from '../lib/i18n.js';
 
 
 // ── Module ────────────────────────────────────────────────────────────────────
 export default function ModuleAutoPrompt({ data }) {
+  const { t } = useT();
   const [selected, setSelected]   = useState(null);   // selected situation
   const [mode, setMode]           = useState(null);   // diagnose|act|say
   const [generated, setGenerated] = useState("");
@@ -23,7 +25,7 @@ export default function ModuleAutoPrompt({ data }) {
     const tpl = APE_TEMPLATES[sit.template];
     if (!tpl) return;
     let base = tpl[m]?.(sit.context) || "";
-    if (!base) { setGenerated("Mode non disponible pour ce template."); return; }
+    if (!base) { setGenerated(t("autoprompt.error.modeUnavailable")); return; }
     if (vari === "stronger") base += "\n\nSois encore plus direct. Moins de nuances. Plus de conséquences. Ne m'épargne pas.";
     if (vari === "direct")   base += "\n\nRéduis de 30%. Coupe tout ce qui n'est pas actionnable. Reste uniquement les faits et les actes.";
     if (vari === "executive") base += "\n\nReformule pour un VP ou CODIR. Langage business, pas RH. Enjeu organisationnel en premier. Recommandation courte et nette.";
@@ -52,9 +54,9 @@ export default function ModuleAutoPrompt({ data }) {
   const availableModes = tpl ? ["diagnose","act","say"].filter(m => !!tpl[m]) : [];
 
   const MODE_META = {
-    diagnose: { label:"🔍 Diagnose", desc:"Lire la situation en profondeur", color:C.purple },
-    act:      { label:"🎯 Act",      desc:"Plan d'action ou prochaines étapes",  color:C.em },
-    say:      { label:"💬 Say",      desc:"Formulation exacte pour la conversation", color:C.blue },
+    diagnose: { labelKey:"autoprompt.mode.diagnose", descKey:"autoprompt.mode.diagnose.desc", color:C.purple },
+    act:      { labelKey:"autoprompt.mode.act",      descKey:"autoprompt.mode.act.desc",      color:C.em     },
+    say:      { labelKey:"autoprompt.mode.say",      descKey:"autoprompt.mode.say.desc",      color:C.blue   },
   };
 
   const URGENCY_C = (u) => ({"Critique":C.red,"Élevé":C.amber,"Eleve":C.amber,"Modéré":C.blue,"Modere":C.blue}[u]||C.textD);
@@ -63,9 +65,9 @@ export default function ModuleAutoPrompt({ data }) {
     <div style={{ maxWidth:900, margin:"0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom:18 }}>
-        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Moteur de prompts automatiques</div>
+        <div style={{ fontSize:16, fontWeight:700, color:C.text }}>{t("autoprompt.title")}</div>
         <div style={{ fontSize:12, color:C.textM }}>
-          Contexte détecté automatiquement · {situations.length} situation{situations.length!==1?"s":""} identifiée{situations.length!==1?"s":""}
+          {t("autoprompt.subtitle.prefix")}{situations.length} {situations.length === 1 ? t("autoprompt.subtitle.one") : t("autoprompt.subtitle.other")}
         </div>
       </div>
 
@@ -73,9 +75,9 @@ export default function ModuleAutoPrompt({ data }) {
       {situations.length === 0 && (
         <div style={{ textAlign:"center", padding:"60px 20px", color:C.textD }}>
           <div style={{ fontSize:36, marginBottom:14 }}>🔍</div>
-          <div style={{ fontSize:14, color:C.textM, marginBottom:6 }}>Aucune situation détectée</div>
+          <div style={{ fontSize:14, color:C.textM, marginBottom:6 }}>{t("autoprompt.empty.title")}</div>
           <div style={{ fontSize:12, color:C.textD, maxWidth:380, margin:"0 auto" }}>
-            Alimente le OS — ajoute des cas, des meetings, des signaux ou génère un Org Radar pour que le moteur détecte des situations.
+            {t("autoprompt.empty.body")}
           </div>
         </div>
       )}
@@ -85,7 +87,7 @@ export default function ModuleAutoPrompt({ data }) {
 
           {/* Left — situation list */}
           <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-            {selected && <Mono color={C.textD} size={8} style={{ display:"block", marginBottom:4 }}>SITUATIONS DÉTECTÉES</Mono>}
+            {selected && <Mono color={C.textD} size={8} style={{ display:"block", marginBottom:4 }}>{t("autoprompt.section.detected")}</Mono>}
             {situations.map((sit, i) => {
               const isSelected = selected?.id === sit.id;
               const uc = URGENCY_C(sit.urgency);
@@ -103,10 +105,13 @@ export default function ModuleAutoPrompt({ data }) {
                       <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{sit.title}</div>
                       {sit.confidence && (() => {
                         const cc = {"Élevée":C.em,"Moyenne":C.amber,"Faible":C.textD}[sit.confidence]||C.textD;
+                        const confKey = sit.confidence==="Élevée" ? "autoprompt.confidence.high"
+                          : sit.confidence==="Moyenne" ? "autoprompt.confidence.medium"
+                          : "autoprompt.confidence.low";
                         return <div style={{ background:cc+"18", border:`1px solid ${cc}35`,
                           borderRadius:4, padding:"1px 5px", fontSize:8, color:cc,
                           fontWeight:700, flexShrink:0 }}>
-                          {sit.confidence==="Élevée"?"✓ Élevée":sit.confidence==="Moyenne"?"~ Moyenne":"? Faible"}
+                          {t(confKey)}
                         </div>;
                       })()}
                     </div>
@@ -169,7 +174,7 @@ export default function ModuleAutoPrompt({ data }) {
                     flexShrink:0, display:"flex", alignItems:"center",
                     justifyContent:"center", fontSize:12, marginTop:1 }}>→</div>
                   <div>
-                    <Mono color={C.em} size={8} style={{ display:"block", marginBottom:4 }}>MEILLEUR MOVE EN 10 MINUTES</Mono>
+                    <Mono color={C.em} size={8} style={{ display:"block", marginBottom:4 }}>{t("autoprompt.bestMove")}</Mono>
                     <div style={{ fontSize:13, color:C.text, lineHeight:1.65 }}>{selected.bestNextMove}</div>
                   </div>
                 </div>
@@ -177,12 +182,14 @@ export default function ModuleAutoPrompt({ data }) {
 
               {/* Mode selector */}
               <div>
-                <Mono color={C.textD} size={8} style={{ display:"block", marginBottom:6 }}>CHOISIR LE MODE</Mono>
+                <Mono color={C.textD} size={8} style={{ display:"block", marginBottom:6 }}>{t("autoprompt.chooseMode")}</Mono>
                 <div style={{ display:"flex", gap:6 }}>
                   {["diagnose","act","say"].map(m => {
                     const meta = MODE_META[m];
                     const avail = availableModes.includes(m);
                     const isActive = mode===m;
+                    const fullLabel = t(meta.labelKey);
+                    const labelParts = fullLabel.split(" ");
                     return (
                       <button key={m}
                         onClick={() => avail && generate(selected, m, null)}
@@ -192,10 +199,10 @@ export default function ModuleAutoPrompt({ data }) {
                           background: isActive ? meta.color : avail ? meta.color+"15" : C.surfLL,
                           color: isActive ? "#fff" : avail ? meta.color : C.textD,
                           opacity: avail ? 1 : 0.35 }}>
-                          <div style={{ fontSize:14, marginBottom:3 }}>{meta.label.split(" ")[0]}</div>
-                          <div style={{ fontSize:11, fontWeight:700 }}>{meta.label.split(" ").slice(1).join(" ")}</div>
+                          <div style={{ fontSize:14, marginBottom:3 }}>{labelParts[0]}</div>
+                          <div style={{ fontSize:11, fontWeight:700 }}>{labelParts.slice(1).join(" ")}</div>
                           <div style={{ fontSize:9, marginTop:2, opacity:0.75,
-                            color: isActive?"#fff":meta.color }}>{meta.desc}</div>
+                            color: isActive?"#fff":meta.color }}>{t(meta.descKey)}</div>
                       </button>
                     );
                   })}
@@ -206,13 +213,13 @@ export default function ModuleAutoPrompt({ data }) {
               {generated && (
                 <div>
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-                    <Mono color={C.textD} size={8}>PROMPT GÉNÉRÉ — PRÊT À COLLER</Mono>
+                    <Mono color={C.textD} size={8}>{t("autoprompt.generatedLabel")}</Mono>
                     <div style={{ display:"flex", gap:5 }}>
                       {/* Variants */}
                       {[
-                        {id:"stronger",  label:"⬆ Plus fort"},
-                        {id:"direct",    label:"✂ Plus court"},
-                        {id:"executive", label:"🎙️ Exec"},
+                        {id:"stronger",  labelKey:"autoprompt.variant.stronger"},
+                        {id:"direct",    labelKey:"autoprompt.variant.direct"},
+                        {id:"executive", labelKey:"autoprompt.variant.executive"},
                       ].map(v=>(
                         <button key={v.id}
                           onClick={() => generate(selected, mode, v.id)}
@@ -221,13 +228,13 @@ export default function ModuleAutoPrompt({ data }) {
                             background: variant===v.id ? C.purple+"22" : C.surfLL,
                             border:`1px solid ${variant===v.id ? C.purple+"55" : C.border}`,
                             color: variant===v.id ? C.purple : C.textD }}>
-                          {v.label}
+                          {t(v.labelKey)}
                         </button>
                       ))}
                       <button onClick={copy}
                         style={{ ...css.btn(copied?C.em:C.blue),
                           padding:"4px 14px", fontSize:11 }}>
-                        {copied ? "✓ Copié" : "📋 Copier"}
+                        {copied ? t("autoprompt.copy.copied") : t("autoprompt.copy.label")}
                       </button>
                     </div>
                   </div>
@@ -246,7 +253,7 @@ export default function ModuleAutoPrompt({ data }) {
                   color:C.textD, fontSize:12,
                   background:C.surfL, borderRadius:8,
                   border:`1px solid ${C.border}` }}>
-                  Choisis un mode ci-dessus pour générer le prompt
+                  {t("autoprompt.hint.chooseMode")}
                 </div>
               )}
             </div>
@@ -256,7 +263,7 @@ export default function ModuleAutoPrompt({ data }) {
           {!selected && situations.length > 0 && (
             <div style={{ marginTop:8, textAlign:"center", padding:"20px",
               color:C.textD, fontSize:12 }}>
-              Sélectionne une situation pour générer le prompt
+              {t("autoprompt.hint.selectSit")}
             </div>
           )}
         </div>
