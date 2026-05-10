@@ -900,6 +900,35 @@ ${LEGAL_GUARDRAIL}`;
       "meetings.field.name": "Name",
       "meetings.field.type": "Meeting type",
       "meetings.field.scope": "Scope",
+      "meetings.field.date": "Date",
+      "meetings.field.summary": "Executive summary",
+      "meetings.field.summary.hint": "One bullet per line",
+      "meetings.field.actions": "Action items / next steps",
+      "meetings.field.actions.hint": "One per line \u2014 format: delay | owner | action",
+      "meetings.field.notes": "HRBP notes",
+      "meetings.field.hrbpKeyMessage": "HRBP key message",
+      "meetings.field.people.performance": "Performance",
+      "meetings.field.people.leadership": "Leadership",
+      "meetings.field.people.engagement": "Engagement",
+      "meetings.field.signals.hint": "One per line \u2014 format: category | breadth | signal | interpretation | if unaddressed",
+      "meetings.field.risks.hint": "One per line \u2014 format: level | trend | risk | rationale",
+      "meetings.field.questions.hint": "One per line \u2014 format: target | question | why",
+      "meetings.field.case.title": "Case title",
+      "meetings.field.case.type": "Type",
+      "meetings.field.case.riskLevel": "Risk level",
+      "meetings.field.case.situation": "Situation",
+      "meetings.field.case.interventions": "Interventions done",
+      "meetings.field.case.hrPosition": "HR position",
+      "meetings.field.case.nextFollowUp": "Next follow-up",
+      "meetings.field.case.notes": "Case notes",
+      "meetings.editSection.summary": "SUMMARY",
+      "meetings.editSection.people": "PEOPLE",
+      "meetings.editSection.signals": "SIGNALS",
+      "meetings.editSection.risks": "RISKS",
+      "meetings.editSection.actions": "ACTIONS",
+      "meetings.editSection.questions": "QUESTIONS",
+      "meetings.editSection.caseLog": "CASE LOG",
+      "meetings.editSection.notes": "HRBP NOTES",
       "meetings.scope.leader": "Leader / Manager",
       "meetings.scope.team": "Team",
       "meetings.scope.individual": "Employee / Individual",
@@ -1432,6 +1461,35 @@ ${LEGAL_GUARDRAIL}`;
       "meetings.field.name": "Nom",
       "meetings.field.type": "Type de meeting",
       "meetings.field.scope": "Port\xE9e",
+      "meetings.field.date": "Date",
+      "meetings.field.summary": "R\xE9sum\xE9 ex\xE9cutif",
+      "meetings.field.summary.hint": "Un point par ligne",
+      "meetings.field.actions": "Actions / prochaines \xE9tapes",
+      "meetings.field.actions.hint": "Une par ligne \u2014 format : d\xE9lai | responsable | action",
+      "meetings.field.notes": "Notes HRBP",
+      "meetings.field.hrbpKeyMessage": "Message cl\xE9 HRBP",
+      "meetings.field.people.performance": "Performance",
+      "meetings.field.people.leadership": "Leadership",
+      "meetings.field.people.engagement": "Engagement",
+      "meetings.field.signals.hint": "Un par ligne \u2014 format : cat\xE9gorie | \xE9tendue | signal | interpr\xE9tation | si non adress\xE9",
+      "meetings.field.risks.hint": "Un par ligne \u2014 format : niveau | tendance | risque | justification",
+      "meetings.field.questions.hint": "Une par ligne \u2014 format : cible | question | pourquoi",
+      "meetings.field.case.title": "Titre du cas",
+      "meetings.field.case.type": "Type",
+      "meetings.field.case.riskLevel": "Niveau de risque",
+      "meetings.field.case.situation": "Situation",
+      "meetings.field.case.interventions": "Interventions effectu\xE9es",
+      "meetings.field.case.hrPosition": "Position RH",
+      "meetings.field.case.nextFollowUp": "Prochain suivi",
+      "meetings.field.case.notes": "Notes du cas",
+      "meetings.editSection.summary": "R\xC9SUM\xC9",
+      "meetings.editSection.people": "PERSONNES",
+      "meetings.editSection.signals": "SIGNAUX",
+      "meetings.editSection.risks": "RISQUES",
+      "meetings.editSection.actions": "ACTIONS",
+      "meetings.editSection.questions": "QUESTIONS",
+      "meetings.editSection.caseLog": "JOURNAL DE CAS",
+      "meetings.editSection.notes": "NOTES HRBP",
       "meetings.scope.leader": "Leader / Gestionnaire",
       "meetings.scope.team": "\xC9quipe",
       "meetings.scope.individual": "Employ\xE9 / Individuel",
@@ -33627,22 +33685,108 @@ ${t3}`;
       { id: "disciplinaire", label: t2("meetings.type.disciplinaire") },
       { id: "initiatives", label: t2("meetings.type.initiatives") }
     ];
+    const linesToArr = (s) => (s || "").split("\n").map((x) => x.trim()).filter(Boolean);
+    const arrToLines = (arr) => (Array.isArray(arr) ? arr : []).map((x) => typeof x === "string" ? x : x?.text || "").filter(Boolean).join("\n");
+    const objsToPipeLines = (arr, fields) => (Array.isArray(arr) ? arr : []).map((o) => {
+      if (typeof o === "string") return o;
+      return fields.map((f) => o?.[f] ?? "").join(" | ");
+    }).filter((s) => s.replace(/[\s|]/g, "")).join("\n");
+    const pipeLinesToObjs = (s, fields) => (s || "").split("\n").map((line) => {
+      const parts = line.split("|").map((x) => x.trim());
+      if (parts.every((p) => !p)) return null;
+      const out = {};
+      fields.forEach((f, i) => {
+        out[f] = parts[i] || "";
+      });
+      return out;
+    }).filter(Boolean);
+    const ACTION_FIELDS = ["delay", "owner", "action"];
+    const SIGNAL_FIELDS = ["category", "breadth", "signal", "interpretation", "ifUnaddressed"];
+    const RISK_FIELDS = ["level", "trend", "risk", "rationale"];
+    const QUESTION_FIELDS = ["target", "question", "why"];
+    const openEditor = () => {
+      const r = result || {};
+      const ce = r.caseEntry || {};
+      const ppl = r.people || {};
+      setMetaDraft({
+        meetingTitle: r.meetingTitle || activeSession?.analysis?.meetingTitle || "",
+        director: activeSession?.director ?? r.director ?? dirName ?? "",
+        meetingType: activeSession?.meetingType || meetingType,
+        scope: activeSession?.scope || meetingScope || "leader",
+        savedAt: activeSession?.savedAt || meetingDate || r.meetingDate || "",
+        hrbpKeyMessage: r.hrbpKeyMessage || "",
+        summaryText: arrToLines(r.summary),
+        peoplePerfText: arrToLines(ppl.performance),
+        peopleLeadText: arrToLines(ppl.leadership),
+        peopleEnggText: arrToLines(ppl.engagement),
+        signalsText: objsToPipeLines(r.signals, SIGNAL_FIELDS),
+        risksText: objsToPipeLines(r.risks, RISK_FIELDS),
+        actionsText: objsToPipeLines(r.actions, ACTION_FIELDS),
+        questionsText: objsToPipeLines(r.questions, QUESTION_FIELDS),
+        caseTitle: ce.title || ce.titre || "",
+        caseType: ce.type || "",
+        caseRiskLevel: ce.riskLevel || "",
+        caseSituation: ce.situation || "",
+        caseInterventions: ce.interventionsDone || "",
+        caseHrPosition: ce.hrPosition || "",
+        caseNextFollowUp: ce.nextFollowUp || "",
+        caseNotes: ce.notes || "",
+        notes: typeof r.notes === "string" ? r.notes : ""
+      });
+      setEditingMeta(true);
+    };
     const saveMeta = () => {
-      if (!activeSession) return;
-      const updated = {
-        ...activeSession,
-        meetingType: metaDraft.meetingType || activeSession.meetingType,
-        scope: metaDraft.scope || activeSession.scope || "leader",
-        director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.director,
-        analysis: {
-          ...activeSession.analysis,
-          meetingTitle: metaDraft.meetingTitle || activeSession.analysis?.meetingTitle,
-          director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.analysis?.director
-        }
+      const baseAnalysis = activeSession?.analysis || result || {};
+      const caseTitle = (metaDraft.caseTitle || "").trim();
+      const newCaseEntry = caseTitle ? {
+        title: caseTitle,
+        type: metaDraft.caseType || "",
+        riskLevel: metaDraft.caseRiskLevel || "",
+        situation: metaDraft.caseSituation || "",
+        interventionsDone: metaDraft.caseInterventions || "",
+        hrPosition: metaDraft.caseHrPosition || "",
+        nextFollowUp: metaDraft.caseNextFollowUp || "",
+        notes: metaDraft.caseNotes || ""
+      } : null;
+      const newAnalysis = {
+        ...baseAnalysis,
+        meetingTitle: metaDraft.meetingTitle || baseAnalysis.meetingTitle || "",
+        director: metaDraft.director !== void 0 ? metaDraft.director : baseAnalysis.director,
+        meetingDate: metaDraft.savedAt || baseAnalysis.meetingDate || "",
+        hrbpKeyMessage: metaDraft.hrbpKeyMessage || "",
+        summary: linesToArr(metaDraft.summaryText),
+        people: {
+          ...baseAnalysis.people || {},
+          performance: linesToArr(metaDraft.peoplePerfText),
+          leadership: linesToArr(metaDraft.peopleLeadText),
+          engagement: linesToArr(metaDraft.peopleEnggText)
+        },
+        signals: pipeLinesToObjs(metaDraft.signalsText, SIGNAL_FIELDS),
+        risks: pipeLinesToObjs(metaDraft.risksText, RISK_FIELDS),
+        actions: pipeLinesToObjs(metaDraft.actionsText, ACTION_FIELDS),
+        questions: pipeLinesToObjs(metaDraft.questionsText, QUESTION_FIELDS),
+        caseEntry: newCaseEntry,
+        notes: metaDraft.notes || ""
       };
-      onUpdateMeeting(updated);
-      setActiveSession(updated);
-      setResult(normalizeMeetingOutput(updated.analysis));
+      if (view === "session" && activeSession) {
+        const updated = {
+          ...activeSession,
+          meetingType: metaDraft.meetingType || activeSession.meetingType,
+          scope: metaDraft.scope || activeSession.scope || "leader",
+          director: metaDraft.director !== void 0 ? metaDraft.director : activeSession.director,
+          savedAt: metaDraft.savedAt || activeSession.savedAt,
+          analysis: newAnalysis
+        };
+        onUpdateMeeting(updated);
+        setActiveSession(updated);
+        setResult(normalizeMeetingOutput(updated.analysis));
+      } else {
+        setResult(normalizeMeetingOutput(newAnalysis));
+        if (metaDraft.savedAt) setMeetingDate(metaDraft.savedAt);
+        if (metaDraft.director !== void 0) setDirName(metaDraft.director);
+        if (metaDraft.meetingType) setMeetingType(metaDraft.meetingType);
+        if (metaDraft.scope) setMeetingScope(metaDraft.scope);
+      }
       setEditingMeta(false);
     };
     if ((view === "result" || view === "session") && result) return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 820, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 } }, /* @__PURE__ */ React.createElement(
@@ -33658,18 +33802,10 @@ ${t3}`;
         style: { ...css.btn(C.textM, true), padding: "6px 12px", fontSize: 11 }
       },
       t2("meetings.back")
-    ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.meetingTitle), view === "session" && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: 16, fontWeight: 700, color: C.text } }, result.meetingTitle), /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => {
-          setEditingMeta((v) => !v);
-          setMetaDraft({
-            meetingType: activeSession?.meetingType || meetingType,
-            scope: activeSession?.scope || "leader",
-            director: activeSession?.director || result.director || dirName,
-            meetingTitle: result.meetingTitle || ""
-          });
-        },
+        onClick: () => editingMeta ? setEditingMeta(false) : openEditor(),
         style: { ...css.btn(editingMeta ? C.amber : C.textM, true), padding: "6px 12px", fontSize: 11 }
       },
       editingMeta ? t2("meetings.editMeta.cancel") : t2("meetings.editMeta")
@@ -33681,13 +33817,18 @@ ${t3}`;
         style: { ...css.btn(saved ? C.textD : C.em), padding: "8px 16px", fontSize: 12 }
       },
       saved ? t2("meetings.saved") : t2("meetings.save")
-    )), editingMeta && view === "session" && /* @__PURE__ */ React.createElement("div", { style: {
+    )), editingMeta && /* @__PURE__ */ React.createElement("div", { style: {
       background: C.amber + "10",
       border: `1px solid ${C.amber}40`,
       borderRadius: 10,
       padding: "14px 16px",
       marginBottom: 14
-    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editingMeta")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.title")), /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editingMeta")), /* @__PURE__ */ React.createElement("div", { style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+      gap: 12,
+      marginTop: 12
+    } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.title")), /* @__PURE__ */ React.createElement(
       "input",
       {
         value: metaDraft.meetingTitle || "",
@@ -33696,7 +33837,7 @@ ${t3}`;
         onFocus: (e) => e.target.style.borderColor = C.amber + "60",
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 140px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.name")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.name")), /* @__PURE__ */ React.createElement(
       "input",
       {
         value: metaDraft.director || "",
@@ -33705,7 +33846,15 @@ ${t3}`;
         onFocus: (e) => e.target.style.borderColor = C.amber + "60",
         onBlur: (e) => e.target.style.borderColor = C.border
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.type")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.date")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: metaDraft.savedAt || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, savedAt: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.type")), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: metaDraft.meetingType || "",
@@ -33713,7 +33862,7 @@ ${t3}`;
         style: { ...css.input, marginTop: 5, fontSize: 12 }
       },
       MEETING_TYPES.map((t3) => /* @__PURE__ */ React.createElement("option", { key: t3.id, value: t3.id }, t3.label))
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 130px" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.scope")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.scope")), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: metaDraft.scope || "leader",
@@ -33724,11 +33873,166 @@ ${t3}`;
       /* @__PURE__ */ React.createElement("option", { value: "team" }, t2("meetings.scope.team")),
       /* @__PURE__ */ React.createElement("option", { value: "individual" }, t2("meetings.scope.individual")),
       /* @__PURE__ */ React.createElement("option", { value: "org" }, t2("meetings.scope.org"))
-    )), /* @__PURE__ */ React.createElement(
+    ))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 18, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.summary")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.hrbpKeyMessage")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.hrbpKeyMessage || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, hrbpKeyMessage: e.target.value })),
+        rows: 2,
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.summary")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.summaryText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, summaryText: e.target.value })),
+        rows: 4,
+        placeholder: t2("meetings.field.summary.hint"),
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.people")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.people.performance")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.peoplePerfText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, peoplePerfText: e.target.value })),
+        rows: 3,
+        placeholder: t2("meetings.field.summary.hint"),
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.people.leadership")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.peopleLeadText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, peopleLeadText: e.target.value })),
+        rows: 3,
+        placeholder: t2("meetings.field.summary.hint"),
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.people.engagement")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.peopleEnggText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, peopleEnggText: e.target.value })),
+        rows: 3,
+        placeholder: t2("meetings.field.summary.hint"),
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.signals")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.signalsText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, signalsText: e.target.value })),
+        rows: 4,
+        placeholder: t2("meetings.field.signals.hint"),
+        style: { ...css.textarea, marginTop: 8, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.risks")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.risksText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, risksText: e.target.value })),
+        rows: 4,
+        placeholder: t2("meetings.field.risks.hint"),
+        style: { ...css.textarea, marginTop: 8, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.actions")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.actionsText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, actionsText: e.target.value })),
+        rows: 4,
+        placeholder: t2("meetings.field.actions.hint"),
+        style: { ...css.textarea, marginTop: 8, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.questions")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.questionsText || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, questionsText: e.target.value })),
+        rows: 4,
+        placeholder: t2("meetings.field.questions.hint"),
+        style: { ...css.textarea, marginTop: 8, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.caseLog")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10, marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.title")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: metaDraft.caseTitle || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseTitle: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.type")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: metaDraft.caseType || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseType: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.riskLevel")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: metaDraft.caseRiskLevel || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseRiskLevel: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.nextFollowUp")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: metaDraft.caseNextFollowUp || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseNextFollowUp: e.target.value })),
+        style: { ...css.input, marginTop: 5, fontSize: 12 }
+      }
+    ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, marginTop: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.situation")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.caseSituation || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseSituation: e.target.value })),
+        rows: 2,
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.interventions")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.caseInterventions || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseInterventions: e.target.value })),
+        rows: 2,
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.hrPosition")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.caseHrPosition || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseHrPosition: e.target.value })),
+        rows: 2,
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 9 }, t2("meetings.field.case.notes")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.caseNotes || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, caseNotes: e.target.value })),
+        rows: 2,
+        style: { ...css.textarea, marginTop: 5, fontSize: 12 }
+      }
+    )))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.amber}30` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetings.editSection.notes")), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: metaDraft.notes || "",
+        onChange: (e) => setMetaDraft((p) => ({ ...p, notes: e.target.value })),
+        rows: 3,
+        style: { ...css.textarea, marginTop: 8, fontSize: 12 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setEditingMeta(false),
+        style: { ...css.btn(C.textM, true), padding: "8px 16px", fontSize: 12 }
+      },
+      t2("meetings.editMeta.cancel")
+    ), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: saveMeta,
-        style: { ...css.btn(C.amber), padding: "9px 18px", fontSize: 12 }
+        style: { ...css.btn(C.amber), padding: "8px 18px", fontSize: 12 }
       },
       t2("meetings.save")
     ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(RiskBadge5, { level: result.overallRisk }), result.director && /* @__PURE__ */ React.createElement(Badge, { label: result.director, color: C.blue }), result.director && /* @__PURE__ */ React.createElement(

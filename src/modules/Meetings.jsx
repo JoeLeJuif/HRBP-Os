@@ -511,22 +511,119 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
     {id:"initiatives", label:t("meetings.type.initiatives")},
   ];
 
+  // Edit-mode helpers — convert between structured fields and editable text blocks.
+  const linesToArr = (s) => (s || "").split("\n").map(x => x.trim()).filter(Boolean);
+  const arrToLines = (arr) => (Array.isArray(arr) ? arr : [])
+    .map(x => typeof x === "string" ? x : (x?.text || ""))
+    .filter(Boolean).join("\n");
+  // Generic pipe-row encoder/decoder for arrays of objects.
+  const objsToPipeLines = (arr, fields) => (Array.isArray(arr) ? arr : [])
+    .map(o => {
+      if (typeof o === "string") return o;
+      return fields.map(f => (o?.[f] ?? "")).join(" | ");
+    }).filter(s => s.replace(/[\s|]/g, "")).join("\n");
+  const pipeLinesToObjs = (s, fields) => (s || "").split("\n").map(line => {
+    const parts = line.split("|").map(x => x.trim());
+    if (parts.every(p => !p)) return null;
+    const out = {};
+    fields.forEach((f, i) => { out[f] = parts[i] || ""; });
+    // Fallback: if all but one field is empty and the lone field isn't the
+    // "main" one, treat the whole line as the main field so users can paste
+    // free-form bullets without remembering the pipe schema.
+    return out;
+  }).filter(Boolean);
+
+  // Field schemas (kept here so encode/decode stay symmetric).
+  const ACTION_FIELDS  = ["delay", "owner", "action"];
+  const SIGNAL_FIELDS  = ["category", "breadth", "signal", "interpretation", "ifUnaddressed"];
+  const RISK_FIELDS    = ["level", "trend", "risk", "rationale"];
+  const QUESTION_FIELDS = ["target", "question", "why"];
+
+  const openEditor = () => {
+    const r = result || {};
+    const ce = r.caseEntry || {};
+    const ppl = r.people || {};
+    setMetaDraft({
+      meetingTitle: r.meetingTitle || activeSession?.analysis?.meetingTitle || "",
+      director:     activeSession?.director ?? r.director ?? dirName ?? "",
+      meetingType:  activeSession?.meetingType || meetingType,
+      scope:        activeSession?.scope || meetingScope || "leader",
+      savedAt:      activeSession?.savedAt || meetingDate || r.meetingDate || "",
+      hrbpKeyMessage: r.hrbpKeyMessage || "",
+      summaryText:  arrToLines(r.summary),
+      peoplePerfText: arrToLines(ppl.performance),
+      peopleLeadText: arrToLines(ppl.leadership),
+      peopleEnggText: arrToLines(ppl.engagement),
+      signalsText:   objsToPipeLines(r.signals, SIGNAL_FIELDS),
+      risksText:     objsToPipeLines(r.risks, RISK_FIELDS),
+      actionsText:   objsToPipeLines(r.actions, ACTION_FIELDS),
+      questionsText: objsToPipeLines(r.questions, QUESTION_FIELDS),
+      caseTitle:        ce.title || ce.titre || "",
+      caseType:         ce.type || "",
+      caseRiskLevel:    ce.riskLevel || "",
+      caseSituation:    ce.situation || "",
+      caseInterventions: ce.interventionsDone || "",
+      caseHrPosition:   ce.hrPosition || "",
+      caseNextFollowUp: ce.nextFollowUp || "",
+      caseNotes:        ce.notes || "",
+      notes:        typeof r.notes === "string" ? r.notes : "",
+    });
+    setEditingMeta(true);
+  };
+
   const saveMeta = () => {
-    if (!activeSession) return;
-    const updated = {
-      ...activeSession,
-      meetingType: metaDraft.meetingType || activeSession.meetingType,
-      scope:       metaDraft.scope       || activeSession.scope || "leader",
-      director:    metaDraft.director !== undefined ? metaDraft.director : activeSession.director,
-      analysis: {
-        ...activeSession.analysis,
-        meetingTitle: metaDraft.meetingTitle || activeSession.analysis?.meetingTitle,
-        director:     metaDraft.director !== undefined ? metaDraft.director : activeSession.analysis?.director,
+    const baseAnalysis = activeSession?.analysis || result || {};
+    const caseTitle = (metaDraft.caseTitle || "").trim();
+    const newCaseEntry = caseTitle ? {
+      title: caseTitle,
+      type:              metaDraft.caseType || "",
+      riskLevel:         metaDraft.caseRiskLevel || "",
+      situation:         metaDraft.caseSituation || "",
+      interventionsDone: metaDraft.caseInterventions || "",
+      hrPosition:        metaDraft.caseHrPosition || "",
+      nextFollowUp:      metaDraft.caseNextFollowUp || "",
+      notes:             metaDraft.caseNotes || "",
+    } : null;
+    const newAnalysis = {
+      ...baseAnalysis,
+      meetingTitle: metaDraft.meetingTitle || baseAnalysis.meetingTitle || "",
+      director:     metaDraft.director !== undefined ? metaDraft.director : baseAnalysis.director,
+      meetingDate:  metaDraft.savedAt || baseAnalysis.meetingDate || "",
+      hrbpKeyMessage: metaDraft.hrbpKeyMessage || "",
+      summary:      linesToArr(metaDraft.summaryText),
+      people: {
+        ...(baseAnalysis.people || {}),
+        performance: linesToArr(metaDraft.peoplePerfText),
+        leadership:  linesToArr(metaDraft.peopleLeadText),
+        engagement:  linesToArr(metaDraft.peopleEnggText),
       },
+      signals:    pipeLinesToObjs(metaDraft.signalsText,   SIGNAL_FIELDS),
+      risks:      pipeLinesToObjs(metaDraft.risksText,     RISK_FIELDS),
+      actions:    pipeLinesToObjs(metaDraft.actionsText,   ACTION_FIELDS),
+      questions:  pipeLinesToObjs(metaDraft.questionsText, QUESTION_FIELDS),
+      caseEntry:  newCaseEntry,
+      notes:      metaDraft.notes || "",
     };
-    onUpdateMeeting(updated);
-    setActiveSession(updated);
-    setResult(normalizeMeetingOutput(updated.analysis));
+    if (view === "session" && activeSession) {
+      const updated = {
+        ...activeSession,
+        meetingType: metaDraft.meetingType || activeSession.meetingType,
+        scope:       metaDraft.scope       || activeSession.scope || "leader",
+        director:    metaDraft.director !== undefined ? metaDraft.director : activeSession.director,
+        savedAt:     metaDraft.savedAt || activeSession.savedAt,
+        analysis:    newAnalysis,
+      };
+      onUpdateMeeting(updated);
+      setActiveSession(updated);
+      setResult(normalizeMeetingOutput(updated.analysis));
+    } else {
+      // result view: edit in-memory; the existing "Save" button persists.
+      setResult(normalizeMeetingOutput(newAnalysis));
+      if (metaDraft.savedAt) setMeetingDate(metaDraft.savedAt);
+      if (metaDraft.director !== undefined) setDirName(metaDraft.director);
+      if (metaDraft.meetingType) setMeetingType(metaDraft.meetingType);
+      if (metaDraft.scope) setMeetingScope(metaDraft.scope);
+    }
     setEditingMeta(false);
   };
 
@@ -536,33 +633,24 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
         <button onClick={() => { setView("list"); setResult(null); setTranscript(""); setContext(""); setEditingMeta(false); }}
           style={{ ...css.btn(C.textM, true), padding:"6px 12px", fontSize:11 }}>{t("meetings.back")}</button>
         <div style={{ flex:1, fontSize:16, fontWeight:700, color:C.text }}>{result.meetingTitle}</div>
-        {view === "session" && (
-          <button onClick={() => {
-            setEditingMeta(v => !v);
-            setMetaDraft({
-              meetingType: activeSession?.meetingType || meetingType,
-              scope:       activeSession?.scope || "leader",
-              director:    activeSession?.director || result.director || dirName,
-              meetingTitle: result.meetingTitle || "",
-            });
-          }}
-            style={{ ...css.btn(editingMeta ? C.amber : C.textM, true), padding:"6px 12px", fontSize:11 }}>
-            {editingMeta ? t("meetings.editMeta.cancel") : t("meetings.editMeta")}
-          </button>
-        )}
+        <button onClick={() => editingMeta ? setEditingMeta(false) : openEditor()}
+          style={{ ...css.btn(editingMeta ? C.amber : C.textM, true), padding:"6px 12px", fontSize:11 }}>
+          {editingMeta ? t("meetings.editMeta.cancel") : t("meetings.editMeta")}
+        </button>
         {view === "result" && <button onClick={saveResult} disabled={saved}
           style={{ ...css.btn(saved?C.textD:C.em), padding:"8px 16px", fontSize:12 }}>
           {saved ? t("meetings.saved") : t("meetings.save")}
         </button>}
       </div>
 
-      {/* Inline meta editor */}
-      {editingMeta && view === "session" && (
+      {/* Inline meta + content editor (works in both result and session views) */}
+      {editingMeta && (
         <div style={{ background:C.amber+"10", border:`1px solid ${C.amber}40`,
           borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
           <Mono color={C.amber} size={9}>{t("meetings.editingMeta")}</Mono>
-          <div style={{ display:"flex", gap:12, marginTop:12, flexWrap:"wrap", alignItems:"flex-end" }}>
-            <div style={{ flex:"1 1 160px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",
+            gap:12, marginTop:12 }}>
+            <div>
               <Mono color={C.textD} size={9}>{t("meetings.field.title")}</Mono>
               <input value={metaDraft.meetingTitle || ""}
                 onChange={e => setMetaDraft(p => ({...p, meetingTitle: e.target.value}))}
@@ -570,7 +658,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 onFocus={e=>e.target.style.borderColor=C.amber+"60"}
                 onBlur={e=>e.target.style.borderColor=C.border}/>
             </div>
-            <div style={{ flex:"1 1 140px" }}>
+            <div>
               <Mono color={C.textD} size={9}>{t("meetings.field.name")}</Mono>
               <input value={metaDraft.director || ""}
                 onChange={e => setMetaDraft(p => ({...p, director: e.target.value}))}
@@ -578,7 +666,13 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 onFocus={e=>e.target.style.borderColor=C.amber+"60"}
                 onBlur={e=>e.target.style.borderColor=C.border}/>
             </div>
-            <div style={{ flex:"1 1 160px" }}>
+            <div>
+              <Mono color={C.textD} size={9}>{t("meetings.field.date")}</Mono>
+              <input type="date" value={metaDraft.savedAt || ""}
+                onChange={e => setMetaDraft(p => ({...p, savedAt: e.target.value}))}
+                style={{ ...css.input, marginTop:5, fontSize:12 }}/>
+            </div>
+            <div>
               <Mono color={C.textD} size={9}>{t("meetings.field.type")}</Mono>
               <select value={metaDraft.meetingType || ""}
                 onChange={e => setMetaDraft(p => ({...p, meetingType: e.target.value}))}
@@ -586,7 +680,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 {MEETING_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </div>
-            <div style={{ flex:"1 1 130px" }}>
+            <div>
               <Mono color={C.textD} size={9}>{t("meetings.field.scope")}</Mono>
               <select value={metaDraft.scope || "leader"}
                 onChange={e => setMetaDraft(p => ({...p, scope: e.target.value}))}
@@ -597,8 +691,162 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
                 <option value="org">{t("meetings.scope.org")}</option>
               </select>
             </div>
+          </div>
+          {/* ── Section: Summary ── */}
+          <div style={{ marginTop:18, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.summary")}</Mono>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:8 }}>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.hrbpKeyMessage")}</Mono>
+                <textarea value={metaDraft.hrbpKeyMessage || ""}
+                  onChange={e => setMetaDraft(p => ({...p, hrbpKeyMessage: e.target.value}))}
+                  rows={2} style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.summary")}</Mono>
+                <textarea value={metaDraft.summaryText || ""}
+                  onChange={e => setMetaDraft(p => ({...p, summaryText: e.target.value}))}
+                  rows={4} placeholder={t("meetings.field.summary.hint")}
+                  style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: People ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.people")}</Mono>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:8 }}>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.people.performance")}</Mono>
+                <textarea value={metaDraft.peoplePerfText || ""}
+                  onChange={e => setMetaDraft(p => ({...p, peoplePerfText: e.target.value}))}
+                  rows={3} placeholder={t("meetings.field.summary.hint")}
+                  style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.people.leadership")}</Mono>
+                <textarea value={metaDraft.peopleLeadText || ""}
+                  onChange={e => setMetaDraft(p => ({...p, peopleLeadText: e.target.value}))}
+                  rows={3} placeholder={t("meetings.field.summary.hint")}
+                  style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.people.engagement")}</Mono>
+                <textarea value={metaDraft.peopleEnggText || ""}
+                  onChange={e => setMetaDraft(p => ({...p, peopleEnggText: e.target.value}))}
+                  rows={3} placeholder={t("meetings.field.summary.hint")}
+                  style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Signals ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.signals")}</Mono>
+            <textarea value={metaDraft.signalsText || ""}
+              onChange={e => setMetaDraft(p => ({...p, signalsText: e.target.value}))}
+              rows={4} placeholder={t("meetings.field.signals.hint")}
+              style={{ ...css.textarea, marginTop:8, fontSize:12 }}/>
+          </div>
+
+          {/* ── Section: Risks ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.risks")}</Mono>
+            <textarea value={metaDraft.risksText || ""}
+              onChange={e => setMetaDraft(p => ({...p, risksText: e.target.value}))}
+              rows={4} placeholder={t("meetings.field.risks.hint")}
+              style={{ ...css.textarea, marginTop:8, fontSize:12 }}/>
+          </div>
+
+          {/* ── Section: Actions ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.actions")}</Mono>
+            <textarea value={metaDraft.actionsText || ""}
+              onChange={e => setMetaDraft(p => ({...p, actionsText: e.target.value}))}
+              rows={4} placeholder={t("meetings.field.actions.hint")}
+              style={{ ...css.textarea, marginTop:8, fontSize:12 }}/>
+          </div>
+
+          {/* ── Section: Questions ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.questions")}</Mono>
+            <textarea value={metaDraft.questionsText || ""}
+              onChange={e => setMetaDraft(p => ({...p, questionsText: e.target.value}))}
+              rows={4} placeholder={t("meetings.field.questions.hint")}
+              style={{ ...css.textarea, marginTop:8, fontSize:12 }}/>
+          </div>
+
+          {/* ── Section: Case Log ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.caseLog")}</Mono>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10, marginTop:8 }}>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.title")}</Mono>
+                <input value={metaDraft.caseTitle || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseTitle: e.target.value}))}
+                  style={{ ...css.input, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.type")}</Mono>
+                <input value={metaDraft.caseType || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseType: e.target.value}))}
+                  style={{ ...css.input, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.riskLevel")}</Mono>
+                <input value={metaDraft.caseRiskLevel || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseRiskLevel: e.target.value}))}
+                  style={{ ...css.input, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.nextFollowUp")}</Mono>
+                <input value={metaDraft.caseNextFollowUp || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseNextFollowUp: e.target.value}))}
+                  style={{ ...css.input, marginTop:5, fontSize:12 }}/>
+              </div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:10 }}>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.situation")}</Mono>
+                <textarea value={metaDraft.caseSituation || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseSituation: e.target.value}))}
+                  rows={2} style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.interventions")}</Mono>
+                <textarea value={metaDraft.caseInterventions || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseInterventions: e.target.value}))}
+                  rows={2} style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.hrPosition")}</Mono>
+                <textarea value={metaDraft.caseHrPosition || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseHrPosition: e.target.value}))}
+                  rows={2} style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+              <div>
+                <Mono color={C.textD} size={9}>{t("meetings.field.case.notes")}</Mono>
+                <textarea value={metaDraft.caseNotes || ""}
+                  onChange={e => setMetaDraft(p => ({...p, caseNotes: e.target.value}))}
+                  rows={2} style={{ ...css.textarea, marginTop:5, fontSize:12 }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Notes (HRBP) ── */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.amber}30` }}>
+            <Mono color={C.amber} size={9}>{t("meetings.editSection.notes")}</Mono>
+            <textarea value={metaDraft.notes || ""}
+              onChange={e => setMetaDraft(p => ({...p, notes: e.target.value}))}
+              rows={3} style={{ ...css.textarea, marginTop:8, fontSize:12 }}/>
+          </div>
+          <div style={{ display:"flex", gap:8, marginTop:14, justifyContent:"flex-end" }}>
+            <button onClick={() => setEditingMeta(false)}
+              style={{ ...css.btn(C.textM, true), padding:"8px 16px", fontSize:12 }}>
+              {t("meetings.editMeta.cancel")}
+            </button>
             <button onClick={saveMeta}
-              style={{ ...css.btn(C.amber), padding:"9px 18px", fontSize:12 }}>
+              style={{ ...css.btn(C.amber), padding:"8px 18px", fontSize:12 }}>
               {t("meetings.save")}
             </button>
           </div>
