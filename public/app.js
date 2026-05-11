@@ -33340,7 +33340,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
         },
         style: { ...css.select }
       },
-      /* @__PURE__ */ React.createElement("option", { value: "", style: { background: C.surfL } }, t2("meetingEngine.manager.selectPh")),
+      /* @__PURE__ */ React.createElement("option", { value: "", style: { background: C.surfL } }, "\u2014 S\xE9lectionner un employ\xE9 \u2014"),
       leadersList.map((n) => /* @__PURE__ */ React.createElement("option", { key: n, value: n, style: { background: C.surfL } }, n)),
       /* @__PURE__ */ React.createElement("option", { value: "__manual__", style: { background: C.surfL } }, t2("meetingEngine.manager.manualOption"))
     ), managerManual && /* @__PURE__ */ React.createElement(

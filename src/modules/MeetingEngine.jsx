@@ -401,7 +401,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t })
           }
         }}
         style={{...css.select}}>
-        <option value="" style={{background:C.surfL}}>{t("meetingEngine.manager.selectPh")}</option>
+        <option value="" style={{background:C.surfL}}>— Sélectionner un employé —</option>
         {leadersList.map(n => (
           <option key={n} value={n} style={{background:C.surfL}}>{n}</option>
         ))}
