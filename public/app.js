@@ -33100,14 +33100,6 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     ta_team: "Focus acquisition de talents : prise de besoin, profil de poste, pipeline candidats, d\xE9lais, enjeux de recrutement, feedback hiring manager, strat\xE9gie d'attraction. Ton consultatif et orient\xE9 r\xE9sultats.",
     autres: "Focus g\xE9n\xE9ral : situation sp\xE9cifique \xE0 documenter, contexte particulier, suivi ad hoc selon le besoin identifi\xE9."
   };
-  var PREP_MEETING_TYPES2 = [
-    { value: "regular", labelKey: "prep1on1.meetingType.regular" },
-    { value: "perf", labelKey: "prep1on1.meetingType.perf" },
-    { value: "org", labelKey: "prep1on1.meetingType.org" },
-    { value: "talent", labelKey: "prep1on1.meetingType.talent" },
-    { value: "concern", labelKey: "prep1on1.meetingType.concern" },
-    { value: "strategic", labelKey: "prep1on1.meetingType.strategic" }
-  ];
   var PREP_FUNCTIONS2 = [
     { value: "", labelKey: "prep1on1.function.placeholder" },
     { value: "IT", labelKey: "prep1on1.function.it" },
@@ -33327,12 +33319,12 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     return lines.join("\n");
   }
   function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t: t2 }) {
-    const leadersList = Object.values(data.leaders || {}).map((l) => l.name || "").filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.localeCompare(b, "fr"));
+    const leadersList = Object.values(data.leaders || {}).map((l) => l.name || "").filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
     const knownSet = new Set(leadersList.map((n) => normKey(n)));
     const curNk = ctx.managerName ? normKey(ctx.managerName) : "";
     const isKnown = curNk && knownSet.has(curNk);
     const selectVal = managerManual ? "__manual__" : isKnown ? ctx.managerName : "";
-    return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.managerName")), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, "Nom de l\u2019employ\xE9"), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: selectVal,
@@ -33628,7 +33620,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         savedAt: today,
         managerName: ctx.managerName,
         team: ctx.team,
-        meetingType: ctx.meetingType,
+        meetingType: engineType,
         engineType,
         niveau,
         kind: "1:1-meeting",
@@ -33649,7 +33641,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
           savedAt: today,
           dateCreated: today,
           director: ctx.managerName || "Non assign\xE9",
-          meetingType: ctx.meetingType || engineType || "1:1",
+          meetingType: engineType || "1:1",
           scope: "leader",
           province: ctx.province || data.profile?.defaultProvince || "QC",
           kind: "1:1-meeting",
@@ -34194,25 +34186,7 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
           t2(o.labelKey)
         )
       )
-    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.meetingType")), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: ctx.meetingType,
-        onChange: (e) => setCtx((p) => ({ ...p, meetingType: e.target.value })),
-        style: { ...css.select }
-      },
-      PREP_MEETING_TYPES2.map(
-        (o) => /* @__PURE__ */ React.createElement(
-          "option",
-          {
-            key: o.value,
-            value: o.value,
-            style: { background: C.surfL }
-          },
-          t2(o.labelKey)
-        )
-      )
-    )), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.province")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 5, fontWeight: 500 } }, t2("prep1on1.context.province")), /* @__PURE__ */ React.createElement(
       ProvinceSelect,
       {
         value: ctx.province || data.profile?.defaultProvince || "QC",

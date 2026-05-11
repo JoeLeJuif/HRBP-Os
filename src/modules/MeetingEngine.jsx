@@ -373,7 +373,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t })
     .map(l => l.name || "")
     .filter(Boolean)
     .filter((v, i, a) => a.indexOf(v) === i)
-    .sort((a, b) => a.localeCompare(b, "fr"));
+    .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
   const knownSet = new Set(leadersList.map(n => normKey(n)));
   const curNk = ctx.managerName ? normKey(ctx.managerName) : "";
   const isKnown = curNk && knownSet.has(curNk);
@@ -386,7 +386,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t })
   return (
     <div style={{marginBottom:12}}>
       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-        {t("prep1on1.context.managerName")}
+        Nom de l’employé
       </div>
       <select
         value={selectVal}
@@ -697,7 +697,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     const normOutput = normalizeMeetingOutput(output);
     const session = {
       id: Date.now().toString(), savedAt: today,
-      managerName: ctx.managerName, team: ctx.team, meetingType: ctx.meetingType,
+      managerName: ctx.managerName, team: ctx.team, meetingType: engineType,
       engineType, niveau, kind: "1:1-meeting",
       date: ctx.date, purpose: ctx.purpose, notes, output: normOutput,
       meetingTranscript: meetingAnalysis.transcript || "",
@@ -715,7 +715,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
         savedAt: today,
         dateCreated: today,
         director: ctx.managerName || "Non assigné",
-        meetingType: ctx.meetingType || engineType || "1:1",
+        meetingType: engineType || "1:1",
         scope: "leader",
         province: ctx.province || data.profile?.defaultProvince || "QC",
         kind: "1:1-meeting",
@@ -1263,19 +1263,6 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
                       </select>
                     </div>
                     <div>
-                      <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
-                        {t("prep1on1.context.meetingType")}
-                      </div>
-                      <select value={ctx.meetingType}
-                        onChange={e=>setCtx(p=>({...p,meetingType:e.target.value}))}
-                        style={{...css.select}}>
-                        {PREP_MEETING_TYPES.map(o =>
-                          <option key={o.value} value={o.value}
-                            style={{background:C.surfL}}>{t(o.labelKey)}</option>
-                        )}
-                      </select>
-                    </div>
-                    <div style={{marginTop:12}}>
                       <div style={{fontSize:11,color:C.textM,marginBottom:5,fontWeight:500}}>
                         {t("prep1on1.context.province")}
                       </div>
