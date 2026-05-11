@@ -2,6 +2,7 @@
 // Source: HRBP_OS.jsx L.266-344
 import { normalizeAIData } from '../utils/normalize.js';
 import { getLang } from '../lib/i18n.js';
+import { getSession } from '../lib/auth.js';
 
 // Centralized: appended to every system prompt so every AI call respects the user's UI language.
 function buildLanguageDirective() {
@@ -10,14 +11,26 @@ function buildLanguageDirective() {
   return `\n\n---\n\n## RESPONSE LANGUAGE\n\nAlways respond in the user's selected language.\nCurrent language: ${langName}.\nDo not translate employee names, case notes, job titles, or user-entered content unless explicitly asked.`;
 }
 
-// Core fetch — calls /api/chat (Vercel proxy with API key)
+// Core fetch — calls /api/chat (Vercel proxy with API key).
+// Requires a live Supabase session; the access token is forwarded as a Bearer
+// Authorization header so the server can validate the caller before invoking
+// Anthropic. No session ⇒ no call.
 export async function _apiFetch(system, userContent, maxTokens) {
+  const sess = await getSession();
+  const token = sess?.ok ? sess.session?.access_token : null;
+  if (!token) {
+    throw new Error("Session expirée — reconnecte-toi pour continuer.");
+  }
+
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 60000);
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
       signal: controller.signal,
       body: JSON.stringify({
         system: (system || "") + buildLanguageDirective(),
@@ -26,6 +39,9 @@ export async function _apiFetch(system, userContent, maxTokens) {
       }),
     });
     clearTimeout(tid);
+    if (response.status === 401) {
+      throw new Error("Session expirée — reconnecte-toi pour continuer.");
+    }
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "Erreur API");
     const text = data.content?.map(b => b.text || "").join("").trim() || "";

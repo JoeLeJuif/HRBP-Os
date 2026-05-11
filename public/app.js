@@ -2872,188 +2872,6 @@ ${LEGAL_GUARDRAIL}`;
     return t2(`${baseKey}.${n === 1 ? "one" : "other"}`);
   }
 
-  // src/api/index.js
-  function buildLanguageDirective() {
-    const lang = getLang();
-    const langName = lang === "fr" ? "French" : "English";
-    return `
-
----
-
-## RESPONSE LANGUAGE
-
-Always respond in the user's selected language.
-Current language: ${langName}.
-Do not translate employee names, case notes, job titles, or user-entered content unless explicitly asked.`;
-  }
-  async function _apiFetch(system, userContent, maxTokens) {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 6e4);
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          system: (system || "") + buildLanguageDirective(),
-          max_tokens: maxTokens || 2e3,
-          messages: [{ role: "user", content: userContent }]
-        })
-      });
-      clearTimeout(tid);
-      const data = await response.json();
-      if (data.error) throw new Error(data.error.message || "Erreur API");
-      const text = data.content?.map((b) => b.text || "").join("").trim() || "";
-      if (!text) throw new Error("R\xE9ponse vide \u2014 r\xE9essaie.");
-      return text;
-    } catch (e) {
-      clearTimeout(tid);
-      if (e.name === "AbortError") throw new Error("D\xE9lai d\xE9pass\xE9 (60s) \u2014 raccourcis le transcript.");
-      throw e;
-    }
-  }
-  async function callAIText(system, userContent, maxTokens = 4e3) {
-    return _apiFetch(system, userContent, maxTokens);
-  }
-  async function callAIJson(system, userContent, maxTokens = 2e3) {
-    const raw = await _apiFetch(system, userContent, maxTokens);
-    const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    const src = (clean.match(/\{[\s\S]*/) || [clean])[0];
-    const repair = (s) => {
-      const ob = (s.match(/\{/g) || []).length - (s.match(/\}/g) || []).length;
-      const ab = (s.match(/\[/g) || []).length - (s.match(/\]/g) || []).length;
-      return s.replace(/,\s*([}\]])/g, "$1") + "]".repeat(Math.max(0, ab)) + "}".repeat(Math.max(0, ob));
-    };
-    try {
-      return JSON.parse(src);
-    } catch {
-      try {
-        return JSON.parse(repair(src));
-      } catch (e2) {
-        throw new Error("Erreur JSON \u2014 r\xE9essaie. " + e2.message);
-      }
-    }
-  }
-  async function callAI(systemPrompt, userPrompt, transcriptLen = 0) {
-    const maxTokens = transcriptLen > 3e4 ? 4e3 : transcriptLen > 1e4 ? 3e3 : 2e3;
-    const doFetch = (sp, up, tokens) => _apiFetch(sp, up, tokens);
-    const repairJSON = (s) => {
-      let pF = "", pI = false, pE = false;
-      for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (pE) {
-          pF += c;
-          pE = false;
-          continue;
-        }
-        if (c === "\\" && pI) {
-          pF += c;
-          pE = true;
-          continue;
-        }
-        if (c === '"') {
-          pI = !pI;
-          pF += c;
-          continue;
-        }
-        if (pI && (c === "\n" || c === "\r" || c === "	")) {
-          pF += "\\n";
-          continue;
-        }
-        pF += c;
-      }
-      s = pF;
-      s = s.replace(/,\s*([}\]])/g, "$1");
-      let out = "", inStr = false, esc = false, ls = 0, br = 0, bk = 0;
-      for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (esc) {
-          out += c;
-          esc = false;
-          continue;
-        }
-        if (c === "\\" && inStr) {
-          out += c;
-          esc = true;
-          continue;
-        }
-        if (c === '"') {
-          inStr = !inStr;
-          out += c;
-          if (!inStr) ls = out.length;
-          continue;
-        }
-        if (inStr) {
-          out += c === "'" ? "'" : c;
-          continue;
-        }
-        if (c === "{") br++;
-        else if (c === "[") bk++;
-        else if (c === "}") {
-          br--;
-          ls = out.length + 1;
-        } else if (c === "]") {
-          bk--;
-          ls = out.length + 1;
-        } else if (c === "," || c === ":") ls = out.length + 1;
-        out += c;
-      }
-      if (inStr && ls > 0) {
-        out = out.substring(0, ls);
-        br = 0;
-        bk = 0;
-        let iS = false, es = false;
-        for (let i = 0; i < out.length; i++) {
-          const c = out[i];
-          if (es) {
-            es = false;
-            continue;
-          }
-          if (c === "\\" && iS) {
-            es = true;
-            continue;
-          }
-          if (c === '"') {
-            iS = !iS;
-            continue;
-          }
-          if (iS) continue;
-          if (c === "{") br++;
-          else if (c === "}") br--;
-          if (c === "[") bk++;
-          else if (c === "]") bk--;
-        }
-      } else if (br > 0 || bk > 0) {
-        const lB = out.lastIndexOf("},"), lK = out.lastIndexOf("],");
-        const cut = Math.max(lB, lK);
-        if (cut > out.length * 0.4) out = out.substring(0, cut + 1);
-      }
-      return out + "]".repeat(Math.max(0, bk)) + "}".repeat(Math.max(0, br));
-    };
-    const tryParse = (raw2) => {
-      const clean = raw2.replace(/^```json?\s*/i, "").replace(/```\s*$/, "").trim();
-      try {
-        return JSON.parse(clean);
-      } catch {
-      }
-      try {
-        return JSON.parse(repairJSON(clean));
-      } catch {
-      }
-      const m = clean.match(/\{[\s\S]*/);
-      if (m) try {
-        return JSON.parse(repairJSON(m[0]));
-      } catch {
-      }
-      return null;
-    };
-    const raw = await doFetch(systemPrompt, userPrompt, maxTokens);
-    const result = tryParse(raw);
-    if (result) return normalizeAIData(result);
-    const errMsg = !raw || raw.length < 20 ? "R\xE9ponse vide \u2014 relance." : "Erreur JSON \u2014 relance.";
-    throw new Error(errMsg);
-  }
-
   // node_modules/tslib/tslib.es6.mjs
   function __rest(s, e) {
     var t2 = {};
@@ -23000,8 +22818,260 @@ ${suffix}`;
   var supabase = url && key ? createClient(url, key) : null;
   var hasSupabase = Boolean(supabase);
 
-  // src/services/auditLog.js
+  // src/lib/auth.js
   var NO_CLIENT = { ok: false, reason: "no-client" };
+  async function signIn(email) {
+    if (!supabase) return NO_CLIENT;
+    if (!email || typeof email !== "string") {
+      return { ok: false, reason: "invalid-email" };
+    }
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: typeof window !== "undefined" ? window.location.origin : void 0 }
+    });
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true, data };
+  }
+  async function signOut() {
+    if (!supabase) return NO_CLIENT;
+    const { error } = await supabase.auth.signOut();
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true };
+  }
+  async function getSession() {
+    if (!supabase) return NO_CLIENT;
+    const { data, error } = await supabase.auth.getSession();
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true, session: data?.session ?? null };
+  }
+  async function exchangeCodeForSession(href) {
+    if (!supabase) return NO_CLIENT;
+    const { data, error } = await supabase.auth.exchangeCodeForSession(href);
+    if (error) return { ok: false, reason: "auth-error", error };
+    return { ok: true, session: data?.session ?? null };
+  }
+  async function isEmailAllowed(email) {
+    if (!supabase) return NO_CLIENT;
+    if (!email || typeof email !== "string") {
+      return { ok: true, allowed: false };
+    }
+    const { data, error } = await supabase.from("allowed_users").select("id").eq("email", email.toLowerCase()).maybeSingle();
+    if (error) return { ok: false, reason: "query-error", error };
+    return { ok: true, allowed: !!data };
+  }
+  function onAuthStateChange(callback) {
+    if (!supabase) return () => {
+    };
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      try {
+        callback(event, session);
+      } catch (err) {
+        console.warn("[auth] callback threw:", err);
+      }
+    });
+    return () => {
+      try {
+        data?.subscription?.unsubscribe();
+      } catch {
+      }
+    };
+  }
+
+  // src/api/index.js
+  function buildLanguageDirective() {
+    const lang = getLang();
+    const langName = lang === "fr" ? "French" : "English";
+    return `
+
+---
+
+## RESPONSE LANGUAGE
+
+Always respond in the user's selected language.
+Current language: ${langName}.
+Do not translate employee names, case notes, job titles, or user-entered content unless explicitly asked.`;
+  }
+  async function _apiFetch(system, userContent, maxTokens) {
+    const sess = await getSession();
+    const token = sess?.ok ? sess.session?.access_token : null;
+    if (!token) {
+      throw new Error("Session expir\xE9e \u2014 reconnecte-toi pour continuer.");
+    }
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 6e4);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          system: (system || "") + buildLanguageDirective(),
+          max_tokens: maxTokens || 2e3,
+          messages: [{ role: "user", content: userContent }]
+        })
+      });
+      clearTimeout(tid);
+      if (response.status === 401) {
+        throw new Error("Session expir\xE9e \u2014 reconnecte-toi pour continuer.");
+      }
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message || "Erreur API");
+      const text = data.content?.map((b) => b.text || "").join("").trim() || "";
+      if (!text) throw new Error("R\xE9ponse vide \u2014 r\xE9essaie.");
+      return text;
+    } catch (e) {
+      clearTimeout(tid);
+      if (e.name === "AbortError") throw new Error("D\xE9lai d\xE9pass\xE9 (60s) \u2014 raccourcis le transcript.");
+      throw e;
+    }
+  }
+  async function callAIText(system, userContent, maxTokens = 4e3) {
+    return _apiFetch(system, userContent, maxTokens);
+  }
+  async function callAIJson(system, userContent, maxTokens = 2e3) {
+    const raw = await _apiFetch(system, userContent, maxTokens);
+    const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    const src = (clean.match(/\{[\s\S]*/) || [clean])[0];
+    const repair = (s) => {
+      const ob = (s.match(/\{/g) || []).length - (s.match(/\}/g) || []).length;
+      const ab = (s.match(/\[/g) || []).length - (s.match(/\]/g) || []).length;
+      return s.replace(/,\s*([}\]])/g, "$1") + "]".repeat(Math.max(0, ab)) + "}".repeat(Math.max(0, ob));
+    };
+    try {
+      return JSON.parse(src);
+    } catch {
+      try {
+        return JSON.parse(repair(src));
+      } catch (e2) {
+        throw new Error("Erreur JSON \u2014 r\xE9essaie. " + e2.message);
+      }
+    }
+  }
+  async function callAI(systemPrompt, userPrompt, transcriptLen = 0) {
+    const maxTokens = transcriptLen > 3e4 ? 4e3 : transcriptLen > 1e4 ? 3e3 : 2e3;
+    const doFetch = (sp, up, tokens) => _apiFetch(sp, up, tokens);
+    const repairJSON = (s) => {
+      let pF = "", pI = false, pE = false;
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (pE) {
+          pF += c;
+          pE = false;
+          continue;
+        }
+        if (c === "\\" && pI) {
+          pF += c;
+          pE = true;
+          continue;
+        }
+        if (c === '"') {
+          pI = !pI;
+          pF += c;
+          continue;
+        }
+        if (pI && (c === "\n" || c === "\r" || c === "	")) {
+          pF += "\\n";
+          continue;
+        }
+        pF += c;
+      }
+      s = pF;
+      s = s.replace(/,\s*([}\]])/g, "$1");
+      let out = "", inStr = false, esc = false, ls = 0, br = 0, bk = 0;
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (esc) {
+          out += c;
+          esc = false;
+          continue;
+        }
+        if (c === "\\" && inStr) {
+          out += c;
+          esc = true;
+          continue;
+        }
+        if (c === '"') {
+          inStr = !inStr;
+          out += c;
+          if (!inStr) ls = out.length;
+          continue;
+        }
+        if (inStr) {
+          out += c === "'" ? "'" : c;
+          continue;
+        }
+        if (c === "{") br++;
+        else if (c === "[") bk++;
+        else if (c === "}") {
+          br--;
+          ls = out.length + 1;
+        } else if (c === "]") {
+          bk--;
+          ls = out.length + 1;
+        } else if (c === "," || c === ":") ls = out.length + 1;
+        out += c;
+      }
+      if (inStr && ls > 0) {
+        out = out.substring(0, ls);
+        br = 0;
+        bk = 0;
+        let iS = false, es = false;
+        for (let i = 0; i < out.length; i++) {
+          const c = out[i];
+          if (es) {
+            es = false;
+            continue;
+          }
+          if (c === "\\" && iS) {
+            es = true;
+            continue;
+          }
+          if (c === '"') {
+            iS = !iS;
+            continue;
+          }
+          if (iS) continue;
+          if (c === "{") br++;
+          else if (c === "}") br--;
+          if (c === "[") bk++;
+          else if (c === "]") bk--;
+        }
+      } else if (br > 0 || bk > 0) {
+        const lB = out.lastIndexOf("},"), lK = out.lastIndexOf("],");
+        const cut = Math.max(lB, lK);
+        if (cut > out.length * 0.4) out = out.substring(0, cut + 1);
+      }
+      return out + "]".repeat(Math.max(0, bk)) + "}".repeat(Math.max(0, br));
+    };
+    const tryParse = (raw2) => {
+      const clean = raw2.replace(/^```json?\s*/i, "").replace(/```\s*$/, "").trim();
+      try {
+        return JSON.parse(clean);
+      } catch {
+      }
+      try {
+        return JSON.parse(repairJSON(clean));
+      } catch {
+      }
+      const m = clean.match(/\{[\s\S]*/);
+      if (m) try {
+        return JSON.parse(repairJSON(m[0]));
+      } catch {
+      }
+      return null;
+    };
+    const raw = await doFetch(systemPrompt, userPrompt, maxTokens);
+    const result = tryParse(raw);
+    if (result) return normalizeAIData(result);
+    const errMsg = !raw || raw.length < 20 ? "R\xE9ponse vide \u2014 relance." : "Erreur JSON \u2014 relance.";
+    throw new Error(errMsg);
+  }
+
+  // src/services/auditLog.js
+  var NO_CLIENT2 = { ok: false, reason: "no-client" };
   var EVENT_COLS = "id, organization_id, actor_id, action, entity_type, entity_id, metadata, created_at";
   var AUDIT_ACTIONS = Object.freeze({
     CASE_CREATED: "case.created",
@@ -23044,7 +23114,7 @@ ${suffix}`;
     }
   }
   async function logAuditEvent(input) {
-    if (!supabase) return NO_CLIENT;
+    if (!supabase) return NO_CLIENT2;
     if (!input || typeof input !== "object") return { ok: false, reason: "invalid-input" };
     const action = typeof input.action === "string" ? input.action.trim() : "";
     const entityType = typeof input.entity_type === "string" ? input.entity_type.trim() : "";
@@ -23085,7 +23155,7 @@ ${suffix}`;
     return { ...b, id };
   }
   var DEFAULT_USER = "demo";
-  var NO_CLIENT2 = { ok: false, reason: "no-client" };
+  var NO_CLIENT3 = { ok: false, reason: "no-client" };
   var NO_SESSION = { ok: false, reason: "no-session" };
   async function getSessionUserId2() {
     if (!supabase || !supabase.auth || typeof supabase.auth.getSession !== "function") return null;
@@ -23150,7 +23220,7 @@ ${suffix}`;
     }
   }
   async function loadTable(table, userId = DEFAULT_USER) {
-    if (!supabase) return NO_CLIENT2;
+    if (!supabase) return NO_CLIENT3;
     const sessionUserId = await getSessionUserId2();
     if (!sessionUserId) return NO_SESSION;
     const sessionOrgId = await getSessionOrgId2(sessionUserId);
@@ -23171,7 +23241,7 @@ ${suffix}`;
     }
   }
   async function saveTable(table, items, normalizer, userId = DEFAULT_USER) {
-    if (!supabase) return NO_CLIENT2;
+    if (!supabase) return NO_CLIENT3;
     if (!Array.isArray(items)) return { ok: false, reason: "not-array" };
     const sessionUserId = await getSessionUserId2();
     if (!sessionUserId) return NO_SESSION;
@@ -23212,7 +23282,7 @@ ${suffix}`;
     return loadTable("briefs", userId);
   }
   async function saveCases(cases, userId) {
-    if (!supabase) return NO_CLIENT2;
+    if (!supabase) return NO_CLIENT3;
     if (!Array.isArray(cases)) return { ok: false, reason: "not-array" };
     const sessionUserId = await getSessionUserId2();
     if (!sessionUserId) return NO_SESSION;
@@ -23290,18 +23360,18 @@ ${suffix}`;
   }
 
   // src/services/caseTasks.js
-  var NO_CLIENT3 = { ok: false, reason: "no-client" };
+  var NO_CLIENT4 = { ok: false, reason: "no-client" };
   var TASK_COLS = "id, case_id, organization_id, title, assigned_to, due_date, status, created_at, updated_at";
   var STATUSES = ["open", "done", "cancelled"];
   async function listCaseTasks(caseId) {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     if (!caseId) return { ok: false, reason: "invalid-case-id" };
     const { data, error } = await supabase.from("case_tasks").select(TASK_COLS).eq("case_id", String(caseId)).order("created_at", { ascending: true });
     if (error) return { ok: false, reason: "query-error", error };
     return { ok: true, tasks: data ?? [] };
   }
   async function createCaseTask(input) {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     if (!input || typeof input !== "object") return { ok: false, reason: "invalid-input" };
     const caseId = input.case_id ? String(input.case_id) : null;
     const title = typeof input.title === "string" ? input.title.trim() : "";
@@ -23330,7 +23400,7 @@ ${suffix}`;
     return { ok: true, task: data };
   }
   async function updateCaseTask(id, patch) {
-    if (!supabase) return NO_CLIENT3;
+    if (!supabase) return NO_CLIENT4;
     if (!id) return { ok: false, reason: "invalid-id" };
     if (!patch || typeof patch !== "object") return { ok: false, reason: "invalid-patch" };
     const allowed = {};
@@ -23356,65 +23426,6 @@ ${suffix}`;
       metadata: { case_id: data && data.case_id ? data.case_id : null }
     });
     return { ok: true, task: data };
-  }
-
-  // src/lib/auth.js
-  var NO_CLIENT4 = { ok: false, reason: "no-client" };
-  async function signIn(email) {
-    if (!supabase) return NO_CLIENT4;
-    if (!email || typeof email !== "string") {
-      return { ok: false, reason: "invalid-email" };
-    }
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: typeof window !== "undefined" ? window.location.origin : void 0 }
-    });
-    if (error) return { ok: false, reason: "auth-error", error };
-    return { ok: true, data };
-  }
-  async function signOut() {
-    if (!supabase) return NO_CLIENT4;
-    const { error } = await supabase.auth.signOut();
-    if (error) return { ok: false, reason: "auth-error", error };
-    return { ok: true };
-  }
-  async function getSession() {
-    if (!supabase) return NO_CLIENT4;
-    const { data, error } = await supabase.auth.getSession();
-    if (error) return { ok: false, reason: "auth-error", error };
-    return { ok: true, session: data?.session ?? null };
-  }
-  async function exchangeCodeForSession(href) {
-    if (!supabase) return NO_CLIENT4;
-    const { data, error } = await supabase.auth.exchangeCodeForSession(href);
-    if (error) return { ok: false, reason: "auth-error", error };
-    return { ok: true, session: data?.session ?? null };
-  }
-  async function isEmailAllowed(email) {
-    if (!supabase) return NO_CLIENT4;
-    if (!email || typeof email !== "string") {
-      return { ok: true, allowed: false };
-    }
-    const { data, error } = await supabase.from("allowed_users").select("id").eq("email", email.toLowerCase()).maybeSingle();
-    if (error) return { ok: false, reason: "query-error", error };
-    return { ok: true, allowed: !!data };
-  }
-  function onAuthStateChange(callback) {
-    if (!supabase) return () => {
-    };
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      try {
-        callback(event, session);
-      } catch (err) {
-        console.warn("[auth] callback threw:", err);
-      }
-    });
-    return () => {
-      try {
-        data?.subscription?.unsubscribe();
-      } catch {
-      }
-    };
   }
 
   // src/lib/profile.js
@@ -40453,7 +40464,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
         setSupaSession(session ?? null);
       });
-      if (typeof window !== "undefined") {
+      if (false) {
         window.login = async (email) => {
           const res = await signIn(email);
           if (!res.ok) console.warn("[auth] signIn failed:", res.reason, res.error);

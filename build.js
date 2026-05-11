@@ -7,9 +7,13 @@ const { execSync } = require("child_process");
 const url = process.env.VITE_SUPABASE_URL || "";
 const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
+// `import.meta.env.DEV` is forced to `false` for production builds so esbuild
+// strips dev-only branches (e.g. window.login/window.logout console helpers)
+// via dead-code elimination.
 const defines = [
   `--define:process.env.VITE_SUPABASE_URL=${JSON.stringify(url)}`,
   `--define:process.env.VITE_SUPABASE_PUBLISHABLE_KEY=${JSON.stringify(key)}`,
+  `--define:import.meta.env.DEV=false`,
 ];
 
 const args = [

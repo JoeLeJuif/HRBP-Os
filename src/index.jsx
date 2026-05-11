@@ -436,7 +436,9 @@ export default function HRBPOS() {
       }
       setSupaSession(session ?? null);
     });
-    if (typeof window !== "undefined") {
+    // Dev-only console helpers — stripped from prod builds via the
+    // `import.meta.env.DEV` define in build.js (esbuild dead-code elimination).
+    if (import.meta.env.DEV && typeof window !== "undefined") {
       window.login = async (email) => {
         const res = await supaSignIn(email);
         if (!res.ok) console.warn("[auth] signIn failed:", res.reason, res.error);
