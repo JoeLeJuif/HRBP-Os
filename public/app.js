@@ -35257,7 +35257,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       t2(status === "sending" ? "auth.login.sending" : status === "sent" ? "auth.login.sent" : "auth.login.send")
-    ), status === "sent" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginTop: 12, lineHeight: 1.5 } }, t2("auth.login.checkInbox")), status === "error" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginTop: 10 } }, errorMsg))));
+    ), status === "sent" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginTop: 12, lineHeight: 1.5 } }, t2("auth.login.checkInbox")), status === "error" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginTop: 10 } }, errorMsg)), /* @__PURE__ */ React.createElement("div", { style: {
+      marginTop: 16,
+      display: "flex",
+      justifyContent: "center",
+      gap: 14,
+      flexWrap: "wrap",
+      fontSize: 11
+    } }, /* @__PURE__ */ React.createElement("a", { href: "/privacy", style: { color: C.textM, textDecoration: "none" } }, "Confidentialit\xE9"), /* @__PURE__ */ React.createElement("a", { href: "/terms", style: { color: C.textM, textDecoration: "none" } }, "Conditions"), /* @__PURE__ */ React.createElement("a", { href: "/subprocessors", style: { color: C.textM, textDecoration: "none" } }, "Sous-traitants"), /* @__PURE__ */ React.createElement("a", { href: "/support", style: { color: C.textM, textDecoration: "none" } }, "Support"))));
   }
   function HRBPOS() {
     let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react24.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react24.useState)(!1), [denied, setDenied] = (0, import_react24.useState)(null), [userProfile, setUserProfile] = (0, import_react24.useState)(null), [profileChecked, setProfileChecked] = (0, import_react24.useState)(!1), [module, setModule] = (0, import_react24.useState)("home"), [showMore, setShowMore] = (0, import_react24.useState)(!1), [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react24.useState)(!1), [loaded, setLoaded] = (0, import_react24.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null), [focusExitId, setFocusExitId] = (0, import_react24.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null), handleNavigate = (0, import_react24.useCallback)((id, ctx) => {

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="index,follow" />
+  <title>Sous-traitants — HRBP OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+</head>
+<body>
+  <div class="legal-wrap">
+    <header class="legal-header">
+      <span class="legal-logo">⚡</span>
+      <div>
+        <div class="legal-brand">HRBP OS</div>
+        <div class="legal-sub">Sous-traitants</div>
+      </div>
+      <a class="legal-back" href="/">← Retour</a>
+    </header>
+
+    <h1>Sous-traitants</h1>
+    <div class="meta">Dernière mise à jour : 13 mai 2026</div>
+
+    <p>
+      HRBP OS s'appuie sur un nombre restreint de sous-traitants techniques
+      pour fournir le Service. Cette page liste les sous-traitants en
+      production et leur rôle. Les modifications sont communiquées via la
+      <a href="/privacy">Politique de confidentialité</a>.
+    </p>
+
+    <div class="subproc-card">
+      <h3>Supabase</h3>
+      <p><strong>Rôle :</strong> hébergement de la base de données PostgreSQL, gestion de l'authentification (magic link), application des politiques de sécurité au niveau des lignes (Row Level Security).</p>
+      <p><strong>Données traitées :</strong> données de compte, contenu RH applicatif, journaux d'audit.</p>
+      <p><strong>Localisation :</strong> infrastructure cloud, régions selon la configuration du projet (peut inclure hors Canada).</p>
+      <p><strong>Site :</strong> <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a></p>
+    </div>
+
+    <div class="subproc-card">
+      <h3>Vercel</h3>
+      <p><strong>Rôle :</strong> hébergement et livraison de l'application web (front-end et fonctions API), réseau de distribution de contenu (CDN), journaux d'accès opérationnels.</p>
+      <p><strong>Données traitées :</strong> métadonnées de requêtes HTTP (IP, agent utilisateur), trafic vers les fonctions API.</p>
+      <p><strong>Localisation :</strong> infrastructure cloud, principalement aux États-Unis et en Europe.</p>
+      <p><strong>Site :</strong> <a href="https://vercel.com" target="_blank" rel="noopener">vercel.com</a></p>
+    </div>
+
+    <div class="subproc-card">
+      <h3>Anthropic</h3>
+      <p><strong>Rôle :</strong> traitement par modèle de langage (Claude) pour les fonctions assistées par IA — génération de briefs, analyse de signaux, suggestions, structuration de cas.</p>
+      <p><strong>Données traitées :</strong> uniquement le contenu transmis par l'utilisateur dans le cadre d'une requête IA (cas, notes, contexte de rencontre, etc.).</p>
+      <p><strong>Localisation :</strong> infrastructure cloud aux États-Unis.</p>
+      <p><strong>Site :</strong> <a href="https://www.anthropic.com" target="_blank" rel="noopener">anthropic.com</a></p>
+    </div>
+
+    <h2>Transferts hors Québec/Canada</h2>
+    <p>
+      En raison de la localisation des sous-traitants ci-dessus, certaines
+      données peuvent être traitées hors du Québec et du Canada, notamment
+      aux États-Unis. Voir la <a href="/privacy">Politique de confidentialité</a>
+      pour plus de détails.
+    </p>
+
+    <h2>Mises à jour</h2>
+    <p>
+      Tout ajout d'un nouveau sous-traitant traitant des données client sera
+      reflété sur cette page. Les clients ayant un engagement contractuel formel
+      seront notifiés selon les modalités prévues à leur entente.
+    </p>
+
+    <div class="footer-note">
+      Document préliminaire (MVP). Une liste détaillée et un DPA complet seront
+      fournis dans le cadre d'un engagement contractuel formel.
+      <div class="footer-links">
+        <a href="/">Accueil</a>
+        <a href="/privacy">Confidentialité</a>
+        <a href="/terms">Conditions</a>
+        <a href="/subprocessors">Sous-traitants</a>
+        <a href="/support">Support</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

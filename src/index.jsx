@@ -234,6 +234,13 @@ function LoginScreen() {
             <div style={{ fontSize:11, color:C.red, marginTop:10 }}>{errorMsg}</div>
           )}
         </div>
+        <div style={{ marginTop:16, display:"flex", justifyContent:"center", gap:14,
+          flexWrap:"wrap", fontSize:11 }}>
+          <a href="/privacy" style={{ color:C.textM, textDecoration:"none" }}>Confidentialité</a>
+          <a href="/terms" style={{ color:C.textM, textDecoration:"none" }}>Conditions</a>
+          <a href="/subprocessors" style={{ color:C.textM, textDecoration:"none" }}>Sous-traitants</a>
+          <a href="/support" style={{ color:C.textM, textDecoration:"none" }}>Support</a>
+        </div>
       </div>
     </div>
   );
