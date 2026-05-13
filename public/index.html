@@ -16,18 +16,7 @@
   <div id="root"></div>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script>
-    window.require = function(mod) {
-      if (mod === 'react') return React;
-      if (mod === 'react-dom') return ReactDOM;
-      throw new Error('Cannot require ' + mod);
-    };
-  </script>
+  <script src="/boot.js"></script>
   <script src="/app.js"></script>
-  <script>
-    const App = HRBPOSApp.default;
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(App));
-  </script>
 </body>
 </html>
