@@ -22,6 +22,7 @@ import { useT } from "../lib/i18n.js";
 import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
 import { applyMergeToLocalStorage } from "../utils/identity.js";
 import { mergeIdentity } from "../services/identityMerge.js";
+import { buildOrganizationExport, downloadExportFile } from "../services/orgExport.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
@@ -322,6 +323,7 @@ export default function ModuleAdmin({ currentProfile }) {
             </Section>
           )}
 
+          <ExportOrganizationPanel currentProfile={currentProfile}/>
           <RenameIdentityPanel/>
           <IdentityMergePanel/>
         </>
@@ -598,6 +600,62 @@ function OrgSelect({ organizations, value, onChange, disabled }) {
       <option value="">{t("common.none")}</option>
       {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
     </select>
+  );
+}
+
+// ── Export organization data panel ───────────────────────────────────────────
+// Builds a JSON snapshot of every org-scoped table the caller can read under
+// RLS and triggers a browser download. Visible only to admin / super_admin.
+function ExportOrganizationPanel({ currentProfile }) {
+  const role = currentProfile?.role;
+  const allowed = role === "admin" || role === "super_admin";
+  const [busy, setBusy] = useState(false);
+  const [msg,  setMsg]  = useState(null);
+
+  if (!allowed) return null;
+
+  const onExport = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await buildOrganizationExport();
+      if (!res.ok) {
+        setMsg({ kind: "err", text: "Export indisponible. Réessayez plus tard." });
+        return;
+      }
+      const ok = downloadExportFile(res.json, res.filename);
+      setMsg(ok
+        ? { kind: "ok",  text: `Téléchargement déclenché : ${res.filename}` }
+        : { kind: "err", text: "Export indisponible. Réessayez plus tard." });
+    } catch {
+      setMsg({ kind: "err", text: "Export indisponible. Réessayez plus tard." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ ...css.card, marginBottom: 14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.blue }}/>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Export Organization Data</div>
+      </div>
+      <div style={{ fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 }}>
+        Télécharge un instantané JSON de toutes les données de votre organisation
+        (employés, dossiers, rencontres, enquêtes, briefs, tâches, journal d'audit).
+      </div>
+      <button onClick={onExport} disabled={busy}
+        style={{ ...css.btn(C.blue), padding:"6px 14px", fontSize: 12,
+          opacity: busy ? .6 : 1, cursor: busy ? "not-allowed" : "pointer" }}>
+        {busy ? "…" : "Export Organization Data"}
+      </button>
+      {msg && (
+        <div style={{ marginTop: 10, fontSize: 12,
+          color: msg.kind === "ok" ? C.em : C.red }}>
+          {msg.text}
+        </div>
+      )}
+    </div>
   );
 }
 

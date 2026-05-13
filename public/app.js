@@ -34677,6 +34677,77 @@ Best next move: ${sit.bestNextMove}` : ""}`;
 
   // src/modules/Admin.jsx
   var import_react23 = __toESM(__require("react"));
+
+  // src/services/orgExport.js
+  var JSONB_TABLES = ["cases", "investigations", "meetings", "briefs"], FLAT_TABLES = ["employees", "case_tasks", "audit_logs"];
+  async function fetchJsonbTable(table, organizationId) {
+    try {
+      let { data, error } = await supabase.from(table).select("id, data, organization_id, created_at, updated_at").eq("organization_id", organizationId);
+      return error || !Array.isArray(data) ? [] : data.map((r) => r && r.data ? r.data : null).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  async function fetchFlatTable(table, organizationId) {
+    try {
+      let { data, error } = await supabase.from(table).select("*").eq("organization_id", organizationId);
+      return error || !Array.isArray(data) ? [] : data;
+    } catch {
+      return [];
+    }
+  }
+  async function buildOrganizationExport() {
+    if (!supabase) return { ok: !1, reason: "no-client" };
+    let sessionUserId = null;
+    try {
+      let { data, error } = await supabase.auth.getSession();
+      if (error) return { ok: !1, reason: "not-authenticated" };
+      sessionUserId = data && data.session && data.session.user && data.session.user.id;
+    } catch {
+      return { ok: !1, reason: "not-authenticated" };
+    }
+    if (!sessionUserId) return { ok: !1, reason: "not-authenticated" };
+    let organizationId = null;
+    try {
+      let { data, error } = await supabase.from("profiles").select("organization_id").eq("id", sessionUserId).maybeSingle();
+      if (error || !data) return { ok: !1, reason: "no-profile" };
+      organizationId = data.organization_id || null;
+    } catch {
+      return { ok: !1, reason: "no-profile" };
+    }
+    if (!organizationId) return { ok: !1, reason: "no-profile" };
+    let result = {};
+    await Promise.all([
+      ...JSONB_TABLES.map(async (t2) => {
+        result[t2] = await fetchJsonbTable(t2, organizationId);
+      }),
+      ...FLAT_TABLES.map(async (t2) => {
+        result[t2] = await fetchFlatTable(t2, organizationId);
+      })
+    ]);
+    let today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    return {
+      ok: !0,
+      json: {
+        exported_at: (/* @__PURE__ */ new Date()).toISOString(),
+        organization_id: organizationId,
+        exported_by: sessionUserId,
+        data: result
+      },
+      filename: `hrbp-os-export-${today}.json`
+    };
+  }
+  function downloadExportFile(json, filename) {
+    if (typeof window > "u" || typeof document > "u") return !1;
+    try {
+      let blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" }), url2 = URL.createObjectURL(blob), a = document.createElement("a");
+      return a.href = url2, a.download = filename, document.body.appendChild(a), a.click(), document.body.removeChild(a), setTimeout(() => URL.revokeObjectURL(url2), 1e3), !0;
+    } catch {
+      return !1;
+    }
+  }
+
+  // src/modules/Admin.jsx
   var ROLE_STYLE = {
     super_admin: { bg: C.red + "18", border: C.red + "55", color: C.red },
     admin: { bg: C.amber + "18", border: C.amber + "55", color: C.amber },
@@ -34876,7 +34947,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           busy ? "\u2026" : t2("admin.action.reenable")
         )
       );
-    })), buckets.other.length > 0 && /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+    })), buckets.other.length > 0 && /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react23.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
   }
   function IdentityMergePanel() {
     let [source, setSource] = (0, import_react23.useState)(""), [target, setTarget] = (0, import_react23.useState)(""), [busy, setBusy] = (0, import_react23.useState)(!1), [result, setResult] = (0, import_react23.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
@@ -35064,6 +35135,45 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       /* @__PURE__ */ import_react23.default.createElement("option", { value: "" }, t2("common.none")),
       organizations.map((o) => /* @__PURE__ */ import_react23.default.createElement("option", { key: o.id, value: o.id }, o.name))
     );
+  }
+  function ExportOrganizationPanel({ currentProfile }) {
+    let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react23.useState)(!1), [msg, setMsg] = (0, import_react23.useState)(null);
+    if (!allowed) return null;
+    let onExport = async () => {
+      setBusy(!0), setMsg(null);
+      try {
+        let res = await buildOrganizationExport();
+        if (!res.ok) {
+          setMsg({ kind: "err", text: "Export indisponible. R\xE9essayez plus tard." });
+          return;
+        }
+        let ok = downloadExportFile(res.json, res.filename);
+        setMsg(ok ? { kind: "ok", text: `T\xE9l\xE9chargement d\xE9clench\xE9 : ${res.filename}` } : { kind: "err", text: "Export indisponible. R\xE9essayez plus tard." });
+      } catch {
+        setMsg({ kind: "err", text: "Export indisponible. R\xE9essayez plus tard." });
+      } finally {
+        setBusy(!1);
+      }
+    };
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Export Organization Data")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "T\xE9l\xE9charge un instantan\xE9 JSON de toutes les donn\xE9es de votre organisation (employ\xE9s, dossiers, rencontres, enqu\xEAtes, briefs, t\xE2ches, journal d'audit)."), /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: onExport,
+        disabled: busy,
+        style: {
+          ...css.btn(C.blue),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: busy ? 0.6 : 1,
+          cursor: busy ? "not-allowed" : "pointer"
+        }
+      },
+      busy ? "\u2026" : "Export Organization Data"
+    ), msg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+      marginTop: 10,
+      fontSize: 12,
+      color: msg.kind === "ok" ? C.em : C.red
+    } }, msg.text));
   }
   function RenameIdentityPanel() {
     return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Renommer un employ\xE9 / gestionnaire")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo dans un nom (ex\xA0: ", /* @__PURE__ */ import_react23.default.createElement("i", null, "CHanny Tremblay"), " \u2192 ", /* @__PURE__ */ import_react23.default.createElement("i", null, "Channy Tremblay"), ").", /* @__PURE__ */ import_react23.default.createElement("b", null, " Preview"), " compte les occurrences sans rien \xE9crire ; ", /* @__PURE__ */ import_react23.default.createElement("b", null, "Appliquer"), " ex\xE9cute le rename sur localStorage et Supabase (si disponible)."), /* @__PURE__ */ import_react23.default.createElement(IdentityRenameForm, null));
