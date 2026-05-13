@@ -28,6 +28,14 @@ const NO_CLIENT = { ok: false, reason: "no-client" };
 
 const PROFILE_COLS = "id, email, status, role, organization_id, disabled_at, disabled_by, created_at, updated_at";
 
+// Org statuses recognized by the gate. trialing + active grant access;
+// past_due / suspended / cancelled block the user at the org-status screen.
+export const ORG_STATUSES = ["trialing", "active", "past_due", "suspended", "cancelled"];
+export const ORG_ACTIVE_STATUSES = ["trialing", "active"];
+export function isOrgStatusActive(status) {
+  return ORG_ACTIVE_STATUSES.includes(status);
+}
+
 const FALLBACK = (user) => ({
   id: user?.id ?? null,
   email: user?.email ?? null,
@@ -70,6 +78,39 @@ export async function fetchOrCreateProfile(user) {
     return { ok: true, profile: FALLBACK(user) };
   }
   return { ok: true, profile: inserted ?? FALLBACK(user) };
+}
+
+// Reads a single organization row. Used by the access gate to determine whether
+// the org has an active subscription. Returns `{ ok:false, reason:"not-found" }`
+// when the row is missing or invisible to the caller (RLS).
+export async function fetchOrganization(orgId) {
+  if (!supabase) return NO_CLIENT;
+  if (!orgId) return { ok: false, reason: "invalid-id" };
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("id, name, status, created_at")
+    .eq("id", orgId)
+    .maybeSingle();
+  if (error) return { ok: false, reason: "query-error", error };
+  if (!data) return { ok: false, reason: "not-found" };
+  return { ok: true, organization: data };
+}
+
+// super_admin-only update of organizations.status. Server enforces this via the
+// `organizations_update_super_admin` RLS policy added 2026-05-13.
+export async function updateOrganizationStatus(orgId, newStatus) {
+  if (!supabase) return NO_CLIENT;
+  if (!orgId) return { ok: false, reason: "invalid-id" };
+  if (!ORG_STATUSES.includes(newStatus)) return { ok: false, reason: "invalid-status" };
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({ status: newStatus })
+    .eq("id", orgId)
+    .select("id, name, status, created_at")
+    .maybeSingle();
+  if (error) return { ok: false, reason: "query-error", error };
+  if (!data) return { ok: false, reason: "not-allowed" };
+  return { ok: true, organization: data };
 }
 
 // Org scope helper. super_admin can act on any profile; org admin can only act
@@ -217,7 +258,7 @@ export async function listOrganizations() {
   if (!supabase) return NO_CLIENT;
   const { data, error } = await supabase
     .from("organizations")
-    .select("id, name, created_at")
+    .select("id, name, status, created_at")
     .order("name", { ascending: true });
   if (error) return { ok: false, reason: "query-error", error };
   return { ok: true, organizations: data ?? [] };

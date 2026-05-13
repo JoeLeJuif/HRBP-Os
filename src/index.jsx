@@ -18,7 +18,7 @@ import { loadCases as supaLoadCases, saveCases as supaSaveCases, loadMeetings as
 import { bestEffortAudit, AUDIT_ACTIONS } from './services/auditLog.js';
 import { createCaseTask as supaCreateCaseTask } from './services/caseTasks.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
-import { fetchOrCreateProfile } from './lib/profile.js';
+import { fetchOrCreateProfile, fetchOrganization, isOrgStatusActive } from './lib/profile.js';
 import { hasSupabase } from './lib/supabase.js';
 import { useT, SUPPORTED_LANGS } from './lib/i18n.js';
 import { isCaseActive } from './utils/caseStatus.js';
@@ -116,6 +116,37 @@ function PendingApprovalScreen({ email, onSignOut }) {
           {email ? <>{t("auth.pending.bodyEmailPrefix")}<b>{email}</b>{t("auth.pending.bodyEmailSuffix")}</>
                  : t("auth.pending.bodyAnon")}
         </div>
+        <button onClick={onSignOut}
+          style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
+          {t("auth.signOut")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OrgInactiveScreen({ email, onSignOut, orgName, orgStatus }) {
+  const { t } = useT();
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ width:400, textAlign:"center" }}>
+        <div style={{ width:44, height:44, background:C.red, borderRadius:10,
+          display:"inline-flex", alignItems:"center", justifyContent:"center",
+          fontSize:20, marginBottom:12 }}>⛔</div>
+        <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:6 }}>
+          {t("auth.orgInactive.title")}
+        </div>
+        <div style={{ fontSize:12, color:C.textM, marginBottom:14, lineHeight:1.5 }}>
+          {t("auth.orgInactive.body")}
+        </div>
+        {(orgName || orgStatus) && (
+          <div style={{ fontSize:11, color:C.textD, marginBottom:18 }}>
+            {orgName && <div>{orgName}</div>}
+            {orgStatus && <div style={{ fontFamily:"'DM Mono',monospace" }}>status: {orgStatus}</div>}
+            {email && <div style={{ marginTop:4 }}>{email}</div>}
+          </div>
+        )}
         <button onClick={onSignOut}
           style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
           {t("auth.signOut")}
@@ -254,6 +285,8 @@ export default function HRBPOS() {
   const [denied, setDenied] = useState(null); // { email } when login email is not in allow-list
   const [userProfile, setUserProfile] = useState(null);
   const [profileChecked, setProfileChecked] = useState(false);
+  const [userOrganization, setUserOrganization] = useState(null);
+  const [orgChecked, setOrgChecked] = useState(false);
   const [module, setModule]   = useState("home");
   const [showMore, setShowMore] = useState(false);
   const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
@@ -469,6 +502,8 @@ export default function HRBPOS() {
     if (!supaSession) {
       setUserProfile(null);
       setProfileChecked(false);
+      setUserOrganization(null);
+      setOrgChecked(false);
       return;
     }
     let cancelled = false;
@@ -491,6 +526,38 @@ export default function HRBPOS() {
     })();
     return () => { cancelled = true; };
   }, [supaSession]);
+
+  // Fetch the user's organization row (just the status field matters for the
+  // gate). Only runs for approved users with an org_id assigned — other
+  // statuses are already blocked by the pending/disabled screens, and a missing
+  // org_id means there is no org subscription to check.
+  useEffect(() => {
+    if (!hasSupabase) { setOrgChecked(true); return; }
+    if (!profileChecked) return;
+    if (!userProfile || userProfile.status !== "approved" || !userProfile.organization_id) {
+      setUserOrganization(null);
+      setOrgChecked(true);
+      return;
+    }
+    let cancelled = false;
+    setOrgChecked(false);
+    (async () => {
+      const res = await fetchOrganization(userProfile.organization_id);
+      if (cancelled) return;
+      if (res.ok) {
+        setUserOrganization(res.organization);
+      } else {
+        // Fail-open: if we can't read the org row (RLS hiccup, network), don't
+        // lock the user out. RLS still gates every downstream read/write.
+        if (res.reason !== "no-client") {
+          console.warn("[org] fetchOrganization failed:", res.reason, res.error);
+        }
+        setUserOrganization(null);
+      }
+      setOrgChecked(true);
+    })();
+    return () => { cancelled = true; };
+  }, [profileChecked, userProfile]);
 
   const showToast = () => { setToast(true); setTimeout(() => setToast(false), 2000); };
 
@@ -708,6 +775,19 @@ export default function HRBPOS() {
       email={userProfile.email || supaSession.user?.email}
       onSignOut={async () => { await supaSignOut(); }} />;
   }
+  if (hasSupabase && supaSession && userProfile?.status === "approved"
+      && userProfile.organization_id && !orgChecked) {
+    return <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg }}><AILoader label="Chargement"/></div>;
+  }
+  if (hasSupabase && supaSession && userProfile?.status === "approved"
+      && userOrganization && !isOrgStatusActive(userOrganization.status)) {
+    return <OrgInactiveScreen
+      email={userProfile.email || supaSession.user?.email}
+      orgName={userOrganization.name}
+      orgStatus={userOrganization.status}
+      onSignOut={async () => { await supaSignOut(); }} />;
+  }
 
   const isAdmin = !!(userProfile && userProfile.status === "approved"
     && (userProfile.role === "admin" || userProfile.role === "super_admin"));
@@ -882,7 +962,7 @@ export default function HRBPOS() {
           : safeModule === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
           : safeModule === "knowledge"      ? <ModuleKnowledge />
           : safeModule === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
-          : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile}/> : null)
+          : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile} currentOrganization={userOrganization} onOrganizationUpdated={setUserOrganization}/> : null)
           : null}
         </div>
       </div>

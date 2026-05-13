@@ -590,6 +590,8 @@ ${LEGAL_GUARDRAIL}`;
       "auth.pending.bodyEmailSuffix": " before you can use HRBP OS.",
       "auth.disabled.title": "Access disabled",
       "auth.disabled.body": "Your access to HRBP OS has been disabled. Please contact an administrator.",
+      "auth.orgInactive.title": "Organization unavailable",
+      "auth.orgInactive.body": "Your organization account is not active. Please contact support.",
       "auth.denied.title": "Access denied",
       "auth.denied.bodyAnon": "This address is not authorized.",
       "auth.denied.bodyEmailPrefix": "The address ",
@@ -1757,6 +1759,8 @@ It will be removed from active lists but kept in the history.`,
       "auth.pending.bodyEmailSuffix": " avant que vous puissiez utiliser HRBP OS.",
       "auth.disabled.title": "Acc\xE8s d\xE9sactiv\xE9",
       "auth.disabled.body": "Votre acc\xE8s \xE0 HRBP OS a \xE9t\xE9 d\xE9sactiv\xE9. Veuillez contacter un administrateur.",
+      "auth.orgInactive.title": "Organisation indisponible",
+      "auth.orgInactive.body": "Your organization account is not active. Please contact support.",
       "auth.denied.title": "Acc\xE8s refus\xE9",
       "auth.denied.bodyAnon": "Cette adresse n'est pas autoris\xE9e.",
       "auth.denied.bodyEmailPrefix": "L'adresse ",
@@ -20610,7 +20614,11 @@ Do not translate employee names, case notes, job titles, or user-entered content
   }
 
   // src/lib/profile.js
-  var NO_CLIENT5 = { ok: !1, reason: "no-client" }, PROFILE_COLS = "id, email, status, role, organization_id, disabled_at, disabled_by, created_at, updated_at", FALLBACK = (user) => ({
+  var NO_CLIENT5 = { ok: !1, reason: "no-client" }, PROFILE_COLS = "id, email, status, role, organization_id, disabled_at, disabled_by, created_at, updated_at", ORG_STATUSES = ["trialing", "active", "past_due", "suspended", "cancelled"], ORG_ACTIVE_STATUSES = ["trialing", "active"];
+  function isOrgStatusActive(status) {
+    return ORG_ACTIVE_STATUSES.includes(status);
+  }
+  var FALLBACK = (user) => ({
     id: user?.id ?? null,
     email: user?.email ?? null,
     status: "pending",
@@ -20632,6 +20640,19 @@ Do not translate employee names, case notes, job titles, or user-entered content
       role: "hrbp"
     }, { data: inserted, error: insErr } = await supabase.from("profiles").insert(seed).select(PROFILE_COLS).maybeSingle();
     return insErr ? (console.warn("[profile] insert failed, using in-memory fallback:", insErr), { ok: !0, profile: FALLBACK(user) }) : { ok: !0, profile: inserted ?? FALLBACK(user) };
+  }
+  async function fetchOrganization(orgId) {
+    if (!supabase) return NO_CLIENT5;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("organizations").select("id, name, status, created_at").eq("id", orgId).maybeSingle();
+    return error ? { ok: !1, reason: "query-error", error } : data ? { ok: !0, organization: data } : { ok: !1, reason: "not-found" };
+  }
+  async function updateOrganizationStatus(orgId, newStatus) {
+    if (!supabase) return NO_CLIENT5;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    if (!ORG_STATUSES.includes(newStatus)) return { ok: !1, reason: "invalid-status" };
+    let { data, error } = await supabase.from("organizations").update({ status: newStatus }).eq("id", orgId).select("id, name, status, created_at").maybeSingle();
+    return error ? { ok: !1, reason: "query-error", error } : data ? { ok: !0, organization: data } : { ok: !1, reason: "not-allowed" };
   }
   function canActOnProfile(caller, target) {
     return !caller || !target || caller.status !== "approved" ? !1 : caller.role === "super_admin" ? !0 : caller.role !== "admin" || !caller.organization_id ? !1 : target.organization_id === caller.organization_id;
@@ -20689,7 +20710,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
   }
   async function listOrganizations() {
     if (!supabase) return NO_CLIENT5;
-    let { data, error } = await supabase.from("organizations").select("id, name, created_at").order("name", { ascending: !0 });
+    let { data, error } = await supabase.from("organizations").select("id, name, status, created_at").order("name", { ascending: !0 });
     return error ? { ok: !1, reason: "query-error", error } : { ok: !0, organizations: data ?? [] };
   }
 
@@ -34753,7 +34774,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     admin: { bg: C.amber + "18", border: C.amber + "55", color: C.amber },
     hrbp: { bg: C.surfL, border: C.border, color: C.textM }
   };
-  function ModuleAdmin({ currentProfile }) {
+  function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated }) {
     let { t: t2 } = useT(), [profiles, setProfiles] = (0, import_react23.useState)([]), [organizations, setOrganizations] = (0, import_react23.useState)([]), [status, setStatus] = (0, import_react23.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react23.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react23.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react23.useState)({}), [busyById, setBusyById] = (0, import_react23.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react23.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react23.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
@@ -34947,7 +34968,15 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           busy ? "\u2026" : t2("admin.action.reenable")
         )
       );
-    })), buckets.other.length > 0 && /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react23.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+    })), buckets.other.length > 0 && /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react23.default.createElement(
+      OrganizationStatusPanel,
+      {
+        currentProfile,
+        currentOrganization,
+        isSuperAdmin,
+        onUpdated: onOrganizationUpdated
+      }
+    ), /* @__PURE__ */ import_react23.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
   }
   function IdentityMergePanel() {
     let [source, setSource] = (0, import_react23.useState)(""), [target, setTarget] = (0, import_react23.useState)(""), [busy, setBusy] = (0, import_react23.useState)(!1), [result, setResult] = (0, import_react23.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
@@ -35136,6 +35165,63 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       organizations.map((o) => /* @__PURE__ */ import_react23.default.createElement("option", { key: o.id, value: o.id }, o.name))
     );
   }
+  function OrganizationStatusPanel({ currentProfile, currentOrganization, isSuperAdmin, onUpdated }) {
+    let [busy, setBusy] = (0, import_react23.useState)(!1), [msg, setMsg] = (0, import_react23.useState)(null), [draft, setDraft] = (0, import_react23.useState)(currentOrganization?.status || "");
+    if ((0, import_react23.useEffect)(() => {
+      setDraft(currentOrganization?.status || "");
+    }, [currentOrganization?.status]), !currentProfile?.organization_id)
+      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.textD } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "Aucune organisation assign\xE9e."));
+    let status = currentOrganization?.status || "\u2014", swatch = isOrgStatusActive(status) ? C.em : C.red, save = async () => {
+      if (!draft || draft === status) return;
+      setBusy(!0), setMsg(null);
+      let res = await updateOrganizationStatus(currentProfile.organization_id, draft);
+      if (setBusy(!1), res.ok && res.organization) {
+        typeof onUpdated == "function" && onUpdated(res.organization), setMsg({ kind: "ok", text: `Statut mis \xE0 jour : ${res.organization.status}` });
+        return;
+      }
+      let detail = res.reason === "not-allowed" ? "r\xF4le super_admin requis" : res.reason === "invalid-status" ? "statut invalide" : res.reason === "no-client" ? "Supabase non configur\xE9" : res.reason || "erreur";
+      setMsg({ kind: "err", text: `\xC9chec : ${detail}` });
+    };
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: swatch } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation", currentOrganization?.name && /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 ", currentOrganization.name))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Les statuts ", /* @__PURE__ */ import_react23.default.createElement("b", null, "trialing"), " et ", /* @__PURE__ */ import_react23.default.createElement("b", null, "active"), " donnent acc\xE8s \xE0 l'application. Les statuts", /* @__PURE__ */ import_react23.default.createElement("b", null, " past_due"), ", ", /* @__PURE__ */ import_react23.default.createElement("b", null, "suspended"), " et ", /* @__PURE__ */ import_react23.default.createElement("b", null, "cancelled"), " bloquent l'acc\xE8s des membres."), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+      fontSize: 11,
+      fontWeight: 600,
+      letterSpacing: 0.3,
+      padding: "3px 8px",
+      borderRadius: 4,
+      background: swatch + "18",
+      border: `1px solid ${swatch}55`,
+      color: swatch,
+      whiteSpace: "nowrap",
+      fontFamily: "'DM Mono',monospace"
+    } }, status), isSuperAdmin ? /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement(
+      "select",
+      {
+        value: draft,
+        disabled: busy,
+        onChange: (e) => setDraft(e.target.value),
+        style: { ...css.select, width: 160, padding: "6px 8px", fontSize: 12 }
+      },
+      ORG_STATUSES.map((s) => /* @__PURE__ */ import_react23.default.createElement("option", { key: s, value: s }, s))
+    ), /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: save,
+        disabled: busy || !draft || draft === status,
+        style: {
+          ...css.btn(C.em),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: busy || !draft || draft === status ? 0.5 : 1,
+          cursor: busy || !draft || draft === status ? "not-allowed" : "pointer"
+        }
+      },
+      busy ? "\u2026" : "Enregistrer"
+    )) : /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Seul un super_admin peut modifier ce statut.")), msg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+      marginTop: 10,
+      fontSize: 12,
+      color: msg.kind === "ok" ? C.em : C.red
+    } }, msg.text));
+  }
   function ExportOrganizationPanel({ currentProfile }) {
     let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react23.useState)(!1), [msg, setMsg] = (0, import_react23.useState)(null);
     if (!allowed) return null;
@@ -35238,6 +35324,34 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       fontSize: 20,
       marginBottom: 12
     } }, "\u23F3"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 6 } }, t2("auth.pending.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 20, lineHeight: 1.5 } }, email ? /* @__PURE__ */ React.createElement(React.Fragment, null, t2("auth.pending.bodyEmailPrefix"), /* @__PURE__ */ React.createElement("b", null, email), t2("auth.pending.bodyEmailSuffix")) : t2("auth.pending.bodyAnon")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onSignOut,
+        style: { ...css.btn(C.em, !0), padding: "9px 16px", fontSize: 12 }
+      },
+      t2("auth.signOut")
+    )));
+  }
+  function OrgInactiveScreen({ email, onSignOut, orgName, orgStatus }) {
+    let { t: t2 } = useT();
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100vh",
+      background: C.bg,
+      fontFamily: "'DM Sans',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { width: 400, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      width: 44,
+      height: 44,
+      background: C.red,
+      borderRadius: 10,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      marginBottom: 12
+    } }, "\u26D4"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 6 } }, t2("auth.orgInactive.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, marginBottom: 14, lineHeight: 1.5 } }, t2("auth.orgInactive.body")), (orgName || orgStatus) && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginBottom: 18 } }, orgName && /* @__PURE__ */ React.createElement("div", null, orgName), orgStatus && /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'DM Mono',monospace" } }, "status: ", orgStatus), email && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } }, email)), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: onSignOut,
@@ -35377,7 +35491,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     } }, /* @__PURE__ */ React.createElement("a", { href: "/privacy", style: { color: C.textM, textDecoration: "none" } }, "Confidentialit\xE9"), /* @__PURE__ */ React.createElement("a", { href: "/terms", style: { color: C.textM, textDecoration: "none" } }, "Conditions"), /* @__PURE__ */ React.createElement("a", { href: "/subprocessors", style: { color: C.textM, textDecoration: "none" } }, "Sous-traitants"), /* @__PURE__ */ React.createElement("a", { href: "/support", style: { color: C.textM, textDecoration: "none" } }, "Support"))));
   }
   function HRBPOS() {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react24.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react24.useState)(!1), [denied, setDenied] = (0, import_react24.useState)(null), [userProfile, setUserProfile] = (0, import_react24.useState)(null), [profileChecked, setProfileChecked] = (0, import_react24.useState)(!1), [module, setModule] = (0, import_react24.useState)("home"), [showMore, setShowMore] = (0, import_react24.useState)(!1), [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react24.useState)(!1), [loaded, setLoaded] = (0, import_react24.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null), [focusExitId, setFocusExitId] = (0, import_react24.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null), handleNavigate = (0, import_react24.useCallback)((id, ctx) => {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react24.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react24.useState)(!1), [denied, setDenied] = (0, import_react24.useState)(null), [userProfile, setUserProfile] = (0, import_react24.useState)(null), [profileChecked, setProfileChecked] = (0, import_react24.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react24.useState)(null), [orgChecked, setOrgChecked] = (0, import_react24.useState)(!1), [module, setModule] = (0, import_react24.useState)("home"), [showMore, setShowMore] = (0, import_react24.useState)(!1), [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react24.useState)(!1), [loaded, setLoaded] = (0, import_react24.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null), [focusExitId, setFocusExitId] = (0, import_react24.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null), handleNavigate = (0, import_react24.useCallback)((id, ctx) => {
       ctx?.focusCaseId && setFocusCaseId(ctx.focusCaseId), ctx?.focusMeetingId && setFocusMeetingId(ctx.focusMeetingId), ctx?.focusExitId && setFocusExitId(ctx.focusExitId), ctx?.focusSignalId && setFocusSignalId(ctx.focusSignalId), ctx?.focusDecisionId && setFocusDecisionId(ctx.focusDecisionId), ctx?.focusInvestigationId && setFocusInvestigationId(ctx.focusInvestigationId), setModule(id);
     }, []);
     (0, import_react24.useEffect)(() => {
@@ -35497,7 +35611,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         return;
       }
       if (!supaSession) {
-        setUserProfile(null), setProfileChecked(!1);
+        setUserProfile(null), setProfileChecked(!1), setUserOrganization(null), setOrgChecked(!1);
         return;
       }
       let cancelled = !1;
@@ -35513,7 +35627,24 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       })(), () => {
         cancelled = !0;
       };
-    }, [supaSession]);
+    }, [supaSession]), (0, import_react24.useEffect)(() => {
+      if (!hasSupabase) {
+        setOrgChecked(!0);
+        return;
+      }
+      if (!profileChecked) return;
+      if (!userProfile || userProfile.status !== "approved" || !userProfile.organization_id) {
+        setUserOrganization(null), setOrgChecked(!0);
+        return;
+      }
+      let cancelled = !1;
+      return setOrgChecked(!1), (async () => {
+        let res = await fetchOrganization(userProfile.organization_id);
+        cancelled || (res.ok ? setUserOrganization(res.organization) : (res.reason !== "no-client" && console.warn("[org] fetchOrganization failed:", res.reason, res.error), setUserOrganization(null)), setOrgChecked(!0));
+      })(), () => {
+        cancelled = !0;
+      };
+    }, [profileChecked, userProfile]);
     let showToast = () => {
       setToast(!0), setTimeout(() => setToast(!1), 2e3);
     }, handleSave = (0, import_react24.useCallback)(async (key2, value) => {
@@ -35652,6 +35783,26 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         PendingApprovalScreen,
         {
           email: userProfile.email || supaSession.user?.email,
+          onSignOut: async () => {
+            await signOut();
+          }
+        }
+      );
+    if (hasSupabase && supaSession && userProfile?.status === "approved" && userProfile.organization_id && !orgChecked)
+      return /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        background: C.bg
+      } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement" }));
+    if (hasSupabase && supaSession && userProfile?.status === "approved" && userOrganization && !isOrgStatusActive(userOrganization.status))
+      return /* @__PURE__ */ React.createElement(
+        OrgInactiveScreen,
+        {
+          email: userProfile.email || supaSession.user?.email,
+          orgName: userOrganization.name,
+          orgStatus: userOrganization.status,
           onSignOut: async () => {
             await signOut();
           }
@@ -35854,7 +36005,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       alignItems: "center",
       gap: 12,
       flexShrink: 0
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : "")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : "")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();

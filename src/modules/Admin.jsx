@@ -17,6 +17,7 @@ import { C, css } from "../theme.js";
 import {
   listAllProfiles, listOrganizations, updateProfile,
   revokeUserAccess, restoreUserAccess, setUserRole, canActOnProfile,
+  updateOrganizationStatus, ORG_STATUSES, isOrgStatusActive,
 } from "../lib/profile.js";
 import { useT } from "../lib/i18n.js";
 import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
@@ -33,7 +34,7 @@ const ROLE_STYLE = {
   hrbp:        { bg: C.surfL,          border: C.border,        color: C.textM  },
 };
 
-export default function ModuleAdmin({ currentProfile }) {
+export default function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated }) {
   const { t } = useT();
   const [profiles, setProfiles]         = useState([]);
   const [organizations, setOrganizations] = useState([]);
@@ -323,6 +324,11 @@ export default function ModuleAdmin({ currentProfile }) {
             </Section>
           )}
 
+          <OrganizationStatusPanel
+            currentProfile={currentProfile}
+            currentOrganization={currentOrganization}
+            isSuperAdmin={isSuperAdmin}
+            onUpdated={onOrganizationUpdated}/>
           <ExportOrganizationPanel currentProfile={currentProfile}/>
           <RenameIdentityPanel/>
           <IdentityMergePanel/>
@@ -600,6 +606,104 @@ function OrgSelect({ organizations, value, onChange, disabled }) {
       <option value="">{t("common.none")}</option>
       {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
     </select>
+  );
+}
+
+// ── Organization status panel ────────────────────────────────────────────────
+// Shows the current org's subscription status. super_admin can change it via
+// the `organizations_update_super_admin` RLS policy; admins see read-only.
+function OrganizationStatusPanel({ currentProfile, currentOrganization, isSuperAdmin, onUpdated }) {
+  const [busy, setBusy]   = useState(false);
+  const [msg, setMsg]     = useState(null);
+  const [draft, setDraft] = useState(currentOrganization?.status || "");
+
+  useEffect(() => { setDraft(currentOrganization?.status || ""); }, [currentOrganization?.status]);
+
+  if (!currentProfile?.organization_id) {
+    return (
+      <div style={{ ...css.card, marginBottom: 14 }}>
+        <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.textD }}/>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Statut de l'organisation</div>
+        </div>
+        <div style={{ fontSize: 11, color: C.textM }}>Aucune organisation assignée.</div>
+      </div>
+    );
+  }
+
+  const status = currentOrganization?.status || "—";
+  const active = isOrgStatusActive(status);
+  const swatch = active ? C.em : C.red;
+
+  const save = async () => {
+    if (!draft || draft === status) return;
+    setBusy(true);
+    setMsg(null);
+    const res = await updateOrganizationStatus(currentProfile.organization_id, draft);
+    setBusy(false);
+    if (res.ok && res.organization) {
+      if (typeof onUpdated === "function") onUpdated(res.organization);
+      setMsg({ kind: "ok", text: `Statut mis à jour : ${res.organization.status}` });
+      return;
+    }
+    const detail =
+      res.reason === "not-allowed"     ? "rôle super_admin requis" :
+      res.reason === "invalid-status"  ? "statut invalide" :
+      res.reason === "no-client"       ? "Supabase non configuré" :
+      (res.reason || "erreur");
+    setMsg({ kind: "err", text: `Échec : ${detail}` });
+  };
+
+  return (
+    <div style={{ ...css.card, marginBottom: 14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: swatch }}/>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+          Statut de l'organisation
+          {currentOrganization?.name && (
+            <span style={{ color: C.textM, fontWeight: 400 }}> · {currentOrganization.name}</span>
+          )}
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 }}>
+        Les statuts <b>trialing</b> et <b>active</b> donnent accès à l'application. Les statuts
+        <b> past_due</b>, <b>suspended</b> et <b>cancelled</b> bloquent l'accès des membres.
+      </div>
+      <div style={{ display:"flex", gap: 10, alignItems:"center", flexWrap:"wrap" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: .3,
+          padding: "3px 8px", borderRadius: 4,
+          background: swatch + "18", border: `1px solid ${swatch}55`, color: swatch,
+          whiteSpace: "nowrap", fontFamily:"'DM Mono',monospace" }}>
+          {status}
+        </span>
+        {isSuperAdmin ? (
+          <>
+            <select value={draft} disabled={busy}
+              onChange={e => setDraft(e.target.value)}
+              style={{ ...css.select, width: 160, padding:"6px 8px", fontSize: 12 }}>
+              {ORG_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={save}
+              disabled={busy || !draft || draft === status}
+              style={{ ...css.btn(C.em), padding:"6px 14px", fontSize: 12,
+                opacity: (busy || !draft || draft === status) ? .5 : 1,
+                cursor: (busy || !draft || draft === status) ? "not-allowed" : "pointer" }}>
+              {busy ? "…" : "Enregistrer"}
+            </button>
+          </>
+        ) : (
+          <span style={{ fontSize: 11, color: C.textD, fontStyle:"italic" }}>
+            Seul un super_admin peut modifier ce statut.
+          </span>
+        )}
+      </div>
+      {msg && (
+        <div style={{ marginTop: 10, fontSize: 12,
+          color: msg.kind === "ok" ? C.em : C.red }}>
+          {msg.text}
+        </div>
+      )}
+    </div>
   );
 }
 
