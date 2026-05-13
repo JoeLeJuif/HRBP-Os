@@ -27,6 +27,10 @@ const args = [
   "--jsx=transform",
   "--jsx-factory=React.createElement",
   "--jsx-fragment=React.Fragment",
+  // Enable syntax-level minification so esbuild can eliminate dead branches
+  // (e.g. `if (false)` after `import.meta.env.DEV` is defined to false above).
+  // Whitespace/identifier minification stays off to keep the bundle readable.
+  "--minify-syntax",
   ...defines,
   "--outfile=public/app.js",
 ];

@@ -27,6 +27,43 @@ function clampMaxTokens(value) {
   return Math.min(Math.floor(n), MAX_TOKENS_LIMIT);
 }
 
+// ── Rate limiting (in-memory, per-instance) ────────────────────────────────
+// Simple fixed-window rate limiter keyed on user_id. Limit: RATE_LIMIT_MAX
+// requests per RATE_LIMIT_WINDOW_MS. State lives in module scope so it
+// survives between invocations on a warm Vercel function instance; it does
+// NOT survive cold starts and is not shared across instances. Acceptable
+// per Sprint 1 scope ("Implémentation mémoire acceptable pour l'instant").
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_SWEEP_MS = 5 * 60 * 1000;
+const rateBuckets = new Map();
+let lastSweep = 0;
+
+function sweepRateBuckets(now) {
+  if (now - lastSweep < RATE_LIMIT_SWEEP_MS) return;
+  lastSweep = now;
+  for (const [key, bucket] of rateBuckets) {
+    if (now - bucket.start > RATE_LIMIT_WINDOW_MS) rateBuckets.delete(key);
+  }
+}
+
+// Returns { allowed: boolean, retryAfter: number (seconds) }.
+function checkRateLimit(userId, now = Date.now()) {
+  if (!userId) return { allowed: true, retryAfter: 0 };
+  sweepRateBuckets(now);
+  const bucket = rateBuckets.get(userId);
+  if (!bucket || now - bucket.start >= RATE_LIMIT_WINDOW_MS) {
+    rateBuckets.set(userId, { start: now, count: 1 });
+    return { allowed: true, retryAfter: 0 };
+  }
+  if (bucket.count >= RATE_LIMIT_MAX) {
+    const retryAfter = Math.max(1, Math.ceil((RATE_LIMIT_WINDOW_MS - (now - bucket.start)) / 1000));
+    return { allowed: false, retryAfter };
+  }
+  bucket.count += 1;
+  return { allowed: true, retryAfter: 0 };
+}
+
 function logEvent(payload) {
   // Non-sensitive logging only: user_id, timestamp, ok/fail, generic error.
   // Never log message content, system prompts, or token contents.
@@ -70,6 +107,14 @@ export default async function handler(req, res) {
   } catch {
     logEvent({ ts, ok: false, reason: "auth-check-failed" });
     return res.status(401).json({ error: { message: "Unauthorized" } });
+  }
+
+  // ── Rate limiting (per user_id, 10 req / 60s) ──────────────────────────────
+  const rl = checkRateLimit(userId);
+  if (!rl.allowed) {
+    res.setHeader("Retry-After", String(rl.retryAfter));
+    logEvent({ ts, ok: false, user_id: userId, reason: "rate-limited", retry_after: rl.retryAfter });
+    return res.status(429).json({ error: { message: "Trop de requêtes. Réessaie dans un moment." } });
   }
 
   // ── Payload validation ─────────────────────────────────────────────────────
