@@ -34768,6 +34768,76 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }
   }
 
+  // src/services/billing.js
+  var NO_CLIENT7 = { ok: !1, reason: "no-client" }, SUBSCRIPTION_COLS = [
+    "id",
+    "organization_id",
+    "plan_id",
+    "status",
+    "stripe_customer_id",
+    "stripe_subscription_id",
+    "current_period_start",
+    "current_period_end",
+    "trial_ends_at",
+    "created_at",
+    "updated_at"
+  ].join(", "), PLAN_COLS = [
+    "id",
+    "code",
+    "name",
+    "monthly_price_cents",
+    "max_users",
+    "max_cases",
+    "max_ai_requests",
+    "is_active",
+    "created_at"
+  ].join(", "), USAGE_COLS = [
+    "id",
+    "organization_id",
+    "metric",
+    "period_start",
+    "value",
+    "created_at",
+    "updated_at"
+  ].join(", ");
+  async function fetchSubscription(orgId) {
+    if (!supabase) return NO_CLIENT7;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("subscriptions").select(SUBSCRIPTION_COLS).eq("organization_id", orgId).maybeSingle();
+    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, subscription: data || null };
+  }
+  async function fetchPlan(planId) {
+    if (!supabase) return NO_CLIENT7;
+    if (!planId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("plans").select(PLAN_COLS).eq("id", planId).maybeSingle();
+    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, plan: data || null };
+  }
+  async function fetchUsageCounters(orgId, { limit = 24 } = {}) {
+    if (!supabase) return NO_CLIENT7;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("usage_counters").select(USAGE_COLS).eq("organization_id", orgId).order("period_start", { ascending: !1 }).limit(limit);
+    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, usage: data ?? [] };
+  }
+  async function getOrganizationBilling(orgId) {
+    if (!supabase) return NO_CLIENT7;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let sRes = await fetchSubscription(orgId);
+    if (!sRes.ok) return sRes;
+    let plan = null;
+    if (sRes.subscription && sRes.subscription.plan_id) {
+      let pRes = await fetchPlan(sRes.subscription.plan_id);
+      if (!pRes.ok) return pRes;
+      plan = pRes.plan;
+    }
+    let uRes = await fetchUsageCounters(orgId);
+    return uRes.ok ? {
+      ok: !0,
+      subscription: sRes.subscription,
+      plan,
+      usage: uRes.usage
+    } : uRes;
+  }
+
   // src/modules/Admin.jsx
   var ROLE_STYLE = {
     super_admin: { bg: C.red + "18", border: C.red + "55", color: C.red },
@@ -34976,7 +35046,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         isSuperAdmin,
         onUpdated: onOrganizationUpdated
       }
-    ), /* @__PURE__ */ import_react23.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+    ), /* @__PURE__ */ import_react23.default.createElement(BillingPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
   }
   function IdentityMergePanel() {
     let [source, setSource] = (0, import_react23.useState)(""), [target, setTarget] = (0, import_react23.useState)(""), [busy, setBusy] = (0, import_react23.useState)(!1), [result, setResult] = (0, import_react23.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
@@ -35221,6 +35291,67 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       fontSize: 12,
       color: msg.kind === "ok" ? C.em : C.red
     } }, msg.text));
+  }
+  function BillingPanel({ currentProfile }) {
+    let orgId = currentProfile?.organization_id || null, [state, setState] = (0, import_react23.useState)({ status: "idle", data: null, reason: null });
+    return (0, import_react23.useEffect)(() => {
+      let cancelled = !1;
+      return orgId ? (setState({ status: "loading", data: null, reason: null }), getOrganizationBilling(orgId).then((res) => {
+        if (!cancelled) {
+          if (!res.ok) {
+            setState({ status: "error", data: null, reason: res.reason || "error" });
+            return;
+          }
+          setState({ status: "ready", data: res, reason: null });
+        }
+      }), () => {
+        cancelled = !0;
+      }) : (setState({ status: "no-org", data: null, reason: null }), () => {
+        cancelled = !0;
+      });
+    }, [orgId]), state.status === "no-org" ? null : /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state }));
+  }
+  function BillingBody({ state }) {
+    if (state.status === "loading")
+      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Chargement\u2026");
+    if (state.status === "error")
+      return state.reason === "no-client" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9.") : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red } }, "Erreur (", state.reason, ").");
+    if (state.status !== "ready" || !state.data) return null;
+    let { subscription, plan, usage } = state.data;
+    return subscription ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react23.default.createElement(BillingHeader, { subscription, plan }), /* @__PURE__ */ import_react23.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react23.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
+  }
+  function BillingHeader({ subscription, plan }) {
+    let status = subscription.status || "\u2014", swatch = status === "active" || status === "trialing" ? C.em : C.amber;
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+      fontSize: 11,
+      fontWeight: 600,
+      letterSpacing: 0.3,
+      padding: "3px 8px",
+      borderRadius: 4,
+      background: swatch + "18",
+      border: `1px solid ${swatch}55`,
+      color: swatch,
+      whiteSpace: "nowrap",
+      fontFamily: "'DM Mono',monospace"
+    } }, status), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react23.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
+  }
+  function BillingLimits({ plan }) {
+    if (!plan) return null;
+    let fmt = (v) => v == null ? "illimit\xE9" : String(v), price = (plan.monthly_price_cents || 0) / 100;
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.6 } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Limites :"), " utilisateurs ", fmt(plan.max_users), " \xB7 dossiers ", fmt(plan.max_cases), " \xB7 requ\xEAtes IA ", fmt(plan.max_ai_requests), " \xB7 prix ", price.toFixed(2), " $ / mois");
+  }
+  function BillingUsage({ usage, plan }) {
+    if (!usage || usage.length === 0)
+      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Aucune donn\xE9e d'usage encore enregistr\xE9e.");
+    let latestPeriod = usage[0].period_start, current = usage.filter((u) => u.period_start === latestPeriod), limitByMetric = plan ? {
+      users: plan.max_users,
+      cases: plan.max_cases,
+      ai_requests: plan.max_ai_requests
+    } : {};
+    return /* @__PURE__ */ import_react23.default.createElement("div", null, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 4 } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Usage"), " \xB7 p\xE9riode : ", new Date(latestPeriod).toLocaleDateString("fr-CA")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, current.map((row) => {
+      let limit = limitByMetric[row.metric], limitStr = limit ?? "illimit\xE9";
+      return /* @__PURE__ */ import_react23.default.createElement("div", { key: row.id, style: { fontSize: 11, color: C.text, fontFamily: "'DM Mono',monospace" } }, row.metric, " : ", String(row.value), " / ", limitStr);
+    })));
   }
   function ExportOrganizationPanel({ currentProfile }) {
     let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react23.useState)(!1), [msg, setMsg] = (0, import_react23.useState)(null);

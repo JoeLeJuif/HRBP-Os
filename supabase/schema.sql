@@ -902,3 +902,75 @@ drop policy if exists case_templates_delete_org on public.case_templates;
 create policy case_templates_delete_org on public.case_templates
   as permissive for delete to authenticated
   using ( private.has_org_access(organization_id) );
+
+-- ── billing: plans / subscriptions / usage_counters (Sprint 3 — Étape 1) ─────
+-- Minimal billing scaffolding. Stripe is NOT wired yet — Stripe-side fields
+-- (customer_id, subscription_id, period bounds) are nullable so rows can be
+-- seeded manually for local trials before any webhook lands. RLS is left OFF
+-- on all three tables for now to mirror the organizations/profiles pattern;
+-- policies will land once the auth-gated billing flow ships.
+--
+-- plans is a global catalog (no organization_id). subscriptions and
+-- usage_counters are per-org. usage_counters is keyed (organization_id,
+-- metric, period_start) so a single row tracks one metric's value for one
+-- billing period — increment via UPSERT.
+
+create table if not exists public.plans (
+  id                   uuid primary key default gen_random_uuid(),
+  code                 text not null unique,
+  name                 text not null,
+  monthly_price_cents  integer not null default 0,
+  max_users            integer,
+  max_cases            integer,
+  max_ai_requests      integer,
+  is_active            boolean not null default true,
+  created_at           timestamptz not null default now()
+);
+
+create index if not exists plans_code_idx      on public.plans(code);
+create index if not exists plans_is_active_idx on public.plans(is_active);
+
+-- Seed the three default plans. `on conflict (code) do nothing` makes the
+-- block idempotent — re-running the schema never overwrites edited plan
+-- pricing or limits. NULL on max_* means "unlimited" (interpreted by the
+-- billing service / quota checks).
+insert into public.plans (code, name, monthly_price_cents, max_users, max_cases, max_ai_requests, is_active)
+values
+  ('starter',    'Starter',     0,    3,   50,   200,  true),
+  ('pro',        'Pro',         4900, 15,  500,  2000, true),
+  ('enterprise', 'Enterprise',  19900, null, null, null, true)
+on conflict (code) do nothing;
+
+create table if not exists public.subscriptions (
+  id                      uuid primary key default gen_random_uuid(),
+  organization_id         uuid not null references public.organizations(id) on delete cascade,
+  plan_id                 uuid references public.plans(id) on delete set null,
+  status                  text not null default 'trialing',
+  stripe_customer_id      text,
+  stripe_subscription_id  text,
+  current_period_start    timestamptz,
+  current_period_end      timestamptz,
+  trial_ends_at           timestamptz,
+  created_at              timestamptz not null default now(),
+  updated_at              timestamptz not null default now()
+);
+
+create unique index if not exists subscriptions_org_uidx     on public.subscriptions(organization_id);
+create index        if not exists subscriptions_plan_idx     on public.subscriptions(plan_id);
+create index        if not exists subscriptions_status_idx   on public.subscriptions(status);
+create index        if not exists subscriptions_stripe_sub_idx on public.subscriptions(stripe_subscription_id);
+
+create table if not exists public.usage_counters (
+  id              uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  metric          text not null,
+  period_start    timestamptz not null,
+  value           bigint not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create unique index if not exists usage_counters_org_metric_period_uidx
+  on public.usage_counters(organization_id, metric, period_start);
+create index if not exists usage_counters_org_idx    on public.usage_counters(organization_id);
+create index if not exists usage_counters_metric_idx on public.usage_counters(metric);

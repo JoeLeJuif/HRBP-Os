@@ -24,6 +24,7 @@ import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
 import { applyMergeToLocalStorage } from "../utils/identity.js";
 import { mergeIdentity } from "../services/identityMerge.js";
 import { buildOrganizationExport, downloadExportFile } from "../services/orgExport.js";
+import { getOrganizationBilling } from "../services/billing.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
@@ -329,6 +330,7 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
             currentOrganization={currentOrganization}
             isSuperAdmin={isSuperAdmin}
             onUpdated={onOrganizationUpdated}/>
+          <BillingPanel currentProfile={currentProfile}/>
           <ExportOrganizationPanel currentProfile={currentProfile}/>
           <RenameIdentityPanel/>
           <IdentityMergePanel/>
@@ -703,6 +705,150 @@ function OrganizationStatusPanel({ currentProfile, currentOrganization, isSuperA
           {msg.text}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Billing panel (read-only) ────────────────────────────────────────────────
+// Surfaces the org's subscription, the plan it points to, and the most recent
+// usage counters. Read-only for Sprint 3 — Étape 1 (Stripe not wired yet).
+// Hidden when the caller has no org assigned (nothing to show).
+function BillingPanel({ currentProfile }) {
+  const orgId = currentProfile?.organization_id || null;
+  const [state, setState] = useState({ status: "idle", data: null, reason: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!orgId) {
+      setState({ status: "no-org", data: null, reason: null });
+      return () => { cancelled = true; };
+    }
+    setState({ status: "loading", data: null, reason: null });
+    getOrganizationBilling(orgId).then(res => {
+      if (cancelled) return;
+      if (!res.ok) {
+        setState({ status: "error", data: null, reason: res.reason || "error" });
+        return;
+      }
+      setState({ status: "ready", data: res, reason: null });
+    });
+    return () => { cancelled = true; };
+  }, [orgId]);
+
+  if (state.status === "no-org") return null;
+
+  return (
+    <div style={{ ...css.card, marginBottom: 14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.blue }}/>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Facturation</div>
+      </div>
+      <div style={{ fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 }}>
+        Plan, statut d'abonnement, limites et consommation. Lecture seule —
+        Stripe sera branché dans une étape ultérieure.
+      </div>
+      <BillingBody state={state}/>
+    </div>
+  );
+}
+
+function BillingBody({ state }) {
+  if (state.status === "loading") {
+    return <div style={{ fontSize: 12, color: C.textM }}>Chargement…</div>;
+  }
+  if (state.status === "error") {
+    if (state.reason === "no-client") {
+      return <div style={{ fontSize: 12, color: C.textD, fontStyle:"italic" }}>Supabase non configuré.</div>;
+    }
+    return <div style={{ fontSize: 12, color: C.red }}>Erreur ({state.reason}).</div>;
+  }
+  if (state.status !== "ready" || !state.data) return null;
+  const { subscription, plan, usage } = state.data;
+  if (!subscription) {
+    return (
+      <div style={{ fontSize: 12, color: C.textM }}>
+        Aucun abonnement provisionné pour cette organisation.
+      </div>
+    );
+  }
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap: 10 }}>
+      <BillingHeader subscription={subscription} plan={plan}/>
+      <BillingLimits plan={plan}/>
+      <BillingUsage usage={usage} plan={plan}/>
+    </div>
+  );
+}
+
+function BillingHeader({ subscription, plan }) {
+  const status = subscription.status || "—";
+  const ok = status === "active" || status === "trialing";
+  const swatch = ok ? C.em : C.amber;
+  return (
+    <div style={{ display:"flex", gap: 10, alignItems:"center", flexWrap:"wrap" }}>
+      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: .3,
+        padding: "3px 8px", borderRadius: 4,
+        background: swatch + "18", border: `1px solid ${swatch}55`, color: swatch,
+        whiteSpace: "nowrap", fontFamily:"'DM Mono',monospace" }}>
+        {status}
+      </span>
+      <div style={{ fontSize: 12, color: C.text }}>
+        Plan : <b>{plan ? `${plan.name} (${plan.code})` : "—"}</b>
+      </div>
+      {subscription.current_period_end && (
+        <div style={{ fontSize: 11, color: C.textM }}>
+          fin de période : {new Date(subscription.current_period_end).toLocaleDateString("fr-CA")}
+        </div>
+      )}
+      {subscription.trial_ends_at && (
+        <div style={{ fontSize: 11, color: C.textM }}>
+          fin d'essai : {new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BillingLimits({ plan }) {
+  if (!plan) return null;
+  const fmt = (v) => (v == null ? "illimité" : String(v));
+  const price = (plan.monthly_price_cents || 0) / 100;
+  return (
+    <div style={{ fontSize: 11, color: C.textM, lineHeight: 1.6 }}>
+      <b>Limites :</b> utilisateurs {fmt(plan.max_users)} · dossiers {fmt(plan.max_cases)} ·
+      requêtes IA {fmt(plan.max_ai_requests)} · prix {price.toFixed(2)} $ / mois
+    </div>
+  );
+}
+
+function BillingUsage({ usage, plan }) {
+  if (!usage || usage.length === 0) {
+    return <div style={{ fontSize: 11, color: C.textD, fontStyle:"italic" }}>Aucune donnée d'usage encore enregistrée.</div>;
+  }
+  // Show only the latest period (newest period_start) to keep the panel tight.
+  const latestPeriod = usage[0].period_start;
+  const current = usage.filter(u => u.period_start === latestPeriod);
+  const limitByMetric = plan ? {
+    users:        plan.max_users,
+    cases:        plan.max_cases,
+    ai_requests:  plan.max_ai_requests,
+  } : {};
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: C.textM, marginBottom: 4 }}>
+        <b>Usage</b> · période : {new Date(latestPeriod).toLocaleDateString("fr-CA")}
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap: 4 }}>
+        {current.map(row => {
+          const limit = limitByMetric[row.metric];
+          const limitStr = limit == null ? "illimité" : limit;
+          return (
+            <div key={row.id} style={{ fontSize: 11, color: C.text, fontFamily:"'DM Mono',monospace" }}>
+              {row.metric} : {String(row.value)} / {limitStr}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
