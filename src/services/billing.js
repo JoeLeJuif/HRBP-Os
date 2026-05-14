@@ -112,3 +112,23 @@ export async function getOrganizationBilling(orgId) {
     usage: uRes.usage,
   };
 }
+
+// Provisions a Starter trial subscription for the given org via the
+// super_admin-only `create_starter_trial` RPC. Idempotent server-side: if a
+// subscription already exists it is returned unchanged. Errors are normalized
+// to the same shape as the rest of this module.
+export async function createStarterTrial(organizationId) {
+  if (!supabase) return NO_CLIENT;
+  if (!organizationId) return { ok: false, reason: "invalid-id" };
+  const { data, error } = await supabase.rpc("create_starter_trial", {
+    p_organization_id: organizationId,
+  });
+  if (error) {
+    const code = error.code || "";
+    if (code === "42501") return { ok: false, reason: "not-super-admin", error };
+    if (code === "P0002") return { ok: false, reason: "not-found", error };
+    if (code === "22023") return { ok: false, reason: "invalid-id", error };
+    return { ok: false, reason: "rpc-error", error };
+  }
+  return { ok: true, subscription: data || null };
+}

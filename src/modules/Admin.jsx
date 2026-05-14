@@ -24,7 +24,7 @@ import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
 import { applyMergeToLocalStorage } from "../utils/identity.js";
 import { mergeIdentity } from "../services/identityMerge.js";
 import { buildOrganizationExport, downloadExportFile } from "../services/orgExport.js";
-import { getOrganizationBilling } from "../services/billing.js";
+import { getOrganizationBilling, createStarterTrial } from "../services/billing.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
@@ -715,7 +715,12 @@ function OrganizationStatusPanel({ currentProfile, currentOrganization, isSuperA
 // Hidden when the caller has no org assigned (nothing to show).
 function BillingPanel({ currentProfile }) {
   const orgId = currentProfile?.organization_id || null;
+  const isSuperAdmin = currentProfile?.role === "super_admin"
+    && currentProfile?.status === "approved";
   const [state, setState] = useState({ status: "idle", data: null, reason: null });
+  const [reloadTick, setReloadTick] = useState(0);
+  const [trialBusy, setTrialBusy] = useState(false);
+  const [trialMsg,  setTrialMsg]  = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -733,9 +738,29 @@ function BillingPanel({ currentProfile }) {
       setState({ status: "ready", data: res, reason: null });
     });
     return () => { cancelled = true; };
-  }, [orgId]);
+  }, [orgId, reloadTick]);
 
   if (state.status === "no-org") return null;
+
+  const onCreateTrial = async () => {
+    if (!orgId) return;
+    setTrialBusy(true);
+    setTrialMsg(null);
+    const res = await createStarterTrial(orgId);
+    setTrialBusy(false);
+    if (!res.ok) {
+      const txt = res.reason === "not-super-admin" ? "Réservé au super_admin."
+        : res.reason === "no-client"               ? "Supabase non configuré."
+        : res.reason === "not-found"               ? "Plan Starter ou organisation introuvable."
+        : "Échec de la création de l'essai.";
+      setTrialMsg({ kind: "err", text: txt });
+      return;
+    }
+    setTrialMsg({ kind: "ok", text: "Essai Starter provisionné." });
+    setReloadTick(t => t + 1);
+  };
+
+  const hasSubscription = state.status === "ready" && !!state.data?.subscription;
 
   return (
     <div style={{ ...css.card, marginBottom: 14 }}>
@@ -748,6 +773,21 @@ function BillingPanel({ currentProfile }) {
         Stripe sera branché dans une étape ultérieure.
       </div>
       <BillingBody state={state}/>
+      {isSuperAdmin && !hasSubscription && state.status === "ready" && (
+        <div style={{ marginTop: 12 }}>
+          <button onClick={onCreateTrial} disabled={trialBusy}
+            style={{ ...css.btn(C.blue), padding:"6px 14px", fontSize: 12,
+              opacity: trialBusy ? .6 : 1, cursor: trialBusy ? "not-allowed" : "pointer" }}>
+            {trialBusy ? "…" : "Create Starter Trial"}
+          </button>
+          {trialMsg && (
+            <div style={{ marginTop: 8, fontSize: 12,
+              color: trialMsg.kind === "ok" ? C.em : C.red }}>
+              {trialMsg.text}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

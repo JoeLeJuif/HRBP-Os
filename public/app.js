@@ -34837,6 +34837,18 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       usage: uRes.usage
     } : uRes;
   }
+  async function createStarterTrial(organizationId) {
+    if (!supabase) return NO_CLIENT7;
+    if (!organizationId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.rpc("create_starter_trial", {
+      p_organization_id: organizationId
+    });
+    if (error) {
+      let code = error.code || "";
+      return code === "42501" ? { ok: !1, reason: "not-super-admin", error } : code === "P0002" ? { ok: !1, reason: "not-found", error } : code === "22023" ? { ok: !1, reason: "invalid-id", error } : { ok: !1, reason: "rpc-error", error };
+    }
+    return { ok: !0, subscription: data || null };
+  }
 
   // src/modules/Admin.jsx
   var ROLE_STYLE = {
@@ -35293,8 +35305,8 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     } }, msg.text));
   }
   function BillingPanel({ currentProfile }) {
-    let orgId = currentProfile?.organization_id || null, [state, setState] = (0, import_react23.useState)({ status: "idle", data: null, reason: null });
-    return (0, import_react23.useEffect)(() => {
+    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react23.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react23.useState)(0), [trialBusy, setTrialBusy] = (0, import_react23.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react23.useState)(null);
+    if ((0, import_react23.useEffect)(() => {
       let cancelled = !1;
       return orgId ? (setState({ status: "loading", data: null, reason: null }), getOrganizationBilling(orgId).then((res) => {
         if (!cancelled) {
@@ -35309,7 +35321,37 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }) : (setState({ status: "no-org", data: null, reason: null }), () => {
         cancelled = !0;
       });
-    }, [orgId]), state.status === "no-org" ? null : /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state }));
+    }, [orgId, reloadTick]), state.status === "no-org") return null;
+    let onCreateTrial = async () => {
+      if (!orgId) return;
+      setTrialBusy(!0), setTrialMsg(null);
+      let res = await createStarterTrial(orgId);
+      if (setTrialBusy(!1), !res.ok) {
+        let txt = res.reason === "not-super-admin" ? "R\xE9serv\xE9 au super_admin." : res.reason === "no-client" ? "Supabase non configur\xE9." : res.reason === "not-found" ? "Plan Starter ou organisation introuvable." : "\xC9chec de la cr\xE9ation de l'essai.";
+        setTrialMsg({ kind: "err", text: txt });
+        return;
+      }
+      setTrialMsg({ kind: "ok", text: "Essai Starter provisionn\xE9." }), setReloadTick((t2) => t2 + 1);
+    }, hasSubscription = state.status === "ready" && !!state.data?.subscription;
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state }), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: onCreateTrial,
+        disabled: trialBusy,
+        style: {
+          ...css.btn(C.blue),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: trialBusy ? 0.6 : 1,
+          cursor: trialBusy ? "not-allowed" : "pointer"
+        }
+      },
+      trialBusy ? "\u2026" : "Create Starter Trial"
+    ), trialMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+      marginTop: 8,
+      fontSize: 12,
+      color: trialMsg.kind === "ok" ? C.em : C.red
+    } }, trialMsg.text)));
   }
   function BillingBody({ state }) {
     if (state.status === "loading")

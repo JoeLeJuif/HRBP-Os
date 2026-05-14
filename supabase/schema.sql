@@ -974,3 +974,80 @@ create unique index if not exists usage_counters_org_metric_period_uidx
   on public.usage_counters(organization_id, metric, period_start);
 create index if not exists usage_counters_org_idx    on public.usage_counters(organization_id);
 create index if not exists usage_counters_metric_idx on public.usage_counters(metric);
+
+-- ── billing RLS + policies + create_starter_trial RPC (Sprint 3 — Étape 2) ──
+-- plans is a public catalog (SELECT for any authenticated user). subscriptions
+-- and usage_counters are read-only from the client and scoped per-org via
+-- private.has_org_access. Mutations land via SECURITY DEFINER RPCs and, later,
+-- Stripe webhooks running with the service role — no client INSERT/UPDATE/
+-- DELETE policies.
+alter table public.plans          enable row level security;
+alter table public.subscriptions  enable row level security;
+alter table public.usage_counters enable row level security;
+
+drop policy if exists plans_select_authenticated on public.plans;
+create policy plans_select_authenticated on public.plans
+  as permissive for select to authenticated
+  using ( true );
+
+drop policy if exists subscriptions_select_org on public.subscriptions;
+create policy subscriptions_select_org on public.subscriptions
+  as permissive for select to authenticated
+  using ( private.has_org_access(organization_id) );
+
+drop policy if exists usage_counters_select_org on public.usage_counters;
+create policy usage_counters_select_org on public.usage_counters
+  as permissive for select to authenticated
+  using ( private.has_org_access(organization_id) );
+
+-- Idempotent provisioning: returns the existing subscription row if one
+-- already exists for the org, otherwise inserts a fresh trialing row pointing
+-- at the active 'starter' plan with trial_ends_at = now() + 14 days.
+-- super_admin-only.
+create or replace function public.create_starter_trial(p_organization_id uuid)
+returns public.subscriptions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_plan_id  uuid;
+  v_existing public.subscriptions;
+  v_inserted public.subscriptions;
+begin
+  if not private.is_super_admin() then
+    raise exception 'super_admin only' using errcode = '42501';
+  end if;
+  if p_organization_id is null then
+    raise exception 'organization_id required' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.organizations where id = p_organization_id) then
+    raise exception 'organization not found' using errcode = 'P0002';
+  end if;
+
+  select id into v_plan_id
+  from public.plans
+  where code = 'starter' and is_active = true
+  limit 1;
+  if v_plan_id is null then
+    raise exception 'starter plan not found' using errcode = 'P0002';
+  end if;
+
+  select * into v_existing
+  from public.subscriptions
+  where organization_id = p_organization_id
+  limit 1;
+  if found then
+    return v_existing;
+  end if;
+
+  insert into public.subscriptions (organization_id, plan_id, status, current_period_start, trial_ends_at)
+  values (p_organization_id, v_plan_id, 'trialing', now(), now() + interval '14 days')
+  returning * into v_inserted;
+  return v_inserted;
+end;
+$$;
+
+revoke execute on function public.create_starter_trial(uuid) from public;
+revoke execute on function public.create_starter_trial(uuid) from anon;
+grant  execute on function public.create_starter_trial(uuid) to authenticated;
