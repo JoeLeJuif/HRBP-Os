@@ -29451,6 +29451,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       }
     ));
   }
+  var DRAFT_KEY = "hrbpos_meeting_engine_draft";
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
     let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react17.useState)("context"), [engineType, setEngineType] = (0, import_react17.useState)("1on1"), [niveau, setNiveau] = (0, import_react17.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react17.useState)({
       managerName: "",
@@ -29497,7 +29498,24 @@ INVESTIGATION LIEE (id=${inv.id}):`,
         bridge?.engineType && validTypes.includes(bridge.engineType) && setEngineType(bridge.engineType), bridge?.ctx && typeof bridge.ctx == "object" && (setCtx((p) => ({ ...p, ...bridge.ctx })), bridge.ctx.managerName && setManagerManual(!1)), setPTab("context");
       } catch {
       }
-    }, []);
+    }, []), (0, import_react17.useEffect)(() => {
+      try {
+        if (typeof localStorage > "u") return;
+        let raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        let draft = JSON.parse(raw);
+        if (!draft || typeof draft != "object") return;
+        draft.prep && setPrep(draft.prep), typeof draft.prepAI == "boolean" && setPrepAI(draft.prepAI), draft.ctx && typeof draft.ctx == "object" && (setCtx((p) => ({ ...p, ...draft.ctx })), draft.ctx.managerName && setManagerManual(!1)), draft.notes && typeof draft.notes == "object" && setNotes((p) => ({ ...p, ...draft.notes })), draft.meetingAnalysis && typeof draft.meetingAnalysis == "object" && setMeetingAnalysis((p) => ({ ...p, ...draft.meetingAnalysis })), draft.output && setOutput(draft.output), draft.engineType && setEngineType(draft.engineType), draft.niveau && setNiveau(draft.niveau), draft.linkedInvestigationId && setLinkedInvestigationId(draft.linkedInvestigationId);
+      } catch {
+      }
+    }, []), (0, import_react17.useEffect)(() => {
+      try {
+        if (typeof localStorage > "u" || !(!!prep || !!output || Object.values(ctx).some((v) => typeof v == "string" && v.trim() !== "" && v !== "regular") || Object.values(notes).some((v) => typeof v == "string" && v.trim() !== "") || meetingAnalysis.transcript && meetingAnalysis.transcript.trim() !== "" || meetingAnalysis.keyPoints && meetingAnalysis.keyPoints.trim() !== "")) return;
+        let draft = { prep, prepAI, ctx, notes, meetingAnalysis, output, engineType, niveau, linkedInvestigationId };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch {
+      }
+    }, [prep, prepAI, ctx, notes, meetingAnalysis, output, engineType, niveau, linkedInvestigationId]);
     let managerHistory = (data.meetings || []).filter((m) => !m.director || !ctx.managerName ? !1 : normKey(m.director) === normKey(ctx.managerName)).sort((a, b) => Number(b.id) - Number(a.id)), lastMeeting = managerHistory[0] || null, lastAnalysis = lastMeeting?.analysis || null, histCount = managerHistory.length, buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
       let a = m.analysis || {}, risks = toArray(a.risks).slice(0, 2).map((r) => r.risk || r.risque || r).join("; "), actions = toArray(a.actions).slice(0, 3).map((ac) => ac.action || ac).join("; "), questions2 = toArray(a.questions).slice(0, 3).map((q) => q.question || q).join("; ");
       return `[Meeting ${i + 1} \u2014 ${m.savedAt}]
@@ -29655,6 +29673,10 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       };
       onSave("prep1on1", [...data.prep1on1 || [], session]), setSaved1on1(!0);
       try {
+        typeof localStorage < "u" && localStorage.removeItem(DRAFT_KEY);
+      } catch {
+      }
+      try {
         let meetingSession = {
           id: mtgId,
           savedAt: today,
@@ -29777,6 +29799,10 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         recentData: "",
         alerts: (output?.mainRisks || []).join("; ")
       })), setPrep(null), setPrepAI(!1), setNotes({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), setMeetingAnalysis({ transcript: "", keyPoints: "" }), setOutput(null), setSaved1on1(!1), setPTab("context");
+      try {
+        typeof localStorage < "u" && localStorage.removeItem(DRAFT_KEY);
+      } catch {
+      }
     }, copyOutput = () => {
       if (!output) return;
       let lines = [

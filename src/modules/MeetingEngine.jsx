@@ -421,6 +421,9 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t })
   );
 }
 
+// ── Draft persistence (prevents loss of 1:1 Engine questions on refresh) ────
+const DRAFT_KEY = 'hrbpos_meeting_engine_draft';
+
 export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
   const { t } = useT();
 
@@ -521,6 +524,46 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
       setPTab("context");
     } catch {}
   }, []);
+
+  // ── Draft hydration: restore questions + working context on mount ────────
+  useEffect(() => {
+    try {
+      if (typeof localStorage === "undefined") return;
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (!draft || typeof draft !== "object") return;
+      if (draft.prep) setPrep(draft.prep);
+      if (typeof draft.prepAI === "boolean") setPrepAI(draft.prepAI);
+      if (draft.ctx && typeof draft.ctx === "object") {
+        setCtx(p => ({ ...p, ...draft.ctx }));
+        if (draft.ctx.managerName) setManagerManual(false);
+      }
+      if (draft.notes && typeof draft.notes === "object") setNotes(p => ({ ...p, ...draft.notes }));
+      if (draft.meetingAnalysis && typeof draft.meetingAnalysis === "object") {
+        setMeetingAnalysis(p => ({ ...p, ...draft.meetingAnalysis }));
+      }
+      if (draft.output) setOutput(draft.output);
+      if (draft.engineType) setEngineType(draft.engineType);
+      if (draft.niveau) setNiveau(draft.niveau);
+      if (draft.linkedInvestigationId) setLinkedInvestigationId(draft.linkedInvestigationId);
+    } catch {}
+  }, []);
+
+  // ── Draft auto-save: persist whenever questions or working state change ──
+  useEffect(() => {
+    try {
+      if (typeof localStorage === "undefined") return;
+      const hasContent = !!prep || !!output
+        || Object.values(ctx).some(v => typeof v === "string" && v.trim() !== "" && v !== "regular")
+        || Object.values(notes).some(v => typeof v === "string" && v.trim() !== "")
+        || (meetingAnalysis.transcript && meetingAnalysis.transcript.trim() !== "")
+        || (meetingAnalysis.keyPoints && meetingAnalysis.keyPoints.trim() !== "");
+      if (!hasContent) return;
+      const draft = { prep, prepAI, ctx, notes, meetingAnalysis, output, engineType, niveau, linkedInvestigationId };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {}
+  }, [prep, prepAI, ctx, notes, meetingAnalysis, output, engineType, niveau, linkedInvestigationId]);
 
   // ── History: all meetings for this manager ────────────────────────────────
   const managerHistory = (data.meetings || [])
@@ -707,6 +750,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     };
     onSave("prep1on1", [...(data["prep1on1"]||[]), session]);
     setSaved1on1(true);
+    try { if (typeof localStorage !== "undefined") localStorage.removeItem(DRAFT_KEY); } catch {}
 
     // ── Double save: also create a Meetings Hub session in SK.meetings ───
     try {
@@ -877,6 +921,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     setMeetingAnalysis({ transcript:"", keyPoints:"" });
     setOutput(null); setSaved1on1(false);
     setPTab("context");
+    try { if (typeof localStorage !== "undefined") localStorage.removeItem(DRAFT_KEY); } catch {}
   };
 
   // ── Copy output ──────────────────────────────────────────────────────────
