@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Créer un workspace — HRBP OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/legal.css">
+  <style>
+    .signup-card {
+      background: #161922;
+      border: 1px solid #232733;
+      border-radius: 12px;
+      padding: 28px 28px 24px;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+    .field { display: block; margin-bottom: 14px; }
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #8b94a8;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .field-input {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #232733;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fafafa;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+    }
+    .field-input:focus { border-color: #10b981; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .submit-btn {
+      width: 100%;
+      background: #10b981;
+      color: #0f1117;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .form-error {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+    .success-card {
+      background: #161922;
+      border: 1px solid #10b981;
+      border-radius: 12px;
+      padding: 28px;
+      max-width: 460px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .success-title { font-weight: 700; color: #fafafa; font-size: 18px; margin-bottom: 8px; }
+    .success-body { color: #c8cdd8; font-size: 14px; line-height: 1.6; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="legal-wrap">
+    <header class="legal-header">
+      <span class="legal-logo">⚡</span>
+      <div>
+        <div class="legal-brand">HRBP OS</div>
+        <div class="legal-sub">Créer un workspace</div>
+      </div>
+      <a class="legal-back" href="/">← Retour</a>
+    </header>
+
+    <h1>Démarrer un essai gratuit</h1>
+    <div class="meta">Starter — 14 jours, sans carte de crédit</div>
+
+    <form id="signup-form" class="signup-card" novalidate>
+      <label class="field">
+        <span class="field-label">Nom de l'organisation</span>
+        <input class="field-input" type="text" name="organization_name" required maxlength="200" autocomplete="organization" />
+      </label>
+      <div class="row">
+        <label class="field">
+          <span class="field-label">Prénom</span>
+          <input class="field-input" type="text" name="first_name" required maxlength="100" autocomplete="given-name" />
+        </label>
+        <label class="field">
+          <span class="field-label">Nom</span>
+          <input class="field-input" type="text" name="last_name" required maxlength="100" autocomplete="family-name" />
+        </label>
+      </div>
+      <label class="field">
+        <span class="field-label">Courriel professionnel</span>
+        <input class="field-input" type="email" name="email" required maxlength="320" autocomplete="email" />
+      </label>
+      <button class="submit-btn" type="submit">Créer mon workspace</button>
+      <div class="form-error" id="form-error" role="alert"></div>
+    </form>
+
+    <div id="success" class="success-card hidden">
+      <div class="success-title">Your workspace has been created.</div>
+      <div class="success-body">Check your email to sign in.</div>
+    </div>
+
+    <div class="footer-note">
+      <div class="footer-links">
+        <a href="/privacy">Confidentialité</a>
+        <a href="/terms">Conditions</a>
+        <a href="/subprocessors">Sous-traitants</a>
+        <a href="/support">Support</a>
+      </div>
+    </div>
+  </div>
+  <script src="/signup/signup.js"></script>
+</body>
+</html>
