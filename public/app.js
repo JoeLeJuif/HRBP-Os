@@ -34929,6 +34929,18 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     return { ok: !0, subscription: data || null };
   }
 
+  // src/services/billingAccess.js
+  var FULL_ACCESS_STATUSES = /* @__PURE__ */ new Set(["active", "trialing"]);
+  function getBillingAccess(subscription) {
+    let raw = subscription && typeof subscription == "object" ? subscription.status : null, status = typeof raw == "string" && raw.length > 0 ? raw : null, full = status !== null && FULL_ACCESS_STATUSES.has(status);
+    return {
+      hasFullAccess: full,
+      isLimited: !full,
+      status,
+      reason: full ? "billing_active" : "billing_limited"
+    };
+  }
+
   // src/modules/Admin.jsx
   var ROLE_STYLE = {
     super_admin: { bg: C.red + "18", border: C.red + "55", color: C.red },
@@ -35498,7 +35510,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     return subscription ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react23.default.createElement(BillingHeader, { subscription, plan }), /* @__PURE__ */ import_react23.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react23.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
   }
   function BillingHeader({ subscription, plan }) {
-    let status = subscription.status || "\u2014", swatch = status === "active" || status === "trialing" ? C.em : C.amber;
+    let access = getBillingAccess(subscription), status = subscription.status || "\u2014", swatch = access.hasFullAccess ? C.em : C.amber, accessLabel = access.hasFullAccess ? "Acc\xE8s complet" : "Acc\xE8s limit\xE9";
     return /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
@@ -35510,7 +35522,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       color: swatch,
       whiteSpace: "nowrap",
       fontFamily: "'DM Mono',monospace"
-    } }, status), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react23.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
+    } }, status), /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: swatch } }, accessLabel), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react23.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
   }
   function BillingLimits({ plan }) {
     if (!plan) return null;

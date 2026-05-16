@@ -31,6 +31,7 @@ import {
   startStripeCheckout,
   openBillingPortal,
 } from "../services/billing.js";
+import { getBillingAccess } from "../services/billingAccess.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
@@ -900,9 +901,10 @@ function BillingBody({ state }) {
 }
 
 function BillingHeader({ subscription, plan }) {
+  const access = getBillingAccess(subscription);
   const status = subscription.status || "—";
-  const ok = status === "active" || status === "trialing";
-  const swatch = ok ? C.em : C.amber;
+  const swatch = access.hasFullAccess ? C.em : C.amber;
+  const accessLabel = access.hasFullAccess ? "Accès complet" : "Accès limité";
   return (
     <div style={{ display:"flex", gap: 10, alignItems:"center", flexWrap:"wrap" }}>
       <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: .3,
@@ -910,6 +912,9 @@ function BillingHeader({ subscription, plan }) {
         background: swatch + "18", border: `1px solid ${swatch}55`, color: swatch,
         whiteSpace: "nowrap", fontFamily:"'DM Mono',monospace" }}>
         {status}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: swatch }}>
+        {accessLabel}
       </span>
       <div style={{ fontSize: 12, color: C.text }}>
         Plan : <b>{plan ? `${plan.name} (${plan.code})` : "—"}</b>
