@@ -19,6 +19,8 @@ import { bestEffortAudit, AUDIT_ACTIONS } from './services/auditLog.js';
 import { createCaseTask as supaCreateCaseTask } from './services/caseTasks.js';
 import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSession, onAuthStateChange as supaOnAuthStateChange, exchangeCodeForSession as supaExchangeCodeForSession, isEmailAllowed as supaIsEmailAllowed } from './lib/auth.js';
 import { fetchOrCreateProfile, fetchOrganization, isOrgStatusActive } from './lib/profile.js';
+import { fetchSubscription, openBillingPortal, startStripeCheckout, isStripeConfigured } from './services/billing.js';
+import { getBillingAccess } from './services/billingAccess.js';
 import { hasSupabase } from './lib/supabase.js';
 import { useT, SUPPORTED_LANGS } from './lib/i18n.js';
 import { isCaseActive } from './utils/caseStatus.js';
@@ -151,6 +153,94 @@ function OrgInactiveScreen({ email, onSignOut, orgName, orgStatus }) {
           style={{ ...css.btn(C.em, true), padding:"9px 16px", fontSize:12 }}>
           {t("auth.signOut")}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function LimitedAccessScreen({ subscription, isAdmin, onGoAdmin, onSignOut }) {
+  const { t } = useT();
+  const [busyKind, setBusyKind] = useState(null); // "portal" | "upgrade" | null
+  const [errMsg, setErrMsg]     = useState("");
+  const hasStripeCustomer = !!subscription?.stripe_customer_id;
+  const stripeEnabled = isStripeConfigured();
+
+  const onPortal = async () => {
+    setBusyKind("portal");
+    setErrMsg("");
+    const res = await openBillingPortal();
+    if (!res.ok) {
+      setBusyKind(null);
+      setErrMsg(res.message || res.reason || "error");
+      return;
+    }
+    window.location.assign(res.url);
+  };
+  const onUpgrade = async () => {
+    setBusyKind("upgrade");
+    setErrMsg("");
+    const res = await startStripeCheckout();
+    if (!res.ok) {
+      setBusyKind(null);
+      setErrMsg(res.message || res.reason || "error");
+      return;
+    }
+    window.location.assign(res.url);
+  };
+
+  const statusLabel = subscription?.status || "—";
+
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      width:"100%", height:"100%", fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ width:440, textAlign:"center", padding:"24px" }}>
+        <div style={{ width:48, height:48, background:C.amber, borderRadius:10,
+          display:"inline-flex", alignItems:"center", justifyContent:"center",
+          fontSize:22, marginBottom:14 }}>⚠️</div>
+        <div style={{ fontWeight:700, fontSize:18, color:C.text, marginBottom:8 }}>
+          {t("auth.billingLimited.title")}
+        </div>
+        <div style={{ fontSize:13, color:C.textM, marginBottom:10, lineHeight:1.5 }}>
+          {t("auth.billingLimited.body")}
+        </div>
+        <div style={{ fontSize:11, color:C.textD, marginBottom:18,
+          fontFamily:"'DM Mono',monospace" }}>
+          status: {statusLabel}
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:8, alignItems:"center" }}>
+          {hasStripeCustomer ? (
+            <button onClick={onPortal} disabled={busyKind!==null}
+              style={{ ...css.btn(C.blue), padding:"10px 18px", fontSize:13,
+                opacity: busyKind ? .6 : 1, cursor: busyKind ? "not-allowed" : "pointer" }}>
+              {busyKind==="portal" ? "…" : t("auth.billingLimited.portal")}
+            </button>
+          ) : stripeEnabled ? (
+            <button onClick={onUpgrade} disabled={busyKind!==null}
+              style={{ ...css.btn(C.em), padding:"10px 18px", fontSize:13,
+                opacity: busyKind ? .6 : 1, cursor: busyKind ? "not-allowed" : "pointer" }}>
+              {busyKind==="upgrade" ? "…" : t("auth.billingLimited.upgrade")}
+            </button>
+          ) : null}
+          {isAdmin && (
+            <button onClick={onGoAdmin}
+              style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8,
+                padding:"8px 14px", fontSize:12, color:C.textM, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif" }}>
+              {t("auth.billingLimited.goAdmin")}
+            </button>
+          )}
+          {!isAdmin && !hasStripeCustomer && !stripeEnabled && (
+            <div style={{ fontSize:11, color:C.textD, marginTop:6, lineHeight:1.5 }}>
+              {t("auth.billingLimited.noAdmin")}
+            </div>
+          )}
+          {errMsg && (
+            <div style={{ fontSize:11, color:C.red, marginTop:6 }}>{errMsg}</div>
+          )}
+          <div style={{ fontSize:11, color:C.textD, marginTop:14, lineHeight:1.5 }}>
+            {t("auth.billingLimited.hint")}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -290,6 +380,8 @@ export default function HRBPOS() {
   const [profileChecked, setProfileChecked] = useState(false);
   const [userOrganization, setUserOrganization] = useState(null);
   const [orgChecked, setOrgChecked] = useState(false);
+  const [userSubscription, setUserSubscription] = useState(null);
+  const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [module, setModule]   = useState("home");
   const [showMore, setShowMore] = useState(false);
   const [data, setData]       = useState({ cases:[], meetings:[], signals:[], decisions:[], coaching:[], exits:[], investigations:[], briefs:[], prep1on1:[], sentRecaps:[], portfolio:[], leaders:{}, radars:[], nextWeekLocks:[], plans306090:[], profile:{ defaultProvince:"QC" } });
@@ -507,6 +599,8 @@ export default function HRBPOS() {
       setProfileChecked(false);
       setUserOrganization(null);
       setOrgChecked(false);
+      setUserSubscription(null);
+      setSubscriptionChecked(false);
       return;
     }
     let cancelled = false;
@@ -558,6 +652,38 @@ export default function HRBPOS() {
         setUserOrganization(null);
       }
       setOrgChecked(true);
+    })();
+    return () => { cancelled = true; };
+  }, [profileChecked, userProfile]);
+
+  // Fetch the org's subscription row so we can gate operational modules behind
+  // billing status. Re-runs whenever the profile/org changes so a webhook-driven
+  // recovery (past_due → active) shows up on next refresh/state update.
+  useEffect(() => {
+    if (!hasSupabase) { setSubscriptionChecked(true); return; }
+    if (!profileChecked) return;
+    if (!userProfile || userProfile.status !== "approved" || !userProfile.organization_id) {
+      setUserSubscription(null);
+      setSubscriptionChecked(true);
+      return;
+    }
+    let cancelled = false;
+    setSubscriptionChecked(false);
+    (async () => {
+      const res = await fetchSubscription(userProfile.organization_id);
+      if (cancelled) return;
+      if (res.ok) {
+        setUserSubscription(res.subscription || null);
+      } else {
+        // Fail-closed: unable to verify billing → treat as limited. Surfaces
+        // the same screen as a real past_due, with a status of null so the
+        // header reads "—".
+        if (res.reason !== "no-client") {
+          console.warn("[billing] fetchSubscription failed:", res.reason, res.error);
+        }
+        setUserSubscription(null);
+      }
+      setSubscriptionChecked(true);
     })();
     return () => { cancelled = true; };
   }, [profileChecked, userProfile]);
@@ -791,6 +917,13 @@ export default function HRBPOS() {
       orgStatus={userOrganization.status}
       onSignOut={async () => { await supaSignOut(); }} />;
   }
+  // Wait for the subscription probe before deciding whether to gate operational
+  // modules. Avoids a one-frame flash of normal UI for past_due/canceled orgs.
+  if (hasSupabase && supaSession && userProfile?.status === "approved"
+      && userProfile.organization_id && !subscriptionChecked) {
+    return <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:C.bg }}><AILoader label="Chargement"/></div>;
+  }
 
   const isAdmin = !!(userProfile && userProfile.status === "approved"
     && (userProfile.role === "admin" || userProfile.role === "super_admin"));
@@ -802,6 +935,18 @@ export default function HRBPOS() {
   const navLabel = (n) => { const k = `nav.${n.id}`; const v = t(k); return v === k ? n.label : v; };
   // Defense-in-depth: if a non-admin somehow lands on the admin route, bounce home.
   const safeModule = (module === "admin" && !isAdmin) ? "home" : module;
+  // Billing gate — single source of truth via services/billingAccess.js. When
+  // hasFullAccess is false (past_due, unpaid, canceled, incomplete, missing
+  // row, …), operational modules render the LimitedAccessScreen instead. Only
+  // the Admin route stays reachable so admins can manage the subscription
+  // (and the BillingPanel inside it). The sidebar (with logout) is unaffected.
+  // Skip the gate entirely for orgs with no_id (no subscription possible) —
+  // those flows are still pre-org-onboarding.
+  const billingAccess = (hasSupabase && userProfile?.organization_id)
+    ? getBillingAccess(userSubscription)
+    : { hasFullAccess: true, isLimited: false, status: null, reason: "billing_active" };
+  const isLimited = billingAccess.isLimited;
+  const gateModule = isLimited && safeModule !== "admin";
 
   return (
     <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif", color:C.text, overflow:"hidden" }}>
@@ -947,6 +1092,12 @@ export default function HRBPOS() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
               <AILoader label="Chargement du système"/>
             </div>
+          ) : gateModule ? (
+            <LimitedAccessScreen
+              subscription={userSubscription}
+              isAdmin={isAdmin}
+              onGoAdmin={() => setModule("admin")}
+              onSignOut={async () => { await supaSignOut(); }} />
           ) : safeModule === "home"         ? <ModuleHome data={data} onNavigate={handleNavigate}/>
           : safeModule === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
           : safeModule === "copilot"        ? <ModuleCopilot data={data}/>

@@ -592,6 +592,13 @@ ${LEGAL_GUARDRAIL}`;
       "auth.disabled.body": "Your access to HRBP OS has been disabled. Please contact an administrator.",
       "auth.orgInactive.title": "Organization unavailable",
       "auth.orgInactive.body": "Your organization account is not active. Please contact support.",
+      "auth.billingLimited.title": "Subscription update required",
+      "auth.billingLimited.body": "Your subscription needs an update to continue using HRBP OS.",
+      "auth.billingLimited.hint": "Operational modules are temporarily unavailable. Administration and billing remain accessible.",
+      "auth.billingLimited.portal": "Manage billing",
+      "auth.billingLimited.upgrade": "Choose a plan",
+      "auth.billingLimited.goAdmin": "Open admin",
+      "auth.billingLimited.noAdmin": "Ask an administrator of your organization to update the subscription.",
       "auth.denied.title": "Access denied",
       "auth.denied.bodyAnon": "This address is not authorized.",
       "auth.denied.bodyEmailPrefix": "The address ",
@@ -1761,6 +1768,13 @@ It will be removed from active lists but kept in the history.`,
       "auth.disabled.body": "Votre acc\xE8s \xE0 HRBP OS a \xE9t\xE9 d\xE9sactiv\xE9. Veuillez contacter un administrateur.",
       "auth.orgInactive.title": "Organisation indisponible",
       "auth.orgInactive.body": "Your organization account is not active. Please contact support.",
+      "auth.billingLimited.title": "Mise \xE0 jour de l'abonnement requise",
+      "auth.billingLimited.body": "Votre abonnement n\xE9cessite une mise \xE0 jour pour continuer \xE0 utiliser HRBP OS.",
+      "auth.billingLimited.hint": "Les modules op\xE9rationnels sont temporairement indisponibles. L'administration et la facturation restent accessibles.",
+      "auth.billingLimited.portal": "G\xE9rer la facturation",
+      "auth.billingLimited.upgrade": "Choisir un plan",
+      "auth.billingLimited.goAdmin": "Ouvrir l'administration",
+      "auth.billingLimited.noAdmin": "Demande \xE0 un administrateur de ton organisation de mettre \xE0 jour l'abonnement.",
       "auth.denied.title": "Acc\xE8s refus\xE9",
       "auth.denied.bodyAnon": "Cette adresse n'est pas autoris\xE9e.",
       "auth.denied.bodyEmailPrefix": "L'adresse ",
@@ -20714,6 +20728,153 @@ Do not translate employee names, case notes, job titles, or user-entered content
     return error ? { ok: !1, reason: "query-error", error } : { ok: !0, organizations: data ?? [] };
   }
 
+  // src/services/billing.js
+  var NO_CLIENT6 = { ok: !1, reason: "no-client" }, SUBSCRIPTION_COLS = [
+    "id",
+    "organization_id",
+    "plan_id",
+    "status",
+    "stripe_customer_id",
+    "stripe_subscription_id",
+    "current_period_start",
+    "current_period_end",
+    "trial_ends_at",
+    "created_at",
+    "updated_at"
+  ].join(", "), PLAN_COLS = [
+    "id",
+    "code",
+    "name",
+    "monthly_price_cents",
+    "max_users",
+    "max_cases",
+    "max_ai_requests",
+    "is_active",
+    "created_at"
+  ].join(", "), USAGE_COLS = [
+    "id",
+    "organization_id",
+    "metric",
+    "period_start",
+    "value",
+    "created_at",
+    "updated_at"
+  ].join(", ");
+  async function fetchSubscription(orgId) {
+    if (!supabase) return NO_CLIENT6;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("subscriptions").select(SUBSCRIPTION_COLS).eq("organization_id", orgId).maybeSingle();
+    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, subscription: data || null };
+  }
+  async function fetchPlan(planId) {
+    if (!supabase) return NO_CLIENT6;
+    if (!planId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("plans").select(PLAN_COLS).eq("id", planId).maybeSingle();
+    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, plan: data || null };
+  }
+  async function fetchUsageCounters(orgId, { limit = 24 } = {}) {
+    if (!supabase) return NO_CLIENT6;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.from("usage_counters").select(USAGE_COLS).eq("organization_id", orgId).order("period_start", { ascending: !1 }).limit(limit);
+    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, usage: data ?? [] };
+  }
+  async function getOrganizationBilling(orgId) {
+    if (!supabase) return NO_CLIENT6;
+    if (!orgId) return { ok: !1, reason: "invalid-id" };
+    let sRes = await fetchSubscription(orgId);
+    if (!sRes.ok) return sRes;
+    let plan = null;
+    if (sRes.subscription && sRes.subscription.plan_id) {
+      let pRes = await fetchPlan(sRes.subscription.plan_id);
+      if (!pRes.ok) return pRes;
+      plan = pRes.plan;
+    }
+    let uRes = await fetchUsageCounters(orgId);
+    return uRes.ok ? {
+      ok: !0,
+      subscription: sRes.subscription,
+      plan,
+      usage: uRes.usage
+    } : uRes;
+  }
+  function isStripeConfigured() {
+    return !1;
+  }
+  async function startStripeCheckout({ priceId } = {}) {
+    if (!supabase) return NO_CLIENT6;
+    let { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr || !sessionData?.session?.access_token)
+      return { ok: !1, reason: "no-session" };
+    let token = sessionData.session.access_token, res;
+    try {
+      res = await fetch("/api/stripe-checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(priceId ? { priceId } : {})
+      });
+    } catch (error) {
+      return { ok: !1, reason: "network-error", error };
+    }
+    let body = null;
+    try {
+      body = await res.json();
+    } catch {
+    }
+    return res.ok ? body?.url ? { ok: !0, url: body.url } : { ok: !1, reason: "no-url" } : { ok: !1, reason: "http-error", status: res.status, message: body?.error?.message };
+  }
+  async function openBillingPortal() {
+    if (!supabase) return NO_CLIENT6;
+    let { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr || !sessionData?.session?.access_token)
+      return { ok: !1, reason: "no-session" };
+    let token = sessionData.session.access_token, res;
+    try {
+      res = await fetch("/api/stripe-portal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: "{}"
+      });
+    } catch (error) {
+      return { ok: !1, reason: "network-error", error };
+    }
+    let body = null;
+    try {
+      body = await res.json();
+    } catch {
+    }
+    return res.ok ? body?.url ? { ok: !0, url: body.url } : { ok: !1, reason: "no-url" } : { ok: !1, reason: "http-error", status: res.status, message: body?.error?.message };
+  }
+  async function createStarterTrial(organizationId) {
+    if (!supabase) return NO_CLIENT6;
+    if (!organizationId) return { ok: !1, reason: "invalid-id" };
+    let { data, error } = await supabase.rpc("create_starter_trial", {
+      p_organization_id: organizationId
+    });
+    if (error) {
+      let code = error.code || "";
+      return code === "42501" ? { ok: !1, reason: "not-super-admin", error } : code === "P0002" ? { ok: !1, reason: "not-found", error } : code === "22023" ? { ok: !1, reason: "invalid-id", error } : { ok: !1, reason: "rpc-error", error };
+    }
+    return { ok: !0, subscription: data || null };
+  }
+
+  // src/services/billingAccess.js
+  var FULL_ACCESS_STATUSES = /* @__PURE__ */ new Set(["active", "trialing"]);
+  function getBillingAccess(subscription) {
+    let raw = subscription && typeof subscription == "object" ? subscription.status : null, status = typeof raw == "string" && raw.length > 0 ? raw : null, full = status !== null && FULL_ACCESS_STATUSES.has(status);
+    return {
+      hasFullAccess: full,
+      isLimited: !full,
+      status,
+      reason: full ? "billing_active" : "billing_limited"
+    };
+  }
+
   // src/utils/caseStatus.js
   var INACTIVE_CASE_STATUSES = ["closed", "archived", "deleted", "resolved", "done", "ferm\xE9", "ferme"];
   function isCaseInactive(c) {
@@ -32858,7 +33019,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
   }
 
   // src/services/identityMerge.js
-  var NO_CLIENT6 = { ok: !1, reason: "no-client" };
+  var NO_CLIENT7 = { ok: !1, reason: "no-client" };
   async function getSessionUserId3() {
     if (!supabase || !supabase.auth || typeof supabase.auth.getSession != "function") return null;
     try {
@@ -32883,7 +33044,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     return { ok: !0, updated };
   }
   async function mergeIdentity(input) {
-    if (!supabase) return NO_CLIENT6;
+    if (!supabase) return NO_CLIENT7;
     if (!input || typeof input != "object") return { ok: !1, reason: "invalid-input" };
     let sourceName = typeof input.sourceName == "string" ? input.sourceName.trim() : "", targetName = typeof input.targetName == "string" ? input.targetName.trim() : "";
     if (!sourceName) return { ok: !1, reason: "invalid-source" };
@@ -32946,7 +33107,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     }), { ok: !0, total: Object.values(breakdown).reduce((a, b) => a + b, 0), breakdown };
   }
   async function previewMergeIdentity(input) {
-    if (!supabase) return NO_CLIENT6;
+    if (!supabase) return NO_CLIENT7;
     if (!input || typeof input != "object") return { ok: !1, reason: "invalid-input" };
     let sourceName = typeof input.sourceName == "string" ? input.sourceName.trim() : "", targetName = typeof input.targetName == "string" ? input.targetName.trim() : "";
     if (!sourceName) return { ok: !1, reason: "invalid-source" };
@@ -34794,153 +34955,6 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }
   }
 
-  // src/services/billing.js
-  var NO_CLIENT7 = { ok: !1, reason: "no-client" }, SUBSCRIPTION_COLS = [
-    "id",
-    "organization_id",
-    "plan_id",
-    "status",
-    "stripe_customer_id",
-    "stripe_subscription_id",
-    "current_period_start",
-    "current_period_end",
-    "trial_ends_at",
-    "created_at",
-    "updated_at"
-  ].join(", "), PLAN_COLS = [
-    "id",
-    "code",
-    "name",
-    "monthly_price_cents",
-    "max_users",
-    "max_cases",
-    "max_ai_requests",
-    "is_active",
-    "created_at"
-  ].join(", "), USAGE_COLS = [
-    "id",
-    "organization_id",
-    "metric",
-    "period_start",
-    "value",
-    "created_at",
-    "updated_at"
-  ].join(", ");
-  async function fetchSubscription(orgId) {
-    if (!supabase) return NO_CLIENT7;
-    if (!orgId) return { ok: !1, reason: "invalid-id" };
-    let { data, error } = await supabase.from("subscriptions").select(SUBSCRIPTION_COLS).eq("organization_id", orgId).maybeSingle();
-    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, subscription: data || null };
-  }
-  async function fetchPlan(planId) {
-    if (!supabase) return NO_CLIENT7;
-    if (!planId) return { ok: !1, reason: "invalid-id" };
-    let { data, error } = await supabase.from("plans").select(PLAN_COLS).eq("id", planId).maybeSingle();
-    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, plan: data || null };
-  }
-  async function fetchUsageCounters(orgId, { limit = 24 } = {}) {
-    if (!supabase) return NO_CLIENT7;
-    if (!orgId) return { ok: !1, reason: "invalid-id" };
-    let { data, error } = await supabase.from("usage_counters").select(USAGE_COLS).eq("organization_id", orgId).order("period_start", { ascending: !1 }).limit(limit);
-    return error ? { ok: !1, reason: "query-error", error } : { ok: !0, usage: data ?? [] };
-  }
-  async function getOrganizationBilling(orgId) {
-    if (!supabase) return NO_CLIENT7;
-    if (!orgId) return { ok: !1, reason: "invalid-id" };
-    let sRes = await fetchSubscription(orgId);
-    if (!sRes.ok) return sRes;
-    let plan = null;
-    if (sRes.subscription && sRes.subscription.plan_id) {
-      let pRes = await fetchPlan(sRes.subscription.plan_id);
-      if (!pRes.ok) return pRes;
-      plan = pRes.plan;
-    }
-    let uRes = await fetchUsageCounters(orgId);
-    return uRes.ok ? {
-      ok: !0,
-      subscription: sRes.subscription,
-      plan,
-      usage: uRes.usage
-    } : uRes;
-  }
-  function isStripeConfigured() {
-    return !1;
-  }
-  async function startStripeCheckout({ priceId } = {}) {
-    if (!supabase) return NO_CLIENT7;
-    let { data: sessionData, error: sessErr } = await supabase.auth.getSession();
-    if (sessErr || !sessionData?.session?.access_token)
-      return { ok: !1, reason: "no-session" };
-    let token = sessionData.session.access_token, res;
-    try {
-      res = await fetch("/api/stripe-checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(priceId ? { priceId } : {})
-      });
-    } catch (error) {
-      return { ok: !1, reason: "network-error", error };
-    }
-    let body = null;
-    try {
-      body = await res.json();
-    } catch {
-    }
-    return res.ok ? body?.url ? { ok: !0, url: body.url } : { ok: !1, reason: "no-url" } : { ok: !1, reason: "http-error", status: res.status, message: body?.error?.message };
-  }
-  async function openBillingPortal() {
-    if (!supabase) return NO_CLIENT7;
-    let { data: sessionData, error: sessErr } = await supabase.auth.getSession();
-    if (sessErr || !sessionData?.session?.access_token)
-      return { ok: !1, reason: "no-session" };
-    let token = sessionData.session.access_token, res;
-    try {
-      res = await fetch("/api/stripe-portal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: "{}"
-      });
-    } catch (error) {
-      return { ok: !1, reason: "network-error", error };
-    }
-    let body = null;
-    try {
-      body = await res.json();
-    } catch {
-    }
-    return res.ok ? body?.url ? { ok: !0, url: body.url } : { ok: !1, reason: "no-url" } : { ok: !1, reason: "http-error", status: res.status, message: body?.error?.message };
-  }
-  async function createStarterTrial(organizationId) {
-    if (!supabase) return NO_CLIENT7;
-    if (!organizationId) return { ok: !1, reason: "invalid-id" };
-    let { data, error } = await supabase.rpc("create_starter_trial", {
-      p_organization_id: organizationId
-    });
-    if (error) {
-      let code = error.code || "";
-      return code === "42501" ? { ok: !1, reason: "not-super-admin", error } : code === "P0002" ? { ok: !1, reason: "not-found", error } : code === "22023" ? { ok: !1, reason: "invalid-id", error } : { ok: !1, reason: "rpc-error", error };
-    }
-    return { ok: !0, subscription: data || null };
-  }
-
-  // src/services/billingAccess.js
-  var FULL_ACCESS_STATUSES = /* @__PURE__ */ new Set(["active", "trialing"]);
-  function getBillingAccess(subscription) {
-    let raw = subscription && typeof subscription == "object" ? subscription.status : null, status = typeof raw == "string" && raw.length > 0 ? raw : null, full = status !== null && FULL_ACCESS_STATUSES.has(status);
-    return {
-      hasFullAccess: full,
-      isLimited: !full,
-      status,
-      reason: full ? "billing_active" : "billing_limited"
-    };
-  }
-
   // src/modules/Admin.jsx
   var ROLE_STYLE = {
     super_admin: { bg: C.red + "18", border: C.red + "55", color: C.red },
@@ -35680,6 +35694,92 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       t2("auth.signOut")
     )));
   }
+  function LimitedAccessScreen({ subscription, isAdmin, onGoAdmin, onSignOut }) {
+    let { t: t2 } = useT(), [busyKind, setBusyKind] = (0, import_react24.useState)(null), [errMsg, setErrMsg] = (0, import_react24.useState)(""), hasStripeCustomer = !!subscription?.stripe_customer_id, stripeEnabled = isStripeConfigured(), onPortal = async () => {
+      setBusyKind("portal"), setErrMsg("");
+      let res = await openBillingPortal();
+      if (!res.ok) {
+        setBusyKind(null), setErrMsg(res.message || res.reason || "error");
+        return;
+      }
+      window.location.assign(res.url);
+    }, onUpgrade = async () => {
+      setBusyKind("upgrade"), setErrMsg("");
+      let res = await startStripeCheckout();
+      if (!res.ok) {
+        setBusyKind(null), setErrMsg(res.message || res.reason || "error");
+        return;
+      }
+      window.location.assign(res.url);
+    }, statusLabel = subscription?.status || "\u2014";
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "100%",
+      height: "100%",
+      fontFamily: "'DM Sans',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { width: 440, textAlign: "center", padding: "24px" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      width: 48,
+      height: 48,
+      background: C.amber,
+      borderRadius: 10,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 22,
+      marginBottom: 14
+    } }, "\u26A0\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 8 } }, t2("auth.billingLimited.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, t2("auth.billingLimited.body")), /* @__PURE__ */ React.createElement("div", { style: {
+      fontSize: 11,
+      color: C.textD,
+      marginBottom: 18,
+      fontFamily: "'DM Mono',monospace"
+    } }, "status: ", statusLabel), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, alignItems: "center" } }, hasStripeCustomer ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onPortal,
+        disabled: busyKind !== null,
+        style: {
+          ...css.btn(C.blue),
+          padding: "10px 18px",
+          fontSize: 13,
+          opacity: busyKind ? 0.6 : 1,
+          cursor: busyKind ? "not-allowed" : "pointer"
+        }
+      },
+      busyKind === "portal" ? "\u2026" : t2("auth.billingLimited.portal")
+    ) : stripeEnabled ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onUpgrade,
+        disabled: busyKind !== null,
+        style: {
+          ...css.btn(C.em),
+          padding: "10px 18px",
+          fontSize: 13,
+          opacity: busyKind ? 0.6 : 1,
+          cursor: busyKind ? "not-allowed" : "pointer"
+        }
+      },
+      busyKind === "upgrade" ? "\u2026" : t2("auth.billingLimited.upgrade")
+    ) : null, isAdmin && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onGoAdmin,
+        style: {
+          background: "none",
+          border: `1px solid ${C.border}`,
+          borderRadius: 8,
+          padding: "8px 14px",
+          fontSize: 12,
+          color: C.textM,
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif"
+        }
+      },
+      t2("auth.billingLimited.goAdmin")
+    ), !isAdmin && !hasStripeCustomer && !stripeEnabled && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 6, lineHeight: 1.5 } }, t2("auth.billingLimited.noAdmin")), errMsg && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.red, marginTop: 6 } }, errMsg), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, marginTop: 14, lineHeight: 1.5 } }, t2("auth.billingLimited.hint")))));
+  }
   function DisabledAccessScreen({ email, onSignOut }) {
     let { t: t2 } = useT();
     return /* @__PURE__ */ React.createElement("div", { style: {
@@ -35811,7 +35911,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     } }, /* @__PURE__ */ React.createElement("a", { href: "/privacy", style: { color: C.textM, textDecoration: "none" } }, "Confidentialit\xE9"), /* @__PURE__ */ React.createElement("a", { href: "/terms", style: { color: C.textM, textDecoration: "none" } }, "Conditions"), /* @__PURE__ */ React.createElement("a", { href: "/subprocessors", style: { color: C.textM, textDecoration: "none" } }, "Sous-traitants"), /* @__PURE__ */ React.createElement("a", { href: "/support", style: { color: C.textM, textDecoration: "none" } }, "Support"))));
   }
   function HRBPOS() {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react24.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react24.useState)(!1), [denied, setDenied] = (0, import_react24.useState)(null), [userProfile, setUserProfile] = (0, import_react24.useState)(null), [profileChecked, setProfileChecked] = (0, import_react24.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react24.useState)(null), [orgChecked, setOrgChecked] = (0, import_react24.useState)(!1), [module, setModule] = (0, import_react24.useState)("home"), [showMore, setShowMore] = (0, import_react24.useState)(!1), [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react24.useState)(!1), [loaded, setLoaded] = (0, import_react24.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null), [focusExitId, setFocusExitId] = (0, import_react24.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null), handleNavigate = (0, import_react24.useCallback)((id, ctx) => {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react24.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react24.useState)(!1), [denied, setDenied] = (0, import_react24.useState)(null), [userProfile, setUserProfile] = (0, import_react24.useState)(null), [profileChecked, setProfileChecked] = (0, import_react24.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react24.useState)(null), [orgChecked, setOrgChecked] = (0, import_react24.useState)(!1), [userSubscription, setUserSubscription] = (0, import_react24.useState)(null), [subscriptionChecked, setSubscriptionChecked] = (0, import_react24.useState)(!1), [module, setModule] = (0, import_react24.useState)("home"), [showMore, setShowMore] = (0, import_react24.useState)(!1), [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react24.useState)(!1), [loaded, setLoaded] = (0, import_react24.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null), [focusExitId, setFocusExitId] = (0, import_react24.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null), handleNavigate = (0, import_react24.useCallback)((id, ctx) => {
       ctx?.focusCaseId && setFocusCaseId(ctx.focusCaseId), ctx?.focusMeetingId && setFocusMeetingId(ctx.focusMeetingId), ctx?.focusExitId && setFocusExitId(ctx.focusExitId), ctx?.focusSignalId && setFocusSignalId(ctx.focusSignalId), ctx?.focusDecisionId && setFocusDecisionId(ctx.focusDecisionId), ctx?.focusInvestigationId && setFocusInvestigationId(ctx.focusInvestigationId), setModule(id);
     }, []);
     (0, import_react24.useEffect)(() => {
@@ -35931,7 +36031,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         return;
       }
       if (!supaSession) {
-        setUserProfile(null), setProfileChecked(!1), setUserOrganization(null), setOrgChecked(!1);
+        setUserProfile(null), setProfileChecked(!1), setUserOrganization(null), setOrgChecked(!1), setUserSubscription(null), setSubscriptionChecked(!1);
         return;
       }
       let cancelled = !1;
@@ -35961,6 +36061,23 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       return setOrgChecked(!1), (async () => {
         let res = await fetchOrganization(userProfile.organization_id);
         cancelled || (res.ok ? setUserOrganization(res.organization) : (res.reason !== "no-client" && console.warn("[org] fetchOrganization failed:", res.reason, res.error), setUserOrganization(null)), setOrgChecked(!0));
+      })(), () => {
+        cancelled = !0;
+      };
+    }, [profileChecked, userProfile]), (0, import_react24.useEffect)(() => {
+      if (!hasSupabase) {
+        setSubscriptionChecked(!0);
+        return;
+      }
+      if (!profileChecked) return;
+      if (!userProfile || userProfile.status !== "approved" || !userProfile.organization_id) {
+        setUserSubscription(null), setSubscriptionChecked(!0);
+        return;
+      }
+      let cancelled = !1;
+      return setSubscriptionChecked(!1), (async () => {
+        let res = await fetchSubscription(userProfile.organization_id);
+        cancelled || (res.ok ? setUserSubscription(res.subscription || null) : (res.reason !== "no-client" && console.warn("[billing] fetchSubscription failed:", res.reason, res.error), setUserSubscription(null)), setSubscriptionChecked(!0));
       })(), () => {
         cancelled = !0;
       };
@@ -36128,10 +36245,18 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           }
         }
       );
+    if (hasSupabase && supaSession && userProfile?.status === "approved" && userProfile.organization_id && !subscriptionChecked)
+      return /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        background: C.bg
+      } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement" }));
     let isAdmin = !!(userProfile && userProfile.status === "approved" && (userProfile.role === "admin" || userProfile.role === "super_admin")), ADMIN_NAV_ENTRY = { id: "admin", icon: "\u{1F6E1}\uFE0F", label: "Admin", color: C.amber }, navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE, activeNav = [...NAV_MAIN, ...navMore].find((n) => n.id === module), navLabel = (n) => {
       let k = `nav.${n.id}`, v = t2(k);
       return v === k ? n.label : v;
-    }, safeModule = module === "admin" && !isAdmin ? "home" : module;
+    }, safeModule = module === "admin" && !isAdmin ? "home" : module, gateModule = (hasSupabase && userProfile?.organization_id ? getBillingAccess(userSubscription) : { hasFullAccess: !0, isLimited: !1, status: null, reason: "billing_active" }).isLimited && safeModule !== "admin";
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", height: "100vh", background: C.bg, fontFamily: "'DM Sans',sans-serif", color: C.text, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("style", null, FONTS), /* @__PURE__ */ React.createElement("style", null, `*{box-sizing:border-box}textarea,input,select{outline:none}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}.fadein{animation:fadeIn .2s ease both}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:${C.bg}}::-webkit-scrollbar-thumb{background:${C.borderL};border-radius:4px}`), /* @__PURE__ */ React.createElement("div", { style: {
       width: 200,
       background: C.surf,
@@ -36325,7 +36450,17 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       alignItems: "center",
       gap: 12,
       flexShrink: 0
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : "")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : "")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(
+      LimitedAccessScreen,
+      {
+        subscription: userSubscription,
+        isAdmin,
+        onGoAdmin: () => setModule("admin"),
+        onSignOut: async () => {
+          await signOut();
+        }
+      }
+    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();
