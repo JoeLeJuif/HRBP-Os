@@ -113,6 +113,49 @@ export async function getOrganizationBilling(orgId) {
   };
 }
 
+// Returns true iff Stripe is exposed to the client (publishable key was set
+// at build time). The Billing UI uses this to decide whether the "Upgrade
+// with Stripe" button is rendered; free / trial orgs keep working when the
+// key is absent because the button simply never appears.
+export function isStripeConfigured() {
+  return Boolean(process.env.VITE_STRIPE_PUBLISHABLE_KEY);
+}
+
+// Starts a Stripe Checkout Session via /api/stripe-checkout and returns the
+// redirect URL. Caller decides whether to navigate (window.location.assign).
+// Auth is required — the server validates the Supabase JWT before talking
+// to Stripe. Failure modes: "no-client", "no-session", "http-error".
+export async function startStripeCheckout({ priceId } = {}) {
+  if (!supabase) return NO_CLIENT;
+  const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+  if (sessErr || !sessionData?.session?.access_token) {
+    return { ok: false, reason: "no-session" };
+  }
+  const token = sessionData.session.access_token;
+  let res;
+  try {
+    res = await fetch("/api/stripe-checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(priceId ? { priceId } : {}),
+    });
+  } catch (error) {
+    return { ok: false, reason: "network-error", error };
+  }
+  let body = null;
+  try { body = await res.json(); } catch {}
+  if (!res.ok) {
+    return { ok: false, reason: "http-error", status: res.status, message: body?.error?.message };
+  }
+  if (!body?.url) {
+    return { ok: false, reason: "no-url" };
+  }
+  return { ok: true, url: body.url };
+}
+
 // Provisions a Starter trial subscription for the given org via the
 // super_admin-only `create_starter_trial` RPC. Idempotent server-side: if a
 // subscription already exists it is returned unchanged. Errors are normalized

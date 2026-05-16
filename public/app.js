@@ -34863,6 +34863,34 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       usage: uRes.usage
     } : uRes;
   }
+  function isStripeConfigured() {
+    return !1;
+  }
+  async function startStripeCheckout({ priceId } = {}) {
+    if (!supabase) return NO_CLIENT7;
+    let { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr || !sessionData?.session?.access_token)
+      return { ok: !1, reason: "no-session" };
+    let token = sessionData.session.access_token, res;
+    try {
+      res = await fetch("/api/stripe-checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(priceId ? { priceId } : {})
+      });
+    } catch (error) {
+      return { ok: !1, reason: "network-error", error };
+    }
+    let body = null;
+    try {
+      body = await res.json();
+    } catch {
+    }
+    return res.ok ? body?.url ? { ok: !0, url: body.url } : { ok: !1, reason: "no-url" } : { ok: !1, reason: "http-error", status: res.status, message: body?.error?.message };
+  }
   async function createStarterTrial(organizationId) {
     if (!supabase) return NO_CLIENT7;
     if (!organizationId) return { ok: !1, reason: "invalid-id" };
@@ -35331,7 +35359,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     } }, msg.text));
   }
   function BillingPanel({ currentProfile }) {
-    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react23.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react23.useState)(0), [trialBusy, setTrialBusy] = (0, import_react23.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react23.useState)(null);
+    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react23.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react23.useState)(0), [trialBusy, setTrialBusy] = (0, import_react23.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react23.useState)(null), [stripeBusy, setStripeBusy] = (0, import_react23.useState)(!1), [stripeMsg, setStripeMsg] = (0, import_react23.useState)(null), stripeEnabled = isStripeConfigured();
     if ((0, import_react23.useEffect)(() => {
       let cancelled = !1;
       return orgId ? (setState({ status: "loading", data: null, reason: null }), getOrganizationBilling(orgId).then((res) => {
@@ -35358,8 +35386,36 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         return;
       }
       setTrialMsg({ kind: "ok", text: "Essai Starter provisionn\xE9." }), setReloadTick((t2) => t2 + 1);
+    }, onStripeUpgrade = async () => {
+      setStripeBusy(!0), setStripeMsg(null);
+      let res = await startStripeCheckout();
+      if (!res.ok) {
+        setStripeBusy(!1);
+        let txt = res.reason === "no-session" ? "Session expir\xE9e \u2014 reconnecte-toi." : res.reason === "no-client" ? "Supabase non configur\xE9." : res.reason === "network-error" ? "Erreur r\xE9seau." : res.message ? res.message : "\xC9chec de la cr\xE9ation de la session Stripe.";
+        setStripeMsg({ kind: "err", text: txt });
+        return;
+      }
+      window.location.assign(res.url);
     }, hasSubscription = state.status === "ready" && !!state.data?.subscription;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state }), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: onStripeUpgrade,
+        disabled: stripeBusy,
+        style: {
+          ...css.btn(C.em),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: stripeBusy ? 0.6 : 1,
+          cursor: stripeBusy ? "not-allowed" : "pointer"
+        }
+      },
+      stripeBusy ? "\u2026" : "Upgrade with Stripe"
+    ), stripeMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+      marginTop: 8,
+      fontSize: 12,
+      color: stripeMsg.kind === "ok" ? C.em : C.red
+    } }, stripeMsg.text)), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         onClick: onCreateTrial,

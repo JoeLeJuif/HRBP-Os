@@ -24,7 +24,12 @@ import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
 import { applyMergeToLocalStorage } from "../utils/identity.js";
 import { mergeIdentity } from "../services/identityMerge.js";
 import { buildOrganizationExport, downloadExportFile } from "../services/orgExport.js";
-import { getOrganizationBilling, createStarterTrial } from "../services/billing.js";
+import {
+  getOrganizationBilling,
+  createStarterTrial,
+  isStripeConfigured,
+  startStripeCheckout,
+} from "../services/billing.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
@@ -721,6 +726,9 @@ function BillingPanel({ currentProfile }) {
   const [reloadTick, setReloadTick] = useState(0);
   const [trialBusy, setTrialBusy] = useState(false);
   const [trialMsg,  setTrialMsg]  = useState(null);
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const [stripeMsg,  setStripeMsg]  = useState(null);
+  const stripeEnabled = isStripeConfigured();
 
   useEffect(() => {
     let cancelled = false;
@@ -760,6 +768,24 @@ function BillingPanel({ currentProfile }) {
     setReloadTick(t => t + 1);
   };
 
+  const onStripeUpgrade = async () => {
+    setStripeBusy(true);
+    setStripeMsg(null);
+    const res = await startStripeCheckout();
+    if (!res.ok) {
+      setStripeBusy(false);
+      const txt = res.reason === "no-session"   ? "Session expirée — reconnecte-toi."
+        : res.reason === "no-client"            ? "Supabase non configuré."
+        : res.reason === "network-error"        ? "Erreur réseau."
+        : res.message                            ? res.message
+        : "Échec de la création de la session Stripe.";
+      setStripeMsg({ kind: "err", text: txt });
+      return;
+    }
+    // Leave the busy flag on — the page is about to unload.
+    window.location.assign(res.url);
+  };
+
   const hasSubscription = state.status === "ready" && !!state.data?.subscription;
 
   return (
@@ -773,6 +799,21 @@ function BillingPanel({ currentProfile }) {
         Stripe sera branché dans une étape ultérieure.
       </div>
       <BillingBody state={state}/>
+      {stripeEnabled && state.status === "ready" && (
+        <div style={{ marginTop: 12 }}>
+          <button onClick={onStripeUpgrade} disabled={stripeBusy}
+            style={{ ...css.btn(C.em), padding:"6px 14px", fontSize: 12,
+              opacity: stripeBusy ? .6 : 1, cursor: stripeBusy ? "not-allowed" : "pointer" }}>
+            {stripeBusy ? "…" : "Upgrade with Stripe"}
+          </button>
+          {stripeMsg && (
+            <div style={{ marginTop: 8, fontSize: 12,
+              color: stripeMsg.kind === "ok" ? C.em : C.red }}>
+              {stripeMsg.text}
+            </div>
+          )}
+        </div>
+      )}
       {isSuperAdmin && !hasSubscription && state.status === "ready" && (
         <div style={{ marginTop: 12 }}>
           <button onClick={onCreateTrial} disabled={trialBusy}
