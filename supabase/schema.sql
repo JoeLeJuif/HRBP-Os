@@ -39,6 +39,33 @@ alter table public.profiles
 
 create index if not exists profiles_org_idx on public.profiles(organization_id);
 
+-- ── allow-list (auth gate) ───────────────────────────────────────────────────
+-- public.allowed_users is the post-magic-link admission gate. The frontend
+-- (src/lib/auth.js → isEmailAllowed) queries it after Supabase resolves the
+-- session: a row read for the JWT's email = access granted, no row = sign-out.
+-- /api/signup INSERTs a row server-side (service-role) on workspace creation.
+--
+-- Live state (project dhemuvqwqtkrfmzflghx, mirrored here 2026-05-16):
+--   - id uuid pk default gen_random_uuid()
+--   - email text not null UNIQUE   (also functions as the lookup index)
+--   - created_at timestamptz default now()
+--   - RLS ENABLED with a single SELECT policy `allowed_users_select_self`
+--     for role `authenticated`: USING lower(email) = lower(auth.jwt() ->> 'email').
+--   - No INSERT/UPDATE/DELETE policies → mutations require service-role
+--     (anon/authenticated clients can only read their own row).
+create table if not exists public.allowed_users (
+  id          uuid primary key default gen_random_uuid(),
+  email       text not null unique,
+  created_at  timestamptz default now()
+);
+
+alter table public.allowed_users enable row level security;
+
+drop policy if exists allowed_users_select_self on public.allowed_users;
+create policy allowed_users_select_self on public.allowed_users
+  as permissive for select to authenticated
+  using ( lower(email) = lower(auth.jwt() ->> 'email') );
+
 -- `data` is a jsonb blob holding the case payload; see src/utils/normalize.js
 -- for the full schema. Canonical case statuses (data->>'status'):
 --   'open' | 'in_progress' | 'waiting' | 'closed' | 'archived'
