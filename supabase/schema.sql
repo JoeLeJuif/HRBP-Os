@@ -1078,3 +1078,20 @@ $$;
 revoke execute on function public.create_starter_trial(uuid) from public;
 revoke execute on function public.create_starter_trial(uuid) from anon;
 grant  execute on function public.create_starter_trial(uuid) to authenticated;
+
+-- ── subscriptions: Stripe sync fields (Sprint 3 — Étape 2) ───────────────────
+-- Extra columns mirrored from Stripe subscription events. trial_ends_at stays
+-- the canonical "trial end" column (also written by create_starter_trial and
+-- read by Admin.jsx); the webhook now writes Stripe's `trial_end` into it.
+-- trial_start, stripe_price_id, cancel_at_period_end, canceled_at are new and
+-- nullable (cancel_at_period_end has a NOT NULL default of false so SELECTs
+-- never have to coalesce). Indexed on canceled_at to support future churn
+-- queries cheaply.
+alter table public.subscriptions
+  add column if not exists stripe_price_id      text,
+  add column if not exists trial_start          timestamptz,
+  add column if not exists cancel_at_period_end boolean not null default false,
+  add column if not exists canceled_at          timestamptz;
+
+create index if not exists subscriptions_canceled_at_idx
+  on public.subscriptions(canceled_at);
