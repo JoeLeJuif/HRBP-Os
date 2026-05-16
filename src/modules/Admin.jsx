@@ -29,6 +29,7 @@ import {
   createStarterTrial,
   isStripeConfigured,
   startStripeCheckout,
+  openBillingPortal,
 } from "../services/billing.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
@@ -728,6 +729,8 @@ function BillingPanel({ currentProfile }) {
   const [trialMsg,  setTrialMsg]  = useState(null);
   const [stripeBusy, setStripeBusy] = useState(false);
   const [stripeMsg,  setStripeMsg]  = useState(null);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalMsg,  setPortalMsg]  = useState(null);
   const stripeEnabled = isStripeConfigured();
 
   useEffect(() => {
@@ -786,7 +789,27 @@ function BillingPanel({ currentProfile }) {
     window.location.assign(res.url);
   };
 
+  const onOpenPortal = async () => {
+    setPortalBusy(true);
+    setPortalMsg(null);
+    const res = await openBillingPortal();
+    if (!res.ok) {
+      setPortalBusy(false);
+      const txt = res.reason === "no-session"   ? "Session expirée — reconnecte-toi."
+        : res.reason === "no-client"            ? "Supabase non configuré."
+        : res.reason === "network-error"        ? "Erreur réseau."
+        : res.message                            ? res.message
+        : "Échec de l'ouverture du portail de facturation.";
+      setPortalMsg({ kind: "err", text: txt });
+      return;
+    }
+    // Leave the busy flag on — the page is about to unload.
+    window.location.assign(res.url);
+  };
+
   const hasSubscription = state.status === "ready" && !!state.data?.subscription;
+  const hasStripeCustomer = hasSubscription
+    && !!state.data?.subscription?.stripe_customer_id;
 
   return (
     <div style={{ ...css.card, marginBottom: 14 }}>
@@ -810,6 +833,21 @@ function BillingPanel({ currentProfile }) {
             <div style={{ marginTop: 8, fontSize: 12,
               color: stripeMsg.kind === "ok" ? C.em : C.red }}>
               {stripeMsg.text}
+            </div>
+          )}
+        </div>
+      )}
+      {hasStripeCustomer && (
+        <div style={{ marginTop: 12 }}>
+          <button onClick={onOpenPortal} disabled={portalBusy}
+            style={{ ...css.btn(C.blue), padding:"6px 14px", fontSize: 12,
+              opacity: portalBusy ? .6 : 1, cursor: portalBusy ? "not-allowed" : "pointer" }}>
+            {portalBusy ? "…" : "Gérer la facturation"}
+          </button>
+          {portalMsg && (
+            <div style={{ marginTop: 8, fontSize: 12,
+              color: portalMsg.kind === "ok" ? C.em : C.red }}>
+              {portalMsg.text}
             </div>
           )}
         </div>

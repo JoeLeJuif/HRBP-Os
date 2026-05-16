@@ -156,6 +156,41 @@ export async function startStripeCheckout({ priceId } = {}) {
   return { ok: true, url: body.url };
 }
 
+// Opens a Stripe Billing Portal session via /api/stripe-portal and returns
+// the redirect URL. Caller decides whether to navigate. Auth is required.
+// Failure modes: "no-client", "no-session", "network-error", "http-error",
+// "no-url".
+export async function openBillingPortal() {
+  if (!supabase) return NO_CLIENT;
+  const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+  if (sessErr || !sessionData?.session?.access_token) {
+    return { ok: false, reason: "no-session" };
+  }
+  const token = sessionData.session.access_token;
+  let res;
+  try {
+    res = await fetch("/api/stripe-portal", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: "{}",
+    });
+  } catch (error) {
+    return { ok: false, reason: "network-error", error };
+  }
+  let body = null;
+  try { body = await res.json(); } catch {}
+  if (!res.ok) {
+    return { ok: false, reason: "http-error", status: res.status, message: body?.error?.message };
+  }
+  if (!body?.url) {
+    return { ok: false, reason: "no-url" };
+  }
+  return { ok: true, url: body.url };
+}
+
 // Provisions a Starter trial subscription for the given org via the
 // super_admin-only `create_starter_trial` RPC. Idempotent server-side: if a
 // subscription already exists it is returned unchanged. Errors are normalized
