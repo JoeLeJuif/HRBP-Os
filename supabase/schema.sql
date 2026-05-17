@@ -1095,3 +1095,12 @@ alter table public.subscriptions
 
 create index if not exists subscriptions_canceled_at_idx
   on public.subscriptions(canceled_at);
+
+-- ── Trial-ending-soon email anti-doublon (Sprint 3 — Étape 5E) ───────────────
+-- /api/cron-trial-ending-soon scans for trialing subscriptions whose
+-- trial_ends_at falls inside the next-3-to-4-day window and sends the
+-- trialEndingSoonEmail template once per subscription. The cron stamps this
+-- column on a successful send (or a configured no-op) so subsequent daily
+-- runs skip the row; failures leave it NULL to allow retry the next day.
+alter table public.subscriptions
+  add column if not exists trial_ending_email_sent_at timestamptz;

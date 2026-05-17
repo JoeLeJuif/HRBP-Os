@@ -4,6 +4,9 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
   ],
+  "crons": [
+    { "path": "/api/cron-trial-ending-soon", "schedule": "0 13 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
