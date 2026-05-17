@@ -34,6 +34,7 @@ import {
 import { getBillingAccess } from "../services/billingAccess.js";
 import { checkUsage } from "../services/planLimits.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
+import SaaSMetricsPanel from "./SaaSMetricsPanel.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
 // glance without introducing new palette entries.
@@ -343,6 +344,8 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
               ))}
             </Section>
           )}
+
+          {isSuperAdmin && <SaaSMetricsPanel/>}
 
           <OrganizationStatusPanel
             currentProfile={currentProfile}
