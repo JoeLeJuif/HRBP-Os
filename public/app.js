@@ -20863,9 +20863,27 @@ Do not translate employee names, case notes, job titles, or user-entered content
     return { ok: !0, subscription: data || null };
   }
 
+  // src/services/internalUsers.js
+  var INTERNAL_FREE_USERS = [
+    "samuelchartrand99@gmail.com",
+    "samuel.chartrand@intelcom.ca"
+  ], INTERNAL_SET = new Set(INTERNAL_FREE_USERS.map((e) => e.toLowerCase()));
+  function isInternalFreeUser(email) {
+    if (typeof email != "string") return !1;
+    let norm = email.trim().toLowerCase();
+    return norm ? INTERNAL_SET.has(norm) : !1;
+  }
+
   // src/services/billingAccess.js
   var FULL_ACCESS_STATUSES = /* @__PURE__ */ new Set(["active", "trialing"]);
-  function getBillingAccess(subscription) {
+  function getBillingAccess(subscription, userEmail = null) {
+    if (isInternalFreeUser(userEmail))
+      return {
+        hasFullAccess: !0,
+        isLimited: !1,
+        status: "internal_free",
+        reason: "internal_free_user"
+      };
     let raw = subscription && typeof subscription == "object" ? subscription.status : null, status = typeof raw == "string" && raw.length > 0 ? raw : null, full = status !== null && FULL_ACCESS_STATUSES.has(status);
     return {
       hasFullAccess: full,
@@ -20876,7 +20894,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
   }
 
   // src/services/planLimits.js
-  var PLAN_LIMITS = {
+  var UNLIMITED = null, PLAN_LIMITS = {
     trial: {
       cases: 10,
       meetings: 10,
@@ -20890,16 +20908,22 @@ Do not translate employee names, case notes, job titles, or user-entered content
       investigations: 5
     },
     pro: {
-      cases: null,
-      meetings: null,
+      cases: UNLIMITED,
+      meetings: UNLIMITED,
       users: 50,
       investigations: 25
     },
     enterprise: {
-      cases: null,
-      meetings: null,
-      users: null,
-      investigations: null
+      cases: UNLIMITED,
+      meetings: UNLIMITED,
+      users: UNLIMITED,
+      investigations: UNLIMITED
+    },
+    internal_free: {
+      cases: UNLIMITED,
+      meetings: UNLIMITED,
+      users: UNLIMITED,
+      investigations: UNLIMITED
     }
   }, RESOURCE_LABELS = {
     cases: "dossiers",
@@ -20907,33 +20931,34 @@ Do not translate employee names, case notes, job titles, or user-entered content
     users: "utilisateurs",
     investigations: "enqu\xEAtes"
   }, PLAN_KEYS = new Set(Object.keys(PLAN_LIMITS));
-  function resolvePlanKey(subscription) {
+  function resolvePlanKey(subscription, userEmail = null) {
+    if (isInternalFreeUser(userEmail)) return "internal_free";
     if (!subscription || typeof subscription != "object" || subscription.status === "trialing") return "trial";
     let code = subscription.plan && subscription.plan.code || subscription.plan_code || null;
     return code && PLAN_KEYS.has(code) ? code : "trial";
   }
-  function getPlanLimits(subscription) {
-    return PLAN_LIMITS[resolvePlanKey(subscription)] || PLAN_LIMITS.trial;
+  function getPlanLimits(subscription, userEmail = null) {
+    return PLAN_LIMITS[resolvePlanKey(subscription, userEmail)] || PLAN_LIMITS.trial;
   }
-  function getUsageLimit(subscription, resourceKey) {
-    let limits = getPlanLimits(subscription);
-    return Object.prototype.hasOwnProperty.call(limits, resourceKey) ? limits[resourceKey] : null;
+  function getUsageLimit(subscription, resourceKey, userEmail = null) {
+    let limits = getPlanLimits(subscription, userEmail);
+    return Object.prototype.hasOwnProperty.call(limits, resourceKey) ? limits[resourceKey] : UNLIMITED;
   }
-  function isUsageAllowed(subscription, resourceKey, currentCount) {
-    let limit = getUsageLimit(subscription, resourceKey);
-    if (limit === null) return !0;
+  function isUsageAllowed(subscription, resourceKey, currentCount, userEmail = null) {
+    let limit = getUsageLimit(subscription, resourceKey, userEmail);
+    if (limit === UNLIMITED) return !0;
     let n = Number(currentCount);
     return Number.isFinite(n) ? n < limit : !0;
   }
   function getLimitMessage(resourceKey, limit) {
-    if (limit === null || limit == null) return "";
+    if (limit === UNLIMITED || limit == null) return "";
     let label = RESOURCE_LABELS[resourceKey] || resourceKey;
     return `Limite de ${limit} ${label} atteinte pour votre plan. Veuillez mettre \xE0 niveau votre abonnement (Admin \u2192 Facturation).`;
   }
-  function checkUsage(subscription, resourceKey, currentCount) {
-    if (isUsageAllowed(subscription, resourceKey, currentCount))
+  function checkUsage(subscription, resourceKey, currentCount, userEmail = null) {
+    if (isUsageAllowed(subscription, resourceKey, currentCount, userEmail))
       return { allowed: !0 };
-    let limit = getUsageLimit(subscription, resourceKey);
+    let limit = getUsageLimit(subscription, resourceKey, userEmail);
     return { allowed: !1, message: getLimitMessage(resourceKey, limit), limit };
   }
 
@@ -24803,7 +24828,7 @@ REGLES DE SPECIFICITE ABSOLUE pour themeOfWeek:
 - businessImpact doit nommer la consequence operationnelle concrete (depart, arret, sous-performance, escalade), pas un risque vague.`;
 
   // src/modules/Radar.jsx
-  function ModuleRadar({ data, onSave, subscription }) {
+  function ModuleRadar({ data, onSave, subscription, userEmail }) {
     let [radar, setRadar] = (0, import_react11.useState)(() => (data.radars || [])[0]?.radar || null), [loading, setLoading] = (0, import_react11.useState)(!1), [error, setError] = (0, import_react11.useState)(""), [done, setDone] = (0, import_react11.useState)({}), [week, setWeek] = (0, import_react11.useState)(0), [generatedPrompt, setGeneratedPrompt] = (0, import_react11.useState)(""), [actionFeedback, setActionFeedback] = (0, import_react11.useState)({}), rC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue, savedRadars = data.radars || [], buildContext = () => {
       let cases = (data.cases || []).filter(isCaseActive), meetings = (data.meetings || []).slice().reverse().slice(0, 15), signals = (data.signals || []).slice().reverse().slice(0, 10), prevPatterns = savedRadars[0]?.radar?.patternTracking, prevPatternsCtx = prevPatterns?.length ? `
 PATTERN TRACKING PRECEDENT (${fmtDate(savedRadars[0]?.savedAt) || "semaine precedente"}):
@@ -24867,7 +24892,7 @@ ${buildContext()}`, 3500), r = normalizeAIData(parsed);
         return delete n[idx], n;
       }), 3e3);
     }, convertToCase = (r, idx) => {
-      let cases = data.cases || [], check = checkUsage(subscription, "cases", cases.length);
+      let cases = data.cases || [], check = checkUsage(subscription, "cases", cases.length, userEmail);
       if (!check.allowed) {
         typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
         return;
@@ -26105,7 +26130,7 @@ ${similarBlock}`;
     })), lines.push(""), lines.push(sep), lines.push(`Export\xE9 depuis HRBP OS \u2014 ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`), lines.join(`
 `);
   }
-  function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription }) {
+  function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription, userEmail }) {
     let { t: t2 } = useT(), [view, setView] = (0, import_react13.useState)("list"), [form, setForm] = (0, import_react13.useState)({ ...EMPTY_FORM }), [editId, setEditId] = (0, import_react13.useState)(null), [detail, setDetail] = (0, import_react13.useState)(null), [copied, setCopied] = (0, import_react13.useState)(!1), [search, setSearch] = (0, import_react13.useState)(""), [filterStatus, setFilterStatus] = (0, import_react13.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react13.useState)(""), [filterArchived, setFilterArchived] = (0, import_react13.useState)("active"), [tasksByCase, setTasksByCase] = (0, import_react13.useState)({});
     (0, import_react13.useEffect)(() => {
       if (!focusCaseId) return;
@@ -26130,7 +26155,7 @@ ${similarBlock}`;
         return;
       }
       if (!editId) {
-        let check = checkUsage(subscription, "cases", allCases.length);
+        let check = checkUsage(subscription, "cases", allCases.length, userEmail);
         if (!check.allowed) {
           typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
           return;
@@ -26710,7 +26735,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     organization: "",
     title: ""
   });
-  function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription }) {
+  function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription, userEmail }) {
     let [view, setView] = (0, import_react14.useState)("list"), [complaint, setComplaint] = (0, import_react14.useState)(""), [context, setContext] = (0, import_react14.useState)(""), [parties, setParties] = (0, import_react14.useState)(""), [policy, setPolicy] = (0, import_react14.useState)(""), [evidence, setEvidence] = (0, import_react14.useState)(""), [invProvince, setInvProvince] = (0, import_react14.useState)("QC"), [invPrompt, setInvPrompt] = (0, import_react14.useState)(""), [activeTab, setActiveTab] = (0, import_react14.useState)("summary"), [caseData, setCaseData] = (0, import_react14.useState)(null), [error, setError] = (0, import_react14.useState)(""), [saved, setSaved] = (0, import_react14.useState)(!1), [gtab, setGtab] = (0, import_react14.useState)("complainant"), [people, setPeople] = (0, import_react14.useState)([]), [openInvId, setOpenInvId] = (0, import_react14.useState)(null), investigations = data.investigations || [], openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null, isDraftOpen = !!(openInv && openInv.status === "draft");
     (0, import_react14.useEffect)(() => {
       if (!focusInvestigationId) return;
@@ -26775,7 +26800,7 @@ ${evidence}` : ""
           return;
         }
       }
-      let check = checkUsage(subscription, "investigations", investigations.length);
+      let check = checkUsage(subscription, "investigations", investigations.length, userEmail);
       if (!check.allowed) {
         typeof window < "u" && typeof window.alert == "function" && window.alert(check.message), setError(check.message);
         return;
@@ -29692,7 +29717,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     ));
   }
   var DRAFT_KEY = "hrbpos_meeting_engine_draft";
-  function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription }) {
+  function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription, userEmail }) {
     let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react17.useState)("context"), [engineType, setEngineType] = (0, import_react17.useState)("1on1"), [niveau, setNiveau] = (0, import_react17.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react17.useState)({
       managerName: "",
       team: "",
@@ -29711,7 +29736,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       }
       return `ENQ-${year}-${rand3()}${Date.now().toString().slice(-2)}`;
     }, createDraftInvestigation = () => {
-      let invs = data.investigations || [], invCheck = checkUsage(subscription, "investigations", invs.length);
+      let invs = data.investigations || [], invCheck = checkUsage(subscription, "investigations", invs.length, userEmail);
       if (!invCheck.allowed) {
         typeof window < "u" && typeof window.alert == "function" && window.alert(invCheck.message);
         return;
@@ -29921,7 +29946,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         typeof localStorage < "u" && localStorage.removeItem(DRAFT_KEY);
       } catch {
       }
-      let meetingsQuota = checkUsage(subscription, "meetings", (data.meetings || []).length);
+      let meetingsQuota = checkUsage(subscription, "meetings", (data.meetings || []).length, userEmail);
       if (!meetingsQuota.allowed)
         typeof window < "u" && typeof window.alert == "function" && window.alert(meetingsQuota.message);
       else try {
@@ -30013,7 +30038,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       updatedAt: today
     }), createCaseFromCandidate = (cand) => {
       if (candidateActions[cand.id]) return;
-      let check = checkUsage(subscription, "cases", (data.cases || []).length);
+      let check = checkUsage(subscription, "cases", (data.cases || []).length, userEmail);
       if (!check.allowed) {
         typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
         return;
@@ -30025,7 +30050,7 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
     }, createAllCandidates = () => {
       let today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], pending = caseCandidates.filter((c) => !candidateActions[c.id]);
       if (pending.length === 0) return;
-      let existingCount = (data.cases || []).length, check = checkUsage(subscription, "cases", existingCount + pending.length - 1);
+      let existingCount = (data.cases || []).length, check = checkUsage(subscription, "cases", existingCount + pending.length - 1, userEmail);
       if (!check.allowed) {
         typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
         return;
@@ -31628,7 +31653,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
     return null;
   }
   function EngineTab(props) {
-    return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, subscription: props.subscription });
+    return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, subscription: props.subscription, userEmail: props.userEmail });
   }
   function ModuleMeetings(props) {
     let { t: t2 } = useT(), [tab, setTab] = (0, import_react18.useState)(() => {
@@ -35101,7 +35126,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         return;
       }
       if (!isSuperAdmin) {
-        let activeUsers = profiles.filter((p) => p.status === "approved").length, check = checkUsage(subscription, "users", activeUsers);
+        let activeUsers = profiles.filter((p) => p.status === "approved").length, check = checkUsage(subscription, "users", activeUsers, currentProfile?.email);
         if (!check.allowed) {
           setErrorMsg(check.message);
           return;
@@ -35562,7 +35587,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       window.location.assign(res.url);
     }, hasSubscription = state.status === "ready" && !!state.data?.subscription, hasStripeCustomer = hasSubscription && !!state.data?.subscription?.stripe_customer_id;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state, userEmail: currentProfile?.email }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         onClick: onStripeUpgrade,
@@ -35618,17 +35643,17 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       color: trialMsg.kind === "ok" ? C.em : C.red
     } }, trialMsg.text)));
   }
-  function BillingBody({ state }) {
+  function BillingBody({ state, userEmail }) {
     if (state.status === "loading")
       return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Chargement\u2026");
     if (state.status === "error")
       return state.reason === "no-client" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9.") : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red } }, "Erreur (", state.reason, ").");
     if (state.status !== "ready" || !state.data) return null;
     let { subscription, plan, usage } = state.data;
-    return subscription ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react23.default.createElement(BillingHeader, { subscription, plan }), /* @__PURE__ */ import_react23.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react23.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
+    return subscription ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react23.default.createElement(BillingHeader, { subscription, plan, userEmail }), /* @__PURE__ */ import_react23.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react23.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
   }
-  function BillingHeader({ subscription, plan }) {
-    let access = getBillingAccess(subscription), status = subscription.status || "\u2014", swatch = access.hasFullAccess ? C.em : C.amber, accessLabel = access.hasFullAccess ? "Acc\xE8s complet" : "Acc\xE8s limit\xE9";
+  function BillingHeader({ subscription, plan, userEmail }) {
+    let access = getBillingAccess(subscription, userEmail), status = subscription.status || "\u2014", swatch = access.hasFullAccess ? C.em : C.amber, accessLabel = access.hasFullAccess ? "Acc\xE8s complet" : "Acc\xE8s limit\xE9";
     return /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
@@ -36211,7 +36236,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       });
     }, []), handleSaveMeeting = (0, import_react24.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
-      let meetingCheck = checkUsage(userSubscription, "meetings", (data.meetings || []).length);
+      let meetingCheck = checkUsage(userSubscription, "meetings", (data.meetings || []).length, userProfile?.email);
       if (!meetingCheck.allowed) {
         typeof window < "u" && typeof window.alert == "function" && window.alert(meetingCheck.message);
         return;
@@ -36222,7 +36247,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch((err) => {
         console.warn("[supabase] saveMeetings threw:", err);
       }), caseEntry) {
-        let caseCheck = checkUsage(userSubscription, "cases", (data.cases || []).length);
+        let caseCheck = checkUsage(userSubscription, "cases", (data.cases || []).length, userProfile?.email);
         if (!caseCheck.allowed) {
           typeof window < "u" && typeof window.alert == "function" && window.alert(caseCheck.message);
           return;
@@ -36370,7 +36395,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     let isAdmin = !!(userProfile && userProfile.status === "approved" && (userProfile.role === "admin" || userProfile.role === "super_admin")), ADMIN_NAV_ENTRY = { id: "admin", icon: "\u{1F6E1}\uFE0F", label: "Admin", color: C.amber }, navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE, activeNav = [...NAV_MAIN, ...navMore].find((n) => n.id === module), navLabel = (n) => {
       let k = `nav.${n.id}`, v = t2(k);
       return v === k ? n.label : v;
-    }, safeModule = module === "admin" && !isAdmin ? "home" : module, gateModule = (hasSupabase && userProfile?.organization_id ? getBillingAccess(userSubscription) : { hasFullAccess: !0, isLimited: !1, status: null, reason: "billing_active" }).isLimited && safeModule !== "admin";
+    }, safeModule = module === "admin" && !isAdmin ? "home" : module, gateModule = (hasSupabase && userProfile?.organization_id ? getBillingAccess(userSubscription, userProfile?.email) : { hasFullAccess: !0, isLimited: !1, status: null, reason: "billing_active" }).isLimited && safeModule !== "admin";
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", height: "100vh", background: C.bg, fontFamily: "'DM Sans',sans-serif", color: C.text, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("style", null, FONTS), /* @__PURE__ */ React.createElement("style", null, `*{box-sizing:border-box}textarea,input,select{outline:none}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}.fadein{animation:fadeIn .2s ease both}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:${C.bg}}::-webkit-scrollbar-thumb{background:${C.borderL};border-radius:4px}`), /* @__PURE__ */ React.createElement("div", { style: {
       width: 200,
       background: C.surf,
@@ -36574,7 +36599,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           await signOut();
         }
       }
-    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();

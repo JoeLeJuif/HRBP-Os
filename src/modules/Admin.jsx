@@ -145,7 +145,7 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
     // operate across orgs whose subscription isn't the one loaded here).
     if (!isSuperAdmin) {
       const activeUsers = profiles.filter(p => p.status === "approved").length;
-      const check = checkUsage(subscription, "users", activeUsers);
+      const check = checkUsage(subscription, "users", activeUsers, currentProfile?.email);
       if (!check.allowed) {
         setErrorMsg(check.message);
         return;
@@ -833,7 +833,7 @@ function BillingPanel({ currentProfile }) {
         Plan, statut d'abonnement, limites et consommation. Lecture seule —
         Stripe sera branché dans une étape ultérieure.
       </div>
-      <BillingBody state={state}/>
+      <BillingBody state={state} userEmail={currentProfile?.email}/>
       {stripeEnabled && state.status === "ready" && (
         <div style={{ marginTop: 12 }}>
           <button onClick={onStripeUpgrade} disabled={stripeBusy}
@@ -883,7 +883,7 @@ function BillingPanel({ currentProfile }) {
   );
 }
 
-function BillingBody({ state }) {
+function BillingBody({ state, userEmail }) {
   if (state.status === "loading") {
     return <div style={{ fontSize: 12, color: C.textM }}>Chargement…</div>;
   }
@@ -904,15 +904,15 @@ function BillingBody({ state }) {
   }
   return (
     <div style={{ display:"flex", flexDirection:"column", gap: 10 }}>
-      <BillingHeader subscription={subscription} plan={plan}/>
+      <BillingHeader subscription={subscription} plan={plan} userEmail={userEmail}/>
       <BillingLimits plan={plan}/>
       <BillingUsage usage={usage} plan={plan}/>
     </div>
   );
 }
 
-function BillingHeader({ subscription, plan }) {
-  const access = getBillingAccess(subscription);
+function BillingHeader({ subscription, plan, userEmail }) {
+  const access = getBillingAccess(subscription, userEmail);
   const status = subscription.status || "—";
   const swatch = access.hasFullAccess ? C.em : C.amber;
   const accessLabel = access.hasFullAccess ? "Accès complet" : "Accès limité";

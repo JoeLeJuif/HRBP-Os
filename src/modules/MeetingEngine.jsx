@@ -425,7 +425,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t })
 // ── Draft persistence (prevents loss of 1:1 Engine questions on refresh) ────
 const DRAFT_KEY = 'hrbpos_meeting_engine_draft';
 
-export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription }) {
+export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription, userEmail }) {
   const { t } = useT();
 
   // ── State ────────────────────────────────────────────────────────────────
@@ -483,7 +483,7 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
   const createDraftInvestigation = () => {
     const invs = data.investigations || [];
     // Sprint 3 — Étape 4: plan quota check before creating a draft investigation.
-    const invCheck = checkUsage(subscription, "investigations", invs.length);
+    const invCheck = checkUsage(subscription, "investigations", invs.length, userEmail);
     if (!invCheck.allowed) {
       if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(invCheck.message);
       return;
@@ -764,7 +764,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     // exhausted its meeting quota. The 1:1 archive itself is unaffected so
     // historical work always stays saved; only the public Meetings Hub
     // copy is gated by the plan.
-    const meetingsQuota = checkUsage(subscription, "meetings", (data.meetings || []).length);
+    const meetingsQuota = checkUsage(subscription, "meetings", (data.meetings || []).length, userEmail);
     if (!meetingsQuota.allowed) {
       if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(meetingsQuota.message);
     } else try {
@@ -883,7 +883,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
   const createCaseFromCandidate = (cand) => {
     if (candidateActions[cand.id]) return;
     // Sprint 3 — Étape 4: plan quota check before promoting a candidate.
-    const check = checkUsage(subscription, "cases", (data.cases || []).length);
+    const check = checkUsage(subscription, "cases", (data.cases || []).length, userEmail);
     if (!check.allowed) {
       if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
       return;
@@ -906,7 +906,7 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     // entirely if the org can't absorb all pending candidates at once; the
     // user can fall back to individual creation up to the cap.
     const existingCount = (data.cases || []).length;
-    const check = checkUsage(subscription, "cases", existingCount + pending.length - 1);
+    const check = checkUsage(subscription, "cases", existingCount + pending.length - 1, userEmail);
     if (!check.allowed) {
       if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
       return;

@@ -540,7 +540,7 @@ function formatCaseForClipboard(c, data, tasks) {
   return lines.join("\n");
 }
 
-export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription }) {
+export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription, userEmail }) {
   const { t } = useT();
   const [view, setView] = useState("list"); // list | form | detail
   const [form, setForm] = useState({...EMPTY_FORM});
@@ -609,7 +609,7 @@ export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate
     if (editId && existingCase?.status === "archived") { setView("list"); setForm({...EMPTY_FORM}); setEditId(null); return; }
     // Sprint 3 — Étape 4: plan quota check on case creation only (edits skip).
     if (!editId) {
-      const check = checkUsage(subscription, "cases", allCases.length);
+      const check = checkUsage(subscription, "cases", allCases.length, userEmail);
       if (!check.allowed) {
         if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
         return;

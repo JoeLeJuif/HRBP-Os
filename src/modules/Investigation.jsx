@@ -235,7 +235,7 @@ const newPerson = (role="plaignant") => ({
   role, fullName:"", organization:"", title:"",
 });
 
-export default function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription }) {
+export default function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription, userEmail }) {
   const [view, setView] = useState("list"); // list | input | loading | case
   const [complaint, setComplaint] = useState("");
   const [context, setContext] = useState("");
@@ -345,7 +345,7 @@ ${evidence}` : "",
     // Sprint 3 — Étape 4: plan quota check before creating a brand-new
     // investigation (the in-place draft-promotion path above edits an
     // existing row and is unaffected).
-    const check = checkUsage(subscription, "investigations", investigations.length);
+    const check = checkUsage(subscription, "investigations", investigations.length, userEmail);
     if (!check.allowed) {
       if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
       setError(check.message);

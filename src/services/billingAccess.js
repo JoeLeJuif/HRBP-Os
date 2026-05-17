@@ -4,22 +4,35 @@
 // no emails, no suspension UI — those land in later steps. Pure function, no
 // side effects, no Supabase calls. Safe to import from anywhere.
 //
-//   getBillingAccess(subscription) → {
+//   getBillingAccess(subscription, userEmail?) → {
 //     hasFullAccess: boolean,
 //     isLimited:     boolean,
 //     status:        string | null,
-//     reason:        "billing_active" | "billing_limited",
+//     reason:        "billing_active" | "billing_limited" | "internal_free_user",
 //   }
 //
-//   hasFullBillingAccess(subscription) → boolean
+//   hasFullBillingAccess(subscription, userEmail?) → boolean
 //
 // Full access: status ∈ { "active", "trialing" }.
 // Anything else (past_due, unpaid, canceled, cancelled, incomplete,
 // incomplete_expired, null/undefined, unknown strings) → limited.
+//
+// Internal free users (see services/internalUsers.js) bypass all checks and
+// always return full access with status "internal_free".
+
+import { isInternalFreeUser } from "./internalUsers.js";
 
 const FULL_ACCESS_STATUSES = new Set(["active", "trialing"]);
 
-export function getBillingAccess(subscription) {
+export function getBillingAccess(subscription, userEmail = null) {
+  if (isInternalFreeUser(userEmail)) {
+    return {
+      hasFullAccess: true,
+      isLimited: false,
+      status: "internal_free",
+      reason: "internal_free_user",
+    };
+  }
   const raw = subscription && typeof subscription === "object"
     ? subscription.status
     : null;
@@ -33,6 +46,6 @@ export function getBillingAccess(subscription) {
   };
 }
 
-export function hasFullBillingAccess(subscription) {
-  return getBillingAccess(subscription).hasFullAccess;
+export function hasFullBillingAccess(subscription, userEmail = null) {
+  return getBillingAccess(subscription, userEmail).hasFullAccess;
 }

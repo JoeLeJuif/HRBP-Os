@@ -9,11 +9,15 @@
 //   - Otherwise resolved from `subscription.plan.code` (PostgREST embed) or
 //     `subscription.plan_code` fallback. Unknown / missing code → "trial".
 //   - `null` / `undefined` subscription → "trial".
+//   - Internal free users (see services/internalUsers.js) → "internal_free"
+//     (every resource unlimited), regardless of subscription state.
 //
 // Limits convention:
 //   - integer  → hard cap; current count must be strictly less than this to
 //                allow one more creation.
 //   - `null`   → unlimited; never blocks.
+
+import { isInternalFreeUser } from "./internalUsers.js";
 
 const UNLIMITED = null;
 
@@ -42,6 +46,12 @@ export const PLAN_LIMITS = {
     users:          UNLIMITED,
     investigations: UNLIMITED,
   },
+  internal_free: {
+    cases:          UNLIMITED,
+    meetings:       UNLIMITED,
+    users:          UNLIMITED,
+    investigations: UNLIMITED,
+  },
 };
 
 const RESOURCE_LABELS = {
@@ -53,7 +63,8 @@ const RESOURCE_LABELS = {
 
 const PLAN_KEYS = new Set(Object.keys(PLAN_LIMITS));
 
-export function resolvePlanKey(subscription) {
+export function resolvePlanKey(subscription, userEmail = null) {
+  if (isInternalFreeUser(userEmail)) return "internal_free";
   if (!subscription || typeof subscription !== "object") return "trial";
   if (subscription.status === "trialing") return "trial";
   const code = (subscription.plan && subscription.plan.code)
@@ -63,20 +74,20 @@ export function resolvePlanKey(subscription) {
   return "trial";
 }
 
-export function getPlanLimits(subscription) {
-  return PLAN_LIMITS[resolvePlanKey(subscription)] || PLAN_LIMITS.trial;
+export function getPlanLimits(subscription, userEmail = null) {
+  return PLAN_LIMITS[resolvePlanKey(subscription, userEmail)] || PLAN_LIMITS.trial;
 }
 
-export function getUsageLimit(subscription, resourceKey) {
-  const limits = getPlanLimits(subscription);
+export function getUsageLimit(subscription, resourceKey, userEmail = null) {
+  const limits = getPlanLimits(subscription, userEmail);
   if (Object.prototype.hasOwnProperty.call(limits, resourceKey)) {
     return limits[resourceKey];
   }
   return UNLIMITED;
 }
 
-export function isUsageAllowed(subscription, resourceKey, currentCount) {
-  const limit = getUsageLimit(subscription, resourceKey);
+export function isUsageAllowed(subscription, resourceKey, currentCount, userEmail = null) {
+  const limit = getUsageLimit(subscription, resourceKey, userEmail);
   if (limit === UNLIMITED) return true;
   const n = Number(currentCount);
   if (!Number.isFinite(n)) return true;
@@ -93,10 +104,10 @@ export function getLimitMessage(resourceKey, limit) {
 // Convenience wrapper for the typical "check before create" callsite. Returns
 // { allowed:true } when creation is permitted, or { allowed:false, message }
 // with a ready-to-display reason string when blocked.
-export function checkUsage(subscription, resourceKey, currentCount) {
-  if (isUsageAllowed(subscription, resourceKey, currentCount)) {
+export function checkUsage(subscription, resourceKey, currentCount, userEmail = null) {
+  if (isUsageAllowed(subscription, resourceKey, currentCount, userEmail)) {
     return { allowed: true };
   }
-  const limit = getUsageLimit(subscription, resourceKey);
+  const limit = getUsageLimit(subscription, resourceKey, userEmail);
   return { allowed: false, message: getLimitMessage(resourceKey, limit), limit };
 }
