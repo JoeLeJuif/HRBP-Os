@@ -16,6 +16,8 @@
 // to the browser. Errors surface generically to the UI; reasons are logged.
 
 import { createClient } from "@supabase/supabase-js";
+import { sendTransactionalEmail } from "./lib/email.js";
+import { welcomeTrialEmail } from "./lib/emailTemplates.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ||
@@ -221,6 +223,8 @@ export default async function handler(req, res) {
   }
 
   // ── 5. Provision Starter trialing subscription (14 days), no Stripe ───────
+  let trialSubscriptionId = null;
+  let trialEndsAtIso = null;
   try {
     const { data: plan, error: pErr } = await admin
       .from("plans")
@@ -233,17 +237,54 @@ export default async function handler(req, res) {
 
     const now = new Date();
     const trialEnds = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-    const { error: sErr } = await admin.from("subscriptions").insert({
-      organization_id: orgId,
-      plan_id: plan.id,
-      status: "trialing",
-      current_period_start: now.toISOString(),
-      trial_ends_at: trialEnds.toISOString(),
-    });
+    trialEndsAtIso = trialEnds.toISOString();
+    const { data: sub, error: sErr } = await admin
+      .from("subscriptions")
+      .insert({
+        organization_id: orgId,
+        plan_id: plan.id,
+        status: "trialing",
+        current_period_start: now.toISOString(),
+        trial_ends_at: trialEndsAtIso,
+      })
+      .select("id")
+      .maybeSingle();
     if (sErr && sErr.code !== "23505") throw sErr;
+    trialSubscriptionId = sub?.id || null;
   } catch (e) {
     // Non-fatal: onboarding finishes, billing can be repaired later by an admin.
     logEvent({ event: "subscription-create-failed", reason: e?.code || e?.message || "insert-error" });
+  }
+
+  // ── 5b. Welcome-trial email (best-effort; gated on new trial row) ─────────
+  // Only fires when the subscription INSERT actually produced a new row, so a
+  // re-run after an already-onboarded account (caught upstream by the allow-list
+  // short-circuit) or a duplicate-key race (23505) skips sending — no doubles.
+  if (trialSubscriptionId) {
+    try {
+      const tpl = welcomeTrialEmail({ firstName, trialEndsAt: trialEndsAtIso });
+      const result = await sendTransactionalEmail({
+        to: email,
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+        type: "welcome_trial",
+        metadata: {
+          organization_id: orgId,
+          subscription_id: trialSubscriptionId,
+          trial_end_date: trialEndsAtIso,
+        },
+      });
+      if (result?.ok) {
+        logEvent({ event: "welcome-trial-email-sent", subscription_id: trialSubscriptionId });
+      } else if (result?.skipped) {
+        logEvent({ event: "welcome-trial-email-skipped", reason: result.reason });
+      } else {
+        logEvent({ event: "welcome-trial-email-failed", reason: result?.error || "unknown" });
+      }
+    } catch (e) {
+      logEvent({ event: "welcome-trial-email-failed", reason: e?.message || "unexpected-error" });
+    }
   }
 
   // ── 6. Send magic link (best-effort; UI message stays generic either way) ─
