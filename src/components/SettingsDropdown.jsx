@@ -10,38 +10,53 @@ const ROLE_LABEL_KEYS = {
   hrbp: "settings.role.hrbp",
 };
 
-function MenuItem({ icon, label, onClick }) {
+function MenuItem({ icon, label, onClick, disabled = false, hint }) {
   const [hover, setHover] = useState(false);
   return (
     <button
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      aria-disabled={disabled || undefined}
       style={{
         display: "flex",
         alignItems: "center",
         gap: 10,
         width: "100%",
-        background: hover ? C.surfLL : "transparent",
+        background: disabled ? "transparent" : (hover ? C.surfLL : "transparent"),
         border: "none",
         borderRadius: 6,
         padding: "9px 12px",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         textAlign: "left",
-        color: C.text,
+        color: disabled ? C.textD : C.text,
         fontSize: 13,
         fontWeight: 500,
         fontFamily: "'DM Sans',sans-serif",
         transition: "background .12s",
+        opacity: disabled ? 0.55 : 1,
       }}
     >
       <span style={{ fontSize: 14, lineHeight: 1, width: 18, textAlign: "center" }}>{icon}</span>
-      <span>{label}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+      {hint && (
+        <span style={{
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+          color: C.textD,
+          background: C.surfLL,
+          border: `1px solid ${C.border}`,
+          borderRadius: 4,
+          padding: "2px 5px",
+        }}>{hint}</span>
+      )}
     </button>
   );
 }
 
-function ToggleGroup({ options, value, onChange }) {
+function ToggleGroup({ options, value, onChange, disabled = false }) {
   return (
     <div style={{ display: "flex", gap: 4 }}>
       {options.map((opt) => {
@@ -49,7 +64,8 @@ function ToggleGroup({ options, value, onChange }) {
         return (
           <button
             key={opt.value}
-            onClick={() => onChange?.(opt.value)}
+            onClick={disabled ? undefined : () => onChange?.(opt.value)}
+            aria-disabled={disabled || undefined}
             style={{
               flex: 1,
               padding: "5px 10px",
@@ -59,9 +75,10 @@ function ToggleGroup({ options, value, onChange }) {
               color: active ? C.em : C.textM,
               fontSize: 11,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: disabled ? "not-allowed" : "pointer",
               fontFamily: "'DM Sans',sans-serif",
               transition: "all .12s",
+              opacity: disabled ? 0.5 : 1,
             }}
           >
             {opt.label}
@@ -72,7 +89,7 @@ function ToggleGroup({ options, value, onChange }) {
   );
 }
 
-function SectionRow({ icon, label, children }) {
+function SectionRow({ icon, label, hint, children }) {
   return (
     <div style={{ padding: "8px 12px" }}>
       <div style={{
@@ -86,7 +103,20 @@ function SectionRow({ icon, label, children }) {
         letterSpacing: 0.2,
       }}>
         <span style={{ fontSize: 13, lineHeight: 1 }}>{icon}</span>
-        <span>{label}</span>
+        <span style={{ flex: 1 }}>{label}</span>
+        {hint && (
+          <span style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: 0.4,
+            textTransform: "uppercase",
+            color: C.textD,
+            background: C.surfLL,
+            border: `1px solid ${C.border}`,
+            borderRadius: 4,
+            padding: "2px 5px",
+          }}>{hint}</span>
+        )}
       </div>
       <div>{children}</div>
     </div>
@@ -102,8 +132,6 @@ export default function SettingsDropdown({
   onSignOut,
 }) {
   const { t, lang, setLang } = useT();
-  const [theme, setTheme] = useState("dark");
-  const [currency, setCurrency] = useState("CAD");
   const panelRef = useRef(null);
 
   useEffect(() => {
@@ -127,8 +155,27 @@ export default function SettingsDropdown({
   const roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role];
   const roleLabel = roleKey ? t(roleKey) : t("settings.role.admin");
   const email = userProfile?.email || "";
+  const comingSoon = t("settings.comingSoon");
 
-  const goAdmin = () => { onClose?.(); onNavigateAdmin?.(); };
+  const scrollToAnchor = (id) => {
+    if (typeof document === "undefined") return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const goUsers = () => {
+    onClose?.();
+    onNavigateAdmin?.();
+    scrollToAnchor("admin-users");
+  };
+  const goPermissions = () => {
+    onClose?.();
+    onNavigateAdmin?.();
+    scrollToAnchor("admin-permissions");
+  };
+  const doLogout = async () => { onClose?.(); await onSignOut?.(); };
 
   return (
     <div
@@ -184,13 +231,15 @@ export default function SettingsDropdown({
 
       {/* Menu items */}
       <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        <MenuItem icon="⚙️" label={t("settings.item.settings")}    onClick={goAdmin} />
-        <MenuItem icon="👥" label={t("settings.item.users")}       onClick={goAdmin} />
-        <MenuItem icon="🔐" label={t("settings.item.permissions")} onClick={goAdmin} />
+        <MenuItem icon="⚙️" label={t("settings.item.settings")}
+          disabled hint={comingSoon} />
+        <MenuItem icon="👥" label={t("settings.item.users")}       onClick={goUsers} />
+        <MenuItem icon="🔐" label={t("settings.item.permissions")} onClick={goPermissions} />
       </div>
 
       <div style={{ height: 1, background: C.border, margin: "6px 4px" }} />
 
+      {/* Language — in-place toggle, doesn't close the menu */}
       <SectionRow icon="🌐" label={t("settings.section.language")}>
         <ToggleGroup
           value={lang}
@@ -199,10 +248,11 @@ export default function SettingsDropdown({
         />
       </SectionRow>
 
-      <SectionRow icon="🎨" label={t("settings.section.theme")}>
+      {/* Placeholders — non-interactive */}
+      <SectionRow icon="🎨" label={t("settings.section.theme")} hint={comingSoon}>
         <ToggleGroup
-          value={theme}
-          onChange={setTheme}
+          disabled
+          value="dark"
           options={[
             { value: "dark",  label: t("settings.theme.dark") },
             { value: "light", label: t("settings.theme.light") },
@@ -210,15 +260,15 @@ export default function SettingsDropdown({
         />
       </SectionRow>
 
-      <SectionRow icon="💰" label={t("settings.section.currency")}>
+      <SectionRow icon="💰" label={t("settings.section.currency")} hint={comingSoon}>
         <ToggleGroup
-          value={currency}
-          onChange={setCurrency}
+          disabled
+          value="CAD"
           options={[{ value: "CAD", label: "CAD" }, { value: "USD", label: "USD" }]}
         />
       </SectionRow>
 
-      <SectionRow icon="🕒" label={t("settings.section.timezone")}>
+      <SectionRow icon="🕒" label={t("settings.section.timezone")} hint={comingSoon}>
         <div style={{
           padding: "6px 10px",
           background: C.surfLL,
@@ -244,11 +294,7 @@ export default function SettingsDropdown({
           {t("settings.version")}: {APP_VERSION}
         </span>
       </div>
-      <MenuItem
-        icon="🚪"
-        label={t("settings.logout")}
-        onClick={async () => { onClose?.(); await onSignOut?.(); }}
-      />
+      <MenuItem icon="🚪" label={t("settings.logout")} onClick={doLogout} />
     </div>
   );
 }

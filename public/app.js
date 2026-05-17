@@ -466,6 +466,7 @@ ${LEGAL_GUARDRAIL}`;
       "settings.version": "Version",
       "settings.logout": "Sign out",
       "settings.title": "Settings",
+      "settings.comingSoon": "Coming soon",
       // ── Common UI / buttons ───────────────────────────────────────────────
       "common.province": "Province",
       "common.more": "More",
@@ -552,9 +553,6 @@ ${LEGAL_GUARDRAIL}`;
       "admin.role.hrbp": "HRBP",
       "admin.revokedBadge": "Access revoked",
       "admin.noOrganization": "no organization",
-      "admin.preferences.title": "Preferences",
-      "admin.preferences.language": "Language",
-      "admin.preferences.session": "Session",
       // ── Home / dashboard ──────────────────────────────────────────────────
       "home.kpi.activeCases": "Active Cases",
       "home.kpi.overdueReviews": "Overdue Reviews",
@@ -1661,6 +1659,7 @@ It will be removed from active lists but kept in the history.`,
       "settings.version": "Version",
       "settings.logout": "D\xE9connexion",
       "settings.title": "Param\xE8tres",
+      "settings.comingSoon": "Bient\xF4t",
       // ── Common UI / buttons ───────────────────────────────────────────────
       "common.province": "Province",
       "common.more": "Plus",
@@ -1747,9 +1746,6 @@ It will be removed from active lists but kept in the history.`,
       "admin.role.hrbp": "HRBP",
       "admin.revokedBadge": "Acc\xE8s r\xE9voqu\xE9",
       "admin.noOrganization": "aucune organisation",
-      "admin.preferences.title": "Pr\xE9f\xE9rences",
-      "admin.preferences.language": "Langue",
-      "admin.preferences.session": "Session",
       // ── Home / dashboard ──────────────────────────────────────────────────
       "home.kpi.activeCases": "Dossiers actifs",
       "home.kpi.overdueReviews": "Suivis en retard",
@@ -21279,44 +21275,58 @@ Do not translate employee names, case notes, job titles, or user-entered content
     super_admin: "settings.role.super_admin",
     hrbp: "settings.role.hrbp"
   };
-  function MenuItem({ icon, label, onClick }) {
+  function MenuItem({ icon, label, onClick, disabled = !1, hint }) {
     let [hover, setHover] = (0, import_react3.useState)(!1);
     return /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick,
+        onClick: disabled ? void 0 : onClick,
         onMouseEnter: () => setHover(!0),
         onMouseLeave: () => setHover(!1),
+        "aria-disabled": disabled || void 0,
         style: {
           display: "flex",
           alignItems: "center",
           gap: 10,
           width: "100%",
-          background: hover ? C.surfLL : "transparent",
+          background: disabled ? "transparent" : hover ? C.surfLL : "transparent",
           border: "none",
           borderRadius: 6,
           padding: "9px 12px",
-          cursor: "pointer",
+          cursor: disabled ? "not-allowed" : "pointer",
           textAlign: "left",
-          color: C.text,
+          color: disabled ? C.textD : C.text,
           fontSize: 13,
           fontWeight: 500,
           fontFamily: "'DM Sans',sans-serif",
-          transition: "background .12s"
+          transition: "background .12s",
+          opacity: disabled ? 0.55 : 1
         }
       },
       /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, lineHeight: 1, width: 18, textAlign: "center" } }, icon),
-      /* @__PURE__ */ React.createElement("span", null, label)
+      /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }, label),
+      hint && /* @__PURE__ */ React.createElement("span", { style: {
+        fontSize: 9,
+        fontWeight: 700,
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
+        color: C.textD,
+        background: C.surfLL,
+        border: `1px solid ${C.border}`,
+        borderRadius: 4,
+        padding: "2px 5px"
+      } }, hint)
     );
   }
-  function ToggleGroup({ options, value, onChange }) {
+  function ToggleGroup({ options, value, onChange, disabled = !1 }) {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, options.map((opt) => {
       let active = opt.value === value;
       return /* @__PURE__ */ React.createElement(
         "button",
         {
           key: opt.value,
-          onClick: () => onChange?.(opt.value),
+          onClick: disabled ? void 0 : () => onChange?.(opt.value),
+          "aria-disabled": disabled || void 0,
           style: {
             flex: 1,
             padding: "5px 10px",
@@ -21326,16 +21336,17 @@ Do not translate employee names, case notes, job titles, or user-entered content
             color: active ? C.em : C.textM,
             fontSize: 11,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: disabled ? "not-allowed" : "pointer",
             fontFamily: "'DM Sans',sans-serif",
-            transition: "all .12s"
+            transition: "all .12s",
+            opacity: disabled ? 0.5 : 1
           }
         },
         opt.label
       );
     }));
   }
-  function SectionRow({ icon, label, children }) {
+  function SectionRow({ icon, label, hint, children }) {
     return /* @__PURE__ */ React.createElement("div", { style: { padding: "8px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: {
       display: "flex",
       alignItems: "center",
@@ -21345,7 +21356,17 @@ Do not translate employee names, case notes, job titles, or user-entered content
       marginBottom: 6,
       fontWeight: 600,
       letterSpacing: 0.2
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, icon), /* @__PURE__ */ React.createElement("span", null, label)), /* @__PURE__ */ React.createElement("div", null, children));
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, icon), /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }, label), hint && /* @__PURE__ */ React.createElement("span", { style: {
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: C.textD,
+      background: C.surfLL,
+      border: `1px solid ${C.border}`,
+      borderRadius: 4,
+      padding: "2px 5px"
+    } }, hint)), /* @__PURE__ */ React.createElement("div", null, children));
   }
   function SettingsDropdown({
     open,
@@ -21355,7 +21376,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
     onNavigateAdmin,
     onSignOut
   }) {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [theme, setTheme] = (0, import_react3.useState)("dark"), [currency, setCurrency] = (0, import_react3.useState)("CAD"), panelRef = (0, import_react3.useRef)(null);
+    let { t: t2, lang, setLang: setLang2 } = useT(), panelRef = (0, import_react3.useRef)(null);
     if ((0, import_react3.useEffect)(() => {
       if (!open) return;
       let handler = (e) => {
@@ -21367,8 +21388,17 @@ Do not translate employee names, case notes, job titles, or user-entered content
         document.removeEventListener("mousedown", handler), document.removeEventListener("keydown", escHandler);
       };
     }, [open, onClose, anchorRef]), !open) return null;
-    let roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role], roleLabel = t2(roleKey || "settings.role.admin"), email = userProfile?.email || "", goAdmin = () => {
-      onClose?.(), onNavigateAdmin?.();
+    let roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role], roleLabel = t2(roleKey || "settings.role.admin"), email = userProfile?.email || "", comingSoon = t2("settings.comingSoon"), scrollToAnchor = (id) => {
+      typeof document > "u" || requestAnimationFrame(() => {
+        let el = document.getElementById(id);
+        el && el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }, goUsers = () => {
+      onClose?.(), onNavigateAdmin?.(), scrollToAnchor("admin-users");
+    }, goPermissions = () => {
+      onClose?.(), onNavigateAdmin?.(), scrollToAnchor("admin-permissions");
+    }, doLogout = async () => {
+      onClose?.(), await onSignOut?.();
     };
     return /* @__PURE__ */ React.createElement(
       "div",
@@ -21409,7 +21439,15 @@ Do not translate employee names, case notes, job titles, or user-entered content
         padding: "2px 6px",
         letterSpacing: 0.3
       } }, roleLabel))),
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1 } }, /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u2699\uFE0F", label: t2("settings.item.settings"), onClick: goAdmin }), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F465}", label: t2("settings.item.users"), onClick: goAdmin }), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F510}", label: t2("settings.item.permissions"), onClick: goAdmin })),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1 } }, /* @__PURE__ */ React.createElement(
+        MenuItem,
+        {
+          icon: "\u2699\uFE0F",
+          label: t2("settings.item.settings"),
+          disabled: !0,
+          hint: comingSoon
+        }
+      ), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F465}", label: t2("settings.item.users"), onClick: goUsers }), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F510}", label: t2("settings.item.permissions"), onClick: goPermissions })),
       /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 4px" } }),
       /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F310}", label: t2("settings.section.language") }, /* @__PURE__ */ React.createElement(
         ToggleGroup,
@@ -21419,26 +21457,26 @@ Do not translate employee names, case notes, job titles, or user-entered content
           options: [{ value: "en", label: "EN" }, { value: "fr", label: "FR" }]
         }
       )),
-      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F3A8}", label: t2("settings.section.theme") }, /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F3A8}", label: t2("settings.section.theme"), hint: comingSoon }, /* @__PURE__ */ React.createElement(
         ToggleGroup,
         {
-          value: theme,
-          onChange: setTheme,
+          disabled: !0,
+          value: "dark",
           options: [
             { value: "dark", label: t2("settings.theme.dark") },
             { value: "light", label: t2("settings.theme.light") }
           ]
         }
       )),
-      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F4B0}", label: t2("settings.section.currency") }, /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F4B0}", label: t2("settings.section.currency"), hint: comingSoon }, /* @__PURE__ */ React.createElement(
         ToggleGroup,
         {
-          value: currency,
-          onChange: setCurrency,
+          disabled: !0,
+          value: "CAD",
           options: [{ value: "CAD", label: "CAD" }, { value: "USD", label: "USD" }]
         }
       )),
-      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F552}", label: t2("settings.section.timezone") }, /* @__PURE__ */ React.createElement("div", { style: {
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F552}", label: t2("settings.section.timezone"), hint: comingSoon }, /* @__PURE__ */ React.createElement("div", { style: {
         padding: "6px 10px",
         background: C.surfLL,
         border: `1px solid ${C.border}`,
@@ -21454,16 +21492,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
         justifyContent: "space-between",
         padding: "6px 12px 4px"
       } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("settings.version"), ": ", APP_VERSION)),
-      /* @__PURE__ */ React.createElement(
-        MenuItem,
-        {
-          icon: "\u{1F6AA}",
-          label: t2("settings.logout"),
-          onClick: async () => {
-            onClose?.(), await onSignOut?.();
-          }
-        }
-      )
+      /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F6AA}", label: t2("settings.logout"), onClick: doLogout })
     );
   }
 
@@ -35317,7 +35346,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     hrbp: { bg: C.surfL, border: C.border, color: C.textM }
   };
   function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [profiles, setProfiles] = (0, import_react24.useState)([]), [organizations, setOrganizations] = (0, import_react24.useState)([]), [status, setStatus] = (0, import_react24.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react24.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react24.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react24.useState)({}), [busyById, setBusyById] = (0, import_react24.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react24.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react24.useCallback)(async () => {
+    let { t: t2 } = useT(), [profiles, setProfiles] = (0, import_react24.useState)([]), [organizations, setOrganizations] = (0, import_react24.useState)([]), [status, setStatus] = (0, import_react24.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react24.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react24.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react24.useState)({}), [busyById, setBusyById] = (0, import_react24.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react24.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react24.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
       if (!pRes.ok) {
@@ -35400,7 +35429,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       await applyPatch(profile, { organization_id: organization_id || null }, "\xC9chec d'assignation");
     };
-    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react24.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react24.default.createElement(PreferencesPanel, { lang, setLang: setLang2, currentProfile }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react24.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: refresh,
@@ -35447,7 +35476,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.approve")
       ));
-    })), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
+    })), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-permissions" }), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
       let busy = !!busyById[p.id], isSelf = p.id === currentProfile?.id;
       return /* @__PURE__ */ import_react24.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react24.default.createElement(
         RoleControl,
@@ -35595,63 +35624,6 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       return /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react24.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
     }
     return remote.reason === "no-client" ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.") : remote.reason === "not-authenticated" ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.") : /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
-  }
-  function PreferencesPanel({ lang, setLang: setLang2, currentProfile }) {
-    let { t: t2 } = useT(), [signingOut, setSigningOut] = (0, import_react24.useState)(!1), onLogout = async () => {
-      if (!signingOut) {
-        setSigningOut(!0);
-        try {
-          await signOut();
-        } finally {
-          setSigningOut(!1);
-        }
-      }
-    };
-    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.em } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t2("admin.preferences.title"))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.language")), /* @__PURE__ */ import_react24.default.createElement("div", { style: {
-      display: "flex",
-      gap: 4,
-      padding: "4px",
-      background: C.surfL,
-      borderRadius: 8,
-      border: `1px solid ${C.border}`
-    } }, SUPPORTED_LANGS.map((l) => /* @__PURE__ */ import_react24.default.createElement(
-      "button",
-      {
-        key: l,
-        onClick: () => setLang2(l),
-        style: {
-          padding: "5px 14px",
-          fontSize: 12,
-          fontWeight: 600,
-          background: lang === l ? C.em + "22" : "none",
-          border: `1px solid ${lang === l ? C.em + "55" : "transparent"}`,
-          borderRadius: 5,
-          cursor: "pointer",
-          color: lang === l ? C.em : C.textM,
-          fontFamily: "'DM Sans',sans-serif",
-          textTransform: "uppercase"
-        }
-      },
-      l
-    )))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.session")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, currentProfile?.email && /* @__PURE__ */ import_react24.default.createElement("span", { style: {
-      fontSize: 11,
-      color: C.textD,
-      fontFamily: "'DM Mono',monospace"
-    } }, currentProfile.email), /* @__PURE__ */ import_react24.default.createElement(
-      "button",
-      {
-        onClick: onLogout,
-        disabled: signingOut,
-        style: {
-          ...css.btn(C.red, !0),
-          padding: "6px 14px",
-          fontSize: 12,
-          opacity: signingOut ? 0.6 : 1,
-          cursor: signingOut ? "not-allowed" : "pointer"
-        }
-      },
-      signingOut ? "\u2026" : t2("common.logout")
-    )))));
   }
   function Section({ title, count, color, children }) {
     return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react24.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
