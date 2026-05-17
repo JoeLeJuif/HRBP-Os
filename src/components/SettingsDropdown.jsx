@@ -124,11 +124,31 @@ function SectionRow({ icon, label, hint, children }) {
   );
 }
 
+function GroupLabel({ children }) {
+  return (
+    <div style={{
+      padding: "10px 12px 2px",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: C.textD,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function Divider() {
+  return <div style={{ height: 1, background: C.border, margin: "6px 4px" }} />;
+}
+
 export default function SettingsDropdown({
   open,
   onClose,
   anchorRef,
   userProfile,
+  isAdmin = false,
   onNavigateAdmin,
   onSignOut,
   currentProvince,
@@ -156,27 +176,22 @@ export default function SettingsDropdown({
   if (!open) return null;
 
   const roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role];
-  const roleLabel = roleKey ? t(roleKey) : t("settings.role.admin");
+  const roleLabel = roleKey ? t(roleKey) : null;
   const email = userProfile?.email || "";
+  const displayName = userProfile?.full_name
+    || userProfile?.name
+    || userProfile?.email
+    || "Utilisateur";
   const comingSoon = t("settings.comingSoon");
 
-  const scrollToAnchor = (id) => {
+  const goUsersRoles = () => {
+    onClose?.();
+    onNavigateAdmin?.();
     if (typeof document === "undefined") return;
     requestAnimationFrame(() => {
-      const el = document.getElementById(id);
+      const el = document.getElementById("admin-users");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  };
-
-  const goUsers = () => {
-    onClose?.();
-    onNavigateAdmin?.();
-    scrollToAnchor("admin-users");
-  };
-  const goPermissions = () => {
-    onClose?.();
-    onNavigateAdmin?.();
-    scrollToAnchor("admin-permissions");
   };
   const doLogout = async () => { onClose?.(); await onSignOut?.(); };
 
@@ -197,52 +212,48 @@ export default function SettingsDropdown({
         fontFamily: "'DM Sans',sans-serif",
       }}
     >
-      {/* Profile header */}
+      {/* ── Profil ─────────────────────────────────────────────────────── */}
       <div style={{
         padding: "10px 12px 12px",
         borderBottom: `1px solid ${C.border}`,
-        marginBottom: 6,
+        marginBottom: 2,
       }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>
-          Samuel Chartrand
+          {displayName}
         </div>
-        <div style={{
-          fontSize: 11,
-          color: C.textM,
-          marginTop: 3,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}>
-          {email}
-        </div>
-        <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: C.amber,
-            background: C.amber + "22",
-            border: `1px solid ${C.amber}55`,
-            borderRadius: 4,
-            padding: "2px 6px",
-            letterSpacing: 0.3,
+        {email && email !== displayName && (
+          <div style={{
+            fontSize: 11,
+            color: C.textM,
+            marginTop: 3,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}>
-            {roleLabel}
-          </span>
-        </div>
+            {email}
+          </div>
+        )}
+        {roleLabel && (
+          <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: C.amber,
+              background: C.amber + "22",
+              border: `1px solid ${C.amber}55`,
+              borderRadius: 4,
+              padding: "2px 6px",
+              letterSpacing: 0.3,
+            }}>
+              {roleLabel}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Menu items */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        <MenuItem icon="⚙️" label={t("settings.item.settings")}
-          disabled hint={comingSoon} />
-        <MenuItem icon="👥" label={t("settings.item.users")}       onClick={goUsers} />
-        <MenuItem icon="🔐" label={t("settings.item.permissions")} onClick={goPermissions} />
-      </div>
+      {/* ── Préférences ────────────────────────────────────────────────── */}
+      <GroupLabel>{t("settings.section.preferences")}</GroupLabel>
 
-      <div style={{ height: 1, background: C.border, margin: "6px 4px" }} />
-
-      {/* Language — in-place toggle, doesn't close the menu */}
       <SectionRow icon="🌐" label={t("settings.section.language")}>
         <ToggleGroup
           value={lang}
@@ -251,7 +262,6 @@ export default function SettingsDropdown({
         />
       </SectionRow>
 
-      {/* Province par défaut — persisté dans profile.defaultProvince */}
       <SectionRow icon="📍" label={t("common.province")}>
         <ProvinceSelect
           value={currentProvince || "QC"}
@@ -260,7 +270,6 @@ export default function SettingsDropdown({
         />
       </SectionRow>
 
-      {/* Placeholders — non-interactive */}
       <SectionRow icon="🎨" label={t("settings.section.theme")} hint={comingSoon}>
         <ToggleGroup
           disabled
@@ -272,41 +281,24 @@ export default function SettingsDropdown({
         />
       </SectionRow>
 
-      <SectionRow icon="💰" label={t("settings.section.currency")} hint={comingSoon}>
-        <ToggleGroup
-          disabled
-          value="CAD"
-          options={[{ value: "CAD", label: "CAD" }, { value: "USD", label: "USD" }]}
-        />
-      </SectionRow>
+      {/* ── Administration (admin / super_admin only) ─────────────────── */}
+      {isAdmin && (
+        <>
+          <Divider />
+          <GroupLabel>{t("settings.section.administration")}</GroupLabel>
+          <MenuItem icon="👥" label={t("settings.item.usersRoles")} onClick={goUsersRoles} />
+        </>
+      )}
 
-      <SectionRow icon="🕒" label={t("settings.section.timezone")} hint={comingSoon}>
-        <div style={{
-          padding: "6px 10px",
-          background: C.surfLL,
-          border: `1px solid ${C.border}`,
-          borderRadius: 6,
-          fontSize: 11,
-          color: C.textM,
-          fontWeight: 500,
-        }}>
-          America/Toronto
-        </div>
-      </SectionRow>
-
-      {/* Footer */}
-      <div style={{ height: 1, background: C.border, margin: "6px 4px" }} />
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "6px 12px 4px",
-      }}>
+      {/* ── Compte ────────────────────────────────────────────────────── */}
+      <Divider />
+      <GroupLabel>{t("settings.section.account")}</GroupLabel>
+      <MenuItem icon="🚪" label={t("settings.logout")} onClick={doLogout} />
+      <div style={{ padding: "6px 12px 4px" }}>
         <span style={{ fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" }}>
           {t("settings.version")}: {APP_VERSION}
         </span>
       </div>
-      <MenuItem icon="🚪" label={t("settings.logout")} onClick={doLogout} />
     </div>
   );
 }

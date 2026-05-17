@@ -1066,38 +1066,37 @@ export default function HRBPOS() {
           <span style={{ fontSize:16 }}>{activeNav?.icon}</span>
           <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav ? navLabel(activeNav) : ""}</span>
           <div style={{ flex:1 }}/>
-          {isAdmin && (
-            <div style={{ position:"relative" }}>
-              <button
-                ref={settingsBtnRef}
-                onClick={() => setSettingsOpen(o => !o)}
-                title={t("settings.title")}
-                aria-haspopup="menu"
-                aria-expanded={settingsOpen}
-                style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                  background: (settingsOpen || module==="admin") ? C.amber+"22" : "none",
-                  border:`1px solid ${(settingsOpen || module==="admin") ? C.amber+"55" : C.border}`,
-                  borderRadius:8, padding:"6px 10px", cursor:"pointer",
-                  fontFamily:"'DM Sans',sans-serif",
-                  color: (settingsOpen || module==="admin") ? C.amber : C.textM,
-                  fontSize:14, lineHeight:1 }}>
-                <span style={{ fontSize:14, lineHeight:1 }}>⚙️</span>
-              </button>
-              <SettingsDropdown
-                open={settingsOpen}
-                onClose={() => setSettingsOpen(false)}
-                anchorRef={settingsBtnRef}
-                userProfile={userProfile}
-                onNavigateAdmin={() => setModule("admin")}
-                onSignOut={async () => { await supaSignOut(); }}
-                currentProvince={data.profile?.defaultProvince || "QC"}
-                onProvinceChange={(prov) => {
-                  const updated = { ...(data.profile||{}), defaultProvince: prov };
-                  handleSave("profile", updated);
-                }}
-              />
-            </div>
-          )}
+          <div style={{ position:"relative" }}>
+            <button
+              ref={settingsBtnRef}
+              onClick={() => setSettingsOpen(o => !o)}
+              title={t("settings.title")}
+              aria-haspopup="menu"
+              aria-expanded={settingsOpen}
+              style={{ display:"flex", alignItems:"center", justifyContent:"center",
+                background: (settingsOpen || (isAdmin && module==="admin")) ? C.amber+"22" : "none",
+                border:`1px solid ${(settingsOpen || (isAdmin && module==="admin")) ? C.amber+"55" : C.border}`,
+                borderRadius:8, padding:"6px 10px", cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif",
+                color: (settingsOpen || (isAdmin && module==="admin")) ? C.amber : C.textM,
+                fontSize:14, lineHeight:1 }}>
+              <span style={{ fontSize:14, lineHeight:1 }}>⚙️</span>
+            </button>
+            <SettingsDropdown
+              open={settingsOpen}
+              onClose={() => setSettingsOpen(false)}
+              anchorRef={settingsBtnRef}
+              userProfile={userProfile}
+              isAdmin={isAdmin}
+              onNavigateAdmin={() => setModule("admin")}
+              onSignOut={async () => { await supaSignOut(); }}
+              currentProvince={data.profile?.defaultProvince || "QC"}
+              onProvinceChange={(prov) => {
+                const updated = { ...(data.profile||{}), defaultProvince: prov };
+                handleSave("profile", updated);
+              }}
+            />
+          </div>
         </div>
 
         {/* Module area — stubs until migration complete */}

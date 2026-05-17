@@ -285,9 +285,8 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
             })}
           </Section>
 
-          {/* ── APPROVED ───────────────────────────────────────────────── */}
+          {/* ── APPROVED (users & roles) ───────────────────────────────── */}
           <div id="admin-users"/>
-          <div id="admin-permissions"/>
           <Section title={t("admin.section.approved")} count={buckets.approved.length} color={C.em}>
             {buckets.approved.length === 0 ? (
               <Empty>{t("admin.empty.approved")}</Empty>

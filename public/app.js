@@ -454,13 +454,12 @@ ${LEGAL_GUARDRAIL}`;
       "settings.role.admin": "Admin",
       "settings.role.super_admin": "Super admin",
       "settings.role.hrbp": "HRBP",
-      "settings.item.settings": "Settings",
-      "settings.item.users": "User management",
-      "settings.item.permissions": "Permissions",
+      "settings.section.preferences": "Preferences",
+      "settings.section.administration": "Administration",
+      "settings.section.account": "Account",
       "settings.section.language": "Language",
       "settings.section.theme": "Theme",
-      "settings.section.currency": "Currency",
-      "settings.section.timezone": "Time zone",
+      "settings.item.usersRoles": "Users & roles",
       "settings.theme.dark": "Dark",
       "settings.theme.light": "Light",
       "settings.version": "Version",
@@ -539,7 +538,7 @@ ${LEGAL_GUARDRAIL}`;
       "admin.subtitle": "Approve, disable and assign organizations.",
       "admin.connectedAs": "Signed in",
       "admin.section.pending": "Pending requests",
-      "admin.section.approved": "Approved users",
+      "admin.section.approved": "Users & roles",
       "admin.section.disabled": "Disabled users",
       "admin.section.other": "Other",
       "admin.empty.pending": "No pending requests.",
@@ -1647,13 +1646,12 @@ It will be removed from active lists but kept in the history.`,
       "settings.role.admin": "Admin",
       "settings.role.super_admin": "Super admin",
       "settings.role.hrbp": "HRBP",
-      "settings.item.settings": "Param\xE8tres",
-      "settings.item.users": "Gestion des utilisateurs",
-      "settings.item.permissions": "Permissions",
+      "settings.section.preferences": "Pr\xE9f\xE9rences",
+      "settings.section.administration": "Administration",
+      "settings.section.account": "Compte",
       "settings.section.language": "Langue",
       "settings.section.theme": "Th\xE8me",
-      "settings.section.currency": "Devise",
-      "settings.section.timezone": "Fuseau horaire",
+      "settings.item.usersRoles": "Utilisateurs & r\xF4les",
       "settings.theme.dark": "Sombre",
       "settings.theme.light": "Clair",
       "settings.version": "Version",
@@ -1732,7 +1730,7 @@ It will be removed from active lists but kept in the history.`,
       "admin.subtitle": "Approuver, d\xE9sactiver et assigner les organisations.",
       "admin.connectedAs": "Connect\xE9",
       "admin.section.pending": "Demandes en attente",
-      "admin.section.approved": "Utilisateurs approuv\xE9s",
+      "admin.section.approved": "Utilisateurs & r\xF4les",
       "admin.section.disabled": "Utilisateurs d\xE9sactiv\xE9s",
       "admin.section.other": "Autres",
       "admin.empty.pending": "Aucune demande en attente.",
@@ -21370,11 +21368,25 @@ Do not translate employee names, case notes, job titles, or user-entered content
       padding: "2px 5px"
     } }, hint)), /* @__PURE__ */ React.createElement("div", null, children));
   }
+  function GroupLabel({ children }) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      padding: "10px 12px 2px",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      color: C.textD
+    } }, children);
+  }
+  function Divider2() {
+    return /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 4px" } });
+  }
   function SettingsDropdown({
     open,
     onClose,
     anchorRef,
     userProfile,
+    isAdmin = !1,
     onNavigateAdmin,
     onSignOut,
     currentProvince,
@@ -21392,15 +21404,11 @@ Do not translate employee names, case notes, job titles, or user-entered content
         document.removeEventListener("mousedown", handler), document.removeEventListener("keydown", escHandler);
       };
     }, [open, onClose, anchorRef]), !open) return null;
-    let roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role], roleLabel = t2(roleKey || "settings.role.admin"), email = userProfile?.email || "", comingSoon = t2("settings.comingSoon"), scrollToAnchor = (id) => {
-      typeof document > "u" || requestAnimationFrame(() => {
-        let el = document.getElementById(id);
+    let roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role], roleLabel = roleKey ? t2(roleKey) : null, email = userProfile?.email || "", displayName = userProfile?.full_name || userProfile?.name || userProfile?.email || "Utilisateur", comingSoon = t2("settings.comingSoon"), goUsersRoles = () => {
+      onClose?.(), onNavigateAdmin?.(), !(typeof document > "u") && requestAnimationFrame(() => {
+        let el = document.getElementById("admin-users");
         el && el.scrollIntoView({ behavior: "smooth", block: "start" });
       });
-    }, goUsers = () => {
-      onClose?.(), onNavigateAdmin?.(), scrollToAnchor("admin-users");
-    }, goPermissions = () => {
-      onClose?.(), onNavigateAdmin?.(), scrollToAnchor("admin-permissions");
     }, doLogout = async () => {
       onClose?.(), await onSignOut?.();
     };
@@ -21425,15 +21433,15 @@ Do not translate employee names, case notes, job titles, or user-entered content
       /* @__PURE__ */ React.createElement("div", { style: {
         padding: "10px 12px 12px",
         borderBottom: `1px solid ${C.border}`,
-        marginBottom: 6
-      } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.2 } }, "Samuel Chartrand"), /* @__PURE__ */ React.createElement("div", { style: {
+        marginBottom: 2
+      } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.2 } }, displayName), email && email !== displayName && /* @__PURE__ */ React.createElement("div", { style: {
         fontSize: 11,
         color: C.textM,
         marginTop: 3,
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
-      } }, email), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
+      } }, email), roleLabel && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
         fontSize: 10,
         fontWeight: 700,
         color: C.amber,
@@ -21443,16 +21451,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
         padding: "2px 6px",
         letterSpacing: 0.3
       } }, roleLabel))),
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1 } }, /* @__PURE__ */ React.createElement(
-        MenuItem,
-        {
-          icon: "\u2699\uFE0F",
-          label: t2("settings.item.settings"),
-          disabled: !0,
-          hint: comingSoon
-        }
-      ), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F465}", label: t2("settings.item.users"), onClick: goUsers }), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F510}", label: t2("settings.item.permissions"), onClick: goPermissions })),
-      /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 4px" } }),
+      /* @__PURE__ */ React.createElement(GroupLabel, null, t2("settings.section.preferences")),
       /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F310}", label: t2("settings.section.language") }, /* @__PURE__ */ React.createElement(
         ToggleGroup,
         {
@@ -21480,31 +21479,11 @@ Do not translate employee names, case notes, job titles, or user-entered content
           ]
         }
       )),
-      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F4B0}", label: t2("settings.section.currency"), hint: comingSoon }, /* @__PURE__ */ React.createElement(
-        ToggleGroup,
-        {
-          disabled: !0,
-          value: "CAD",
-          options: [{ value: "CAD", label: "CAD" }, { value: "USD", label: "USD" }]
-        }
-      )),
-      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F552}", label: t2("settings.section.timezone"), hint: comingSoon }, /* @__PURE__ */ React.createElement("div", { style: {
-        padding: "6px 10px",
-        background: C.surfLL,
-        border: `1px solid ${C.border}`,
-        borderRadius: 6,
-        fontSize: 11,
-        color: C.textM,
-        fontWeight: 500
-      } }, "America/Toronto")),
-      /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 4px" } }),
-      /* @__PURE__ */ React.createElement("div", { style: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "6px 12px 4px"
-      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("settings.version"), ": ", APP_VERSION)),
-      /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F6AA}", label: t2("settings.logout"), onClick: doLogout })
+      isAdmin && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Divider2, null), /* @__PURE__ */ React.createElement(GroupLabel, null, t2("settings.section.administration")), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F465}", label: t2("settings.item.usersRoles"), onClick: goUsersRoles })),
+      /* @__PURE__ */ React.createElement(Divider2, null),
+      /* @__PURE__ */ React.createElement(GroupLabel, null, t2("settings.section.account")),
+      /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F6AA}", label: t2("settings.logout"), onClick: doLogout }),
+      /* @__PURE__ */ React.createElement("div", { style: { padding: "6px 12px 4px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("settings.version"), ": ", APP_VERSION))
     );
   }
 
@@ -35684,7 +35663,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.approve")
       ));
-    })), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-permissions" }), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
+    })), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
       let busy = !!busyById[p.id], isSelf = p.id === currentProfile?.id;
       return /* @__PURE__ */ import_react24.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react24.default.createElement(
         RoleControl,
@@ -36984,7 +36963,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       alignItems: "center",
       gap: 12,
       flexShrink: 0
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : ""), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), isAdmin && /* @__PURE__ */ React.createElement("div", { style: { position: "relative" } }, /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : ""), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative" } }, /* @__PURE__ */ React.createElement(
       "button",
       {
         ref: settingsBtnRef,
@@ -36996,13 +36975,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: settingsOpen || module === "admin" ? C.amber + "22" : "none",
-          border: `1px solid ${settingsOpen || module === "admin" ? C.amber + "55" : C.border}`,
+          background: settingsOpen || isAdmin && module === "admin" ? C.amber + "22" : "none",
+          border: `1px solid ${settingsOpen || isAdmin && module === "admin" ? C.amber + "55" : C.border}`,
           borderRadius: 8,
           padding: "6px 10px",
           cursor: "pointer",
           fontFamily: "'DM Sans',sans-serif",
-          color: settingsOpen || module === "admin" ? C.amber : C.textM,
+          color: settingsOpen || isAdmin && module === "admin" ? C.amber : C.textM,
           fontSize: 14,
           lineHeight: 1
         }
@@ -37015,6 +36994,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         onClose: () => setSettingsOpen(!1),
         anchorRef: settingsBtnRef,
         userProfile,
+        isAdmin,
         onNavigateAdmin: () => setModule("admin"),
         onSignOut: async () => {
           await signOut();
