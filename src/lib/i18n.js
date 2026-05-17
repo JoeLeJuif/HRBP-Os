@@ -121,6 +121,9 @@ const translations = {
     "admin.role.hrbp":        "HRBP",
     "admin.revokedBadge":     "Access revoked",
     "admin.noOrganization":   "no organization",
+    "admin.preferences.title":    "Preferences",
+    "admin.preferences.language": "Language",
+    "admin.preferences.session":  "Session",
 
     // ── Home / dashboard ──────────────────────────────────────────────────
     "home.kpi.activeCases":         "Active Cases",
@@ -1320,6 +1323,9 @@ const translations = {
     "admin.role.hrbp":        "HRBP",
     "admin.revokedBadge":     "Accès révoqué",
     "admin.noOrganization":   "aucune organisation",
+    "admin.preferences.title":    "Préférences",
+    "admin.preferences.language": "Langue",
+    "admin.preferences.session":  "Session",
 
     // ── Home / dashboard ──────────────────────────────────────────────────
     "home.kpi.activeCases":         "Dossiers actifs",

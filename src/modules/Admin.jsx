@@ -19,8 +19,9 @@ import {
   revokeUserAccess, restoreUserAccess, setUserRole, canActOnProfile,
   updateOrganizationStatus, ORG_STATUSES, isOrgStatusActive,
 } from "../lib/profile.js";
-import { useT } from "../lib/i18n.js";
+import { useT, SUPPORTED_LANGS } from "../lib/i18n.js";
 import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
+import { signOut as supaSignOut } from "../lib/auth.js";
 import { applyMergeToLocalStorage } from "../utils/identity.js";
 import { mergeIdentity } from "../services/identityMerge.js";
 import { buildOrganizationExport, downloadExportFile } from "../services/orgExport.js";
@@ -44,7 +45,7 @@ const ROLE_STYLE = {
 };
 
 export default function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
-  const { t } = useT();
+  const { t, lang, setLang } = useT();
   const [profiles, setProfiles]         = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [status, setStatus]             = useState("loading"); // loading | ready | error
@@ -235,6 +236,8 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
       {errorMsg && (
         <div style={{ fontSize: 12, color: C.red, marginBottom: 10 }}>{errorMsg}</div>
       )}
+
+      <PreferencesPanel lang={lang} setLang={setLang} currentProfile={currentProfile}/>
 
       <div style={{ display:"flex", justifyContent:"flex-end", marginBottom: 10 }}>
         <button onClick={refresh} disabled={status === "loading"}
@@ -501,6 +504,78 @@ function RemoteSummary({ remote }) {
   return (
     <div style={{ color: C.amber }}>
       Supabase: échec ({remote.reason || "erreur"}). Le rewrite local a quand même été appliqué.
+    </div>
+  );
+}
+
+// ── Preferences panel ────────────────────────────────────────────────────────
+// Hosts the language switcher (EN/FR) and the logout button. Previously these
+// lived in the sidebar footer; consolidated here so the sidebar stays focused
+// on navigation. Uses the same `setLang` from `useT()` and the same
+// `supaSignOut` the sidebar used — no new logic.
+function PreferencesPanel({ lang, setLang, currentProfile }) {
+  const { t } = useT();
+  const [signingOut, setSigningOut] = useState(false);
+  const onLogout = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await supaSignOut();
+    } finally {
+      setSigningOut(false);
+    }
+  };
+  return (
+    <div style={{ ...css.card, marginBottom: 14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.em }}/>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+          {t("admin.preferences.title")}
+        </div>
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap: 12 }}>
+        {/* Language */}
+        <div style={{ display:"flex", alignItems:"center", gap: 12, flexWrap:"wrap" }}>
+          <div style={{ fontSize: 12, color: C.textM, minWidth: 110 }}>
+            {t("admin.preferences.language")}
+          </div>
+          <div style={{ display:"flex", gap: 4,
+            padding:"4px", background:C.surfL, borderRadius:8,
+            border:`1px solid ${C.border}` }}>
+            {SUPPORTED_LANGS.map(l => (
+              <button key={l} onClick={() => setLang(l)}
+                style={{ padding:"5px 14px", fontSize:12, fontWeight:600,
+                  background: lang===l ? C.em+"22" : "none",
+                  border:`1px solid ${lang===l ? C.em+"55" : "transparent"}`,
+                  borderRadius:5, cursor:"pointer",
+                  color: lang===l ? C.em : C.textM,
+                  fontFamily:"'DM Sans',sans-serif", textTransform:"uppercase" }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Logout */}
+        <div style={{ display:"flex", alignItems:"center", gap: 12, flexWrap:"wrap" }}>
+          <div style={{ fontSize: 12, color: C.textM, minWidth: 110 }}>
+            {t("admin.preferences.session")}
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap: 10, flexWrap:"wrap" }}>
+            {currentProfile?.email && (
+              <span style={{ fontSize: 11, color: C.textD,
+                fontFamily:"'DM Mono',monospace" }}>
+                {currentProfile.email}
+              </span>
+            )}
+            <button onClick={onLogout} disabled={signingOut}
+              style={{ ...css.btn(C.red, true), padding:"6px 14px", fontSize: 12,
+                opacity: signingOut ? .6 : 1,
+                cursor: signingOut ? "not-allowed" : "pointer" }}>
+              {signingOut ? "…" : t("common.logout")}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

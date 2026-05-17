@@ -536,6 +536,9 @@ ${LEGAL_GUARDRAIL}`;
       "admin.role.hrbp": "HRBP",
       "admin.revokedBadge": "Access revoked",
       "admin.noOrganization": "no organization",
+      "admin.preferences.title": "Preferences",
+      "admin.preferences.language": "Language",
+      "admin.preferences.session": "Session",
       // ── Home / dashboard ──────────────────────────────────────────────────
       "home.kpi.activeCases": "Active Cases",
       "home.kpi.overdueReviews": "Overdue Reviews",
@@ -1712,6 +1715,9 @@ It will be removed from active lists but kept in the history.`,
       "admin.role.hrbp": "HRBP",
       "admin.revokedBadge": "Acc\xE8s r\xE9voqu\xE9",
       "admin.noOrganization": "aucune organisation",
+      "admin.preferences.title": "Pr\xE9f\xE9rences",
+      "admin.preferences.language": "Langue",
+      "admin.preferences.session": "Session",
       // ── Home / dashboard ──────────────────────────────────────────────────
       "home.kpi.activeCases": "Dossiers actifs",
       "home.kpi.overdueReviews": "Suivis en retard",
@@ -35084,7 +35090,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     hrbp: { bg: C.surfL, border: C.border, color: C.textM }
   };
   function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
-    let { t: t2 } = useT(), [profiles, setProfiles] = (0, import_react23.useState)([]), [organizations, setOrganizations] = (0, import_react23.useState)([]), [status, setStatus] = (0, import_react23.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react23.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react23.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react23.useState)({}), [busyById, setBusyById] = (0, import_react23.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react23.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react23.useCallback)(async () => {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [profiles, setProfiles] = (0, import_react23.useState)([]), [organizations, setOrganizations] = (0, import_react23.useState)([]), [status, setStatus] = (0, import_react23.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react23.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react23.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react23.useState)({}), [busyById, setBusyById] = (0, import_react23.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react23.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react23.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
       if (!pRes.ok) {
@@ -35167,7 +35173,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       await applyPatch(profile, { organization_id: organization_id || null }, "\xC9chec d'assignation");
     };
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react23.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react23.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react23.default.createElement(PreferencesPanel, { lang, setLang: setLang2, currentProfile }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement(
       "button",
       {
         onClick: refresh,
@@ -35362,6 +35368,63 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       return /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
     }
     return remote.reason === "no-client" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.") : remote.reason === "not-authenticated" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.") : /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
+  }
+  function PreferencesPanel({ lang, setLang: setLang2, currentProfile }) {
+    let { t: t2 } = useT(), [signingOut, setSigningOut] = (0, import_react23.useState)(!1), onLogout = async () => {
+      if (!signingOut) {
+        setSigningOut(!0);
+        try {
+          await signOut();
+        } finally {
+          setSigningOut(!1);
+        }
+      }
+    };
+    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.em } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t2("admin.preferences.title"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.language")), /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+      display: "flex",
+      gap: 4,
+      padding: "4px",
+      background: C.surfL,
+      borderRadius: 8,
+      border: `1px solid ${C.border}`
+    } }, SUPPORTED_LANGS.map((l) => /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        key: l,
+        onClick: () => setLang2(l),
+        style: {
+          padding: "5px 14px",
+          fontSize: 12,
+          fontWeight: 600,
+          background: lang === l ? C.em + "22" : "none",
+          border: `1px solid ${lang === l ? C.em + "55" : "transparent"}`,
+          borderRadius: 5,
+          cursor: "pointer",
+          color: lang === l ? C.em : C.textM,
+          fontFamily: "'DM Sans',sans-serif",
+          textTransform: "uppercase"
+        }
+      },
+      l
+    )))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.session")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, currentProfile?.email && /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+      fontSize: 11,
+      color: C.textD,
+      fontFamily: "'DM Mono',monospace"
+    } }, currentProfile.email), /* @__PURE__ */ import_react23.default.createElement(
+      "button",
+      {
+        onClick: onLogout,
+        disabled: signingOut,
+        style: {
+          ...css.btn(C.red, !0),
+          padding: "6px 14px",
+          fontSize: 12,
+          opacity: signingOut ? 0.6 : 1,
+          cursor: signingOut ? "not-allowed" : "pointer"
+        }
+      },
+      signingOut ? "\u2026" : t2("common.logout")
+    )))));
   }
   function Section({ title, count, color, children }) {
     return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
@@ -36392,7 +36455,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         height: "100vh",
         background: C.bg
       } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement" }));
-    let isAdmin = !!(userProfile && userProfile.status === "approved" && (userProfile.role === "admin" || userProfile.role === "super_admin")), ADMIN_NAV_ENTRY = { id: "admin", icon: "\u{1F6E1}\uFE0F", label: "Admin", color: C.amber }, navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE, activeNav = [...NAV_MAIN, ...navMore].find((n) => n.id === module), navLabel = (n) => {
+    let isAdmin = !!(userProfile && userProfile.status === "approved" && (userProfile.role === "admin" || userProfile.role === "super_admin")), ADMIN_NAV_ENTRY = { id: "admin", icon: "\u2699\uFE0F", label: "Admin", color: C.amber }, navMore = NAV_MORE, activeNav = (isAdmin ? [...NAV_MAIN, ...navMore, ADMIN_NAV_ENTRY] : [...NAV_MAIN, ...navMore]).find((n) => n.id === module), navLabel = (n) => {
       let k = `nav.${n.id}`, v = t2(k);
       return v === k ? n.label : v;
     }, safeModule = module === "admin" && !isAdmin ? "home" : module, gateModule = (hasSupabase && userProfile?.organization_id ? getBillingAccess(userSubscription, userProfile?.email) : { hasFullAccess: !0, isLimited: !1, status: null, reason: "billing_active" }).isLimited && safeModule !== "admin";
@@ -36509,36 +36572,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         style: { padding: "4px 6px", fontSize: 11, borderRadius: 5 }
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-      padding: "6px 8px",
-      marginBottom: 8,
-      background: C.surfL,
-      borderRadius: 8,
-      border: `1px solid ${C.border}`
-    } }, SUPPORTED_LANGS.map((l) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: l,
-        onClick: () => setLang2(l),
-        style: {
-          flex: 1,
-          padding: "4px 6px",
-          fontSize: 11,
-          fontWeight: 600,
-          background: lang === l ? C.em + "22" : "none",
-          border: `1px solid ${lang === l ? C.em + "55" : "transparent"}`,
-          borderRadius: 5,
-          cursor: "pointer",
-          color: lang === l ? C.em : C.textM,
-          fontFamily: "'DM Sans',sans-serif",
-          textTransform: "uppercase"
-        }
-      },
-      l
-    ))), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 } }, [
+    )), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 } }, [
       [t2("sidebar.stat.activeCases"), (data.cases || []).filter(isCaseActive).length, C.em],
       [t2("sidebar.stat.meetings"), (data.meetings || []).length, C.blue],
       [t2("sidebar.stat.signals"), (data.signals || []).length, C.purple],
@@ -36547,41 +36581,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       [t2("sidebar.stat.exits"), (data.exits || []).length, C.textM],
       [t2("sidebar.stat.investigations"), (data.investigations || []).length, INV_RED],
       [t2("sidebar.stat.briefs"), (data.briefs || []).length, C.amber]
-    ].map(([l, v, col], i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, l), /* @__PURE__ */ React.createElement(Mono, { color: col, size: 8 }, v)))), supaSession && /* @__PURE__ */ React.createElement("div", { style: {
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: `1px solid ${C.border}`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8
-    } }, /* @__PURE__ */ React.createElement("span", { style: {
+    ].map(([l, v, col], i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } }, /* @__PURE__ */ React.createElement(Mono, { color: C.textD, size: 8 }, l), /* @__PURE__ */ React.createElement(Mono, { color: col, size: 8 }, v)))), supaSession && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: {
       fontSize: 10,
       color: C.textD,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      flex: 1
-    } }, supaSession.user?.email || "session"), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: async () => {
-          await signOut();
-        },
-        style: {
-          background: "none",
-          border: `1px solid ${C.border}`,
-          borderRadius: 6,
-          padding: "4px 8px",
-          fontSize: 10,
-          color: C.textM,
-          cursor: "pointer",
-          fontFamily: "'DM Sans',sans-serif",
-          flexShrink: 0
-        }
-      },
-      t2("common.logout")
-    ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      display: "block"
+    } }, supaSession.user?.email || "session"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: {
       background: C.surf,
       borderBottom: `1px solid ${C.border}`,
       padding: "12px 24px",
@@ -36589,7 +36596,29 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       alignItems: "center",
       gap: 12,
       flexShrink: 0
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : "")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : ""), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), isAdmin && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setModule("admin"),
+        title: t2("nav.admin"),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: module === "admin" ? C.amber + "22" : "none",
+          border: `1px solid ${module === "admin" ? C.amber + "55" : C.border}`,
+          borderRadius: 8,
+          padding: "6px 12px",
+          cursor: "pointer",
+          fontFamily: "'DM Sans',sans-serif",
+          color: module === "admin" ? C.amber : C.textM,
+          fontSize: 12,
+          fontWeight: 600
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, lineHeight: 1 } }, "\u2699\uFE0F"),
+      /* @__PURE__ */ React.createElement("span", null, t2("nav.admin"))
+    )), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(
       LimitedAccessScreen,
       {
         subscription: userSubscription,

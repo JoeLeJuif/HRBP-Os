@@ -23,7 +23,7 @@ import { fetchSubscription, openBillingPortal, startStripeCheckout, isStripeConf
 import { getBillingAccess } from './services/billingAccess.js';
 import { checkUsage } from './services/planLimits.js';
 import { hasSupabase } from './lib/supabase.js';
-import { useT, SUPPORTED_LANGS } from './lib/i18n.js';
+import { useT } from './lib/i18n.js';
 import { isCaseActive } from './utils/caseStatus.js';
 
 // ── Component imports ────────────────────────────────────────────────────────
@@ -941,9 +941,12 @@ export default function HRBPOS() {
 
   const isAdmin = !!(userProfile && userProfile.status === "approved"
     && (userProfile.role === "admin" || userProfile.role === "super_admin"));
-  const ADMIN_NAV_ENTRY = { id:"admin", icon:"🛡️", label:"Admin", color:C.amber };
-  const navMore = isAdmin ? [...NAV_MORE, ADMIN_NAV_ENTRY] : NAV_MORE;
-  const allNav  = [...NAV_MAIN, ...navMore];
+  // Admin is no longer surfaced in the "Plus" sidebar — it now lives as a
+  // ⚙️ button in the top bar (right side). Kept in allNav for top-bar label
+  // resolution and safeModule routing.
+  const ADMIN_NAV_ENTRY = { id:"admin", icon:"⚙️", label:"Admin", color:C.amber };
+  const navMore = NAV_MORE;
+  const allNav  = isAdmin ? [...NAV_MAIN, ...navMore, ADMIN_NAV_ENTRY] : [...NAV_MAIN, ...navMore];
   const activeNav = allNav.find(n => n.id === module);
   // Falls back to the nav entry's literal label when no translation exists for that id.
   const navLabel = (n) => { const k = `nav.${n.id}`; const v = t(k); return v === k ? n.label : v; };
@@ -1038,23 +1041,6 @@ export default function HRBPOS() {
             style={{ padding:"4px 6px", fontSize:11, borderRadius:5 }}/>
         </div>
 
-        {/* Language switcher */}
-        <div style={{ display:"flex", alignItems:"center", gap:4,
-          padding:"6px 8px", marginBottom:8,
-          background:C.surfL, borderRadius:8, border:`1px solid ${C.border}` }}>
-          {SUPPORTED_LANGS.map(l => (
-            <button key={l} onClick={() => setLang(l)}
-              style={{ flex:1, padding:"4px 6px", fontSize:11, fontWeight:600,
-                background: lang===l ? C.em+"22" : "none",
-                border:`1px solid ${lang===l ? C.em+"55" : "transparent"}`,
-                borderRadius:5, cursor:"pointer",
-                color: lang===l ? C.em : C.textM,
-                fontFamily:"'DM Sans',sans-serif", textTransform:"uppercase" }}>
-              {l}
-            </button>
-          ))}
-        </div>
-
         {/* Footer stats */}
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginTop:8 }}>
           {[
@@ -1075,18 +1061,11 @@ export default function HRBPOS() {
         </div>
 
         {supaSession && (
-          <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.border}`,
-            display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+          <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.border}` }}>
             <span style={{ fontSize:10, color:C.textD, overflow:"hidden",
-              textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+              textOverflow:"ellipsis", whiteSpace:"nowrap", display:"block" }}>
               {supaSession.user?.email || "session"}
             </span>
-            <button onClick={async () => { await supaSignOut(); }}
-              style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6,
-                padding:"4px 8px", fontSize:10, color:C.textM, cursor:"pointer",
-                fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
-              {t("common.logout")}
-            </button>
           </div>
         )}
       </div>
@@ -1098,6 +1077,21 @@ export default function HRBPOS() {
           padding:"12px 24px", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
           <span style={{ fontSize:16 }}>{activeNav?.icon}</span>
           <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav ? navLabel(activeNav) : ""}</span>
+          <div style={{ flex:1 }}/>
+          {isAdmin && (
+            <button onClick={() => setModule("admin")}
+              title={t("nav.admin")}
+              style={{ display:"flex", alignItems:"center", gap:6,
+                background: module==="admin" ? C.amber+"22" : "none",
+                border:`1px solid ${module==="admin" ? C.amber+"55" : C.border}`,
+                borderRadius:8, padding:"6px 12px", cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif",
+                color: module==="admin" ? C.amber : C.textM,
+                fontSize:12, fontWeight:600 }}>
+              <span style={{ fontSize:14, lineHeight:1 }}>⚙️</span>
+              <span>{t("nav.admin")}</span>
+            </button>
+          )}
         </div>
 
         {/* Module area — stubs until migration complete */}
