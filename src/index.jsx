@@ -32,6 +32,7 @@ import Divider       from './components/Divider.jsx';
 import AILoader      from './components/AILoader.jsx';
 import ProvinceSelect from './components/ProvinceSelect.jsx';
 import Spotlight     from './components/Spotlight.jsx';
+import SettingsDropdown from './components/SettingsDropdown.jsx';
 // import Card         from './components/Card.jsx';
 // import Badge        from './components/Badge.jsx';
 // import ProvinceBadge  from './components/ProvinceBadge.jsx';
@@ -394,6 +395,8 @@ export default function HRBPOS() {
   const [focusSignalId,        setFocusSignalId]        = useState(null); // inter-module focus bridge
   const [focusDecisionId,      setFocusDecisionId]      = useState(null); // inter-module focus bridge
   const [focusInvestigationId, setFocusInvestigationId] = useState(null); // inter-module focus bridge
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsBtnRef = useRef(null);
 
   // Unified navigation handler — propagates focus IDs from ctx to root state, then switches module.
   const handleNavigate = useCallback((id, ctx) => {
@@ -1079,18 +1082,31 @@ export default function HRBPOS() {
           <span style={{ fontSize:15, fontWeight:600, color:C.text }}>{activeNav ? navLabel(activeNav) : ""}</span>
           <div style={{ flex:1 }}/>
           {isAdmin && (
-            <button onClick={() => setModule("admin")}
-              title={t("nav.admin")}
-              style={{ display:"flex", alignItems:"center", gap:6,
-                background: module==="admin" ? C.amber+"22" : "none",
-                border:`1px solid ${module==="admin" ? C.amber+"55" : C.border}`,
-                borderRadius:8, padding:"6px 12px", cursor:"pointer",
-                fontFamily:"'DM Sans',sans-serif",
-                color: module==="admin" ? C.amber : C.textM,
-                fontSize:12, fontWeight:600 }}>
-              <span style={{ fontSize:14, lineHeight:1 }}>⚙️</span>
-              <span>{t("nav.admin")}</span>
-            </button>
+            <div style={{ position:"relative" }}>
+              <button
+                ref={settingsBtnRef}
+                onClick={() => setSettingsOpen(o => !o)}
+                title={t("settings.title")}
+                aria-haspopup="menu"
+                aria-expanded={settingsOpen}
+                style={{ display:"flex", alignItems:"center", justifyContent:"center",
+                  background: (settingsOpen || module==="admin") ? C.amber+"22" : "none",
+                  border:`1px solid ${(settingsOpen || module==="admin") ? C.amber+"55" : C.border}`,
+                  borderRadius:8, padding:"6px 10px", cursor:"pointer",
+                  fontFamily:"'DM Sans',sans-serif",
+                  color: (settingsOpen || module==="admin") ? C.amber : C.textM,
+                  fontSize:14, lineHeight:1 }}>
+                <span style={{ fontSize:14, lineHeight:1 }}>⚙️</span>
+              </button>
+              <SettingsDropdown
+                open={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+                anchorRef={settingsBtnRef}
+                userProfile={userProfile}
+                onNavigateAdmin={() => setModule("admin")}
+                onSignOut={async () => { await supaSignOut(); }}
+              />
+            </div>
           )}
         </div>
 

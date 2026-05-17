@@ -33,7 +33,7 @@ var HRBPOSApp = (() => {
   __export(index_exports, {
     default: () => HRBPOS
   });
-  var import_react24 = __require("react");
+  var import_react25 = __require("react");
 
   // src/theme.js
   if (typeof document < "u" && !document.getElementById("hrbp-fonts")) {
@@ -450,6 +450,22 @@ ${LEGAL_GUARDRAIL}`;
       "nav.radar": "Org Radar",
       "nav.autoprompt": "AI Prompt",
       "nav.admin": "Admin",
+      // ── Settings dropdown ─────────────────────────────────────────────────
+      "settings.role.admin": "Admin",
+      "settings.role.super_admin": "Super admin",
+      "settings.role.hrbp": "HRBP",
+      "settings.item.settings": "Settings",
+      "settings.item.users": "User management",
+      "settings.item.permissions": "Permissions",
+      "settings.section.language": "Language",
+      "settings.section.theme": "Theme",
+      "settings.section.currency": "Currency",
+      "settings.section.timezone": "Time zone",
+      "settings.theme.dark": "Dark",
+      "settings.theme.light": "Light",
+      "settings.version": "Version",
+      "settings.logout": "Sign out",
+      "settings.title": "Settings",
       // ── Common UI / buttons ───────────────────────────────────────────────
       "common.province": "Province",
       "common.more": "More",
@@ -1629,6 +1645,22 @@ It will be removed from active lists but kept in the history.`,
       "nav.radar": "Radar Org",
       "nav.autoprompt": "Prompt IA",
       "nav.admin": "Admin",
+      // ── Settings dropdown ─────────────────────────────────────────────────
+      "settings.role.admin": "Admin",
+      "settings.role.super_admin": "Super admin",
+      "settings.role.hrbp": "HRBP",
+      "settings.item.settings": "Param\xE8tres",
+      "settings.item.users": "Gestion des utilisateurs",
+      "settings.item.permissions": "Permissions",
+      "settings.section.language": "Langue",
+      "settings.section.theme": "Th\xE8me",
+      "settings.section.currency": "Devise",
+      "settings.section.timezone": "Fuseau horaire",
+      "settings.theme.dark": "Sombre",
+      "settings.theme.light": "Clair",
+      "settings.version": "Version",
+      "settings.logout": "D\xE9connexion",
+      "settings.title": "Param\xE8tres",
       // ── Common UI / buttons ───────────────────────────────────────────────
       "common.province": "Province",
       "common.more": "Plus",
@@ -21240,8 +21272,203 @@ Do not translate employee names, case notes, job titles, or user-entered content
     ) : null;
   }
 
-  // src/modules/Workshop.jsx
+  // src/components/SettingsDropdown.jsx
   var import_react3 = __require("react");
+  var APP_VERSION = "v1.0.0", ROLE_LABEL_KEYS = {
+    admin: "settings.role.admin",
+    super_admin: "settings.role.super_admin",
+    hrbp: "settings.role.hrbp"
+  };
+  function MenuItem({ icon, label, onClick }) {
+    let [hover, setHover] = (0, import_react3.useState)(!1);
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick,
+        onMouseEnter: () => setHover(!0),
+        onMouseLeave: () => setHover(!1),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          background: hover ? C.surfLL : "transparent",
+          border: "none",
+          borderRadius: 6,
+          padding: "9px 12px",
+          cursor: "pointer",
+          textAlign: "left",
+          color: C.text,
+          fontSize: 13,
+          fontWeight: 500,
+          fontFamily: "'DM Sans',sans-serif",
+          transition: "background .12s"
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, lineHeight: 1, width: 18, textAlign: "center" } }, icon),
+      /* @__PURE__ */ React.createElement("span", null, label)
+    );
+  }
+  function ToggleGroup({ options, value, onChange }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4 } }, options.map((opt) => {
+      let active = opt.value === value;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: opt.value,
+          onClick: () => onChange?.(opt.value),
+          style: {
+            flex: 1,
+            padding: "5px 10px",
+            background: active ? C.em + "22" : C.surfLL,
+            border: `1px solid ${active ? C.em + "66" : C.border}`,
+            borderRadius: 6,
+            color: active ? C.em : C.textM,
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "'DM Sans',sans-serif",
+            transition: "all .12s"
+          }
+        },
+        opt.label
+      );
+    }));
+  }
+  function SectionRow({ icon, label, children }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { padding: "8px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 11,
+      color: C.textM,
+      marginBottom: 6,
+      fontWeight: 600,
+      letterSpacing: 0.2
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, lineHeight: 1 } }, icon), /* @__PURE__ */ React.createElement("span", null, label)), /* @__PURE__ */ React.createElement("div", null, children));
+  }
+  function SettingsDropdown({
+    open,
+    onClose,
+    anchorRef,
+    userProfile,
+    onNavigateAdmin,
+    onSignOut
+  }) {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [theme, setTheme] = (0, import_react3.useState)("dark"), [currency, setCurrency] = (0, import_react3.useState)("CAD"), panelRef = (0, import_react3.useRef)(null);
+    if ((0, import_react3.useEffect)(() => {
+      if (!open) return;
+      let handler = (e) => {
+        panelRef.current?.contains(e.target) || anchorRef?.current?.contains(e.target) || onClose?.();
+      }, escHandler = (e) => {
+        e.key === "Escape" && onClose?.();
+      };
+      return document.addEventListener("mousedown", handler), document.addEventListener("keydown", escHandler), () => {
+        document.removeEventListener("mousedown", handler), document.removeEventListener("keydown", escHandler);
+      };
+    }, [open, onClose, anchorRef]), !open) return null;
+    let roleKey = userProfile?.role && ROLE_LABEL_KEYS[userProfile.role], roleLabel = t2(roleKey || "settings.role.admin"), email = userProfile?.email || "", goAdmin = () => {
+      onClose?.(), onNavigateAdmin?.();
+    };
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        ref: panelRef,
+        style: {
+          position: "absolute",
+          top: "calc(100% + 8px)",
+          right: 0,
+          width: 320,
+          background: C.surf,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,.45)",
+          padding: 8,
+          zIndex: 1e3,
+          fontFamily: "'DM Sans',sans-serif"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: {
+        padding: "10px 12px 12px",
+        borderBottom: `1px solid ${C.border}`,
+        marginBottom: 6
+      } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.2 } }, "Samuel Chartrand"), /* @__PURE__ */ React.createElement("div", { style: {
+        fontSize: 11,
+        color: C.textM,
+        marginTop: 3,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      } }, email), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: C.amber,
+        background: C.amber + "22",
+        border: `1px solid ${C.amber}55`,
+        borderRadius: 4,
+        padding: "2px 6px",
+        letterSpacing: 0.3
+      } }, roleLabel))),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1 } }, /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u2699\uFE0F", label: t2("settings.item.settings"), onClick: goAdmin }), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F465}", label: t2("settings.item.users"), onClick: goAdmin }), /* @__PURE__ */ React.createElement(MenuItem, { icon: "\u{1F510}", label: t2("settings.item.permissions"), onClick: goAdmin })),
+      /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 4px" } }),
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F310}", label: t2("settings.section.language") }, /* @__PURE__ */ React.createElement(
+        ToggleGroup,
+        {
+          value: lang,
+          onChange: setLang2,
+          options: [{ value: "en", label: "EN" }, { value: "fr", label: "FR" }]
+        }
+      )),
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F3A8}", label: t2("settings.section.theme") }, /* @__PURE__ */ React.createElement(
+        ToggleGroup,
+        {
+          value: theme,
+          onChange: setTheme,
+          options: [
+            { value: "dark", label: t2("settings.theme.dark") },
+            { value: "light", label: t2("settings.theme.light") }
+          ]
+        }
+      )),
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F4B0}", label: t2("settings.section.currency") }, /* @__PURE__ */ React.createElement(
+        ToggleGroup,
+        {
+          value: currency,
+          onChange: setCurrency,
+          options: [{ value: "CAD", label: "CAD" }, { value: "USD", label: "USD" }]
+        }
+      )),
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F552}", label: t2("settings.section.timezone") }, /* @__PURE__ */ React.createElement("div", { style: {
+        padding: "6px 10px",
+        background: C.surfLL,
+        border: `1px solid ${C.border}`,
+        borderRadius: 6,
+        fontSize: 11,
+        color: C.textM,
+        fontWeight: 500
+      } }, "America/Toronto")),
+      /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.border, margin: "6px 4px" } }),
+      /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "6px 12px 4px"
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("settings.version"), ": ", APP_VERSION)),
+      /* @__PURE__ */ React.createElement(
+        MenuItem,
+        {
+          icon: "\u{1F6AA}",
+          label: t2("settings.logout"),
+          onClick: async () => {
+            onClose?.(), await onSignOut?.();
+          }
+        }
+      )
+    );
+  }
+
+  // src/modules/Workshop.jsx
+  var import_react4 = __require("react");
 
   // src/components/Badge.jsx
   function Badge({ label, color, size = 10 }) {
@@ -21703,7 +21930,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
     }
   ];
   function ModuleWorkshop() {
-    let [search, setSearch] = (0, import_react3.useState)(""), [activeCategory, setActiveCategory] = (0, import_react3.useState)("Tous"), [openId, setOpenId] = (0, import_react3.useState)(null), [activeSection, setActiveSection] = (0, import_react3.useState)({}), [coachId, setCoachId] = (0, import_react3.useState)(null), [coachSit, setCoachSit] = (0, import_react3.useState)({}), [coachCtx, setCoachCtx] = (0, import_react3.useState)({}), [coachMgr, setCoachMgr] = (0, import_react3.useState)({}), [coachPrompt, setCoachPrompt] = (0, import_react3.useState)({}), [coachCopied, setCoachCopied] = (0, import_react3.useState)(null), buildPrompt = (w, situation, context, manager) => {
+    let [search, setSearch] = (0, import_react4.useState)(""), [activeCategory, setActiveCategory] = (0, import_react4.useState)("Tous"), [openId, setOpenId] = (0, import_react4.useState)(null), [activeSection, setActiveSection] = (0, import_react4.useState)({}), [coachId, setCoachId] = (0, import_react4.useState)(null), [coachSit, setCoachSit] = (0, import_react4.useState)({}), [coachCtx, setCoachCtx] = (0, import_react4.useState)({}), [coachMgr, setCoachMgr] = (0, import_react4.useState)({}), [coachPrompt, setCoachPrompt] = (0, import_react4.useState)({}), [coachCopied, setCoachCopied] = (0, import_react4.useState)(null), buildPrompt = (w, situation, context, manager) => {
       let steps = w.structure.map((s, i) => `  ${s.step}: ${s.detail}`).join(`
 `), questions = w.questions.map((q) => `  - "${q}"`).join(`
 `), signals = w.signals.map((s) => `  - ${s}`).join(`
@@ -22055,7 +22282,7 @@ Be direct. Be challenging. Do not soften the diagnosis. I need to act, not refle
   }
 
   // src/modules/ConvKit.jsx
-  var import_react4 = __require("react");
+  var import_react5 = __require("react");
   var CONV_SITUATIONS = [
     {
       id: "avoidant-perf",
@@ -22443,7 +22670,7 @@ Pour chaque point identifi\xE9 \u2014 1 action correctrice concr\xE8te pour la s
     }
   ], CONV_CATEGORIES = ["Tous", "Performance", "Leadership", "R\xE9tention", "Relations de travail", "Strat\xE9gie RH", "D\xE9veloppement", "Gestion des absences"], PROMPT_CATEGORIES = ["Tous", "Strat\xE9gie hebdomadaire", "Coaching gestionnaires", "Situations difficiles", "R\xE9tention", "Gestion de la performance", "Communication ex\xE9cutive", "Diagnostic organisationnel"];
   function ModuleConvKit() {
-    let [tab, setTab] = (0, import_react4.useState)("conv"), [convCat, setConvCat] = (0, import_react4.useState)("Tous"), [promptCat, setPromptCat] = (0, import_react4.useState)("Tous"), [openId, setOpenId] = (0, import_react4.useState)(null), [copied, setCopied] = (0, import_react4.useState)(null), [search, setSearch] = (0, import_react4.useState)(""), copyText = (text, id) => {
+    let [tab, setTab] = (0, import_react5.useState)("conv"), [convCat, setConvCat] = (0, import_react5.useState)("Tous"), [promptCat, setPromptCat] = (0, import_react5.useState)("Tous"), [openId, setOpenId] = (0, import_react5.useState)(null), [copied, setCopied] = (0, import_react5.useState)(null), [search, setSearch] = (0, import_react5.useState)(""), copyText = (text, id) => {
       let ta = document.createElement("textarea");
       ta.value = text, ta.style.cssText = "position:fixed;opacity:0", document.body.appendChild(ta), ta.focus(), ta.select(), document.execCommand("copy"), document.body.removeChild(ta), setCopied(id), setTimeout(() => setCopied(null), 2e3);
     }, convFiltered = CONV_SITUATIONS.filter((s) => !(convCat !== "Tous" && s.category !== convCat || search && !s.title.toLowerCase().includes(search.toLowerCase()) && !s.situation.toLowerCase().includes(search.toLowerCase()))), promptFiltered = PROMPT_LIBRARY.filter((p) => !(promptCat !== "Tous" && p.category !== promptCat || search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.when.toLowerCase().includes(search.toLowerCase()))), CONV_FIELD_COLORS = {
@@ -22723,9 +22950,9 @@ CLOSING: ${s.closing}`;
   }
 
   // src/modules/Knowledge.jsx
-  var import_react5 = __require("react");
+  var import_react6 = __require("react");
   function ModuleKnowledge() {
-    let { t: t2 } = useT(), [activeSection, setActiveSection] = (0, import_react5.useState)("home"), [search, setSearch] = (0, import_react5.useState)(""), [openCards, setOpenCards] = (0, import_react5.useState)({}), [selected9, setSelected9] = (0, import_react5.useState)(null), [openKpi, setOpenKpi] = (0, import_react5.useState)(null), [openCase, setOpenCase] = (0, import_react5.useState)(null), [copiedCase, setCopiedCase] = (0, import_react5.useState)(null), [templateSel, setTemplateSel] = (0, import_react5.useState)(0), [templateCopied, setTemplateCopied] = (0, import_react5.useState)(!1), toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] })), SECTIONS = [
+    let { t: t2 } = useT(), [activeSection, setActiveSection] = (0, import_react6.useState)("home"), [search, setSearch] = (0, import_react6.useState)(""), [openCards, setOpenCards] = (0, import_react6.useState)({}), [selected9, setSelected9] = (0, import_react6.useState)(null), [openKpi, setOpenKpi] = (0, import_react6.useState)(null), [openCase, setOpenCase] = (0, import_react6.useState)(null), [copiedCase, setCopiedCase] = (0, import_react6.useState)(null), [templateSel, setTemplateSel] = (0, import_react6.useState)(0), [templateCopied, setTemplateCopied] = (0, import_react6.useState)(!1), toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] })), SECTIONS = [
       { id: "home", icon: "\u{1F3E0}", labelKey: "knowledge.section.home", group: "NAV" },
       { id: "rhythms", icon: "\u{1F5D3}", labelKey: "knowledge.section.rhythms", group: "foundations" },
       { id: "model", icon: "\u2699\uFE0F", labelKey: "knowledge.section.model", group: "foundations" },
@@ -23779,7 +24006,7 @@ Signature gestionnaire : _____ Date : _____`
   }
 
   // src/modules/Decisions.jsx
-  var import_react6 = __require("react");
+  var import_react7 = __require("react");
 
   // src/components/Card.jsx
   function Card({ children, style = {} }) {
@@ -23916,8 +24143,8 @@ Reponds UNIQUEMENT en JSON strict. Structure:
 Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les valeurs.`, user: ctx + retro };
   }
   function ModuleDecisions({ data, onSave, onNavigate, focusDecisionId, onClearFocus }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react6.useState)("list"), [form, setForm] = (0, import_react6.useState)({ ...EMPTY_DECISION }), [editId, setEditId] = (0, import_react6.useState)(null), [search, setSearch] = (0, import_react6.useState)(""), [filterStatus, setFilterStatus] = (0, import_react6.useState)("all"), [filterType, setFilterType] = (0, import_react6.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react6.useState)("all"), [aiLoading, setAiLoading] = (0, import_react6.useState)(""), [aiResult, setAiResult] = (0, import_react6.useState)(null), [aiError, setAiError] = (0, import_react6.useState)("");
-    (0, import_react6.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react7.useState)("list"), [form, setForm] = (0, import_react7.useState)({ ...EMPTY_DECISION }), [editId, setEditId] = (0, import_react7.useState)(null), [search, setSearch] = (0, import_react7.useState)(""), [filterStatus, setFilterStatus] = (0, import_react7.useState)("all"), [filterType, setFilterType] = (0, import_react7.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react7.useState)("all"), [aiLoading, setAiLoading] = (0, import_react7.useState)(""), [aiResult, setAiResult] = (0, import_react7.useState)(null), [aiError, setAiError] = (0, import_react7.useState)("");
+    (0, import_react7.useEffect)(() => {
       let pending = sessionStorage.getItem("hrbpos:pendingDecision");
       if (pending)
         try {
@@ -23944,7 +24171,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
           target && (setForm(migrateDecision(target)), setEditId(target.id), setView("form"));
         } catch {
         }
-    }, []), (0, import_react6.useEffect)(() => {
+    }, []), (0, import_react7.useEffect)(() => {
       if (!focusDecisionId) return;
       let target = (data.decisions || []).map(migrateDecision).find((d) => d.id === focusDecisionId);
       target && (setForm(target), setEditId(target.id), setView("form")), onClearFocus && onClearFocus();
@@ -24016,7 +24243,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
   }
 
   // src/modules/Signals.jsx
-  var import_react7 = __require("react");
+  var import_react8 = __require("react");
 
   // src/prompts/signals.js
   var SIGNAL_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Qu\xE9bec. Analyse le signal organisationnel fourni.
@@ -24032,8 +24259,8 @@ R\xE9ponds UNIQUEMENT en JSON strict. Structure :
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
   }
   function ModuleSignals({ data, onSave, focusSignalId, onClearFocus }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react7.useState)("list"), [signalText, setSignalText] = (0, import_react7.useState)(""), [source, setSource] = (0, import_react7.useState)("meeting"), [director, setDirector] = (0, import_react7.useState)(""), [loading, setLoading] = (0, import_react7.useState)(!1), [error, setError] = (0, import_react7.useState)(""), [result, setResult] = (0, import_react7.useState)(null), [saved, setSaved] = (0, import_react7.useState)(!1), [signalPrompt, setSignalPrompt] = (0, import_react7.useState)(""), [signalDate, setSignalDate] = (0, import_react7.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    (0, import_react7.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react8.useState)("list"), [signalText, setSignalText] = (0, import_react8.useState)(""), [source, setSource] = (0, import_react8.useState)("meeting"), [director, setDirector] = (0, import_react8.useState)(""), [loading, setLoading] = (0, import_react8.useState)(!1), [error, setError] = (0, import_react8.useState)(""), [result, setResult] = (0, import_react8.useState)(null), [saved, setSaved] = (0, import_react8.useState)(!1), [signalPrompt, setSignalPrompt] = (0, import_react8.useState)(""), [signalDate, setSignalDate] = (0, import_react8.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    (0, import_react8.useEffect)(() => {
       if (!focusSignalId) return;
       let target = (data.signals || []).find((s) => s.id === focusSignalId);
       target && (setResult(target.analysis), setSaved(!0), setView("result")), onClearFocus && onClearFocus();
@@ -24162,7 +24389,7 @@ ${signalText}`, parsed = await callAI(SIGNAL_SP, prompt);
   }
 
   // src/modules/Coaching.jsx
-  var import_react8 = __require("react");
+  var import_react9 = __require("react");
 
   // src/prompts/coaching.js
   var COACHING_SP = `Tu es expert en coaching manag\xE9rial, gestionnaires IT qu\xE9b\xE9cois. Samuel Chartrand, HRBP senior.
@@ -24184,7 +24411,7 @@ R\xE9ponds UNIQUEMENT en JSON strict.
     { id: "credibility", icon: "\u{1F3AF}", labelKey: "coaching.scenario.credibility", color: C.amber }
   ];
   function ModuleCoaching({ data, onSave }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react8.useState)("list"), [scenario, setScenario] = (0, import_react8.useState)("perf"), [managerDesc, setManagerDesc] = (0, import_react8.useState)(""), [situation, setSituation] = (0, import_react8.useState)(""), [loading, setLoading] = (0, import_react8.useState)(!1), [error, setError] = (0, import_react8.useState)(""), [result, setResult] = (0, import_react8.useState)(null), [saved, setSaved] = (0, import_react8.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react8.useState)(""), plans = data.coaching || [], generate = async () => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react9.useState)("list"), [scenario, setScenario] = (0, import_react9.useState)("perf"), [managerDesc, setManagerDesc] = (0, import_react9.useState)(""), [situation, setSituation] = (0, import_react9.useState)(""), [loading, setLoading] = (0, import_react9.useState)(!1), [error, setError] = (0, import_react9.useState)(""), [result, setResult] = (0, import_react9.useState)(null), [saved, setSaved] = (0, import_react9.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react9.useState)(""), plans = data.coaching || [], generate = async () => {
       if (situation.trim().length < 30) return;
       let sc = COACHING_SCENARIOS.find((s) => s.id === scenario), _coachProv = data.profile?.defaultProvince || "QC";
       setLoading(!0), setError(""), setResult(null), setSaved(!1);
@@ -24215,7 +24442,7 @@ ${situation}`);
   }
 
   // src/modules/Exit.jsx
-  var import_react9 = __require("react");
+  var import_react10 = __require("react");
 
   // src/prompts/exit.js
   var EXIT_SP = `Tu es un expert en ressources humaines sp\xE9cialis\xE9 en analyse d'entrevues de d\xE9part. Contexte l\xE9gal : Qu\xE9bec \u2014 LNT, CNESST, Loi 25, Charte QC.
@@ -24238,8 +24465,8 @@ R\xE8gles :
     return items?.length ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item == "string" ? item : item.text || JSON.stringify(item))))) : null;
   }
   function ModuleExit({ data, onSave, focusExitId, onClearFocus }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react9.useState)("list"), [exitDate, setExitDate] = (0, import_react9.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [notes, setNotes] = (0, import_react9.useState)(""), [employeeName, setEmployeeName] = (0, import_react9.useState)(""), [role, setRole] = (0, import_react9.useState)(""), [tenure, setTenure] = (0, import_react9.useState)(""), [seniority, setSeniority] = (0, import_react9.useState)(""), [team, setTeam] = (0, import_react9.useState)(""), [managerName, setManagerName] = (0, import_react9.useState)(""), [exitProvince, setExitProvince] = (0, import_react9.useState)("QC"), [generatedPrompt, setGeneratedPrompt] = (0, import_react9.useState)(""), [loading, setLoading] = (0, import_react9.useState)(!1), [error, setError] = (0, import_react9.useState)(""), [result, setResult] = (0, import_react9.useState)(null), [saved, setSaved] = (0, import_react9.useState)(!1);
-    (0, import_react9.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react10.useState)("list"), [exitDate, setExitDate] = (0, import_react10.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [notes, setNotes] = (0, import_react10.useState)(""), [employeeName, setEmployeeName] = (0, import_react10.useState)(""), [role, setRole] = (0, import_react10.useState)(""), [tenure, setTenure] = (0, import_react10.useState)(""), [seniority, setSeniority] = (0, import_react10.useState)(""), [team, setTeam] = (0, import_react10.useState)(""), [managerName, setManagerName] = (0, import_react10.useState)(""), [exitProvince, setExitProvince] = (0, import_react10.useState)("QC"), [generatedPrompt, setGeneratedPrompt] = (0, import_react10.useState)(""), [loading, setLoading] = (0, import_react10.useState)(!1), [error, setError] = (0, import_react10.useState)(""), [result, setResult] = (0, import_react10.useState)(null), [saved, setSaved] = (0, import_react10.useState)(!1);
+    (0, import_react10.useEffect)(() => {
       if (!focusExitId) return;
       let target = (data.exits || []).find((e) => e.id === focusExitId);
       target && (setResult(target.result), setSaved(!0), setView("result")), onClearFocus && onClearFocus();
@@ -24286,7 +24513,7 @@ ${notes}`);
   }
 
   // src/modules/Plan306090.jsx
-  var import_react10 = __require("react");
+  var import_react11 = __require("react");
 
   // src/prompts/plan306090.js
   var PLAN_306090_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Genere un plan 30-60-90 jours structure et pratique pour une transition de role.
@@ -24394,7 +24621,7 @@ Max 3 goals par phase. Max 3 actions par goal. Max 2 watchouts par phase. Max 2 
     } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: meta.color, fontWeight: 700 } }, "\u2713 Succ\xE8s: "), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, g.success)))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, (ph.watchouts || []).length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "SIGNAUX D'ALERTE HRBP"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 5 } }, ph.watchouts.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 7, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber, flexShrink: 0, fontSize: 11 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.55 } }, w))))), (ph.managerQuestions || []).length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "QUESTIONS GESTIONNAIRE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 5 } }, ph.managerQuestions.map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 7, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, flexShrink: 0, fontSize: 11 } }, "Q"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.55, fontStyle: "italic" } }, '"', q, '"'))))))) : null;
   }
   function Module306090({ data, onSave }) {
-    let plans = data.plans306090 || [], [view, setView] = (0, import_react10.useState)("list"), [tab, setTab] = (0, import_react10.useState)("summary"), [loading, setLoading] = (0, import_react10.useState)(!1), [error, setError] = (0, import_react10.useState)(""), [result, setResult] = (0, import_react10.useState)(null), [saved, setSaved] = (0, import_react10.useState)(!1), [copied, setCopied] = (0, import_react10.useState)(!1), [activePlan, setActivePlan] = (0, import_react10.useState)(null), [generatedPrompt, setGeneratedPrompt] = (0, import_react10.useState)(""), [form, setForm] = (0, import_react10.useState)({
+    let plans = data.plans306090 || [], [view, setView] = (0, import_react11.useState)("list"), [tab, setTab] = (0, import_react11.useState)("summary"), [loading, setLoading] = (0, import_react11.useState)(!1), [error, setError] = (0, import_react11.useState)(""), [result, setResult] = (0, import_react11.useState)(null), [saved, setSaved] = (0, import_react11.useState)(!1), [copied, setCopied] = (0, import_react11.useState)(!1), [activePlan, setActivePlan] = (0, import_react11.useState)(null), [generatedPrompt, setGeneratedPrompt] = (0, import_react11.useState)(""), [form, setForm] = (0, import_react11.useState)({
       employeeName: "",
       role: "",
       team: "",
@@ -24753,7 +24980,7 @@ ${(c.questions || []).map((q) => `  \u2022 ${q}`).join(`
   }
 
   // src/modules/Radar.jsx
-  var import_react11 = __require("react");
+  var import_react12 = __require("react");
 
   // src/prompts/radar.js
   var RADAR_SP = `Tu es un HRBP senior, groupe IT, Quebec. Tu analyses un portefeuille RH complet pour produire un radar organisationnel strategique.
@@ -24835,7 +25062,7 @@ REGLES DE SPECIFICITE ABSOLUE pour themeOfWeek:
 
   // src/modules/Radar.jsx
   function ModuleRadar({ data, onSave, subscription, userEmail }) {
-    let [radar, setRadar] = (0, import_react11.useState)(() => (data.radars || [])[0]?.radar || null), [loading, setLoading] = (0, import_react11.useState)(!1), [error, setError] = (0, import_react11.useState)(""), [done, setDone] = (0, import_react11.useState)({}), [week, setWeek] = (0, import_react11.useState)(0), [generatedPrompt, setGeneratedPrompt] = (0, import_react11.useState)(""), [actionFeedback, setActionFeedback] = (0, import_react11.useState)({}), rC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue, savedRadars = data.radars || [], buildContext = () => {
+    let [radar, setRadar] = (0, import_react12.useState)(() => (data.radars || [])[0]?.radar || null), [loading, setLoading] = (0, import_react12.useState)(!1), [error, setError] = (0, import_react12.useState)(""), [done, setDone] = (0, import_react12.useState)({}), [week, setWeek] = (0, import_react12.useState)(0), [generatedPrompt, setGeneratedPrompt] = (0, import_react12.useState)(""), [actionFeedback, setActionFeedback] = (0, import_react12.useState)({}), rC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue, savedRadars = data.radars || [], buildContext = () => {
       let cases = (data.cases || []).filter(isCaseActive), meetings = (data.meetings || []).slice().reverse().slice(0, 15), signals = (data.signals || []).slice().reverse().slice(0, 10), prevPatterns = savedRadars[0]?.radar?.patternTracking, prevPatternsCtx = prevPatterns?.length ? `
 PATTERN TRACKING PRECEDENT (${fmtDate(savedRadars[0]?.savedAt) || "semaine precedente"}):
 ${prevPatterns.map((p) => `- ${p.pattern}: ${p.count} ${p.unit} (${p.trend})`).join(`
@@ -25187,10 +25414,10 @@ Preuve: ` + r.evidence : ""}`,
   }
 
   // src/modules/Cases.jsx
-  var import_react13 = __require("react");
+  var import_react14 = __require("react");
 
   // src/components/CaseBrief.jsx
-  var import_react12 = __require("react");
+  var import_react13 = __require("react");
 
   // src/prompts/copilot.js
   var CASE_BRIEF_SP = `Tu es un HRBP senior (Qu\xE9bec / Canada, contexte IT corporatif).
@@ -25503,7 +25730,7 @@ ${similarBlock}`;
     }).filter(Boolean);
   }
   function CaseBrief({ caseObj, data }) {
-    let cached = briefCache.get(caseObj.id) || null, [text, setText] = (0, import_react12.useState)(cached), [loading, setLoading] = (0, import_react12.useState)(!1), [error, setError] = (0, import_react12.useState)(""), generate = () => {
+    let cached = briefCache.get(caseObj.id) || null, [text, setText] = (0, import_react13.useState)(cached), [loading, setLoading] = (0, import_react13.useState)(!1), [error, setError] = (0, import_react13.useState)(""), generate = () => {
       setText(null), setError(""), setLoading(!0), callAIText(CASE_BRIEF_SP, buildBriefUserMsg(caseObj, data), 1e3).then((t2) => {
         briefCache.set(caseObj.id, t2), setText(t2);
       }).catch((e) => setError(e.message || "Erreur brief")).finally(() => setLoading(!1));
@@ -25698,7 +25925,7 @@ ${similarBlock}`;
     return /* @__PURE__ */ React.createElement(Badge, { label: tRisk(t2, norm), color: r.color });
   }
   function CaseTasksPanel({ caseId, legacyFollowUp, onTasksChange }) {
-    let [tasks, setTasks] = (0, import_react13.useState)([]), [loading, setLoading] = (0, import_react13.useState)(!1), [unavailable, setUnavailable] = (0, import_react13.useState)(!1), [title, setTitle] = (0, import_react13.useState)(""), [dueDate, setDueDate] = (0, import_react13.useState)(""), [busy, setBusy] = (0, import_react13.useState)(!1), [error, setError] = (0, import_react13.useState)(""), refetch = async () => {
+    let [tasks, setTasks] = (0, import_react14.useState)([]), [loading, setLoading] = (0, import_react14.useState)(!1), [unavailable, setUnavailable] = (0, import_react14.useState)(!1), [title, setTitle] = (0, import_react14.useState)(""), [dueDate, setDueDate] = (0, import_react14.useState)(""), [busy, setBusy] = (0, import_react14.useState)(!1), [error, setError] = (0, import_react14.useState)(""), refetch = async () => {
       if (!caseId) return;
       setLoading(!0), setError("");
       let res = await listCaseTasks(caseId);
@@ -25708,7 +25935,7 @@ ${similarBlock}`;
       } else res.reason === "no-client" ? (setUnavailable(!0), setTasks([])) : (setError(res.reason || "load-failed"), setTasks([]));
       setLoading(!1);
     };
-    (0, import_react13.useEffect)(() => {
+    (0, import_react14.useEffect)(() => {
       refetch();
     }, [caseId]);
     let addTask = async () => {
@@ -26137,12 +26364,12 @@ ${similarBlock}`;
 `);
   }
   function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription, userEmail }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react13.useState)("list"), [form, setForm] = (0, import_react13.useState)({ ...EMPTY_FORM }), [editId, setEditId] = (0, import_react13.useState)(null), [detail, setDetail] = (0, import_react13.useState)(null), [copied, setCopied] = (0, import_react13.useState)(!1), [search, setSearch] = (0, import_react13.useState)(""), [filterStatus, setFilterStatus] = (0, import_react13.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react13.useState)(""), [filterArchived, setFilterArchived] = (0, import_react13.useState)("active"), [tasksByCase, setTasksByCase] = (0, import_react13.useState)({});
-    (0, import_react13.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react14.useState)("list"), [form, setForm] = (0, import_react14.useState)({ ...EMPTY_FORM }), [editId, setEditId] = (0, import_react14.useState)(null), [detail, setDetail] = (0, import_react14.useState)(null), [copied, setCopied] = (0, import_react14.useState)(!1), [search, setSearch] = (0, import_react14.useState)(""), [filterStatus, setFilterStatus] = (0, import_react14.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react14.useState)(""), [filterArchived, setFilterArchived] = (0, import_react14.useState)("active"), [tasksByCase, setTasksByCase] = (0, import_react14.useState)({});
+    (0, import_react14.useEffect)(() => {
       if (!focusCaseId) return;
       let target = (data.cases || []).find((c) => c.id === focusCaseId);
       target && (setDetail(target), setView("detail")), onClearFocus && onClearFocus();
-    }, [focusCaseId]), (0, import_react13.useEffect)(() => {
+    }, [focusCaseId]), (0, import_react14.useEffect)(() => {
       let cancelled = !1;
       return (async () => {
         let map = await fetchTasksForCases(data.cases || []);
@@ -26537,7 +26764,7 @@ ${similarBlock}`;
   }
 
   // src/modules/Investigation.jsx
-  var import_react14 = __require("react");
+  var import_react15 = __require("react");
 
   // src/prompts/investigation.js
   var INV_SP_1 = `Tu es un expert en enquetes en milieu de travail au Canada et au Quebec, forme selon les standards Rubin Thomlinson. Tu travailles avec Samuel Chartrand, HRBP senior.
@@ -26742,8 +26969,8 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     title: ""
   });
   function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription, userEmail }) {
-    let [view, setView] = (0, import_react14.useState)("list"), [complaint, setComplaint] = (0, import_react14.useState)(""), [context, setContext] = (0, import_react14.useState)(""), [parties, setParties] = (0, import_react14.useState)(""), [policy, setPolicy] = (0, import_react14.useState)(""), [evidence, setEvidence] = (0, import_react14.useState)(""), [invProvince, setInvProvince] = (0, import_react14.useState)("QC"), [invPrompt, setInvPrompt] = (0, import_react14.useState)(""), [activeTab, setActiveTab] = (0, import_react14.useState)("summary"), [caseData, setCaseData] = (0, import_react14.useState)(null), [error, setError] = (0, import_react14.useState)(""), [saved, setSaved] = (0, import_react14.useState)(!1), [gtab, setGtab] = (0, import_react14.useState)("complainant"), [people, setPeople] = (0, import_react14.useState)([]), [openInvId, setOpenInvId] = (0, import_react14.useState)(null), investigations = data.investigations || [], openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null, isDraftOpen = !!(openInv && openInv.status === "draft");
-    (0, import_react14.useEffect)(() => {
+    let [view, setView] = (0, import_react15.useState)("list"), [complaint, setComplaint] = (0, import_react15.useState)(""), [context, setContext] = (0, import_react15.useState)(""), [parties, setParties] = (0, import_react15.useState)(""), [policy, setPolicy] = (0, import_react15.useState)(""), [evidence, setEvidence] = (0, import_react15.useState)(""), [invProvince, setInvProvince] = (0, import_react15.useState)("QC"), [invPrompt, setInvPrompt] = (0, import_react15.useState)(""), [activeTab, setActiveTab] = (0, import_react15.useState)("summary"), [caseData, setCaseData] = (0, import_react15.useState)(null), [error, setError] = (0, import_react15.useState)(""), [saved, setSaved] = (0, import_react15.useState)(!1), [gtab, setGtab] = (0, import_react15.useState)("complainant"), [people, setPeople] = (0, import_react15.useState)([]), [openInvId, setOpenInvId] = (0, import_react15.useState)(null), investigations = data.investigations || [], openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null, isDraftOpen = !!(openInv && openInv.status === "draft");
+    (0, import_react15.useEffect)(() => {
       if (!focusInvestigationId) return;
       let target = investigations.find((x) => x.id === focusInvestigationId);
       target && (setCaseData(target.caseData || {}), setPeople(migratePeople(target.people)), setOpenInvId(target.id), setActiveTab("summary"), setSaved(!0), setView("case")), onClearFocus && onClearFocus();
@@ -27233,7 +27460,7 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
   }
 
   // src/modules/AutoPrompt.jsx
-  var import_react15 = __require("react");
+  var import_react16 = __require("react");
 
   // src/utils/situations.js
   var APE_TEMPLATES = {
@@ -27862,7 +28089,7 @@ Pr\xE9pare la conversation d'accueil:
 
   // src/modules/AutoPrompt.jsx
   function ModuleAutoPrompt({ data }) {
-    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react15.useState)(null), [mode, setMode] = (0, import_react15.useState)(null), [generated, setGenerated] = (0, import_react15.useState)(""), [copied, setCopied] = (0, import_react15.useState)(!1), [variant, setVariant] = (0, import_react15.useState)(null), situations = detectSituations(data), riskC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, generate = (sit, m, vari) => {
+    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react16.useState)(null), [mode, setMode] = (0, import_react16.useState)(null), [generated, setGenerated] = (0, import_react16.useState)(""), [copied, setCopied] = (0, import_react16.useState)(!1), [variant, setVariant] = (0, import_react16.useState)(null), situations = detectSituations(data), riskC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, generate = (sit, m, vari) => {
       let tpl2 = APE_TEMPLATES[sit.template];
       if (!tpl2) return;
       let base = tpl2[m]?.(sit.context) || "";
@@ -28075,7 +28302,7 @@ Reformule pour un VP ou CODIR. Langage business, pas RH. Enjeu organisationnel e
   }
 
   // src/modules/Meetings.jsx
-  var import_react18 = __require("react");
+  var import_react19 = __require("react");
 
   // src/prompts/meetings.js
   var MEETING_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Analyse le transcript de reunion et reponds UNIQUEMENT en JSON valide.
@@ -28170,7 +28397,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
 {"meetingTitle":"titre incluant semaine ou date","director":"facilitateur ou null","meetingDate":"date ou null","overallRisk":"Critique|Eleve|Modere|Faible","overallRiskRationale":"1 phrase sur l etat global du portefeuille","summary":["point 1","point 2","point 3"],"initiatives":[{"nom":"nom exact","categorie":"Performance|Talent|Culture|Processus RH|Leadership|Engagement|Technologie|Conformite|Autre","responsable":"nom ou role ou null","statut":"Planifiee|En cours|En attente|Bloquee|Completee|Annulee","avancement":"0-25%|25-50%|50-75%|75-100%|Complete","statutDetail":"ou on en est \u2014 1 phrase","dateDebut":"date ou null","dateCible":"date cible ou null","changementSemaine":"ce qui a avance cette semaine ou null","blocages":["blocage identifie"],"risque":"Eleve|Modere|Faible","risqueDetail":"enjeu principal ou null","prochainePriorite":"prochaine action avec owner","impactOrg":"impact attendu en 1 phrase"}],"blocagesGlobaux":[{"blocage":"description","initiativesConcernees":["nom"],"actionRequise":"action","owner":"HRBP|Direction|Gestionnaire|Externe"}],"decisions":[{"decision":"decision prise ou a prendre","initiative":"nom","echeance":"delai ou null"}],"actions":[{"action":"action concrete","delay":"Immediat|7 jours|30 jours|Continu","owner":"HRBP|Direction|Gestionnaire","initiative":"nom ou null"}],"metriques":{"total":0,"enCours":0,"bloquees":0,"completees":0,"aRisque":0},"questions":[{"question":"question pour prochain meeting","why":"objectif strategique","initiative":"nom ou null"}]}`;
 
   // src/modules/Prep1on1.jsx
-  var import_react16 = __require("react");
+  var import_react17 = __require("react");
   function RiskBadge3({ level }) {
     let r = RISK[level] || RISK.Mod\u00E9r\u00E9;
     return /* @__PURE__ */ React.createElement(Badge, { label: level, color: r.color });
@@ -28251,7 +28478,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     { value: "other", labelKey: "prep1on1.function.other" }
   ];
   function PrepObsSelector({ label, values }) {
-    let [selected, setSelected] = (0, import_react16.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
+    let [selected, setSelected] = (0, import_react17.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
       border: `1px solid ${selected === i ? colors[i] + "80" : C.border}`,
@@ -28284,7 +28511,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
   };
   function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react16.useState)("context"), [ctx, setCtx] = (0, import_react16.useState)({
+    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react17.useState)("context"), [ctx, setCtx] = (0, import_react17.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -28294,7 +28521,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
       activeCases: "",
       recentData: "",
       alerts: ""
-    }), [prep, setPrep] = (0, import_react16.useState)(null), [prepLoading, setPrepLoading] = (0, import_react16.useState)(!1), [prepAI, setPrepAI] = (0, import_react16.useState)(!1), [notes, setNotes] = (0, import_react16.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react16.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react16.useState)(null), [outputLoading, setOutputLoading] = (0, import_react16.useState)(!1), [copied, setCopied] = (0, import_react16.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react16.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react16.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react16.useState)(""), [sigExp, setSigExp] = (0, import_react16.useState)({}), [histExp, setHistExp] = (0, import_react16.useState)({}), managerHistory = (data.meetings || []).filter((m) => !m.director || !ctx.managerName ? !1 : normKey(m.director) === normKey(ctx.managerName)).sort((a, b) => Number(b.id) - Number(a.id)), lastMeeting = managerHistory[0] || null, lastAnalysis = lastMeeting?.analysis || null, histCount = managerHistory.length, buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
+    }), [prep, setPrep] = (0, import_react17.useState)(null), [prepLoading, setPrepLoading] = (0, import_react17.useState)(!1), [prepAI, setPrepAI] = (0, import_react17.useState)(!1), [notes, setNotes] = (0, import_react17.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react17.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react17.useState)(null), [outputLoading, setOutputLoading] = (0, import_react17.useState)(!1), [copied, setCopied] = (0, import_react17.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react17.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react17.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react17.useState)(""), [sigExp, setSigExp] = (0, import_react17.useState)({}), [histExp, setHistExp] = (0, import_react17.useState)({}), managerHistory = (data.meetings || []).filter((m) => !m.director || !ctx.managerName ? !1 : normKey(m.director) === normKey(ctx.managerName)).sort((a, b) => Number(b.id) - Number(a.id)), lastMeeting = managerHistory[0] || null, lastAnalysis = lastMeeting?.analysis || null, histCount = managerHistory.length, buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
       let a = m.analysis || {}, risks = toArray(a.risks).slice(0, 2).map((r) => r.risk || r).join("; "), actions = toArray(a.actions).slice(0, 3).map((ac) => ac.action || ac).join("; "), questions2 = toArray(a.questions).slice(0, 3).map((q) => q.question || q).join("; ");
       return `[Meeting ${i + 1} \u2014 ${m.savedAt}]
 Titre: ${a.meetingTitle || "N/D"} | Risque: ${a.overallRisk || "N/D"}
@@ -29269,7 +29496,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   }
 
   // src/modules/MeetingEngine.jsx
-  var import_react17 = __require("react");
+  var import_react18 = __require("react");
 
   // src/prompts/meetingEngine.js
   var MEETING_ENGINE_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
@@ -29545,7 +29772,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     }
   }, ENGINE_TYPES = ENGINE_MEETING_TYPES;
   function PrepObsSelector2({ label, values }) {
-    let [selected, setSelected] = (0, import_react17.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
+    let [selected, setSelected] = (0, import_react18.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
       border: `1px solid ${selected === i ? colors[i] + "80" : C.border}`,
@@ -29724,7 +29951,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
   }
   var DRAFT_KEY = "hrbpos_meeting_engine_draft";
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription, userEmail }) {
-    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react17.useState)("context"), [engineType, setEngineType] = (0, import_react17.useState)("1on1"), [niveau, setNiveau] = (0, import_react17.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react17.useState)({
+    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react18.useState)("context"), [engineType, setEngineType] = (0, import_react18.useState)("1on1"), [niveau, setNiveau] = (0, import_react18.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react18.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -29734,7 +29961,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       activeCases: "",
       recentData: "",
       alerts: ""
-    }), [managerManual, setManagerManual] = (0, import_react17.useState)(!1), [prep, setPrep] = (0, import_react17.useState)(null), [prepLoading, setPrepLoading] = (0, import_react17.useState)(!1), [prepAI, setPrepAI] = (0, import_react17.useState)(!1), [notes, setNotes] = (0, import_react17.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react17.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react17.useState)(null), [outputLoading, setOutputLoading] = (0, import_react17.useState)(!1), [copied, setCopied] = (0, import_react17.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react17.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react17.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react17.useState)(""), [sigExp, setSigExp] = (0, import_react17.useState)({}), [histExp, setHistExp] = (0, import_react17.useState)({}), [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react17.useState)(null), [caseCandidates, setCaseCandidates] = (0, import_react17.useState)([]), [candidateActions, setCandidateActions] = (0, import_react17.useState)({}), [showCandidatesModal, setShowCandidatesModal] = (0, import_react17.useState)(!1), [archivedMeetingId, setArchivedMeetingId] = (0, import_react17.useState)(null), needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId, makeExpressCaseId = (existing) => {
+    }), [managerManual, setManagerManual] = (0, import_react18.useState)(!1), [prep, setPrep] = (0, import_react18.useState)(null), [prepLoading, setPrepLoading] = (0, import_react18.useState)(!1), [prepAI, setPrepAI] = (0, import_react18.useState)(!1), [notes, setNotes] = (0, import_react18.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react18.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react18.useState)(null), [outputLoading, setOutputLoading] = (0, import_react18.useState)(!1), [copied, setCopied] = (0, import_react18.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react18.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react18.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react18.useState)(""), [sigExp, setSigExp] = (0, import_react18.useState)({}), [histExp, setHistExp] = (0, import_react18.useState)({}), [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react18.useState)(null), [caseCandidates, setCaseCandidates] = (0, import_react18.useState)([]), [candidateActions, setCandidateActions] = (0, import_react18.useState)({}), [showCandidatesModal, setShowCandidatesModal] = (0, import_react18.useState)(!1), [archivedMeetingId, setArchivedMeetingId] = (0, import_react18.useState)(null), needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId, makeExpressCaseId = (existing) => {
       let year = (/* @__PURE__ */ new Date()).getFullYear(), existingIds = new Set((existing || []).map((i) => i.caseId).filter(Boolean)), A = "ABCDEFGHJKLMNPQRSTUVWXYZ", rand3 = () => A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)];
       for (let i = 0; i < 40; i++) {
         let id = `ENQ-${year}-${rand3()}`;
@@ -29762,7 +29989,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       };
       onSave("investigations", [...invs, draft]), setLinkedInvestigationId(draft.id), console.info("[MeetingEngine] express investigation created", { id: draft.id, caseId: draft.caseId });
     };
-    (0, import_react17.useEffect)(() => {
+    (0, import_react18.useEffect)(() => {
       try {
         if (typeof sessionStorage > "u") return;
         let raw = sessionStorage.getItem("hrbpos:pendingMeetingContext");
@@ -29774,7 +30001,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
         bridge?.engineType && validTypes.includes(bridge.engineType) && setEngineType(bridge.engineType), bridge?.ctx && typeof bridge.ctx == "object" && (setCtx((p) => ({ ...p, ...bridge.ctx })), bridge.ctx.managerName && setManagerManual(!1)), setPTab("context");
       } catch {
       }
-    }, []), (0, import_react17.useEffect)(() => {
+    }, []), (0, import_react18.useEffect)(() => {
       try {
         if (typeof localStorage > "u") return;
         let raw = localStorage.getItem(DRAFT_KEY);
@@ -29784,7 +30011,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
         draft.prep && setPrep(draft.prep), typeof draft.prepAI == "boolean" && setPrepAI(draft.prepAI), draft.ctx && typeof draft.ctx == "object" && (setCtx((p) => ({ ...p, ...draft.ctx })), draft.ctx.managerName && setManagerManual(!1)), draft.notes && typeof draft.notes == "object" && setNotes((p) => ({ ...p, ...draft.notes })), draft.meetingAnalysis && typeof draft.meetingAnalysis == "object" && setMeetingAnalysis((p) => ({ ...p, ...draft.meetingAnalysis })), draft.output && setOutput(draft.output), draft.engineType && setEngineType(draft.engineType), draft.niveau && setNiveau(draft.niveau), draft.linkedInvestigationId && setLinkedInvestigationId(draft.linkedInvestigationId);
       } catch {
       }
-    }, []), (0, import_react17.useEffect)(() => {
+    }, []), (0, import_react18.useEffect)(() => {
       try {
         if (typeof localStorage > "u" || !(!!prep || !!output || Object.values(ctx).some((v) => typeof v == "string" && v.trim() !== "" && v !== "regular") || Object.values(notes).some((v) => typeof v == "string" && v.trim() !== "") || meetingAnalysis.transcript && meetingAnalysis.transcript.trim() !== "" || meetingAnalysis.keyPoints && meetingAnalysis.keyPoints.trim() !== "")) return;
         let draft = { prep, prepAI, ctx, notes, meetingAnalysis, output, engineType, niveau, linkedInvestigationId };
@@ -30833,8 +31060,8 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
     return items?.length ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item == "string" ? item : item.text || JSON.stringify(item))))) : null;
   }
   function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react18.useState)("list"), [transcript, setTranscript] = (0, import_react18.useState)(""), [meetingType, setMeetingType] = (0, import_react18.useState)("director"), [meetingProvince, setMeetingProvince] = (0, import_react18.useState)("QC"), [dirName, setDirName] = (0, import_react18.useState)(""), [context, setContext] = (0, import_react18.useState)(""), [loading, setLoading] = (0, import_react18.useState)(!1), [error, setError] = (0, import_react18.useState)(""), [result, setResult] = (0, import_react18.useState)(null), [saved, setSaved] = (0, import_react18.useState)(!1), [briefPrompt, setBriefPrompt] = (0, import_react18.useState)(""), [meetingPrompt, setMeetingPrompt] = (0, import_react18.useState)(""), [activeDir, setActiveDir] = (0, import_react18.useState)(null), [activeSession, setActiveSession] = (0, import_react18.useState)(null), [meetingDate, setMeetingDate] = (0, import_react18.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [meetingScope, setMeetingScope] = (0, import_react18.useState)("leader");
-    (0, import_react18.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react19.useState)("list"), [transcript, setTranscript] = (0, import_react19.useState)(""), [meetingType, setMeetingType] = (0, import_react19.useState)("director"), [meetingProvince, setMeetingProvince] = (0, import_react19.useState)("QC"), [dirName, setDirName] = (0, import_react19.useState)(""), [context, setContext] = (0, import_react19.useState)(""), [loading, setLoading] = (0, import_react19.useState)(!1), [error, setError] = (0, import_react19.useState)(""), [result, setResult] = (0, import_react19.useState)(null), [saved, setSaved] = (0, import_react19.useState)(!1), [briefPrompt, setBriefPrompt] = (0, import_react19.useState)(""), [meetingPrompt, setMeetingPrompt] = (0, import_react19.useState)(""), [activeDir, setActiveDir] = (0, import_react19.useState)(null), [activeSession, setActiveSession] = (0, import_react19.useState)(null), [meetingDate, setMeetingDate] = (0, import_react19.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [meetingScope, setMeetingScope] = (0, import_react19.useState)("leader");
+    (0, import_react19.useEffect)(() => {
       if (!focusMeetingId) return;
       let meetings2 = data.meetings || [];
       console.log("[focus]", focusMeetingId, meetings2.map((m) => m.id));
@@ -30915,7 +31142,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
       { id: "actions", icon: "\u{1F3AF}", label: t2("meetings.tab.actions") },
       { id: "questions", icon: "\u{1F4AC}", label: t2("meetings.tab.questions"), badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
       { id: "case", icon: "\u{1F4C2}", label: t2("meetings.tab.case") }
-    ], [tab, setTab] = (0, import_react18.useState)("summary"), [qsub, setQsub] = (0, import_react18.useState)("meeting"), [groupBy, setGroupBy] = (0, import_react18.useState)("director"), [editingMeta, setEditingMeta] = (0, import_react18.useState)(!1), [metaDraft, setMetaDraft] = (0, import_react18.useState)({});
+    ], [tab, setTab] = (0, import_react19.useState)("summary"), [qsub, setQsub] = (0, import_react19.useState)("meeting"), [groupBy, setGroupBy] = (0, import_react19.useState)("director"), [editingMeta, setEditingMeta] = (0, import_react19.useState)(!1), [metaDraft, setMetaDraft] = (0, import_react19.useState)({});
     if (view === "list") {
       let TYPE_META2 = {
         executif: { label: t2("meetings.type.executif").replace(/^[^\s]+\s/, ""), icon: "\u{1F3DB}", color: C.purple },
@@ -31662,7 +31889,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
     return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, subscription: props.subscription, userEmail: props.userEmail });
   }
   function ModuleMeetings(props) {
-    let { t: t2 } = useT(), [tab, setTab] = (0, import_react18.useState)(() => {
+    let { t: t2 } = useT(), [tab, setTab] = (0, import_react19.useState)(() => {
       try {
         if (typeof sessionStorage < "u" && sessionStorage.getItem("hrbpos:pendingMeetingContext"))
           return "engine";
@@ -31670,7 +31897,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
       }
       return "transcripts";
     });
-    (0, import_react18.useEffect)(() => {
+    (0, import_react19.useEffect)(() => {
       props.focusMeetingId && setTab("transcripts");
     }, [props.focusMeetingId]);
     let tabs = [
@@ -31695,7 +31922,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
   }
 
   // src/modules/Brief.jsx
-  var import_react19 = __require("react");
+  var import_react20 = __require("react");
 
   // src/prompts/brief.js
   var BRIEF_SP = `Tu es un HRBP senior expert, groupe IT corporatif, Quebec. Tu produis des briefings strategiques RH hebdomadaires pour Samuel Chartrand.
@@ -31746,15 +31973,15 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, label));
   }
   function ModuleBrief({ data, onSave }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react19.useState)("new"), [briefTab, setBriefTab] = (0, import_react19.useState)("brief"), [inputs, setInputs] = (0, import_react19.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" }), [recapSubTab, setRecapSubTab] = (0, import_react19.useState)("generate"), [sentRecapText, setSentRecapText] = (0, import_react19.useState)(""), [sentRecapSaved, setSentRecapSaved] = (0, import_react19.useState)(!1), [editingRecapId, setEditingRecapId] = (0, import_react19.useState)(null), [recapResult, setRecapResult] = (0, import_react19.useState)(null), [recapLoading, setRecapLoading] = (0, import_react19.useState)(!1), [recapError, setRecapError] = (0, import_react19.useState)(""), [copied, setCopied] = (0, import_react19.useState)(!1), [recapPrompt, setRecapPrompt] = (0, import_react19.useState)(""), [nwlSourceIdx, setNwlSourceIdx] = (0, import_react19.useState)(0), [nwlResult, setNwlResult] = (0, import_react19.useState)(null), [nwlLoading, setNwlLoading] = (0, import_react19.useState)(!1), [nwlError, setNwlError] = (0, import_react19.useState)(""), [nwlSaved, setNwlSaved] = (0, import_react19.useState)(!1), [nwlCopied, setNwlCopied] = (0, import_react19.useState)(!1), [nwlPrompt, setNwlPrompt] = (0, import_react19.useState)(""), [loading, setLoading] = (0, import_react19.useState)(!1), [error, setError] = (0, import_react19.useState)(""), [result, setResult] = (0, import_react19.useState)(null), [saved, setSaved] = (0, import_react19.useState)(!1), getWeekBounds = () => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react20.useState)("new"), [briefTab, setBriefTab] = (0, import_react20.useState)("brief"), [inputs, setInputs] = (0, import_react20.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" }), [recapSubTab, setRecapSubTab] = (0, import_react20.useState)("generate"), [sentRecapText, setSentRecapText] = (0, import_react20.useState)(""), [sentRecapSaved, setSentRecapSaved] = (0, import_react20.useState)(!1), [editingRecapId, setEditingRecapId] = (0, import_react20.useState)(null), [recapResult, setRecapResult] = (0, import_react20.useState)(null), [recapLoading, setRecapLoading] = (0, import_react20.useState)(!1), [recapError, setRecapError] = (0, import_react20.useState)(""), [copied, setCopied] = (0, import_react20.useState)(!1), [recapPrompt, setRecapPrompt] = (0, import_react20.useState)(""), [nwlSourceIdx, setNwlSourceIdx] = (0, import_react20.useState)(0), [nwlResult, setNwlResult] = (0, import_react20.useState)(null), [nwlLoading, setNwlLoading] = (0, import_react20.useState)(!1), [nwlError, setNwlError] = (0, import_react20.useState)(""), [nwlSaved, setNwlSaved] = (0, import_react20.useState)(!1), [nwlCopied, setNwlCopied] = (0, import_react20.useState)(!1), [nwlPrompt, setNwlPrompt] = (0, import_react20.useState)(""), [loading, setLoading] = (0, import_react20.useState)(!1), [error, setError] = (0, import_react20.useState)(""), [result, setResult] = (0, import_react20.useState)(null), [saved, setSaved] = (0, import_react20.useState)(!1), getWeekBounds = () => {
       let today = /* @__PURE__ */ new Date(), day = today.getDay(), monday = new Date(today);
       monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1)), monday.setHours(0, 0, 0, 0);
       let friday = new Date(monday);
       friday.setDate(monday.getDate() + 4), friday.setHours(23, 59, 59, 999);
       let toISO2 = (d) => d.toISOString().split("T")[0];
       return { start: toISO2(monday), end: toISO2(friday) };
-    }, [periodStart, setPeriodStart] = (0, import_react19.useState)(""), [periodEnd, setPeriodEnd] = (0, import_react19.useState)(""), briefs = data.briefs || [], [tasksByCase, setTasksByCase] = (0, import_react19.useState)({});
-    (0, import_react19.useEffect)(() => {
+    }, [periodStart, setPeriodStart] = (0, import_react20.useState)(""), [periodEnd, setPeriodEnd] = (0, import_react20.useState)(""), briefs = data.briefs || [], [tasksByCase, setTasksByCase] = (0, import_react20.useState)({});
+    (0, import_react20.useEffect)(() => {
       let cancelled = !1;
       return (async () => {
         let map = await fetchTasksForCases(data.cases || []);
@@ -31947,7 +32174,7 @@ ${prepsTxt}` : ""}`, parsed = await callAI(RECAP_SP, prompt, prompt.length);
       { id: "brief", label: t2("brief.tab.intel") },
       { id: "recap", label: t2("brief.tab.recap") },
       { id: "insights", label: t2("brief.tab.insights") }
-    ], [insightsResult, setInsightsResult] = (0, import_react19.useState)(null), [insightsLoading, setInsightsLoading] = (0, import_react19.useState)(!1), [insightsError, setInsightsError] = (0, import_react19.useState)(""), [insightsSaved, setInsightsSaved] = (0, import_react19.useState)(!1), generateInsights = async () => {
+    ], [insightsResult, setInsightsResult] = (0, import_react20.useState)(null), [insightsLoading, setInsightsLoading] = (0, import_react20.useState)(!1), [insightsError, setInsightsError] = (0, import_react20.useState)(""), [insightsSaved, setInsightsSaved] = (0, import_react20.useState)(!1), generateInsights = async () => {
       setInsightsLoading(!0), setInsightsError(""), setInsightsResult(null), setInsightsSaved(!1);
       try {
         let todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], sevenDaysAgo = Date.now() - 10080 * 60 * 1e3, activeCasesIns = filterActiveCases(data.cases || []).slice(0, 8).map((c) => `- [${c.type || ""}] ${c.title || "Sans titre"} \u2014 Risque: ${c.riskLevel || "?"} \u2014 Statut: ${c.status || "?"} \u2014 ${c.director || c.employee || ""}`).join(`
@@ -33044,7 +33271,7 @@ ${recap.sentText}`,
   }
 
   // src/modules/Leader.jsx
-  var import_react21 = __require("react");
+  var import_react22 = __require("react");
 
   // src/prompts/portfolio.js
   var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
@@ -33053,7 +33280,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
 {"riskAssessment":"Critique|Eleve|Modere|Faible","pressureLevel":"Elevee|Moderee|Faible","managerType":"Solide|En developpement|A risque|Critique","topIssue":"enjeu principal identifie en 1 phrase courte","recommendedAction":"action HRBP recommandee en 1 phrase courte"}`;
 
   // src/components/IdentityRenameForm.jsx
-  var import_react20 = __require("react");
+  var import_react21 = __require("react");
 
   // src/utils/identity.js
   function normalizeIdentityKey(s) {
@@ -33288,7 +33515,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     onApplied,
     compact = !1
   }) {
-    let [current, setCurrent] = (0, import_react20.useState)(defaultCurrent || ""), [corrected, setCorrected] = (0, import_react20.useState)(""), [busy, setBusy] = (0, import_react20.useState)(!1), [preview, setPreview] = (0, import_react20.useState)(null), [result, setResult] = (0, import_react20.useState)(null), [error, setError] = (0, import_react20.useState)(""), canSubmit = current.trim().length > 0 && corrected.trim().length > 0 && current.trim() !== corrected.trim(), invalidateOnEdit = () => {
+    let [current, setCurrent] = (0, import_react21.useState)(defaultCurrent || ""), [corrected, setCorrected] = (0, import_react21.useState)(""), [busy, setBusy] = (0, import_react21.useState)(!1), [preview, setPreview] = (0, import_react21.useState)(null), [result, setResult] = (0, import_react21.useState)(null), [error, setError] = (0, import_react21.useState)(""), canSubmit = current.trim().length > 0 && corrected.trim().length > 0 && current.trim() !== corrected.trim(), invalidateOnEdit = () => {
       setPreview(null), setResult(null), setError("");
     }, onPreview = async () => {
       setBusy(!0), setError(""), setResult(null);
@@ -33620,9 +33847,9 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     })), items.sort((a, b) => !a.date && !b.date ? 0 : a.date ? b.date ? b.date.localeCompare(a.date) : -1 : 1);
   }
   function ModuleLeader({ data, onSave, onNavigate }) {
-    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react21.useState)(null), [tlExpanded, setTlExpanded] = (0, import_react21.useState)(!1), [tlFilter, setTlFilter] = (0, import_react21.useState)("all"), [editingMeta, setEditingMeta] = (0, import_react21.useState)(!1), [metaForm, setMetaForm] = (0, import_react21.useState)(null), [aiAssessing, setAiAssessing] = (0, import_react21.useState)(!1), [filterArchive, setFilterArchive] = (0, import_react21.useState)("active"), [renamingName, setRenamingName] = (0, import_react21.useState)(!1), selectLeader = (key2) => {
+    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react22.useState)(null), [tlExpanded, setTlExpanded] = (0, import_react22.useState)(!1), [tlFilter, setTlFilter] = (0, import_react22.useState)("all"), [editingMeta, setEditingMeta] = (0, import_react22.useState)(!1), [metaForm, setMetaForm] = (0, import_react22.useState)(null), [aiAssessing, setAiAssessing] = (0, import_react22.useState)(!1), [filterArchive, setFilterArchive] = (0, import_react22.useState)("active"), [renamingName, setRenamingName] = (0, import_react22.useState)(!1), selectLeader = (key2) => {
       setSelected(key2), setTlExpanded(!1), setTlFilter("all"), setEditingMeta(!1), setMetaForm(null), setRenamingName(!1);
-    }, leaders = (0, import_react21.useMemo)(() => buildLeaderIndex(data), [data]), leaderList = Object.values(leaders), leadersMap = (0, import_react21.useMemo)(() => getLeadersMap(data), [data]), todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], topFocus = (0, import_react21.useMemo)(() => {
+    }, leaders = (0, import_react22.useMemo)(() => buildLeaderIndex(data), [data]), leaderList = Object.values(leaders), leadersMap = (0, import_react22.useMemo)(() => getLeadersMap(data), [data]), todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], topFocus = (0, import_react22.useMemo)(() => {
       let activeLeaders = leaderList.filter((l2) => !getMeta(l2.name, leadersMap).archived);
       return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
     }, [leaderList, leadersMap, todayISO_top]), saveMeta = (name, patch) => {
@@ -33665,7 +33892,7 @@ ${ctx}`, 500);
         setAiAssessing(!1);
       }
     };
-    if ((0, import_react21.useEffect)(() => {
+    if ((0, import_react22.useEffect)(() => {
       let pending = sessionStorage.getItem("hrbpos:pendingLeader");
       if (!pending) return;
       sessionStorage.removeItem("hrbpos:pendingLeader");
@@ -34648,10 +34875,10 @@ ${ctx}`, 500);
   }
 
   // src/modules/Copilot.jsx
-  var import_react22 = __require("react");
+  var import_react23 = __require("react");
   function ModuleCopilot({ data }) {
-    let { t: t2 } = useT(), [situation, setSituation] = (0, import_react22.useState)(""), [loading, setLoading] = (0, import_react22.useState)(!1), [response, setResponse] = (0, import_react22.useState)(null), [error, setError] = (0, import_react22.useState)(""), [history, setHistory] = (0, import_react22.useState)([]), [copied, setCopied] = (0, import_react22.useState)(!1), [contextExpanded, setContextExpanded] = (0, import_react22.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react22.useState)(""), [apeMode, setApeMode] = (0, import_react22.useState)("diagnose"), responseRef = (0, import_react22.useRef)(null), situations = detectSituations(data).slice(0, 5), [tasksByCase, setTasksByCase] = (0, import_react22.useState)({});
-    (0, import_react22.useEffect)(() => {
+    let { t: t2 } = useT(), [situation, setSituation] = (0, import_react23.useState)(""), [loading, setLoading] = (0, import_react23.useState)(!1), [response, setResponse] = (0, import_react23.useState)(null), [error, setError] = (0, import_react23.useState)(""), [history, setHistory] = (0, import_react23.useState)([]), [copied, setCopied] = (0, import_react23.useState)(!1), [contextExpanded, setContextExpanded] = (0, import_react23.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react23.useState)(""), [apeMode, setApeMode] = (0, import_react23.useState)("diagnose"), responseRef = (0, import_react23.useRef)(null), situations = detectSituations(data).slice(0, 5), [tasksByCase, setTasksByCase] = (0, import_react23.useState)({});
+    (0, import_react23.useEffect)(() => {
       let cancelled = !1;
       return (async () => {
         let map = await fetchTasksForCases(data.cases || []);
@@ -35012,7 +35239,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
 
   // src/modules/Admin.jsx
-  var import_react23 = __toESM(__require("react"));
+  var import_react24 = __toESM(__require("react"));
 
   // src/services/orgExport.js
   var JSONB_TABLES = ["cases", "investigations", "meetings", "briefs"], FLAT_TABLES = ["employees", "case_tasks", "audit_logs"];
@@ -35090,7 +35317,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     hrbp: { bg: C.surfL, border: C.border, color: C.textM }
   };
   function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [profiles, setProfiles] = (0, import_react23.useState)([]), [organizations, setOrganizations] = (0, import_react23.useState)([]), [status, setStatus] = (0, import_react23.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react23.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react23.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react23.useState)({}), [busyById, setBusyById] = (0, import_react23.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react23.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react23.useCallback)(async () => {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [profiles, setProfiles] = (0, import_react24.useState)([]), [organizations, setOrganizations] = (0, import_react24.useState)([]), [status, setStatus] = (0, import_react24.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react24.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react24.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react24.useState)({}), [busyById, setBusyById] = (0, import_react24.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react24.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react24.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
       if (!pRes.ok) {
@@ -35099,19 +35326,19 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       !oRes.ok && oRes.reason !== "no-client" && console.warn("[admin] listOrganizations failed:", oRes.reason, oRes.error), setProfiles(pRes.profiles), setOrganizations(oRes.ok ? oRes.organizations : []), setStatus("ready");
     }, [listOpts]);
-    (0, import_react23.useEffect)(() => {
+    (0, import_react24.useEffect)(() => {
       refresh();
     }, [refresh]);
-    let orgNameById = (0, import_react23.useMemo)(() => {
+    let orgNameById = (0, import_react24.useMemo)(() => {
       let m = {};
       for (let o of organizations) m[o.id] = o.name;
       return m;
-    }, [organizations]), orgChoices = (0, import_react23.useMemo)(() => {
+    }, [organizations]), orgChoices = (0, import_react24.useMemo)(() => {
       if (isSuperAdmin) return organizations;
       if (!currentProfile?.organization_id) return [];
       let own = organizations.find((o) => o.id === currentProfile.organization_id);
       return own ? [own] : [];
-    }, [isSuperAdmin, organizations, currentProfile?.organization_id]), buckets = (0, import_react23.useMemo)(() => {
+    }, [isSuperAdmin, organizations, currentProfile?.organization_id]), buckets = (0, import_react24.useMemo)(() => {
       let pending = [], approved = [], disabled = [], other = [];
       for (let p of profiles)
         p.status === "pending" ? pending.push(p) : p.status === "approved" ? approved.push(p) : p.status === "disabled" ? disabled.push(p) : other.push(p);
@@ -35173,7 +35400,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       await applyPatch(profile, { organization_id: organization_id || null }, "\xC9chec d'assignation");
     };
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react23.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react23.default.createElement(PreferencesPanel, { lang, setLang: setLang2, currentProfile }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react24.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react24.default.createElement(PreferencesPanel, { lang, setLang: setLang2, currentProfile }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: refresh,
@@ -35186,9 +35413,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       t2(status === "loading" ? "common.loading" : "common.refresh")
-    )), status === "error" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, fontSize: 12, color: C.red } }, errorMsg || "Erreur inconnue."), status === "ready" && /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.pending"), count: buckets.pending.length, color: C.amber }, buckets.pending.length === 0 ? /* @__PURE__ */ import_react23.default.createElement(Empty2, null, t2("admin.empty.pending")) : buckets.pending.map((p) => {
+    )), status === "error" && /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, fontSize: 12, color: C.red } }, errorMsg || "Erreur inconnue."), status === "ready" && /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.pending"), count: buckets.pending.length, color: C.amber }, buckets.pending.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.pending")) : buckets.pending.map((p) => {
       let selectedRole = pendingRoleById[p.id] ?? (p.role || "hrbp"), selectedOrg = pendingOrgById[p.id] ?? (p.organization_id || ""), busy = !!busyById[p.id], roleOptions = isSuperAdmin ? ROLE_IDS : ROLE_IDS.filter((r) => r !== "super_admin");
-      return /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement(
+      return /* @__PURE__ */ import_react24.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react24.default.createElement(
         "select",
         {
           value: selectedRole,
@@ -35197,8 +35424,8 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           title: "R\xF4le",
           style: { ...css.select, width: 130, padding: "6px 8px", fontSize: 12 }
         },
-        roleOptions.map((r) => /* @__PURE__ */ import_react23.default.createElement("option", { key: r, value: r }, tRole(t2, r)))
-      ), /* @__PURE__ */ import_react23.default.createElement(
+        roleOptions.map((r) => /* @__PURE__ */ import_react24.default.createElement("option", { key: r, value: r }, tRole(t2, r)))
+      ), /* @__PURE__ */ import_react24.default.createElement(
         OrgSelect,
         {
           organizations: orgChoices,
@@ -35206,7 +35433,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           onChange: (v) => setOrgFor(p.id, v),
           disabled: busy || !isSuperAdmin
         }
-      ), /* @__PURE__ */ import_react23.default.createElement(
+      ), /* @__PURE__ */ import_react24.default.createElement(
         "button",
         {
           onClick: () => approve(p),
@@ -35220,9 +35447,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.approve")
       ));
-    })), /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react23.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
+    })), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
       let busy = !!busyById[p.id], isSelf = p.id === currentProfile?.id;
-      return /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement(
+      return /* @__PURE__ */ import_react24.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react24.default.createElement(
         RoleControl,
         {
           profile: p,
@@ -35231,7 +35458,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           isSelf,
           onChange: (role) => changeRole(p, role)
         }
-      ), /* @__PURE__ */ import_react23.default.createElement(
+      ), /* @__PURE__ */ import_react24.default.createElement(
         OrgSelect,
         {
           organizations: orgChoices,
@@ -35239,7 +35466,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           onChange: (v) => assignOrg(p, v),
           disabled: busy || !isSuperAdmin
         }
-      ), /* @__PURE__ */ import_react23.default.createElement(
+      ), /* @__PURE__ */ import_react24.default.createElement(
         "button",
         {
           onClick: () => disable(p),
@@ -35255,18 +35482,18 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.disable")
       ));
-    })), /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.disabled"), count: buckets.disabled.length, color: C.textM }, buckets.disabled.length === 0 ? /* @__PURE__ */ import_react23.default.createElement(Empty2, null, t2("admin.empty.disabled")) : buckets.disabled.map((p) => {
+    })), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.disabled"), count: buckets.disabled.length, color: C.textM }, buckets.disabled.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.disabled")) : buckets.disabled.map((p) => {
       let busy = !!busyById[p.id];
-      return /* @__PURE__ */ import_react23.default.createElement(
+      return /* @__PURE__ */ import_react24.default.createElement(
         Row2,
         {
           key: p.id,
           profile: p,
           orgNameById,
-          badge: /* @__PURE__ */ import_react23.default.createElement(RevokedBadge, { disabledAt: p.disabled_at })
+          badge: /* @__PURE__ */ import_react24.default.createElement(RevokedBadge, { disabledAt: p.disabled_at })
         },
-        /* @__PURE__ */ import_react23.default.createElement(RoleBadge, { role: p.role }),
-        /* @__PURE__ */ import_react23.default.createElement(
+        /* @__PURE__ */ import_react24.default.createElement(RoleBadge, { role: p.role }),
+        /* @__PURE__ */ import_react24.default.createElement(
           OrgSelect,
           {
             organizations: orgChoices,
@@ -35275,7 +35502,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
             disabled: busy || !isSuperAdmin
           }
         ),
-        /* @__PURE__ */ import_react23.default.createElement(
+        /* @__PURE__ */ import_react24.default.createElement(
           "button",
           {
             onClick: () => reenable(p),
@@ -35290,7 +35517,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           busy ? "\u2026" : t2("admin.action.reenable")
         )
       );
-    })), buckets.other.length > 0 && /* @__PURE__ */ import_react23.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react23.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react23.default.createElement(
+    })), buckets.other.length > 0 && /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react24.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), /* @__PURE__ */ import_react24.default.createElement(
       OrganizationStatusPanel,
       {
         currentProfile,
@@ -35298,10 +35525,10 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         isSuperAdmin,
         onUpdated: onOrganizationUpdated
       }
-    ), /* @__PURE__ */ import_react23.default.createElement(BillingPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react23.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react23.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react23.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+    ), /* @__PURE__ */ import_react24.default.createElement(BillingPanel, { currentProfile }), /* @__PURE__ */ import_react24.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react24.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react24.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react24.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
   }
   function IdentityMergePanel() {
-    let [source, setSource] = (0, import_react23.useState)(""), [target, setTarget] = (0, import_react23.useState)(""), [busy, setBusy] = (0, import_react23.useState)(!1), [result, setResult] = (0, import_react23.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
+    let [source, setSource] = (0, import_react24.useState)(""), [target, setTarget] = (0, import_react24.useState)(""), [busy, setBusy] = (0, import_react24.useState)(!1), [result, setResult] = (0, import_react24.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
       setBusy(!0), setResult(null);
       let sourceName = source.trim(), targetName = target.trim(), local;
       try {
@@ -35318,7 +35545,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       setBusy(!1), setResult({ ok: !0, local, remote });
     }, localTotal = result?.local ? result.local.cases + result.local.investigations + result.local.meetings + result.local.briefs : 0;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.purple } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Fusion d'identit\xE9")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo ou fusionne deux variantes d'un m\xEAme nom. Met \xE0 jour les cases, rencontres, enqu\xEAtes et briefs (localStorage + Supabase si disponible). Append une entr\xE9e ", /* @__PURE__ */ import_react23.default.createElement("code", { style: { fontSize: 10 } }, "identity.merged"), " \xE0 l'audit log."), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.purple } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Fusion d'identit\xE9")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo ou fusionne deux variantes d'un m\xEAme nom. Met \xE0 jour les cases, rencontres, enqu\xEAtes et briefs (localStorage + Supabase si disponible). Append une entr\xE9e ", /* @__PURE__ */ import_react24.default.createElement("code", { style: { fontSize: 10 } }, "identity.merged"), " \xE0 l'audit log."), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement(
       "input",
       {
         type: "text",
@@ -35328,7 +35555,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         disabled: busy,
         style: { ...css.input, flex: "1 1 220px", minWidth: 200, padding: "6px 10px", fontSize: 12 }
       }
-    ), /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textD, fontSize: 14 } }, "\u2192"), /* @__PURE__ */ import_react23.default.createElement(
+    ), /* @__PURE__ */ import_react24.default.createElement("span", { style: { color: C.textD, fontSize: 14 } }, "\u2192"), /* @__PURE__ */ import_react24.default.createElement(
       "input",
       {
         type: "text",
@@ -35338,7 +35565,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         disabled: busy,
         style: { ...css.input, flex: "1 1 220px", minWidth: 200, padding: "6px 10px", fontSize: 12 }
       }
-    ), /* @__PURE__ */ import_react23.default.createElement(
+    ), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: onMerge,
@@ -35352,7 +35579,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       busy ? "\u2026" : "Fusionner"
-    )), result && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12, fontSize: 12, lineHeight: 1.6 } }, result.ok === !1 ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.red } }, result.error) : /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.text, marginBottom: 4 } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Local"), " (", localTotal, " entit\xE9", localTotal > 1 ? "s" : "", " mise", localTotal > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", result.local.cases, " \xB7 meetings ", result.local.meetings, " \xB7 enqu\xEAtes ", result.local.investigations, " \xB7 briefs ", result.local.briefs), /* @__PURE__ */ import_react23.default.createElement(RemoteSummary, { remote: result.remote }), localTotal > 0 && /* @__PURE__ */ import_react23.default.createElement(
+    )), result && /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginTop: 12, fontSize: 12, lineHeight: 1.6 } }, result.ok === !1 ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.red } }, result.error) : /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.text, marginBottom: 4 } }, /* @__PURE__ */ import_react24.default.createElement("b", null, "Local"), " (", localTotal, " entit\xE9", localTotal > 1 ? "s" : "", " mise", localTotal > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", result.local.cases, " \xB7 meetings ", result.local.meetings, " \xB7 enqu\xEAtes ", result.local.investigations, " \xB7 briefs ", result.local.briefs), /* @__PURE__ */ import_react24.default.createElement(RemoteSummary, { remote: result.remote }), localTotal > 0 && /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: () => window.location.reload(),
@@ -35365,12 +35592,12 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     if (!remote) return null;
     if (remote.ok) {
       let b = remote.breakdown || {};
-      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
+      return /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react24.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
     }
-    return remote.reason === "no-client" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.") : remote.reason === "not-authenticated" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.") : /* @__PURE__ */ import_react23.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
+    return remote.reason === "no-client" ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.") : remote.reason === "not-authenticated" ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.") : /* @__PURE__ */ import_react24.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
   }
   function PreferencesPanel({ lang, setLang: setLang2, currentProfile }) {
-    let { t: t2 } = useT(), [signingOut, setSigningOut] = (0, import_react23.useState)(!1), onLogout = async () => {
+    let { t: t2 } = useT(), [signingOut, setSigningOut] = (0, import_react24.useState)(!1), onLogout = async () => {
       if (!signingOut) {
         setSigningOut(!0);
         try {
@@ -35380,14 +35607,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       }
     };
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.em } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t2("admin.preferences.title"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.language")), /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.em } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, t2("admin.preferences.title"))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.language")), /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       display: "flex",
       gap: 4,
       padding: "4px",
       background: C.surfL,
       borderRadius: 8,
       border: `1px solid ${C.border}`
-    } }, SUPPORTED_LANGS.map((l) => /* @__PURE__ */ import_react23.default.createElement(
+    } }, SUPPORTED_LANGS.map((l) => /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         key: l,
@@ -35406,11 +35633,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       l
-    )))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.session")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, currentProfile?.email && /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+    )))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM, minWidth: 110 } }, t2("admin.preferences.session")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, currentProfile?.email && /* @__PURE__ */ import_react24.default.createElement("span", { style: {
       fontSize: 11,
       color: C.textD,
       fontFamily: "'DM Mono',monospace"
-    } }, currentProfile.email), /* @__PURE__ */ import_react23.default.createElement(
+    } }, currentProfile.email), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: onLogout,
@@ -35427,14 +35654,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     )))));
   }
   function Section({ title, count, color, children }) {
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react24.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
   }
   function Empty2({ children }) {
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "6px 0" } }, children);
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "6px 0" } }, children);
   }
   function Row2({ profile, orgNameById, badge, children }) {
     let orgName = profile.organization_id ? orgNameById[profile.organization_id] || "\u2014" : null;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
@@ -35442,21 +35669,21 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       background: C.surf,
       border: `1px solid ${C.border}`,
       borderRadius: 8
-    } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       fontSize: 13,
       color: C.text,
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
-    } }, profile.email || /* @__PURE__ */ import_react23.default.createElement("em", { style: { color: C.textD } }, "(sans email)")), badge), /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    } }, profile.email || /* @__PURE__ */ import_react24.default.createElement("em", { style: { color: C.textD } }, "(sans email)")), badge), /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       fontSize: 10,
       color: C.textD,
       fontFamily: "'DM Mono',monospace",
       display: "flex",
       gap: 8,
       flexWrap: "wrap"
-    } }, /* @__PURE__ */ import_react23.default.createElement("span", null, profile.id), orgName && /* @__PURE__ */ import_react23.default.createElement("span", null, "\xB7 org: ", /* @__PURE__ */ import_react23.default.createElement("b", { style: { color: C.textM } }, orgName)))), children);
+    } }, /* @__PURE__ */ import_react24.default.createElement("span", null, profile.id), orgName && /* @__PURE__ */ import_react24.default.createElement("span", null, "\xB7 org: ", /* @__PURE__ */ import_react24.default.createElement("b", { style: { color: C.textM } }, orgName)))), children);
   }
   function RevokedBadge({ disabledAt }) {
     let { t: t2 } = useT(), suffix = "";
@@ -35464,7 +35691,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       let d = new Date(disabledAt);
       Number.isNaN(d.getTime()) || (suffix = ` \xB7 ${d.toLocaleDateString("fr-CA")}`);
     }
-    return /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement(
       "span",
       {
         style: {
@@ -35487,7 +35714,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function RoleBadge({ role }) {
     let { t: t2 } = useT(), r = ROLE_IDS.includes(role) ? role : "hrbp", s = ROLE_STYLE[r];
-    return /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react24.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -35503,7 +35730,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
     let { t: t2 } = useT(), role = ROLE_IDS.includes(profile.role) ? profile.role : "hrbp";
-    return isSuperAdmin ? /* @__PURE__ */ import_react23.default.createElement(
+    return isSuperAdmin ? /* @__PURE__ */ import_react24.default.createElement(
       "select",
       {
         value: role,
@@ -35518,7 +35745,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           opacity: busy ? 0.6 : 1
         }
       },
-      ROLE_IDS.map((r) => /* @__PURE__ */ import_react23.default.createElement(
+      ROLE_IDS.map((r) => /* @__PURE__ */ import_react24.default.createElement(
         "option",
         {
           key: r,
@@ -35527,11 +35754,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         tRole(t2, r)
       ))
-    ) : /* @__PURE__ */ import_react23.default.createElement(RoleBadge, { role });
+    ) : /* @__PURE__ */ import_react24.default.createElement(RoleBadge, { role });
   }
   function OrgSelect({ organizations, value, onChange, disabled }) {
     let { t: t2 } = useT();
-    return !organizations || organizations.length === 0 ? /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" } }, t2("admin.noOrganization")) : /* @__PURE__ */ import_react23.default.createElement(
+    return !organizations || organizations.length === 0 ? /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" } }, t2("admin.noOrganization")) : /* @__PURE__ */ import_react24.default.createElement(
       "select",
       {
         value: value || "",
@@ -35540,16 +35767,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         title: "Organisation",
         style: { ...css.select, width: 180, padding: "6px 8px", fontSize: 12 }
       },
-      /* @__PURE__ */ import_react23.default.createElement("option", { value: "" }, t2("common.none")),
-      organizations.map((o) => /* @__PURE__ */ import_react23.default.createElement("option", { key: o.id, value: o.id }, o.name))
+      /* @__PURE__ */ import_react24.default.createElement("option", { value: "" }, t2("common.none")),
+      organizations.map((o) => /* @__PURE__ */ import_react24.default.createElement("option", { key: o.id, value: o.id }, o.name))
     );
   }
   function OrganizationStatusPanel({ currentProfile, currentOrganization, isSuperAdmin, onUpdated }) {
-    let [busy, setBusy] = (0, import_react23.useState)(!1), [msg, setMsg] = (0, import_react23.useState)(null), [draft, setDraft] = (0, import_react23.useState)(currentOrganization?.status || "");
-    if ((0, import_react23.useEffect)(() => {
+    let [busy, setBusy] = (0, import_react24.useState)(!1), [msg, setMsg] = (0, import_react24.useState)(null), [draft, setDraft] = (0, import_react24.useState)(currentOrganization?.status || "");
+    if ((0, import_react24.useEffect)(() => {
       setDraft(currentOrganization?.status || "");
     }, [currentOrganization?.status]), !currentProfile?.organization_id)
-      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.textD } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "Aucune organisation assign\xE9e."));
+      return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.textD } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "Aucune organisation assign\xE9e."));
     let status = currentOrganization?.status || "\u2014", swatch = isOrgStatusActive(status) ? C.em : C.red, save = async () => {
       if (!draft || draft === status) return;
       setBusy(!0), setMsg(null);
@@ -35561,7 +35788,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       let detail = res.reason === "not-allowed" ? "r\xF4le super_admin requis" : res.reason === "invalid-status" ? "statut invalide" : res.reason === "no-client" ? "Supabase non configur\xE9" : res.reason || "erreur";
       setMsg({ kind: "err", text: `\xC9chec : ${detail}` });
     };
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: swatch } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation", currentOrganization?.name && /* @__PURE__ */ import_react23.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 ", currentOrganization.name))), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Les statuts ", /* @__PURE__ */ import_react23.default.createElement("b", null, "trialing"), " et ", /* @__PURE__ */ import_react23.default.createElement("b", null, "active"), " donnent acc\xE8s \xE0 l'application. Les statuts", /* @__PURE__ */ import_react23.default.createElement("b", null, " past_due"), ", ", /* @__PURE__ */ import_react23.default.createElement("b", null, "suspended"), " et ", /* @__PURE__ */ import_react23.default.createElement("b", null, "cancelled"), " bloquent l'acc\xE8s des membres."), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: swatch } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation", currentOrganization?.name && /* @__PURE__ */ import_react24.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 ", currentOrganization.name))), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Les statuts ", /* @__PURE__ */ import_react24.default.createElement("b", null, "trialing"), " et ", /* @__PURE__ */ import_react24.default.createElement("b", null, "active"), " donnent acc\xE8s \xE0 l'application. Les statuts", /* @__PURE__ */ import_react24.default.createElement("b", null, " past_due"), ", ", /* @__PURE__ */ import_react24.default.createElement("b", null, "suspended"), " et ", /* @__PURE__ */ import_react24.default.createElement("b", null, "cancelled"), " bloquent l'acc\xE8s des membres."), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -35572,7 +35799,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       color: swatch,
       whiteSpace: "nowrap",
       fontFamily: "'DM Mono',monospace"
-    } }, status), isSuperAdmin ? /* @__PURE__ */ import_react23.default.createElement(import_react23.default.Fragment, null, /* @__PURE__ */ import_react23.default.createElement(
+    } }, status), isSuperAdmin ? /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement(
       "select",
       {
         value: draft,
@@ -35580,8 +35807,8 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         onChange: (e) => setDraft(e.target.value),
         style: { ...css.select, width: 160, padding: "6px 8px", fontSize: 12 }
       },
-      ORG_STATUSES.map((s) => /* @__PURE__ */ import_react23.default.createElement("option", { key: s, value: s }, s))
-    ), /* @__PURE__ */ import_react23.default.createElement(
+      ORG_STATUSES.map((s) => /* @__PURE__ */ import_react24.default.createElement("option", { key: s, value: s }, s))
+    ), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: save,
@@ -35595,15 +35822,15 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       busy ? "\u2026" : "Enregistrer"
-    )) : /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Seul un super_admin peut modifier ce statut.")), msg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    )) : /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Seul un super_admin peut modifier ce statut.")), msg && /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       marginTop: 10,
       fontSize: 12,
       color: msg.kind === "ok" ? C.em : C.red
     } }, msg.text));
   }
   function BillingPanel({ currentProfile }) {
-    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react23.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react23.useState)(0), [trialBusy, setTrialBusy] = (0, import_react23.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react23.useState)(null), [stripeBusy, setStripeBusy] = (0, import_react23.useState)(!1), [stripeMsg, setStripeMsg] = (0, import_react23.useState)(null), [portalBusy, setPortalBusy] = (0, import_react23.useState)(!1), [portalMsg, setPortalMsg] = (0, import_react23.useState)(null), stripeEnabled = isStripeConfigured();
-    if ((0, import_react23.useEffect)(() => {
+    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react24.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react24.useState)(0), [trialBusy, setTrialBusy] = (0, import_react24.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react24.useState)(null), [stripeBusy, setStripeBusy] = (0, import_react24.useState)(!1), [stripeMsg, setStripeMsg] = (0, import_react24.useState)(null), [portalBusy, setPortalBusy] = (0, import_react24.useState)(!1), [portalMsg, setPortalMsg] = (0, import_react24.useState)(null), stripeEnabled = isStripeConfigured();
+    if ((0, import_react24.useEffect)(() => {
       let cancelled = !1;
       return orgId ? (setState({ status: "loading", data: null, reason: null }), getOrganizationBilling(orgId).then((res) => {
         if (!cancelled) {
@@ -35650,7 +35877,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       window.location.assign(res.url);
     }, hasSubscription = state.status === "ready" && !!state.data?.subscription, hasStripeCustomer = hasSubscription && !!state.data?.subscription?.stripe_customer_id;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react23.default.createElement(BillingBody, { state, userEmail: currentProfile?.email }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react24.default.createElement(BillingBody, { state, userEmail: currentProfile?.email }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: onStripeUpgrade,
@@ -35664,11 +35891,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       stripeBusy ? "\u2026" : "Upgrade with Stripe"
-    ), stripeMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    ), stripeMsg && /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       marginTop: 8,
       fontSize: 12,
       color: stripeMsg.kind === "ok" ? C.em : C.red
-    } }, stripeMsg.text)), hasStripeCustomer && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+    } }, stripeMsg.text)), hasStripeCustomer && /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: onOpenPortal,
@@ -35682,11 +35909,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       portalBusy ? "\u2026" : "G\xE9rer la facturation"
-    ), portalMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    ), portalMsg && /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       marginTop: 8,
       fontSize: 12,
       color: portalMsg.kind === "ok" ? C.em : C.red
-    } }, portalMsg.text)), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react23.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react23.default.createElement(
+    } }, portalMsg.text)), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react24.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: onCreateTrial,
@@ -35700,7 +35927,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       trialBusy ? "\u2026" : "Create Starter Trial"
-    ), trialMsg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    ), trialMsg && /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       marginTop: 8,
       fontSize: 12,
       color: trialMsg.kind === "ok" ? C.em : C.red
@@ -35708,16 +35935,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function BillingBody({ state, userEmail }) {
     if (state.status === "loading")
-      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Chargement\u2026");
+      return /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Chargement\u2026");
     if (state.status === "error")
-      return state.reason === "no-client" ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9.") : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.red } }, "Erreur (", state.reason, ").");
+      return state.reason === "no-client" ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9.") : /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.red } }, "Erreur (", state.reason, ").");
     if (state.status !== "ready" || !state.data) return null;
     let { subscription, plan, usage } = state.data;
-    return subscription ? /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react23.default.createElement(BillingHeader, { subscription, plan, userEmail }), /* @__PURE__ */ import_react23.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react23.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
+    return subscription ? /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react24.default.createElement(BillingHeader, { subscription, plan, userEmail }), /* @__PURE__ */ import_react24.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react24.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
   }
   function BillingHeader({ subscription, plan, userEmail }) {
     let access = getBillingAccess(subscription, userEmail), status = subscription.status || "\u2014", swatch = access.hasFullAccess ? C.em : C.amber, accessLabel = access.hasFullAccess ? "Acc\xE8s complet" : "Acc\xE8s limit\xE9";
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -35728,28 +35955,28 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       color: swatch,
       whiteSpace: "nowrap",
       fontFamily: "'DM Mono',monospace"
-    } }, status), /* @__PURE__ */ import_react23.default.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: swatch } }, accessLabel), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react23.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
+    } }, status), /* @__PURE__ */ import_react24.default.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: swatch } }, accessLabel), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react24.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
   }
   function BillingLimits({ plan }) {
     if (!plan) return null;
     let fmt = (v) => v == null ? "illimit\xE9" : String(v), price = (plan.monthly_price_cents || 0) / 100;
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.6 } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Limites :"), " utilisateurs ", fmt(plan.max_users), " \xB7 dossiers ", fmt(plan.max_cases), " \xB7 requ\xEAtes IA ", fmt(plan.max_ai_requests), " \xB7 prix ", price.toFixed(2), " $ / mois");
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.6 } }, /* @__PURE__ */ import_react24.default.createElement("b", null, "Limites :"), " utilisateurs ", fmt(plan.max_users), " \xB7 dossiers ", fmt(plan.max_cases), " \xB7 requ\xEAtes IA ", fmt(plan.max_ai_requests), " \xB7 prix ", price.toFixed(2), " $ / mois");
   }
   function BillingUsage({ usage, plan }) {
     if (!usage || usage.length === 0)
-      return /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Aucune donn\xE9e d'usage encore enregistr\xE9e.");
+      return /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Aucune donn\xE9e d'usage encore enregistr\xE9e.");
     let latestPeriod = usage[0].period_start, current = usage.filter((u) => u.period_start === latestPeriod), limitByMetric = plan ? {
       users: plan.max_users,
       cases: plan.max_cases,
       ai_requests: plan.max_ai_requests
     } : {};
-    return /* @__PURE__ */ import_react23.default.createElement("div", null, /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 4 } }, /* @__PURE__ */ import_react23.default.createElement("b", null, "Usage"), " \xB7 p\xE9riode : ", new Date(latestPeriod).toLocaleDateString("fr-CA")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, current.map((row) => {
+    return /* @__PURE__ */ import_react24.default.createElement("div", null, /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 4 } }, /* @__PURE__ */ import_react24.default.createElement("b", null, "Usage"), " \xB7 p\xE9riode : ", new Date(latestPeriod).toLocaleDateString("fr-CA")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, current.map((row) => {
       let limit = limitByMetric[row.metric], limitStr = limit ?? "illimit\xE9";
-      return /* @__PURE__ */ import_react23.default.createElement("div", { key: row.id, style: { fontSize: 11, color: C.text, fontFamily: "'DM Mono',monospace" } }, row.metric, " : ", String(row.value), " / ", limitStr);
+      return /* @__PURE__ */ import_react24.default.createElement("div", { key: row.id, style: { fontSize: 11, color: C.text, fontFamily: "'DM Mono',monospace" } }, row.metric, " : ", String(row.value), " / ", limitStr);
     })));
   }
   function ExportOrganizationPanel({ currentProfile }) {
-    let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react23.useState)(!1), [msg, setMsg] = (0, import_react23.useState)(null);
+    let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react24.useState)(!1), [msg, setMsg] = (0, import_react24.useState)(null);
     if (!allowed) return null;
     let onExport = async () => {
       setBusy(!0), setMsg(null);
@@ -35767,7 +35994,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         setBusy(!1);
       }
     };
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Export Organization Data")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "T\xE9l\xE9charge un instantan\xE9 JSON de toutes les donn\xE9es de votre organisation (employ\xE9s, dossiers, rencontres, enqu\xEAtes, briefs, t\xE2ches, journal d'audit)."), /* @__PURE__ */ import_react23.default.createElement(
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Export Organization Data")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "T\xE9l\xE9charge un instantan\xE9 JSON de toutes les donn\xE9es de votre organisation (employ\xE9s, dossiers, rencontres, enqu\xEAtes, briefs, t\xE2ches, journal d'audit)."), /* @__PURE__ */ import_react24.default.createElement(
       "button",
       {
         onClick: onExport,
@@ -35781,14 +36008,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       busy ? "\u2026" : "Export Organization Data"
-    ), msg && /* @__PURE__ */ import_react23.default.createElement("div", { style: {
+    ), msg && /* @__PURE__ */ import_react24.default.createElement("div", { style: {
       marginTop: 10,
       fontSize: 12,
       color: msg.kind === "ok" ? C.em : C.red
     } }, msg.text));
   }
   function RenameIdentityPanel() {
-    return /* @__PURE__ */ import_react23.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react23.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react23.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Renommer un employ\xE9 / gestionnaire")), /* @__PURE__ */ import_react23.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo dans un nom (ex\xA0: ", /* @__PURE__ */ import_react23.default.createElement("i", null, "CHanny Tremblay"), " \u2192 ", /* @__PURE__ */ import_react23.default.createElement("i", null, "Channy Tremblay"), ").", /* @__PURE__ */ import_react23.default.createElement("b", null, " Preview"), " compte les occurrences sans rien \xE9crire ; ", /* @__PURE__ */ import_react23.default.createElement("b", null, "Appliquer"), " ex\xE9cute le rename sur localStorage et Supabase (si disponible)."), /* @__PURE__ */ import_react23.default.createElement(IdentityRenameForm, null));
+    return /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Renommer un employ\xE9 / gestionnaire")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo dans un nom (ex\xA0: ", /* @__PURE__ */ import_react24.default.createElement("i", null, "CHanny Tremblay"), " \u2192 ", /* @__PURE__ */ import_react24.default.createElement("i", null, "Channy Tremblay"), ").", /* @__PURE__ */ import_react24.default.createElement("b", null, " Preview"), " compte les occurrences sans rien \xE9crire ; ", /* @__PURE__ */ import_react24.default.createElement("b", null, "Appliquer"), " ex\xE9cute le rename sur localStorage et Supabase (si disponible)."), /* @__PURE__ */ import_react24.default.createElement(IdentityRenameForm, null));
   }
 
   // src/index.jsx
@@ -35887,7 +36114,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     )));
   }
   function LimitedAccessScreen({ subscription, isAdmin, onGoAdmin, onSignOut }) {
-    let { t: t2 } = useT(), [busyKind, setBusyKind] = (0, import_react24.useState)(null), [errMsg, setErrMsg] = (0, import_react24.useState)(""), hasStripeCustomer = !!subscription?.stripe_customer_id, stripeEnabled = isStripeConfigured(), onPortal = async () => {
+    let { t: t2 } = useT(), [busyKind, setBusyKind] = (0, import_react25.useState)(null), [errMsg, setErrMsg] = (0, import_react25.useState)(""), hasStripeCustomer = !!subscription?.stripe_customer_id, stripeEnabled = isStripeConfigured(), onPortal = async () => {
       setBusyKind("portal"), setErrMsg("");
       let res = await openBillingPortal();
       if (!res.ok) {
@@ -36029,7 +36256,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     )));
   }
   function LoginScreen() {
-    let { t: t2 } = useT(), [email, setEmail] = (0, import_react24.useState)(""), [status, setStatus] = (0, import_react24.useState)("idle"), [errorReason, setErrorReason] = (0, import_react24.useState)(""), send = async () => {
+    let { t: t2 } = useT(), [email, setEmail] = (0, import_react25.useState)(""), [status, setStatus] = (0, import_react25.useState)("idle"), [errorReason, setErrorReason] = (0, import_react25.useState)(""), send = async () => {
       if (!email || status === "sending") return;
       setStatus("sending"), setErrorReason("");
       let res = await signIn(email);
@@ -36103,10 +36330,10 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     } }, /* @__PURE__ */ React.createElement("a", { href: "/privacy", style: { color: C.textM, textDecoration: "none" } }, "Confidentialit\xE9"), /* @__PURE__ */ React.createElement("a", { href: "/terms", style: { color: C.textM, textDecoration: "none" } }, "Conditions"), /* @__PURE__ */ React.createElement("a", { href: "/subprocessors", style: { color: C.textM, textDecoration: "none" } }, "Sous-traitants"), /* @__PURE__ */ React.createElement("a", { href: "/support", style: { color: C.textM, textDecoration: "none" } }, "Support"))));
   }
   function HRBPOS() {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react24.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react24.useState)(!1), [denied, setDenied] = (0, import_react24.useState)(null), [userProfile, setUserProfile] = (0, import_react24.useState)(null), [profileChecked, setProfileChecked] = (0, import_react24.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react24.useState)(null), [orgChecked, setOrgChecked] = (0, import_react24.useState)(!1), [userSubscription, setUserSubscription] = (0, import_react24.useState)(null), [subscriptionChecked, setSubscriptionChecked] = (0, import_react24.useState)(!1), [module, setModule] = (0, import_react24.useState)("home"), [showMore, setShowMore] = (0, import_react24.useState)(!1), [data, setData] = (0, import_react24.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react24.useState)(!1), [loaded, setLoaded] = (0, import_react24.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react24.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react24.useState)(null), [focusExitId, setFocusExitId] = (0, import_react24.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react24.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react24.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react24.useState)(null), handleNavigate = (0, import_react24.useCallback)((id, ctx) => {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react25.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react25.useState)(!1), [denied, setDenied] = (0, import_react25.useState)(null), [userProfile, setUserProfile] = (0, import_react25.useState)(null), [profileChecked, setProfileChecked] = (0, import_react25.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react25.useState)(null), [orgChecked, setOrgChecked] = (0, import_react25.useState)(!1), [userSubscription, setUserSubscription] = (0, import_react25.useState)(null), [subscriptionChecked, setSubscriptionChecked] = (0, import_react25.useState)(!1), [module, setModule] = (0, import_react25.useState)("home"), [showMore, setShowMore] = (0, import_react25.useState)(!1), [data, setData] = (0, import_react25.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react25.useState)(!1), [loaded, setLoaded] = (0, import_react25.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react25.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react25.useState)(null), [focusExitId, setFocusExitId] = (0, import_react25.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react25.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react25.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react25.useState)(null), [settingsOpen, setSettingsOpen] = (0, import_react25.useState)(!1), settingsBtnRef = (0, import_react25.useRef)(null), handleNavigate = (0, import_react25.useCallback)((id, ctx) => {
       ctx?.focusCaseId && setFocusCaseId(ctx.focusCaseId), ctx?.focusMeetingId && setFocusMeetingId(ctx.focusMeetingId), ctx?.focusExitId && setFocusExitId(ctx.focusExitId), ctx?.focusSignalId && setFocusSignalId(ctx.focusSignalId), ctx?.focusDecisionId && setFocusDecisionId(ctx.focusDecisionId), ctx?.focusInvestigationId && setFocusInvestigationId(ctx.focusInvestigationId), setModule(id);
     }, []);
-    (0, import_react24.useEffect)(() => {
+    (0, import_react25.useEffect)(() => {
       let defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }, timeout = setTimeout(() => setLoaded(!0), 1500);
       Promise.allSettled(
         Object.entries(SK).map(async ([k, sk]) => {
@@ -36178,7 +36405,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch(() => {
         clearTimeout(timeout), setLoaded(!0);
       });
-    }, []), (0, import_react24.useEffect)(() => {
+    }, []), (0, import_react25.useEffect)(() => {
       let cancelled = !1;
       (async () => {
         if (typeof window < "u") {
@@ -36217,7 +36444,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       return () => {
         cancelled = !0, unsubscribe();
       };
-    }, []), (0, import_react24.useEffect)(() => {
+    }, []), (0, import_react25.useEffect)(() => {
       if (!hasSupabase) {
         setProfileChecked(!0);
         return;
@@ -36239,7 +36466,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       })(), () => {
         cancelled = !0;
       };
-    }, [supaSession]), (0, import_react24.useEffect)(() => {
+    }, [supaSession]), (0, import_react25.useEffect)(() => {
       if (!hasSupabase) {
         setOrgChecked(!0);
         return;
@@ -36256,7 +36483,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       })(), () => {
         cancelled = !0;
       };
-    }, [profileChecked, userProfile]), (0, import_react24.useEffect)(() => {
+    }, [profileChecked, userProfile]), (0, import_react25.useEffect)(() => {
       if (!hasSupabase) {
         setSubscriptionChecked(!0);
         return;
@@ -36276,7 +36503,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }, [profileChecked, userProfile]);
     let showToast = () => {
       setToast(!0), setTimeout(() => setToast(!1), 2e3);
-    }, handleSave = (0, import_react24.useCallback)(async (key2, value) => {
+    }, handleSave = (0, import_react25.useCallback)(async (key2, value) => {
       let skKey = SK[key2];
       if (!skKey) return;
       let toSave = value;
@@ -36297,7 +36524,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch((err) => {
         console.warn("[supabase] saveBriefs threw:", err);
       });
-    }, []), handleSaveMeeting = (0, import_react24.useCallback)(async (session, caseEntry) => {
+    }, []), handleSaveMeeting = (0, import_react25.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
       let meetingCheck = checkUsage(userSubscription, "meetings", (data.meetings || []).length, userProfile?.email);
       if (!meetingCheck.allowed) {
@@ -36355,7 +36582,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         });
       }
       showToast();
-    }, [data, userSubscription]), handleUpdateMeeting = (0, import_react24.useCallback)(async (updatedSession) => {
+    }, [data, userSubscription]), handleUpdateMeeting = (0, import_react25.useCallback)(async (updatedSession) => {
       let newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
@@ -36364,7 +36591,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch((err) => {
         console.warn("[supabase] saveMeetings threw:", err);
       }), showToast();
-    }, [data]), transitionCase = (0, import_react24.useCallback)(async (caseId, newStatus, extraPatch) => {
+    }, [data]), transitionCase = (0, import_react25.useCallback)(async (caseId, newStatus, extraPatch) => {
       let allCases = data.cases || [], target = allCases.find((c) => c.id === caseId);
       if (!target)
         return console.warn("[transition] case not found:", caseId), { ok: !1, reason: "not-found" };
@@ -36596,29 +36823,43 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       alignItems: "center",
       gap: 12,
       flexShrink: 0
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : ""), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), isAdmin && /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, activeNav?.icon), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: C.text } }, activeNav ? navLabel(activeNav) : ""), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }), isAdmin && /* @__PURE__ */ React.createElement("div", { style: { position: "relative" } }, /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setModule("admin"),
-        title: t2("nav.admin"),
+        ref: settingsBtnRef,
+        onClick: () => setSettingsOpen((o) => !o),
+        title: t2("settings.title"),
+        "aria-haspopup": "menu",
+        "aria-expanded": settingsOpen,
         style: {
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          background: module === "admin" ? C.amber + "22" : "none",
-          border: `1px solid ${module === "admin" ? C.amber + "55" : C.border}`,
+          justifyContent: "center",
+          background: settingsOpen || module === "admin" ? C.amber + "22" : "none",
+          border: `1px solid ${settingsOpen || module === "admin" ? C.amber + "55" : C.border}`,
           borderRadius: 8,
-          padding: "6px 12px",
+          padding: "6px 10px",
           cursor: "pointer",
           fontFamily: "'DM Sans',sans-serif",
-          color: module === "admin" ? C.amber : C.textM,
-          fontSize: 12,
-          fontWeight: 600
+          color: settingsOpen || module === "admin" ? C.amber : C.textM,
+          fontSize: 14,
+          lineHeight: 1
         }
       },
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, lineHeight: 1 } }, "\u2699\uFE0F"),
-      /* @__PURE__ */ React.createElement("span", null, t2("nav.admin"))
-    )), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, lineHeight: 1 } }, "\u2699\uFE0F")
+    ), /* @__PURE__ */ React.createElement(
+      SettingsDropdown,
+      {
+        open: settingsOpen,
+        onClose: () => setSettingsOpen(!1),
+        anchorRef: settingsBtnRef,
+        userProfile,
+        onNavigateAdmin: () => setModule("admin"),
+        onSignOut: async () => {
+          await signOut();
+        }
+      }
+    ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(
       LimitedAccessScreen,
       {
         subscription: userSubscription,

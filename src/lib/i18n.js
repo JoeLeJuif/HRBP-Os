@@ -30,6 +30,23 @@ const translations = {
     "nav.autoprompt":    "AI Prompt",
     "nav.admin":         "Admin",
 
+    // ── Settings dropdown ─────────────────────────────────────────────────
+    "settings.role.admin":          "Admin",
+    "settings.role.super_admin":    "Super admin",
+    "settings.role.hrbp":           "HRBP",
+    "settings.item.settings":       "Settings",
+    "settings.item.users":          "User management",
+    "settings.item.permissions":    "Permissions",
+    "settings.section.language":    "Language",
+    "settings.section.theme":       "Theme",
+    "settings.section.currency":    "Currency",
+    "settings.section.timezone":    "Time zone",
+    "settings.theme.dark":          "Dark",
+    "settings.theme.light":         "Light",
+    "settings.version":             "Version",
+    "settings.logout":              "Sign out",
+    "settings.title":               "Settings",
+
     // ── Common UI / buttons ───────────────────────────────────────────────
     "common.province":   "Province",
     "common.more":       "More",
@@ -1231,6 +1248,23 @@ const translations = {
     "nav.radar":         "Radar Org",
     "nav.autoprompt":    "Prompt IA",
     "nav.admin":         "Admin",
+
+    // ── Settings dropdown ─────────────────────────────────────────────────
+    "settings.role.admin":          "Admin",
+    "settings.role.super_admin":    "Super admin",
+    "settings.role.hrbp":           "HRBP",
+    "settings.item.settings":       "Paramètres",
+    "settings.item.users":          "Gestion des utilisateurs",
+    "settings.item.permissions":    "Permissions",
+    "settings.section.language":    "Langue",
+    "settings.section.theme":       "Thème",
+    "settings.section.currency":    "Devise",
+    "settings.section.timezone":    "Fuseau horaire",
+    "settings.theme.dark":          "Sombre",
+    "settings.theme.light":         "Clair",
+    "settings.version":             "Version",
+    "settings.logout":              "Déconnexion",
+    "settings.title":               "Paramètres",
 
     // ── Common UI / buttons ───────────────────────────────────────────────
     "common.province":   "Province",
