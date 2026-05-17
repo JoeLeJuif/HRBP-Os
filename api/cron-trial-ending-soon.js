@@ -20,6 +20,8 @@ import { createClient } from "@supabase/supabase-js";
 
 import { sendTransactionalEmail } from "./lib/email.js";
 import { trialEndingSoonEmail } from "./lib/emailTemplates.js";
+import { requireEnv } from "./lib/env.js";
+import { withSentry } from "./lib/sentry.js";
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -121,7 +123,7 @@ function daysUntilIso(iso) {
   return days > 0 ? days : 1;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // Vercel Cron sends GET. POST allowed for manual curl/testing.
   if (req.method !== "GET" && req.method !== "POST") {
     return res.status(405).json({ error: { message: "Method not allowed" } });
@@ -136,6 +138,7 @@ export default async function handler(req, res) {
     console.warn("[cron-trial-ending-soon] CRON_SECRET not set — allowing request (dev mode)");
   }
 
+  if (requireEnv("supabase-admin", res, "cron-trial-ending-soon")) return;
   if (!admin) {
     jsonLog({ event: "misconfigured", reason: "supabase-service-role-missing" });
     return res.status(500).json({ error: { message: "Supabase service role not configured" } });
@@ -242,3 +245,5 @@ export default async function handler(req, res) {
   jsonLog({ event: "done", ...summary });
   return res.status(200).json({ ok: true, ...summary });
 }
+
+export default withSentry(handler);

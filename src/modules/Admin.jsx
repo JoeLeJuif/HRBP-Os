@@ -18,6 +18,7 @@ import {
   listAllProfiles, listOrganizations, updateProfile,
   revokeUserAccess, restoreUserAccess, setUserRole, canActOnProfile,
   updateOrganizationStatus, ORG_STATUSES, isOrgStatusActive,
+  notifyApprovedUser,
 } from "../lib/profile.js";
 import { useT } from "../lib/i18n.js";
 import { tRole, ROLE_IDS as ROLES } from "../lib/i18nEnums.js";
@@ -152,7 +153,18 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
         return;
       }
     }
-    await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "Échec d'approbation");
+    const ok = await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "Échec d'approbation");
+    if (ok) {
+      // Best-effort approval-notification email. Fire-and-forget; failures are
+      // logged but never surfaced to the admin or block the approval itself.
+      notifyApprovedUser(profile.id).then(res => {
+        if (!res?.ok || res?.sent === false) {
+          console.warn("[admin] notifyApprovedUser:", res?.reason || res?.payload || "unknown");
+        }
+      }).catch(err => {
+        console.warn("[admin] notifyApprovedUser threw:", err);
+      });
+    }
   };
 
   // Route role changes through the super_admin-only RPC so the server-side

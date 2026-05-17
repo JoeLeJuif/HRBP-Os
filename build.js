@@ -7,6 +7,9 @@ const { execSync } = require("child_process");
 const url = process.env.VITE_SUPABASE_URL || "";
 const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+const sentryDsn = process.env.VITE_SENTRY_DSN || "";
+const sentryEnv = process.env.VITE_SENTRY_ENV || "production";
+const sentryRelease = process.env.VITE_SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || "";
 
 // `import.meta.env.DEV` is forced to `false` for production builds so esbuild
 // strips dev-only branches (e.g. window.login/window.logout console helpers)
@@ -15,6 +18,9 @@ const defines = [
   `--define:process.env.VITE_SUPABASE_URL=${JSON.stringify(url)}`,
   `--define:process.env.VITE_SUPABASE_PUBLISHABLE_KEY=${JSON.stringify(key)}`,
   `--define:process.env.VITE_STRIPE_PUBLISHABLE_KEY=${JSON.stringify(stripeKey)}`,
+  `--define:process.env.VITE_SENTRY_DSN=${JSON.stringify(sentryDsn)}`,
+  `--define:process.env.VITE_SENTRY_ENV=${JSON.stringify(sentryEnv)}`,
+  `--define:process.env.VITE_SENTRY_RELEASE=${JSON.stringify(sentryRelease)}`,
   `--define:import.meta.env.DEV=false`,
 ];
 

@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { requireEnv } from "./lib/env.js";
+import { withSentry } from "./lib/sentry.js";
 
 // Server-side Supabase env (falls back to VITE_ vars used at build time so we
 // don't require new env vars on Vercel). Only the anon/publishable key is
@@ -95,7 +97,7 @@ function getRequestId(req) {
   return undefined;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // CORS headers
   const ALLOWED = (process.env.HRBPOS_ORIGIN || "https://hrbp-os.vercel.app").trim();
   res.setHeader("Access-Control-Allow-Origin", ALLOWED);
@@ -108,6 +110,7 @@ export default async function handler(req, res) {
   const request_id = getRequestId(req);
 
   // ── Auth gate ──────────────────────────────────────────────────────────────
+  if (requireEnv("supabase-read", res, "api/chat")) return;
   if (!supabase) {
     logEvent({ event: "misconfigured", status: 500, reason: "supabase-not-configured", request_id });
     return res.status(500).json({ error: { message: "Server auth not configured" } });
@@ -151,7 +154,7 @@ export default async function handler(req, res) {
 
   if (!process.env.ANTHROPIC_API_KEY) {
     logEvent({ event: "misconfigured", status: 500, reason: "no-anthropic-key", user_id: userId, request_id });
-    return res.status(500).json({ error: { message: "ANTHROPIC_API_KEY manquante — configure-la dans Vercel Dashboard > Settings > Environment Variables" } });
+    return res.status(500).json({ error: { message: "Service IA non disponible — configuration manquante." } });
   }
 
   const safeMaxTokens = clampMaxTokens(max_tokens);
@@ -187,3 +190,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: { message: "Erreur serveur" } });
   }
 }
+
+export default withSentry(handler);

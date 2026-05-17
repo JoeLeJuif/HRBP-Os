@@ -7,6 +7,8 @@
     "build": "node build.js"
   },
   "dependencies": {
+    "@sentry/browser": "^8.55.2",
+    "@sentry/node": "^8.55.2",
     "@supabase/supabase-js": "^2.104.1",
     "stripe": "^17.0.0"
   }

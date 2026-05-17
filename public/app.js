@@ -33,7 +33,7 @@ var HRBPOSApp = (() => {
   __export(index_exports, {
     default: () => HRBPOS
   });
-  var import_react26 = __require("react");
+  var import_react27 = __require("react");
 
   // src/theme.js
   if (typeof document < "u" && !document.getElementById("hrbp-fonts")) {
@@ -7586,19 +7586,19 @@ ${cause.stack}`);
     constructor(url2, { headers = {}, schema, fetch: fetch$1, timeout, urlLengthLimit = 8e3, retry } = {}) {
       this.url = url2, this.headers = new Headers(headers), this.schemaName = schema, this.urlLengthLimit = urlLengthLimit;
       let originalFetch = fetch$1 ?? globalThis.fetch;
-      timeout !== void 0 && timeout > 0 ? this.fetch = (input, init) => {
-        let controller = new AbortController(), timeoutId = setTimeout(() => controller.abort(), timeout), existingSignal = init?.signal;
+      timeout !== void 0 && timeout > 0 ? this.fetch = (input, init2) => {
+        let controller = new AbortController(), timeoutId = setTimeout(() => controller.abort(), timeout), existingSignal = init2?.signal;
         if (existingSignal) {
           if (existingSignal.aborted)
-            return clearTimeout(timeoutId), originalFetch(input, init);
+            return clearTimeout(timeoutId), originalFetch(input, init2);
           let abortHandler = () => {
             clearTimeout(timeoutId), controller.abort();
           };
-          return existingSignal.addEventListener("abort", abortHandler, { once: !0 }), originalFetch(input, _objectSpread2(_objectSpread2({}, init), {}, { signal: controller.signal })).finally(() => {
+          return existingSignal.addEventListener("abort", abortHandler, { once: !0 }), originalFetch(input, _objectSpread2(_objectSpread2({}, init2), {}, { signal: controller.signal })).finally(() => {
             clearTimeout(timeoutId), existingSignal.removeEventListener("abort", abortHandler);
           });
         }
-        return originalFetch(input, _objectSpread2(_objectSpread2({}, init), {}, { signal: controller.signal })).finally(() => clearTimeout(timeoutId));
+        return originalFetch(input, _objectSpread2(_objectSpread2({}, init2), {}, { signal: controller.signal })).finally(() => clearTimeout(timeoutId));
       } : this.fetch = originalFetch, this.retry = retry;
     }
     /**
@@ -10052,8 +10052,8 @@ Suggested solution: ${env.workaround}`), new Error(errorMessage);
     }
     /** @internal */
     _notThisChannelEvent(event, ref) {
-      let { close, error, leave, join } = CHANNEL_EVENTS;
-      return ref && [close, error, leave, join].includes(event) && ref !== this.joinPush.ref;
+      let { close: close2, error, leave, join } = CHANNEL_EVENTS;
+      return ref && [close2, error, leave, join].includes(event) && ref !== this.joinPush.ref;
     }
     /** @internal */
     _updateFilterTransform() {
@@ -14081,8 +14081,8 @@ Option 2: Install and provide the "ws" package:
      * })
      * ```
      */
-    constructor({ url: url2 = "", headers = {}, fetch: fetch2 }) {
-      this.url = url2, this.headers = headers, this.fetch = resolveFetch3(fetch2), this.mfa = {
+    constructor({ url: url2 = "", headers = {}, fetch: fetch3 }) {
+      this.url = url2, this.headers = headers, this.fetch = resolveFetch3(fetch3), this.mfa = {
         listFactors: this._listFactors.bind(this),
         deleteFactor: this._deleteFactor.bind(this)
       }, this.oauth = {
@@ -19741,10 +19741,10 @@ ${suffix}`;
   }
   var resolveFetch4 = (customFetch) => customFetch ? (...args) => customFetch(...args) : (...args) => fetch(...args), resolveHeadersConstructor = () => Headers, fetchWithAuth = (supabaseKey, getAccessToken, customFetch) => {
     let fetch$1 = resolveFetch4(customFetch), HeadersConstructor = resolveHeadersConstructor();
-    return async (input, init) => {
+    return async (input, init2) => {
       var _await$getAccessToken;
-      let accessToken = (_await$getAccessToken = await getAccessToken()) !== null && _await$getAccessToken !== void 0 ? _await$getAccessToken : supabaseKey, headers = new HeadersConstructor(init?.headers);
-      return headers.has("apikey") || headers.set("apikey", supabaseKey), headers.has("Authorization") || headers.set("Authorization", `Bearer ${accessToken}`), fetch$1(input, _objectSpread23(_objectSpread23({}, init), {}, { headers }));
+      let accessToken = (_await$getAccessToken = await getAccessToken()) !== null && _await$getAccessToken !== void 0 ? _await$getAccessToken : supabaseKey, headers = new HeadersConstructor(init2?.headers);
+      return headers.has("apikey") || headers.set("apikey", supabaseKey), headers.has("Authorization") || headers.set("Authorization", `Bearer ${accessToken}`), fetch$1(input, _objectSpread23(_objectSpread23({}, init2), {}, { headers }));
     };
   };
   function ensureTrailingSlash(url2) {
@@ -20754,6 +20754,29 @@ Do not translate employee names, case notes, job titles, or user-entered content
     let msg = (error?.message || "").toLowerCase();
     return msg.includes("super_admin only") ? "not-super-admin" : msg.includes("admin only") ? "not-admin" : msg.includes("admins cannot revoke their own access") ? "self-revoke" : msg.includes("cannot demote yourself") ? "self-demote" : msg.includes("invalid role") ? "invalid-role" : msg.includes("authentication required") ? "not-authenticated" : msg.includes("not found") ? "profile-not-found" : "rpc-error";
   }
+  async function notifyApprovedUser(targetUserId) {
+    if (!supabase) return { ok: !1, reason: "no-client" };
+    if (!targetUserId) return { ok: !1, reason: "invalid-id" };
+    try {
+      let { data: sess } = await supabase.auth.getSession(), token = sess?.session?.access_token;
+      if (!token) return { ok: !1, reason: "no-session" };
+      let res = await fetch("/api/notify-approved", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ target_user_id: targetUserId })
+      }), payload = null;
+      try {
+        payload = await res.json();
+      } catch {
+      }
+      return res.ok ? { ok: !0, ...payload || {} } : { ok: !1, reason: `http_${res.status}`, payload };
+    } catch (err) {
+      return { ok: !1, reason: "network-error", error: err };
+    }
+  }
   async function listOrganizations() {
     if (!supabase) return NO_CLIENT5;
     let { data, error } = await supabase.from("organizations").select("id, name, status, created_at").order("name", { ascending: !0 });
@@ -21487,8 +21510,4361 @@ Do not translate employee names, case notes, job titles, or user-entered content
     );
   }
 
+  // src/components/ErrorBoundary.jsx
+  var import_react4 = __toESM(__require("react"));
+
+  // node_modules/@sentry/core/build/esm/debug-build.js
+  var DEBUG_BUILD = typeof __SENTRY_DEBUG__ > "u" || __SENTRY_DEBUG__;
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/version.js
+  var SDK_VERSION = "8.55.2";
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/worldwide.js
+  var GLOBAL_OBJ = globalThis;
+  function getGlobalSingleton(name, creator, obj) {
+    let gbl = obj || GLOBAL_OBJ, __SENTRY__ = gbl.__SENTRY__ = gbl.__SENTRY__ || {}, versionedCarrier = __SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {};
+    return versionedCarrier[name] || (versionedCarrier[name] = creator());
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/debug-build.js
+  var DEBUG_BUILD2 = typeof __SENTRY_DEBUG__ > "u" || __SENTRY_DEBUG__;
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/logger.js
+  var PREFIX = "Sentry Logger ", CONSOLE_LEVELS = [
+    "debug",
+    "info",
+    "warn",
+    "error",
+    "log",
+    "assert",
+    "trace"
+  ], originalConsoleMethods = {};
+  function consoleSandbox(callback) {
+    if (!("console" in GLOBAL_OBJ))
+      return callback();
+    let console2 = GLOBAL_OBJ.console, wrappedFuncs = {}, wrappedLevels = Object.keys(originalConsoleMethods);
+    wrappedLevels.forEach((level) => {
+      let originalConsoleMethod = originalConsoleMethods[level];
+      wrappedFuncs[level] = console2[level], console2[level] = originalConsoleMethod;
+    });
+    try {
+      return callback();
+    } finally {
+      wrappedLevels.forEach((level) => {
+        console2[level] = wrappedFuncs[level];
+      });
+    }
+  }
+  function makeLogger() {
+    let enabled = !1, logger2 = {
+      enable: () => {
+        enabled = !0;
+      },
+      disable: () => {
+        enabled = !1;
+      },
+      isEnabled: () => enabled
+    };
+    return DEBUG_BUILD2 ? CONSOLE_LEVELS.forEach((name) => {
+      logger2[name] = (...args) => {
+        enabled && consoleSandbox(() => {
+          GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
+        });
+      };
+    }) : CONSOLE_LEVELS.forEach((name) => {
+      logger2[name] = () => {
+      };
+    }), logger2;
+  }
+  var logger = getGlobalSingleton("logger", makeLogger);
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/stacktrace.js
+  var WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/, STRIP_FRAME_REGEXP = /captureMessage|captureException/;
+  function createStackParser(...parsers) {
+    let sortedParsers = parsers.sort((a, b) => a[0] - b[0]).map((p) => p[1]);
+    return (stack, skipFirstLines = 0, framesToPop = 0) => {
+      let frames = [], lines = stack.split(`
+`);
+      for (let i = skipFirstLines; i < lines.length; i++) {
+        let line = lines[i];
+        if (line.length > 1024)
+          continue;
+        let cleanedLine = WEBPACK_ERROR_REGEXP.test(line) ? line.replace(WEBPACK_ERROR_REGEXP, "$1") : line;
+        if (!cleanedLine.match(/\S*Error: /)) {
+          for (let parser of sortedParsers) {
+            let frame = parser(cleanedLine);
+            if (frame) {
+              frames.push(frame);
+              break;
+            }
+          }
+          if (frames.length >= 50 + framesToPop)
+            break;
+        }
+      }
+      return stripSentryFramesAndReverse(frames.slice(framesToPop));
+    };
+  }
+  function stackParserFromStackParserOptions(stackParser) {
+    return Array.isArray(stackParser) ? createStackParser(...stackParser) : stackParser;
+  }
+  function stripSentryFramesAndReverse(stack) {
+    if (!stack.length)
+      return [];
+    let localStack = Array.from(stack);
+    return /sentryWrapped/.test(getLastStackFrame(localStack).function || "") && localStack.pop(), localStack.reverse(), STRIP_FRAME_REGEXP.test(getLastStackFrame(localStack).function || "") && (localStack.pop(), STRIP_FRAME_REGEXP.test(getLastStackFrame(localStack).function || "") && localStack.pop()), localStack.slice(0, 50).map((frame) => ({
+      ...frame,
+      filename: frame.filename || getLastStackFrame(localStack).filename,
+      function: frame.function || "?"
+    }));
+  }
+  function getLastStackFrame(arr) {
+    return arr[arr.length - 1] || {};
+  }
+  var defaultFunctionName = "<anonymous>";
+  function getFunctionName(fn) {
+    try {
+      return !fn || typeof fn != "function" ? defaultFunctionName : fn.name || defaultFunctionName;
+    } catch {
+      return defaultFunctionName;
+    }
+  }
+  function getFramesFromEvent(event) {
+    let exception = event.exception;
+    if (exception) {
+      let frames = [];
+      try {
+        return exception.values.forEach((value) => {
+          value.stacktrace.frames && frames.push(...value.stacktrace.frames);
+        }), frames;
+      } catch {
+        return;
+      }
+    }
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/instrument/handlers.js
+  var handlers = {}, instrumented = {};
+  function addHandler(type, handler) {
+    handlers[type] = handlers[type] || [], handlers[type].push(handler);
+  }
+  function maybeInstrument(type, instrumentFn) {
+    if (!instrumented[type]) {
+      instrumented[type] = !0;
+      try {
+        instrumentFn();
+      } catch (e) {
+        DEBUG_BUILD2 && logger.error(`Error while instrumenting ${type}`, e);
+      }
+    }
+  }
+  function triggerHandlers(type, data) {
+    let typeHandlers = type && handlers[type];
+    if (typeHandlers)
+      for (let handler of typeHandlers)
+        try {
+          handler(data);
+        } catch (e) {
+          DEBUG_BUILD2 && logger.error(
+            `Error while triggering instrumentation handler.
+Type: ${type}
+Name: ${getFunctionName(handler)}
+Error:`,
+            e
+          );
+        }
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/instrument/globalError.js
+  var _oldOnErrorHandler = null;
+  function addGlobalErrorInstrumentationHandler(handler) {
+    let type = "error";
+    addHandler(type, handler), maybeInstrument(type, instrumentError);
+  }
+  function instrumentError() {
+    _oldOnErrorHandler = GLOBAL_OBJ.onerror, GLOBAL_OBJ.onerror = function(msg, url2, line, column, error) {
+      return triggerHandlers("error", {
+        column,
+        error,
+        line,
+        msg,
+        url: url2
+      }), _oldOnErrorHandler ? _oldOnErrorHandler.apply(this, arguments) : !1;
+    }, GLOBAL_OBJ.onerror.__SENTRY_INSTRUMENTED__ = !0;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/instrument/globalUnhandledRejection.js
+  var _oldOnUnhandledRejectionHandler = null;
+  function addGlobalUnhandledRejectionInstrumentationHandler(handler) {
+    let type = "unhandledrejection";
+    addHandler(type, handler), maybeInstrument(type, instrumentUnhandledRejection);
+  }
+  function instrumentUnhandledRejection() {
+    _oldOnUnhandledRejectionHandler = GLOBAL_OBJ.onunhandledrejection, GLOBAL_OBJ.onunhandledrejection = function(e) {
+      return triggerHandlers("unhandledrejection", e), _oldOnUnhandledRejectionHandler ? _oldOnUnhandledRejectionHandler.apply(this, arguments) : !0;
+    }, GLOBAL_OBJ.onunhandledrejection.__SENTRY_INSTRUMENTED__ = !0;
+  }
+
+  // node_modules/@sentry/core/build/esm/carrier.js
+  function getMainCarrier() {
+    return getSentryCarrier(GLOBAL_OBJ), GLOBAL_OBJ;
+  }
+  function getSentryCarrier(carrier) {
+    let __SENTRY__ = carrier.__SENTRY__ = carrier.__SENTRY__ || {};
+    return __SENTRY__.version = __SENTRY__.version || SDK_VERSION, __SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {};
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/is.js
+  var objectToString = Object.prototype.toString;
+  function isError(wat) {
+    switch (objectToString.call(wat)) {
+      case "[object Error]":
+      case "[object Exception]":
+      case "[object DOMException]":
+      case "[object WebAssembly.Exception]":
+        return !0;
+      default:
+        return isInstanceOf(wat, Error);
+    }
+  }
+  function isBuiltin(wat, className) {
+    return objectToString.call(wat) === `[object ${className}]`;
+  }
+  function isErrorEvent(wat) {
+    return isBuiltin(wat, "ErrorEvent");
+  }
+  function isDOMError(wat) {
+    return isBuiltin(wat, "DOMError");
+  }
+  function isDOMException(wat) {
+    return isBuiltin(wat, "DOMException");
+  }
+  function isString(wat) {
+    return isBuiltin(wat, "String");
+  }
+  function isParameterizedString(wat) {
+    return typeof wat == "object" && wat !== null && "__sentry_template_string__" in wat && "__sentry_template_values__" in wat;
+  }
+  function isPrimitive(wat) {
+    return wat === null || isParameterizedString(wat) || typeof wat != "object" && typeof wat != "function";
+  }
+  function isPlainObject2(wat) {
+    return isBuiltin(wat, "Object");
+  }
+  function isEvent(wat) {
+    return typeof Event < "u" && isInstanceOf(wat, Event);
+  }
+  function isElement(wat) {
+    return typeof Element < "u" && isInstanceOf(wat, Element);
+  }
+  function isRegExp(wat) {
+    return isBuiltin(wat, "RegExp");
+  }
+  function isThenable(wat) {
+    return !!(wat && wat.then && typeof wat.then == "function");
+  }
+  function isSyntheticEvent(wat) {
+    return isPlainObject2(wat) && "nativeEvent" in wat && "preventDefault" in wat && "stopPropagation" in wat;
+  }
+  function isInstanceOf(wat, base) {
+    try {
+      return wat instanceof base;
+    } catch {
+      return !1;
+    }
+  }
+  function isVueViewModel(wat) {
+    return !!(typeof wat == "object" && wat !== null && (wat.__isVue || wat._isVue));
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/browser.js
+  var WINDOW = GLOBAL_OBJ, DEFAULT_MAX_STRING_LENGTH = 80;
+  function htmlTreeAsString(elem, options = {}) {
+    if (!elem)
+      return "<unknown>";
+    try {
+      let currentElem = elem, MAX_TRAVERSE_HEIGHT = 5, out = [], height = 0, len = 0, separator = " > ", sepLength = separator.length, nextStr, keyAttrs = Array.isArray(options) ? options : options.keyAttrs, maxStringLength = !Array.isArray(options) && options.maxStringLength || DEFAULT_MAX_STRING_LENGTH;
+      for (; currentElem && height++ < MAX_TRAVERSE_HEIGHT && (nextStr = _htmlElementAsString(currentElem, keyAttrs), !(nextStr === "html" || height > 1 && len + out.length * sepLength + nextStr.length >= maxStringLength)); )
+        out.push(nextStr), len += nextStr.length, currentElem = currentElem.parentNode;
+      return out.reverse().join(separator);
+    } catch {
+      return "<unknown>";
+    }
+  }
+  function _htmlElementAsString(el, keyAttrs) {
+    let elem = el, out = [];
+    if (!elem || !elem.tagName)
+      return "";
+    if (WINDOW.HTMLElement && elem instanceof HTMLElement && elem.dataset) {
+      if (elem.dataset.sentryComponent)
+        return elem.dataset.sentryComponent;
+      if (elem.dataset.sentryElement)
+        return elem.dataset.sentryElement;
+    }
+    out.push(elem.tagName.toLowerCase());
+    let keyAttrPairs = keyAttrs && keyAttrs.length ? keyAttrs.filter((keyAttr) => elem.getAttribute(keyAttr)).map((keyAttr) => [keyAttr, elem.getAttribute(keyAttr)]) : null;
+    if (keyAttrPairs && keyAttrPairs.length)
+      keyAttrPairs.forEach((keyAttrPair) => {
+        out.push(`[${keyAttrPair[0]}="${keyAttrPair[1]}"]`);
+      });
+    else {
+      elem.id && out.push(`#${elem.id}`);
+      let className = elem.className;
+      if (className && isString(className)) {
+        let classes = className.split(/\s+/);
+        for (let c of classes)
+          out.push(`.${c}`);
+      }
+    }
+    let allowedAttrs = ["aria-label", "type", "name", "title", "alt"];
+    for (let k of allowedAttrs) {
+      let attr = elem.getAttribute(k);
+      attr && out.push(`[${k}="${attr}"]`);
+    }
+    return out.join("");
+  }
+  function getLocationHref() {
+    try {
+      return WINDOW.document.location.href;
+    } catch {
+      return "";
+    }
+  }
+  function getComponentName(elem) {
+    if (!WINDOW.HTMLElement)
+      return null;
+    let currentElem = elem, MAX_TRAVERSE_HEIGHT = 5;
+    for (let i = 0; i < MAX_TRAVERSE_HEIGHT; i++) {
+      if (!currentElem)
+        return null;
+      if (currentElem instanceof HTMLElement) {
+        if (currentElem.dataset.sentryComponent)
+          return currentElem.dataset.sentryComponent;
+        if (currentElem.dataset.sentryElement)
+          return currentElem.dataset.sentryElement;
+      }
+      currentElem = currentElem.parentNode;
+    }
+    return null;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/string.js
+  function truncate(str, max = 0) {
+    return typeof str != "string" || max === 0 || str.length <= max ? str : `${str.slice(0, max)}...`;
+  }
+  function safeJoin(input, delimiter) {
+    if (!Array.isArray(input))
+      return "";
+    let output = [];
+    for (let i = 0; i < input.length; i++) {
+      let value = input[i];
+      try {
+        isVueViewModel(value) ? output.push("[VueViewModel]") : output.push(String(value));
+      } catch {
+        output.push("[value cannot be serialized]");
+      }
+    }
+    return output.join(delimiter);
+  }
+  function isMatchingPattern(value, pattern, requireExactStringMatch = !1) {
+    return isString(value) ? isRegExp(pattern) ? pattern.test(value) : isString(pattern) ? requireExactStringMatch ? value === pattern : value.includes(pattern) : !1 : !1;
+  }
+  function stringMatchesSomePattern(testString, patterns = [], requireExactStringMatch = !1) {
+    return patterns.some((pattern) => isMatchingPattern(testString, pattern, requireExactStringMatch));
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/object.js
+  function fill(source, name, replacementFactory) {
+    if (!(name in source))
+      return;
+    let original = source[name], wrapped = replacementFactory(original);
+    typeof wrapped == "function" && markFunctionWrapped(wrapped, original);
+    try {
+      source[name] = wrapped;
+    } catch {
+      DEBUG_BUILD2 && logger.log(`Failed to replace method "${name}" in object`, source);
+    }
+  }
+  function addNonEnumerableProperty(obj, name, value) {
+    try {
+      Object.defineProperty(obj, name, {
+        // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
+        value,
+        writable: !0,
+        configurable: !0
+      });
+    } catch {
+      DEBUG_BUILD2 && logger.log(`Failed to add non-enumerable property "${name}" to object`, obj);
+    }
+  }
+  function markFunctionWrapped(wrapped, original) {
+    try {
+      let proto = original.prototype || {};
+      wrapped.prototype = original.prototype = proto, addNonEnumerableProperty(wrapped, "__sentry_original__", original);
+    } catch {
+    }
+  }
+  function getOriginalFunction(func) {
+    return func.__sentry_original__;
+  }
+  function convertToPlainObject(value) {
+    if (isError(value))
+      return {
+        message: value.message,
+        name: value.name,
+        stack: value.stack,
+        ...getOwnProperties(value)
+      };
+    if (isEvent(value)) {
+      let newObj = {
+        type: value.type,
+        target: serializeEventTarget(value.target),
+        currentTarget: serializeEventTarget(value.currentTarget),
+        ...getOwnProperties(value)
+      };
+      return typeof CustomEvent < "u" && isInstanceOf(value, CustomEvent) && (newObj.detail = value.detail), newObj;
+    } else
+      return value;
+  }
+  function serializeEventTarget(target) {
+    try {
+      return isElement(target) ? htmlTreeAsString(target) : Object.prototype.toString.call(target);
+    } catch {
+      return "<unknown>";
+    }
+  }
+  function getOwnProperties(obj) {
+    if (typeof obj == "object" && obj !== null) {
+      let extractedProps = {};
+      for (let property in obj)
+        Object.prototype.hasOwnProperty.call(obj, property) && (extractedProps[property] = obj[property]);
+      return extractedProps;
+    } else
+      return {};
+  }
+  function extractExceptionKeysForMessage(exception, maxLength = 40) {
+    let keys = Object.keys(convertToPlainObject(exception));
+    keys.sort();
+    let firstKey = keys[0];
+    if (!firstKey)
+      return "[object has no keys]";
+    if (firstKey.length >= maxLength)
+      return truncate(firstKey, maxLength);
+    for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
+      let serialized = keys.slice(0, includedKeys).join(", ");
+      if (!(serialized.length > maxLength))
+        return includedKeys === keys.length ? serialized : truncate(serialized, maxLength);
+    }
+    return "";
+  }
+  function dropUndefinedKeys(inputValue) {
+    return _dropUndefinedKeys(inputValue, /* @__PURE__ */ new Map());
+  }
+  function _dropUndefinedKeys(inputValue, memoizationMap) {
+    if (isPojo(inputValue)) {
+      let memoVal = memoizationMap.get(inputValue);
+      if (memoVal !== void 0)
+        return memoVal;
+      let returnValue = {};
+      memoizationMap.set(inputValue, returnValue);
+      for (let key2 of Object.getOwnPropertyNames(inputValue))
+        typeof inputValue[key2] < "u" && (returnValue[key2] = _dropUndefinedKeys(inputValue[key2], memoizationMap));
+      return returnValue;
+    }
+    if (Array.isArray(inputValue)) {
+      let memoVal = memoizationMap.get(inputValue);
+      if (memoVal !== void 0)
+        return memoVal;
+      let returnValue = [];
+      return memoizationMap.set(inputValue, returnValue), inputValue.forEach((item) => {
+        returnValue.push(_dropUndefinedKeys(item, memoizationMap));
+      }), returnValue;
+    }
+    return inputValue;
+  }
+  function isPojo(input) {
+    if (!isPlainObject2(input))
+      return !1;
+    try {
+      let name = Object.getPrototypeOf(input).constructor.name;
+      return !name || name === "Object";
+    } catch {
+      return !0;
+    }
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/time.js
+  var ONE_SECOND_IN_MS = 1e3;
+  function dateTimestampInSeconds() {
+    return Date.now() / ONE_SECOND_IN_MS;
+  }
+  function createUnixTimestampInSecondsFunc() {
+    let { performance } = GLOBAL_OBJ;
+    if (!performance || !performance.now)
+      return dateTimestampInSeconds;
+    let approxStartingTimeOrigin = Date.now() - performance.now(), timeOrigin = performance.timeOrigin == null ? approxStartingTimeOrigin : performance.timeOrigin;
+    return () => (timeOrigin + performance.now()) / ONE_SECOND_IN_MS;
+  }
+  var timestampInSeconds = createUnixTimestampInSecondsFunc(), _browserPerformanceTimeOriginMode, browserPerformanceTimeOrigin = (() => {
+    let { performance } = GLOBAL_OBJ;
+    if (!performance || !performance.now) {
+      _browserPerformanceTimeOriginMode = "none";
+      return;
+    }
+    let threshold = 3600 * 1e3, performanceNow = performance.now(), dateNow = Date.now(), timeOriginDelta = performance.timeOrigin ? Math.abs(performance.timeOrigin + performanceNow - dateNow) : threshold, timeOriginIsReliable = timeOriginDelta < threshold, navigationStart = performance.timing && performance.timing.navigationStart, navigationStartDelta = typeof navigationStart == "number" ? Math.abs(navigationStart + performanceNow - dateNow) : threshold, navigationStartIsReliable = navigationStartDelta < threshold;
+    return timeOriginIsReliable || navigationStartIsReliable ? timeOriginDelta <= navigationStartDelta ? (_browserPerformanceTimeOriginMode = "timeOrigin", performance.timeOrigin) : (_browserPerformanceTimeOriginMode = "navigationStart", navigationStart) : (_browserPerformanceTimeOriginMode = "dateNow", dateNow);
+  })();
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/misc.js
+  function uuid4() {
+    let gbl = GLOBAL_OBJ, crypto2 = gbl.crypto || gbl.msCrypto, getRandomByte = () => Math.random() * 16;
+    try {
+      if (crypto2 && crypto2.randomUUID)
+        return crypto2.randomUUID().replace(/-/g, "");
+      crypto2 && crypto2.getRandomValues && (getRandomByte = () => {
+        let typedArray = new Uint8Array(1);
+        return crypto2.getRandomValues(typedArray), typedArray[0];
+      });
+    } catch {
+    }
+    return ("10000000100040008000" + 1e11).replace(
+      /[018]/g,
+      (c) => (
+        // eslint-disable-next-line no-bitwise
+        (c ^ (getRandomByte() & 15) >> c / 4).toString(16)
+      )
+    );
+  }
+  function getFirstException(event) {
+    return event.exception && event.exception.values ? event.exception.values[0] : void 0;
+  }
+  function getEventDescription(event) {
+    let { message, event_id: eventId } = event;
+    if (message)
+      return message;
+    let firstException = getFirstException(event);
+    return firstException ? firstException.type && firstException.value ? `${firstException.type}: ${firstException.value}` : firstException.type || firstException.value || eventId || "<unknown>" : eventId || "<unknown>";
+  }
+  function addExceptionTypeValue(event, value, type) {
+    let exception = event.exception = event.exception || {}, values = exception.values = exception.values || [], firstException = values[0] = values[0] || {};
+    firstException.value || (firstException.value = value || ""), firstException.type || (firstException.type = type || "Error");
+  }
+  function addExceptionMechanism(event, newMechanism) {
+    let firstException = getFirstException(event);
+    if (!firstException)
+      return;
+    let defaultMechanism = { type: "generic", handled: !0 }, currentMechanism = firstException.mechanism;
+    if (firstException.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism }, newMechanism && "data" in newMechanism) {
+      let mergedData = { ...currentMechanism && currentMechanism.data, ...newMechanism.data };
+      firstException.mechanism.data = mergedData;
+    }
+  }
+  function checkOrSetAlreadyCaught(exception) {
+    if (isAlreadyCaptured(exception))
+      return !0;
+    try {
+      addNonEnumerableProperty(exception, "__sentry_captured__", !0);
+    } catch {
+    }
+    return !1;
+  }
+  function isAlreadyCaptured(exception) {
+    try {
+      return exception.__sentry_captured__;
+    } catch {
+    }
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/syncpromise.js
+  var States;
+  (function(States2) {
+    States2[States2.PENDING = 0] = "PENDING";
+    let RESOLVED = 1;
+    States2[States2.RESOLVED = RESOLVED] = "RESOLVED";
+    let REJECTED = 2;
+    States2[States2.REJECTED = REJECTED] = "REJECTED";
+  })(States || (States = {}));
+  function resolvedSyncPromise(value) {
+    return new SyncPromise((resolve) => {
+      resolve(value);
+    });
+  }
+  function rejectedSyncPromise(reason) {
+    return new SyncPromise((_, reject) => {
+      reject(reason);
+    });
+  }
+  var SyncPromise = class _SyncPromise {
+    constructor(executor) {
+      _SyncPromise.prototype.__init.call(this), _SyncPromise.prototype.__init2.call(this), _SyncPromise.prototype.__init3.call(this), _SyncPromise.prototype.__init4.call(this), this._state = States.PENDING, this._handlers = [];
+      try {
+        executor(this._resolve, this._reject);
+      } catch (e) {
+        this._reject(e);
+      }
+    }
+    /** JSDoc */
+    then(onfulfilled, onrejected) {
+      return new _SyncPromise((resolve, reject) => {
+        this._handlers.push([
+          !1,
+          (result) => {
+            if (!onfulfilled)
+              resolve(result);
+            else
+              try {
+                resolve(onfulfilled(result));
+              } catch (e) {
+                reject(e);
+              }
+          },
+          (reason) => {
+            if (!onrejected)
+              reject(reason);
+            else
+              try {
+                resolve(onrejected(reason));
+              } catch (e) {
+                reject(e);
+              }
+          }
+        ]), this._executeHandlers();
+      });
+    }
+    /** JSDoc */
+    catch(onrejected) {
+      return this.then((val) => val, onrejected);
+    }
+    /** JSDoc */
+    finally(onfinally) {
+      return new _SyncPromise((resolve, reject) => {
+        let val, isRejected;
+        return this.then(
+          (value) => {
+            isRejected = !1, val = value, onfinally && onfinally();
+          },
+          (reason) => {
+            isRejected = !0, val = reason, onfinally && onfinally();
+          }
+        ).then(() => {
+          if (isRejected) {
+            reject(val);
+            return;
+          }
+          resolve(val);
+        });
+      });
+    }
+    /** JSDoc */
+    __init() {
+      this._resolve = (value) => {
+        this._setResult(States.RESOLVED, value);
+      };
+    }
+    /** JSDoc */
+    __init2() {
+      this._reject = (reason) => {
+        this._setResult(States.REJECTED, reason);
+      };
+    }
+    /** JSDoc */
+    __init3() {
+      this._setResult = (state, value) => {
+        if (this._state === States.PENDING) {
+          if (isThenable(value)) {
+            value.then(this._resolve, this._reject);
+            return;
+          }
+          this._state = state, this._value = value, this._executeHandlers();
+        }
+      };
+    }
+    /** JSDoc */
+    __init4() {
+      this._executeHandlers = () => {
+        if (this._state === States.PENDING)
+          return;
+        let cachedHandlers = this._handlers.slice();
+        this._handlers = [], cachedHandlers.forEach((handler) => {
+          handler[0] || (this._state === States.RESOLVED && handler[1](this._value), this._state === States.REJECTED && handler[2](this._value), handler[0] = !0);
+        });
+      };
+    }
+  };
+
+  // node_modules/@sentry/core/build/esm/session.js
+  function makeSession(context) {
+    let startingTime = timestampInSeconds(), session = {
+      sid: uuid4(),
+      init: !0,
+      timestamp: startingTime,
+      started: startingTime,
+      duration: 0,
+      status: "ok",
+      errors: 0,
+      ignoreDuration: !1,
+      toJSON: () => sessionToJSON(session)
+    };
+    return context && updateSession(session, context), session;
+  }
+  function updateSession(session, context = {}) {
+    if (context.user && (!session.ipAddress && context.user.ip_address && (session.ipAddress = context.user.ip_address), !session.did && !context.did && (session.did = context.user.id || context.user.email || context.user.username)), session.timestamp = context.timestamp || timestampInSeconds(), context.abnormal_mechanism && (session.abnormal_mechanism = context.abnormal_mechanism), context.ignoreDuration && (session.ignoreDuration = context.ignoreDuration), context.sid && (session.sid = context.sid.length === 32 ? context.sid : uuid4()), context.init !== void 0 && (session.init = context.init), !session.did && context.did && (session.did = `${context.did}`), typeof context.started == "number" && (session.started = context.started), session.ignoreDuration)
+      session.duration = void 0;
+    else if (typeof context.duration == "number")
+      session.duration = context.duration;
+    else {
+      let duration = session.timestamp - session.started;
+      session.duration = duration >= 0 ? duration : 0;
+    }
+    context.release && (session.release = context.release), context.environment && (session.environment = context.environment), !session.ipAddress && context.ipAddress && (session.ipAddress = context.ipAddress), !session.userAgent && context.userAgent && (session.userAgent = context.userAgent), typeof context.errors == "number" && (session.errors = context.errors), context.status && (session.status = context.status);
+  }
+  function closeSession(session, status) {
+    let context = {};
+    status ? context = { status } : session.status === "ok" && (context = { status: "exited" }), updateSession(session, context);
+  }
+  function sessionToJSON(session) {
+    return dropUndefinedKeys({
+      sid: `${session.sid}`,
+      init: session.init,
+      // Make sure that sec is converted to ms for date constructor
+      started: new Date(session.started * 1e3).toISOString(),
+      timestamp: new Date(session.timestamp * 1e3).toISOString(),
+      status: session.status,
+      errors: session.errors,
+      did: typeof session.did == "number" || typeof session.did == "string" ? `${session.did}` : void 0,
+      duration: session.duration,
+      abnormal_mechanism: session.abnormal_mechanism,
+      attrs: {
+        release: session.release,
+        environment: session.environment,
+        ip_address: session.ipAddress,
+        user_agent: session.userAgent
+      }
+    });
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/propagationContext.js
+  function generateTraceId() {
+    return uuid4();
+  }
+  function generateSpanId() {
+    return uuid4().substring(16);
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/merge.js
+  function merge(initialObj, mergeObj, levels = 2) {
+    if (!mergeObj || typeof mergeObj != "object" || levels <= 0)
+      return mergeObj;
+    if (initialObj && mergeObj && Object.keys(mergeObj).length === 0)
+      return initialObj;
+    let output = { ...initialObj };
+    for (let key2 in mergeObj)
+      Object.prototype.hasOwnProperty.call(mergeObj, key2) && (output[key2] = merge(output[key2], mergeObj[key2], levels - 1));
+    return output;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/spanOnScope.js
+  var SCOPE_SPAN_FIELD = "_sentrySpan";
+  function _setSpanForScope(scope, span) {
+    span ? addNonEnumerableProperty(scope, SCOPE_SPAN_FIELD, span) : delete scope[SCOPE_SPAN_FIELD];
+  }
+  function _getSpanForScope(scope) {
+    return scope[SCOPE_SPAN_FIELD];
+  }
+
+  // node_modules/@sentry/core/build/esm/scope.js
+  var DEFAULT_MAX_BREADCRUMBS = 100, ScopeClass = class _ScopeClass {
+    /** Flag if notifying is happening. */
+    /** Callback for client to receive scope changes. */
+    /** Callback list that will be called during event processing. */
+    /** Array of breadcrumbs. */
+    /** User */
+    /** Tags */
+    /** Extra */
+    /** Contexts */
+    /** Attachments */
+    /** Propagation Context for distributed tracing */
+    /**
+     * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
+     * sent to Sentry
+     */
+    /** Fingerprint */
+    /** Severity */
+    /**
+     * Transaction Name
+     *
+     * IMPORTANT: The transaction name on the scope has nothing to do with root spans/transaction objects.
+     * It's purpose is to assign a transaction to the scope that's added to non-transaction events.
+     */
+    /** Session */
+    /** Request Mode Session Status */
+    // eslint-disable-next-line deprecation/deprecation
+    /** The client on this scope */
+    /** Contains the last event id of a captured event.  */
+    // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
+    constructor() {
+      this._notifyingListeners = !1, this._scopeListeners = [], this._eventProcessors = [], this._breadcrumbs = [], this._attachments = [], this._user = {}, this._tags = {}, this._extra = {}, this._contexts = {}, this._sdkProcessingMetadata = {}, this._propagationContext = {
+        traceId: generateTraceId(),
+        spanId: generateSpanId()
+      };
+    }
+    /**
+     * @inheritDoc
+     */
+    clone() {
+      let newScope = new _ScopeClass();
+      return newScope._breadcrumbs = [...this._breadcrumbs], newScope._tags = { ...this._tags }, newScope._extra = { ...this._extra }, newScope._contexts = { ...this._contexts }, this._contexts.flags && (newScope._contexts.flags = {
+        values: [...this._contexts.flags.values]
+      }), newScope._user = this._user, newScope._level = this._level, newScope._session = this._session, newScope._transactionName = this._transactionName, newScope._fingerprint = this._fingerprint, newScope._eventProcessors = [...this._eventProcessors], newScope._requestSession = this._requestSession, newScope._attachments = [...this._attachments], newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata }, newScope._propagationContext = { ...this._propagationContext }, newScope._client = this._client, newScope._lastEventId = this._lastEventId, _setSpanForScope(newScope, _getSpanForScope(this)), newScope;
+    }
+    /**
+     * @inheritDoc
+     */
+    setClient(client) {
+      this._client = client;
+    }
+    /**
+     * @inheritDoc
+     */
+    setLastEventId(lastEventId2) {
+      this._lastEventId = lastEventId2;
+    }
+    /**
+     * @inheritDoc
+     */
+    getClient() {
+      return this._client;
+    }
+    /**
+     * @inheritDoc
+     */
+    lastEventId() {
+      return this._lastEventId;
+    }
+    /**
+     * @inheritDoc
+     */
+    addScopeListener(callback) {
+      this._scopeListeners.push(callback);
+    }
+    /**
+     * @inheritDoc
+     */
+    addEventProcessor(callback) {
+      return this._eventProcessors.push(callback), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setUser(user) {
+      return this._user = user || {
+        email: void 0,
+        id: void 0,
+        ip_address: void 0,
+        username: void 0
+      }, this._session && updateSession(this._session, { user }), this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    getUser() {
+      return this._user;
+    }
+    /**
+     * @inheritDoc
+     */
+    // eslint-disable-next-line deprecation/deprecation
+    getRequestSession() {
+      return this._requestSession;
+    }
+    /**
+     * @inheritDoc
+     */
+    // eslint-disable-next-line deprecation/deprecation
+    setRequestSession(requestSession) {
+      return this._requestSession = requestSession, this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setTags(tags) {
+      return this._tags = {
+        ...this._tags,
+        ...tags
+      }, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setTag(key2, value) {
+      return this._tags = { ...this._tags, [key2]: value }, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setExtras(extras) {
+      return this._extra = {
+        ...this._extra,
+        ...extras
+      }, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setExtra(key2, extra) {
+      return this._extra = { ...this._extra, [key2]: extra }, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setFingerprint(fingerprint) {
+      return this._fingerprint = fingerprint, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setLevel(level) {
+      return this._level = level, this._notifyScopeListeners(), this;
+    }
+    /**
+     * Sets the transaction name on the scope so that the name of e.g. taken server route or
+     * the page location is attached to future events.
+     *
+     * IMPORTANT: Calling this function does NOT change the name of the currently active
+     * root span. If you want to change the name of the active root span, use
+     * `Sentry.updateSpanName(rootSpan, 'new name')` instead.
+     *
+     * By default, the SDK updates the scope's transaction name automatically on sensible
+     * occasions, such as a page navigation or when handling a new request on the server.
+     */
+    setTransactionName(name) {
+      return this._transactionName = name, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setContext(key2, context) {
+      return context === null ? delete this._contexts[key2] : this._contexts[key2] = context, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setSession(session) {
+      return session ? this._session = session : delete this._session, this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    getSession() {
+      return this._session;
+    }
+    /**
+     * @inheritDoc
+     */
+    update(captureContext) {
+      if (!captureContext)
+        return this;
+      let scopeToMerge = typeof captureContext == "function" ? captureContext(this) : captureContext, [scopeInstance, requestSession] = scopeToMerge instanceof Scope ? (
+        // eslint-disable-next-line deprecation/deprecation
+        [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+      ) : isPlainObject2(scopeToMerge) ? [captureContext, captureContext.requestSession] : [], { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
+      return this._tags = { ...this._tags, ...tags }, this._extra = { ...this._extra, ...extra }, this._contexts = { ...this._contexts, ...contexts }, user && Object.keys(user).length && (this._user = user), level && (this._level = level), fingerprint.length && (this._fingerprint = fingerprint), propagationContext && (this._propagationContext = propagationContext), requestSession && (this._requestSession = requestSession), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    clear() {
+      return this._breadcrumbs = [], this._tags = {}, this._extra = {}, this._user = {}, this._contexts = {}, this._level = void 0, this._transactionName = void 0, this._fingerprint = void 0, this._requestSession = void 0, this._session = void 0, _setSpanForScope(this, void 0), this._attachments = [], this.setPropagationContext({ traceId: generateTraceId() }), this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    addBreadcrumb(breadcrumb, maxBreadcrumbs) {
+      let maxCrumbs = typeof maxBreadcrumbs == "number" ? maxBreadcrumbs : DEFAULT_MAX_BREADCRUMBS;
+      if (maxCrumbs <= 0)
+        return this;
+      let mergedBreadcrumb = {
+        timestamp: dateTimestampInSeconds(),
+        ...breadcrumb
+      };
+      return this._breadcrumbs.push(mergedBreadcrumb), this._breadcrumbs.length > maxCrumbs && (this._breadcrumbs = this._breadcrumbs.slice(-maxCrumbs), this._client && this._client.recordDroppedEvent("buffer_overflow", "log_item")), this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    getLastBreadcrumb() {
+      return this._breadcrumbs[this._breadcrumbs.length - 1];
+    }
+    /**
+     * @inheritDoc
+     */
+    clearBreadcrumbs() {
+      return this._breadcrumbs = [], this._notifyScopeListeners(), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    addAttachment(attachment) {
+      return this._attachments.push(attachment), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    clearAttachments() {
+      return this._attachments = [], this;
+    }
+    /** @inheritDoc */
+    getScopeData() {
+      return {
+        breadcrumbs: this._breadcrumbs,
+        attachments: this._attachments,
+        contexts: this._contexts,
+        tags: this._tags,
+        extra: this._extra,
+        user: this._user,
+        level: this._level,
+        fingerprint: this._fingerprint || [],
+        eventProcessors: this._eventProcessors,
+        propagationContext: this._propagationContext,
+        sdkProcessingMetadata: this._sdkProcessingMetadata,
+        transactionName: this._transactionName,
+        span: _getSpanForScope(this)
+      };
+    }
+    /**
+     * @inheritDoc
+     */
+    setSDKProcessingMetadata(newData) {
+      return this._sdkProcessingMetadata = merge(this._sdkProcessingMetadata, newData, 2), this;
+    }
+    /**
+     * @inheritDoc
+     */
+    setPropagationContext(context) {
+      return this._propagationContext = {
+        // eslint-disable-next-line deprecation/deprecation
+        spanId: generateSpanId(),
+        ...context
+      }, this;
+    }
+    /**
+     * @inheritDoc
+     */
+    getPropagationContext() {
+      return this._propagationContext;
+    }
+    /**
+     * @inheritDoc
+     */
+    captureException(exception, hint) {
+      let eventId = hint && hint.event_id ? hint.event_id : uuid4();
+      if (!this._client)
+        return logger.warn("No client configured on scope - will not capture exception!"), eventId;
+      let syntheticException = new Error("Sentry syntheticException");
+      return this._client.captureException(
+        exception,
+        {
+          originalException: exception,
+          syntheticException,
+          ...hint,
+          event_id: eventId
+        },
+        this
+      ), eventId;
+    }
+    /**
+     * @inheritDoc
+     */
+    captureMessage(message, level, hint) {
+      let eventId = hint && hint.event_id ? hint.event_id : uuid4();
+      if (!this._client)
+        return logger.warn("No client configured on scope - will not capture message!"), eventId;
+      let syntheticException = new Error(message);
+      return this._client.captureMessage(
+        message,
+        level,
+        {
+          originalException: message,
+          syntheticException,
+          ...hint,
+          event_id: eventId
+        },
+        this
+      ), eventId;
+    }
+    /**
+     * @inheritDoc
+     */
+    captureEvent(event, hint) {
+      let eventId = hint && hint.event_id ? hint.event_id : uuid4();
+      return this._client ? (this._client.captureEvent(event, { ...hint, event_id: eventId }, this), eventId) : (logger.warn("No client configured on scope - will not capture event!"), eventId);
+    }
+    /**
+     * This will be called on every set call.
+     */
+    _notifyScopeListeners() {
+      this._notifyingListeners || (this._notifyingListeners = !0, this._scopeListeners.forEach((callback) => {
+        callback(this);
+      }), this._notifyingListeners = !1);
+    }
+  }, Scope = ScopeClass;
+
+  // node_modules/@sentry/core/build/esm/defaultScopes.js
+  function getDefaultCurrentScope() {
+    return getGlobalSingleton("defaultCurrentScope", () => new Scope());
+  }
+  function getDefaultIsolationScope() {
+    return getGlobalSingleton("defaultIsolationScope", () => new Scope());
+  }
+
+  // node_modules/@sentry/core/build/esm/asyncContext/stackStrategy.js
+  var AsyncContextStack = class {
+    constructor(scope, isolationScope) {
+      let assignedScope;
+      scope ? assignedScope = scope : assignedScope = new Scope();
+      let assignedIsolationScope;
+      isolationScope ? assignedIsolationScope = isolationScope : assignedIsolationScope = new Scope(), this._stack = [{ scope: assignedScope }], this._isolationScope = assignedIsolationScope;
+    }
+    /**
+     * Fork a scope for the stack.
+     */
+    withScope(callback) {
+      let scope = this._pushScope(), maybePromiseResult;
+      try {
+        maybePromiseResult = callback(scope);
+      } catch (e) {
+        throw this._popScope(), e;
+      }
+      return isThenable(maybePromiseResult) ? maybePromiseResult.then(
+        (res) => (this._popScope(), res),
+        (e) => {
+          throw this._popScope(), e;
+        }
+      ) : (this._popScope(), maybePromiseResult);
+    }
+    /**
+     * Get the client of the stack.
+     */
+    getClient() {
+      return this.getStackTop().client;
+    }
+    /**
+     * Returns the scope of the top stack.
+     */
+    getScope() {
+      return this.getStackTop().scope;
+    }
+    /**
+     * Get the isolation scope for the stack.
+     */
+    getIsolationScope() {
+      return this._isolationScope;
+    }
+    /**
+     * Returns the topmost scope layer in the order domain > local > process.
+     */
+    getStackTop() {
+      return this._stack[this._stack.length - 1];
+    }
+    /**
+     * Push a scope to the stack.
+     */
+    _pushScope() {
+      let scope = this.getScope().clone();
+      return this._stack.push({
+        client: this.getClient(),
+        scope
+      }), scope;
+    }
+    /**
+     * Pop a scope from the stack.
+     */
+    _popScope() {
+      return this._stack.length <= 1 ? !1 : !!this._stack.pop();
+    }
+  };
+  function getAsyncContextStack() {
+    let registry = getMainCarrier(), sentry = getSentryCarrier(registry);
+    return sentry.stack = sentry.stack || new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope());
+  }
+  function withScope(callback) {
+    return getAsyncContextStack().withScope(callback);
+  }
+  function withSetScope(scope, callback) {
+    let stack = getAsyncContextStack();
+    return stack.withScope(() => (stack.getStackTop().scope = scope, callback(scope)));
+  }
+  function withIsolationScope(callback) {
+    return getAsyncContextStack().withScope(() => callback(getAsyncContextStack().getIsolationScope()));
+  }
+  function getStackAsyncContextStrategy() {
+    return {
+      withIsolationScope,
+      withScope,
+      withSetScope,
+      withSetIsolationScope: (_isolationScope, callback) => withIsolationScope(callback),
+      getCurrentScope: () => getAsyncContextStack().getScope(),
+      getIsolationScope: () => getAsyncContextStack().getIsolationScope()
+    };
+  }
+
+  // node_modules/@sentry/core/build/esm/asyncContext/index.js
+  function getAsyncContextStrategy(carrier) {
+    let sentry = getSentryCarrier(carrier);
+    return sentry.acs ? sentry.acs : getStackAsyncContextStrategy();
+  }
+
+  // node_modules/@sentry/core/build/esm/currentScopes.js
+  function getCurrentScope() {
+    let carrier = getMainCarrier();
+    return getAsyncContextStrategy(carrier).getCurrentScope();
+  }
+  function getIsolationScope() {
+    let carrier = getMainCarrier();
+    return getAsyncContextStrategy(carrier).getIsolationScope();
+  }
+  function getGlobalScope() {
+    return getGlobalSingleton("globalScope", () => new Scope());
+  }
+  function withScope2(...rest) {
+    let carrier = getMainCarrier(), acs = getAsyncContextStrategy(carrier);
+    if (rest.length === 2) {
+      let [scope, callback] = rest;
+      return scope ? acs.withSetScope(scope, callback) : acs.withScope(callback);
+    }
+    return acs.withScope(rest[0]);
+  }
+  function getClient() {
+    return getCurrentScope().getClient();
+  }
+  function getTraceContextFromScope(scope) {
+    let propagationContext = scope.getPropagationContext(), { traceId, spanId, parentSpanId } = propagationContext;
+    return dropUndefinedKeys({
+      trace_id: traceId,
+      span_id: spanId,
+      parent_span_id: parentSpanId
+    });
+  }
+
+  // node_modules/@sentry/core/build/esm/metrics/metric-summary.js
+  var METRICS_SPAN_FIELD = "_sentryMetrics";
+  function getMetricSummaryJsonForSpan(span) {
+    let storage = span[METRICS_SPAN_FIELD];
+    if (!storage)
+      return;
+    let output = {};
+    for (let [, [exportKey, summary]] of storage)
+      (output[exportKey] || (output[exportKey] = [])).push(dropUndefinedKeys(summary));
+    return output;
+  }
+
+  // node_modules/@sentry/core/build/esm/semanticAttributes.js
+  var SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = "sentry.source", SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE = "sentry.sample_rate", SEMANTIC_ATTRIBUTE_SENTRY_OP = "sentry.op", SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = "sentry.origin";
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/baggage.js
+  var SENTRY_BAGGAGE_KEY_PREFIX = "sentry-", SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
+  function baggageHeaderToDynamicSamplingContext(baggageHeader) {
+    let baggageObject = parseBaggageHeader(baggageHeader);
+    if (!baggageObject)
+      return;
+    let dynamicSamplingContext = Object.entries(baggageObject).reduce((acc, [key2, value]) => {
+      if (key2.match(SENTRY_BAGGAGE_KEY_PREFIX_REGEX)) {
+        let nonPrefixedKey = key2.slice(SENTRY_BAGGAGE_KEY_PREFIX.length);
+        acc[nonPrefixedKey] = value;
+      }
+      return acc;
+    }, {});
+    if (Object.keys(dynamicSamplingContext).length > 0)
+      return dynamicSamplingContext;
+  }
+  function parseBaggageHeader(baggageHeader) {
+    if (!(!baggageHeader || !isString(baggageHeader) && !Array.isArray(baggageHeader)))
+      return Array.isArray(baggageHeader) ? baggageHeader.reduce((acc, curr) => {
+        let currBaggageObject = baggageHeaderToObject(curr);
+        return Object.entries(currBaggageObject).forEach(([key2, value]) => {
+          acc[key2] = value;
+        }), acc;
+      }, {}) : baggageHeaderToObject(baggageHeader);
+  }
+  function baggageHeaderToObject(baggageHeader) {
+    return baggageHeader.split(",").map((baggageEntry) => baggageEntry.split("=").map((keyOrValue) => decodeURIComponent(keyOrValue.trim()))).reduce((acc, [key2, value]) => (key2 && value && (acc[key2] = value), acc), {});
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/spanUtils.js
+  var TRACE_FLAG_SAMPLED = 1, hasShownSpanDropWarning = !1;
+  function spanToTraceContext(span) {
+    let { spanId, traceId: trace_id, isRemote } = span.spanContext(), parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id, span_id = isRemote ? generateSpanId() : spanId;
+    return dropUndefinedKeys({
+      parent_span_id,
+      span_id,
+      trace_id
+    });
+  }
+  function spanTimeInputToSeconds(input) {
+    return typeof input == "number" ? ensureTimestampInSeconds(input) : Array.isArray(input) ? input[0] + input[1] / 1e9 : input instanceof Date ? ensureTimestampInSeconds(input.getTime()) : timestampInSeconds();
+  }
+  function ensureTimestampInSeconds(timestamp) {
+    return timestamp > 9999999999 ? timestamp / 1e3 : timestamp;
+  }
+  function spanToJSON(span) {
+    if (spanIsSentrySpan(span))
+      return span.getSpanJSON();
+    try {
+      let { spanId: span_id, traceId: trace_id } = span.spanContext();
+      if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
+        let { attributes, startTime, name, endTime, parentSpanId, status } = span;
+        return dropUndefinedKeys({
+          span_id,
+          trace_id,
+          data: attributes,
+          description: name,
+          parent_span_id: parentSpanId,
+          start_timestamp: spanTimeInputToSeconds(startTime),
+          // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+          timestamp: spanTimeInputToSeconds(endTime) || void 0,
+          status: getStatusMessage(status),
+          op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+          origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
+          _metrics_summary: getMetricSummaryJsonForSpan(span)
+        });
+      }
+      return {
+        span_id,
+        trace_id
+      };
+    } catch {
+      return {};
+    }
+  }
+  function spanIsOpenTelemetrySdkTraceBaseSpan(span) {
+    let castSpan = span;
+    return !!castSpan.attributes && !!castSpan.startTime && !!castSpan.name && !!castSpan.endTime && !!castSpan.status;
+  }
+  function spanIsSentrySpan(span) {
+    return typeof span.getSpanJSON == "function";
+  }
+  function spanIsSampled(span) {
+    let { traceFlags } = span.spanContext();
+    return traceFlags === TRACE_FLAG_SAMPLED;
+  }
+  function getStatusMessage(status) {
+    if (!(!status || status.code === 0))
+      return status.code === 1 ? "ok" : status.message || "unknown_error";
+  }
+  var ROOT_SPAN_FIELD = "_sentryRootSpan";
+  function getRootSpan(span) {
+    return span[ROOT_SPAN_FIELD] || span;
+  }
+  function showSpanDropWarning() {
+    hasShownSpanDropWarning || (consoleSandbox(() => {
+      console.warn(
+        "[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly."
+      );
+    }), hasShownSpanDropWarning = !0);
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/hasTracingEnabled.js
+  function hasTracingEnabled(maybeOptions) {
+    if (typeof __SENTRY_TRACING__ == "boolean" && !__SENTRY_TRACING__)
+      return !1;
+    let client = getClient(), options = maybeOptions || client && client.getOptions();
+    return !!options && (options.enableTracing || "tracesSampleRate" in options || "tracesSampler" in options);
+  }
+
+  // node_modules/@sentry/core/build/esm/constants.js
+  var DEFAULT_ENVIRONMENT = "production";
+
+  // node_modules/@sentry/core/build/esm/tracing/dynamicSamplingContext.js
+  var FROZEN_DSC_FIELD = "_frozenDsc";
+  function getDynamicSamplingContextFromClient(trace_id, client) {
+    let options = client.getOptions(), { publicKey: public_key } = client.getDsn() || {}, dsc = dropUndefinedKeys({
+      environment: options.environment || DEFAULT_ENVIRONMENT,
+      release: options.release,
+      public_key,
+      trace_id
+    });
+    return client.emit("createDsc", dsc), dsc;
+  }
+  function getDynamicSamplingContextFromScope(client, scope) {
+    let propagationContext = scope.getPropagationContext();
+    return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
+  }
+  function getDynamicSamplingContextFromSpan(span) {
+    let client = getClient();
+    if (!client)
+      return {};
+    let rootSpan = getRootSpan(span), frozenDsc = rootSpan[FROZEN_DSC_FIELD];
+    if (frozenDsc)
+      return frozenDsc;
+    let traceState = rootSpan.spanContext().traceState, traceStateDsc = traceState && traceState.get("sentry.dsc"), dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
+    if (dscOnTraceState)
+      return dscOnTraceState;
+    let dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client), jsonSpan = spanToJSON(rootSpan), attributes = jsonSpan.data || {}, maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+    maybeSampleRate != null && (dsc.sample_rate = `${maybeSampleRate}`);
+    let source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE], name = jsonSpan.description;
+    return source !== "url" && name && (dsc.transaction = name), hasTracingEnabled() && (dsc.sampled = String(spanIsSampled(rootSpan))), client.emit("createDsc", dsc, rootSpan), dsc;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/parseSampleRate.js
+  function parseSampleRate(sampleRate) {
+    if (typeof sampleRate == "boolean")
+      return Number(sampleRate);
+    let rate = typeof sampleRate == "string" ? parseFloat(sampleRate) : sampleRate;
+    if (typeof rate != "number" || isNaN(rate) || rate < 0 || rate > 1) {
+      DEBUG_BUILD && logger.warn(
+        `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          sampleRate
+        )} of type ${JSON.stringify(typeof sampleRate)}.`
+      );
+      return;
+    }
+    return rate;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/dsn.js
+  var DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
+  function isValidProtocol(protocol) {
+    return protocol === "http" || protocol === "https";
+  }
+  function dsnToString(dsn, withPassword = !1) {
+    let { host, path, pass, port, projectId, protocol, publicKey } = dsn;
+    return `${protocol}://${publicKey}${withPassword && pass ? `:${pass}` : ""}@${host}${port ? `:${port}` : ""}/${path && `${path}/`}${projectId}`;
+  }
+  function dsnFromString(str) {
+    let match = DSN_REGEX.exec(str);
+    if (!match) {
+      consoleSandbox(() => {
+        console.error(`Invalid Sentry Dsn: ${str}`);
+      });
+      return;
+    }
+    let [protocol, publicKey, pass = "", host = "", port = "", lastPath = ""] = match.slice(1), path = "", projectId = lastPath, split = projectId.split("/");
+    if (split.length > 1 && (path = split.slice(0, -1).join("/"), projectId = split.pop()), projectId) {
+      let projectMatch = projectId.match(/^\d+/);
+      projectMatch && (projectId = projectMatch[0]);
+    }
+    return dsnFromComponents({ host, pass, path, projectId, port, protocol, publicKey });
+  }
+  function dsnFromComponents(components) {
+    return {
+      protocol: components.protocol,
+      publicKey: components.publicKey || "",
+      pass: components.pass || "",
+      host: components.host,
+      port: components.port || "",
+      path: components.path || "",
+      projectId: components.projectId
+    };
+  }
+  function validateDsn(dsn) {
+    if (!DEBUG_BUILD2)
+      return !0;
+    let { port, projectId, protocol } = dsn;
+    return ["protocol", "publicKey", "host", "projectId"].find((component) => dsn[component] ? !1 : (logger.error(`Invalid Sentry Dsn: ${component} missing`), !0)) ? !1 : projectId.match(/^\d+$/) ? isValidProtocol(protocol) ? port && isNaN(parseInt(port, 10)) ? (logger.error(`Invalid Sentry Dsn: Invalid port ${port}`), !1) : !0 : (logger.error(`Invalid Sentry Dsn: Invalid protocol ${protocol}`), !1) : (logger.error(`Invalid Sentry Dsn: Invalid projectId ${projectId}`), !1);
+  }
+  function makeDsn(from) {
+    let components = typeof from == "string" ? dsnFromString(from) : dsnFromComponents(from);
+    if (!(!components || !validateDsn(components)))
+      return components;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/memo.js
+  function memoBuilder() {
+    let hasWeakSet = typeof WeakSet == "function", inner = hasWeakSet ? /* @__PURE__ */ new WeakSet() : [];
+    function memoize(obj) {
+      if (hasWeakSet)
+        return inner.has(obj) ? !0 : (inner.add(obj), !1);
+      for (let i = 0; i < inner.length; i++)
+        if (inner[i] === obj)
+          return !0;
+      return inner.push(obj), !1;
+    }
+    function unmemoize(obj) {
+      if (hasWeakSet)
+        inner.delete(obj);
+      else
+        for (let i = 0; i < inner.length; i++)
+          if (inner[i] === obj) {
+            inner.splice(i, 1);
+            break;
+          }
+    }
+    return [memoize, unmemoize];
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/normalize.js
+  function normalize2(input, depth = 100, maxProperties = 1 / 0) {
+    try {
+      return visit("", input, depth, maxProperties);
+    } catch (err) {
+      return { ERROR: `**non-serializable** (${err})` };
+    }
+  }
+  function normalizeToSize(object, depth = 3, maxSize = 100 * 1024) {
+    let normalized = normalize2(object, depth);
+    return jsonSize(normalized) > maxSize ? normalizeToSize(object, depth - 1, maxSize) : normalized;
+  }
+  function visit(key2, value, depth = 1 / 0, maxProperties = 1 / 0, memo = memoBuilder()) {
+    let [memoize, unmemoize] = memo;
+    if (value == null || // this matches null and undefined -> eqeq not eqeqeq
+    ["boolean", "string"].includes(typeof value) || typeof value == "number" && Number.isFinite(value))
+      return value;
+    let stringified = stringifyValue(key2, value);
+    if (!stringified.startsWith("[object "))
+      return stringified;
+    if (value.__sentry_skip_normalization__)
+      return value;
+    let remainingDepth = typeof value.__sentry_override_normalization_depth__ == "number" ? value.__sentry_override_normalization_depth__ : depth;
+    if (remainingDepth === 0)
+      return stringified.replace("object ", "");
+    if (memoize(value))
+      return "[Circular ~]";
+    let valueWithToJSON = value;
+    if (valueWithToJSON && typeof valueWithToJSON.toJSON == "function")
+      try {
+        let jsonValue = valueWithToJSON.toJSON();
+        return visit("", jsonValue, remainingDepth - 1, maxProperties, memo);
+      } catch {
+      }
+    let normalized = Array.isArray(value) ? [] : {}, numAdded = 0, visitable = convertToPlainObject(value);
+    for (let visitKey in visitable) {
+      if (!Object.prototype.hasOwnProperty.call(visitable, visitKey))
+        continue;
+      if (numAdded >= maxProperties) {
+        normalized[visitKey] = "[MaxProperties ~]";
+        break;
+      }
+      let visitValue = visitable[visitKey];
+      normalized[visitKey] = visit(visitKey, visitValue, remainingDepth - 1, maxProperties, memo), numAdded++;
+    }
+    return unmemoize(value), normalized;
+  }
+  function stringifyValue(key2, value) {
+    try {
+      if (key2 === "domain" && value && typeof value == "object" && value._events)
+        return "[Domain]";
+      if (key2 === "domainEmitter")
+        return "[DomainEmitter]";
+      if (typeof global < "u" && value === global)
+        return "[Global]";
+      if (typeof window < "u" && value === window)
+        return "[Window]";
+      if (typeof document < "u" && value === document)
+        return "[Document]";
+      if (isVueViewModel(value))
+        return "[VueViewModel]";
+      if (isSyntheticEvent(value))
+        return "[SyntheticEvent]";
+      if (typeof value == "number" && !Number.isFinite(value))
+        return `[${value}]`;
+      if (typeof value == "function")
+        return `[Function: ${getFunctionName(value)}]`;
+      if (typeof value == "symbol")
+        return `[${String(value)}]`;
+      if (typeof value == "bigint")
+        return `[BigInt: ${String(value)}]`;
+      let objName = getConstructorName(value);
+      return /^HTML(\w*)Element$/.test(objName) ? `[HTMLElement: ${objName}]` : `[object ${objName}]`;
+    } catch (err) {
+      return `**non-serializable** (${err})`;
+    }
+  }
+  function getConstructorName(value) {
+    let prototype = Object.getPrototypeOf(value);
+    return prototype ? prototype.constructor.name : "null prototype";
+  }
+  function utf8Length(value) {
+    return ~-encodeURI(value).split(/%..|./).length;
+  }
+  function jsonSize(value) {
+    return utf8Length(JSON.stringify(value));
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/envelope.js
+  function createEnvelope(headers, items = []) {
+    return [headers, items];
+  }
+  function addItemToEnvelope(envelope, newItem) {
+    let [headers, items] = envelope;
+    return [headers, [...items, newItem]];
+  }
+  function forEachEnvelopeItem(envelope, callback) {
+    let envelopeItems = envelope[1];
+    for (let envelopeItem of envelopeItems) {
+      let envelopeItemType = envelopeItem[0].type;
+      if (callback(envelopeItem, envelopeItemType))
+        return !0;
+    }
+    return !1;
+  }
+  function encodeUTF8(input) {
+    return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.encodePolyfill ? GLOBAL_OBJ.__SENTRY__.encodePolyfill(input) : new TextEncoder().encode(input);
+  }
+  function serializeEnvelope(envelope) {
+    let [envHeaders, items] = envelope, parts = JSON.stringify(envHeaders);
+    function append(next) {
+      typeof parts == "string" ? parts = typeof next == "string" ? parts + next : [encodeUTF8(parts), next] : parts.push(typeof next == "string" ? encodeUTF8(next) : next);
+    }
+    for (let item of items) {
+      let [itemHeaders, payload] = item;
+      if (append(`
+${JSON.stringify(itemHeaders)}
+`), typeof payload == "string" || payload instanceof Uint8Array)
+        append(payload);
+      else {
+        let stringifiedPayload;
+        try {
+          stringifiedPayload = JSON.stringify(payload);
+        } catch {
+          stringifiedPayload = JSON.stringify(normalize2(payload));
+        }
+        append(stringifiedPayload);
+      }
+    }
+    return typeof parts == "string" ? parts : concatBuffers(parts);
+  }
+  function concatBuffers(buffers) {
+    let totalLength = buffers.reduce((acc, buf) => acc + buf.length, 0), merged = new Uint8Array(totalLength), offset = 0;
+    for (let buffer of buffers)
+      merged.set(buffer, offset), offset += buffer.length;
+    return merged;
+  }
+  function createAttachmentEnvelopeItem(attachment) {
+    let buffer = typeof attachment.data == "string" ? encodeUTF8(attachment.data) : attachment.data;
+    return [
+      dropUndefinedKeys({
+        type: "attachment",
+        length: buffer.length,
+        filename: attachment.filename,
+        content_type: attachment.contentType,
+        attachment_type: attachment.attachmentType
+      }),
+      buffer
+    ];
+  }
+  var ITEM_TYPE_TO_DATA_CATEGORY_MAP = {
+    session: "session",
+    sessions: "session",
+    attachment: "attachment",
+    transaction: "transaction",
+    event: "error",
+    client_report: "internal",
+    user_report: "default",
+    profile: "profile",
+    profile_chunk: "profile",
+    replay_event: "replay",
+    replay_recording: "replay",
+    check_in: "monitor",
+    feedback: "feedback",
+    span: "span",
+    statsd: "metric_bucket",
+    raw_security: "security"
+  };
+  function envelopeItemTypeToDataCategory(type) {
+    return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
+  }
+  function getSdkMetadataForEnvelopeHeader(metadataOrEvent) {
+    if (!metadataOrEvent || !metadataOrEvent.sdk)
+      return;
+    let { name, version: version5 } = metadataOrEvent.sdk;
+    return { name, version: version5 };
+  }
+  function createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn) {
+    let dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
+    return {
+      event_id: event.event_id,
+      sent_at: (/* @__PURE__ */ new Date()).toISOString(),
+      ...sdkInfo && { sdk: sdkInfo },
+      ...!!tunnel && dsn && { dsn: dsnToString(dsn) },
+      ...dynamicSamplingContext && {
+        trace: dropUndefinedKeys({ ...dynamicSamplingContext })
+      }
+    };
+  }
+
+  // node_modules/@sentry/core/build/esm/envelope.js
+  function enhanceEventWithSdkInfo(event, sdkInfo) {
+    return sdkInfo && (event.sdk = event.sdk || {}, event.sdk.name = event.sdk.name || sdkInfo.name, event.sdk.version = event.sdk.version || sdkInfo.version, event.sdk.integrations = [...event.sdk.integrations || [], ...sdkInfo.integrations || []], event.sdk.packages = [...event.sdk.packages || [], ...sdkInfo.packages || []]), event;
+  }
+  function createSessionEnvelope(session, dsn, metadata, tunnel) {
+    let sdkInfo = getSdkMetadataForEnvelopeHeader(metadata), envelopeHeaders = {
+      sent_at: (/* @__PURE__ */ new Date()).toISOString(),
+      ...sdkInfo && { sdk: sdkInfo },
+      ...!!tunnel && dsn && { dsn: dsnToString(dsn) }
+    }, envelopeItem = "aggregates" in session ? [{ type: "sessions" }, session] : [{ type: "session" }, session.toJSON()];
+    return createEnvelope(envelopeHeaders, [envelopeItem]);
+  }
+  function createEventEnvelope(event, dsn, metadata, tunnel) {
+    let sdkInfo = getSdkMetadataForEnvelopeHeader(metadata), eventType = event.type && event.type !== "replay_event" ? event.type : "event";
+    enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
+    let envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+    return delete event.sdkProcessingMetadata, createEnvelope(envelopeHeaders, [[{ type: eventType }, event]]);
+  }
+
+  // node_modules/@sentry/core/build/esm/eventProcessors.js
+  function notifyEventProcessors(processors, event, hint, index = 0) {
+    return new SyncPromise((resolve, reject) => {
+      let processor = processors[index];
+      if (event === null || typeof processor != "function")
+        resolve(event);
+      else {
+        let result = processor({ ...event }, hint);
+        DEBUG_BUILD && processor.id && result === null && logger.log(`Event processor "${processor.id}" dropped event`), isThenable(result) ? result.then((final) => notifyEventProcessors(processors, final, hint, index + 1).then(resolve)).then(null, reject) : notifyEventProcessors(processors, result, hint, index + 1).then(resolve).then(null, reject);
+      }
+    });
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/debug-ids.js
+  var parsedStackResults, lastKeysCount, cachedFilenameDebugIds;
+  function getFilenameToDebugIdMap(stackParser) {
+    let debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+    if (!debugIdMap)
+      return {};
+    let debugIdKeys = Object.keys(debugIdMap);
+    return cachedFilenameDebugIds && debugIdKeys.length === lastKeysCount || (lastKeysCount = debugIdKeys.length, cachedFilenameDebugIds = debugIdKeys.reduce((acc, stackKey) => {
+      parsedStackResults || (parsedStackResults = {});
+      let result = parsedStackResults[stackKey];
+      if (result)
+        acc[result[0]] = result[1];
+      else {
+        let parsedStack = stackParser(stackKey);
+        for (let i = parsedStack.length - 1; i >= 0; i--) {
+          let stackFrame = parsedStack[i], filename = stackFrame && stackFrame.filename, debugId = debugIdMap[stackKey];
+          if (filename && debugId) {
+            acc[filename] = debugId, parsedStackResults[stackKey] = [filename, debugId];
+            break;
+          }
+        }
+      }
+      return acc;
+    }, {})), cachedFilenameDebugIds;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/applyScopeDataToEvent.js
+  function applyScopeDataToEvent(event, data) {
+    let { fingerprint, span, breadcrumbs, sdkProcessingMetadata } = data;
+    applyDataToEvent(event, data), span && applySpanToEvent(event, span), applyFingerprintToEvent(event, fingerprint), applyBreadcrumbsToEvent(event, breadcrumbs), applySdkMetadataToEvent(event, sdkProcessingMetadata);
+  }
+  function mergeScopeData(data, mergeData) {
+    let {
+      extra,
+      tags,
+      user,
+      contexts,
+      level,
+      sdkProcessingMetadata,
+      breadcrumbs,
+      fingerprint,
+      eventProcessors,
+      attachments,
+      propagationContext,
+      transactionName,
+      span
+    } = mergeData;
+    mergeAndOverwriteScopeData(data, "extra", extra), mergeAndOverwriteScopeData(data, "tags", tags), mergeAndOverwriteScopeData(data, "user", user), mergeAndOverwriteScopeData(data, "contexts", contexts), data.sdkProcessingMetadata = merge(data.sdkProcessingMetadata, sdkProcessingMetadata, 2), level && (data.level = level), transactionName && (data.transactionName = transactionName), span && (data.span = span), breadcrumbs.length && (data.breadcrumbs = [...data.breadcrumbs, ...breadcrumbs]), fingerprint.length && (data.fingerprint = [...data.fingerprint, ...fingerprint]), eventProcessors.length && (data.eventProcessors = [...data.eventProcessors, ...eventProcessors]), attachments.length && (data.attachments = [...data.attachments, ...attachments]), data.propagationContext = { ...data.propagationContext, ...propagationContext };
+  }
+  function mergeAndOverwriteScopeData(data, prop, mergeVal) {
+    data[prop] = merge(data[prop], mergeVal, 1);
+  }
+  function applyDataToEvent(event, data) {
+    let { extra, tags, user, contexts, level, transactionName } = data, cleanedExtra = dropUndefinedKeys(extra);
+    cleanedExtra && Object.keys(cleanedExtra).length && (event.extra = { ...cleanedExtra, ...event.extra });
+    let cleanedTags = dropUndefinedKeys(tags);
+    cleanedTags && Object.keys(cleanedTags).length && (event.tags = { ...cleanedTags, ...event.tags });
+    let cleanedUser = dropUndefinedKeys(user);
+    cleanedUser && Object.keys(cleanedUser).length && (event.user = { ...cleanedUser, ...event.user });
+    let cleanedContexts = dropUndefinedKeys(contexts);
+    cleanedContexts && Object.keys(cleanedContexts).length && (event.contexts = { ...cleanedContexts, ...event.contexts }), level && (event.level = level), transactionName && event.type !== "transaction" && (event.transaction = transactionName);
+  }
+  function applyBreadcrumbsToEvent(event, breadcrumbs) {
+    let mergedBreadcrumbs = [...event.breadcrumbs || [], ...breadcrumbs];
+    event.breadcrumbs = mergedBreadcrumbs.length ? mergedBreadcrumbs : void 0;
+  }
+  function applySdkMetadataToEvent(event, sdkProcessingMetadata) {
+    event.sdkProcessingMetadata = {
+      ...event.sdkProcessingMetadata,
+      ...sdkProcessingMetadata
+    };
+  }
+  function applySpanToEvent(event, span) {
+    event.contexts = {
+      trace: spanToTraceContext(span),
+      ...event.contexts
+    }, event.sdkProcessingMetadata = {
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+      ...event.sdkProcessingMetadata
+    };
+    let rootSpan = getRootSpan(span), transactionName = spanToJSON(rootSpan).description;
+    transactionName && !event.transaction && event.type === "transaction" && (event.transaction = transactionName);
+  }
+  function applyFingerprintToEvent(event, fingerprint) {
+    event.fingerprint = event.fingerprint ? Array.isArray(event.fingerprint) ? event.fingerprint : [event.fingerprint] : [], fingerprint && (event.fingerprint = event.fingerprint.concat(fingerprint)), event.fingerprint && !event.fingerprint.length && delete event.fingerprint;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/prepareEvent.js
+  function prepareEvent(options, event, hint, scope, client, isolationScope) {
+    let { normalizeDepth = 3, normalizeMaxBreadth = 1e3 } = options, prepared = {
+      ...event,
+      event_id: event.event_id || hint.event_id || uuid4(),
+      timestamp: event.timestamp || dateTimestampInSeconds()
+    }, integrations = hint.integrations || options.integrations.map((i) => i.name);
+    applyClientOptions(prepared, options), applyIntegrationsMetadata(prepared, integrations), client && client.emit("applyFrameMetadata", event), event.type === void 0 && applyDebugIds(prepared, options.stackParser);
+    let finalScope = getFinalScope(scope, hint.captureContext);
+    hint.mechanism && addExceptionMechanism(prepared, hint.mechanism);
+    let clientEventProcessors = client ? client.getEventProcessors() : [], data = getGlobalScope().getScopeData();
+    if (isolationScope) {
+      let isolationData = isolationScope.getScopeData();
+      mergeScopeData(data, isolationData);
+    }
+    if (finalScope) {
+      let finalScopeData = finalScope.getScopeData();
+      mergeScopeData(data, finalScopeData);
+    }
+    let attachments = [...hint.attachments || [], ...data.attachments];
+    attachments.length && (hint.attachments = attachments), applyScopeDataToEvent(prepared, data);
+    let eventProcessors = [
+      ...clientEventProcessors,
+      // Run scope event processors _after_ all other processors
+      ...data.eventProcessors
+    ];
+    return notifyEventProcessors(eventProcessors, prepared, hint).then((evt) => (evt && applyDebugMeta(evt), typeof normalizeDepth == "number" && normalizeDepth > 0 ? normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth) : evt));
+  }
+  function applyClientOptions(event, options) {
+    let { environment, release, dist, maxValueLength = 250 } = options;
+    event.environment = event.environment || environment || DEFAULT_ENVIRONMENT, !event.release && release && (event.release = release), !event.dist && dist && (event.dist = dist), event.message && (event.message = truncate(event.message, maxValueLength));
+    let exception = event.exception && event.exception.values && event.exception.values[0];
+    exception && exception.value && (exception.value = truncate(exception.value, maxValueLength));
+    let request = event.request;
+    request && request.url && (request.url = truncate(request.url, maxValueLength));
+  }
+  function applyDebugIds(event, stackParser) {
+    let filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
+    try {
+      event.exception.values.forEach((exception) => {
+        exception.stacktrace.frames.forEach((frame) => {
+          filenameDebugIdMap && frame.filename && (frame.debug_id = filenameDebugIdMap[frame.filename]);
+        });
+      });
+    } catch {
+    }
+  }
+  function applyDebugMeta(event) {
+    let filenameDebugIdMap = {};
+    try {
+      event.exception.values.forEach((exception) => {
+        exception.stacktrace.frames.forEach((frame) => {
+          frame.debug_id && (frame.abs_path ? filenameDebugIdMap[frame.abs_path] = frame.debug_id : frame.filename && (filenameDebugIdMap[frame.filename] = frame.debug_id), delete frame.debug_id);
+        });
+      });
+    } catch {
+    }
+    if (Object.keys(filenameDebugIdMap).length === 0)
+      return;
+    event.debug_meta = event.debug_meta || {}, event.debug_meta.images = event.debug_meta.images || [];
+    let images = event.debug_meta.images;
+    Object.entries(filenameDebugIdMap).forEach(([filename, debug_id]) => {
+      images.push({
+        type: "sourcemap",
+        code_file: filename,
+        debug_id
+      });
+    });
+  }
+  function applyIntegrationsMetadata(event, integrationNames) {
+    integrationNames.length > 0 && (event.sdk = event.sdk || {}, event.sdk.integrations = [...event.sdk.integrations || [], ...integrationNames]);
+  }
+  function normalizeEvent(event, depth, maxBreadth) {
+    if (!event)
+      return null;
+    let normalized = {
+      ...event,
+      ...event.breadcrumbs && {
+        breadcrumbs: event.breadcrumbs.map((b) => ({
+          ...b,
+          ...b.data && {
+            data: normalize2(b.data, depth, maxBreadth)
+          }
+        }))
+      },
+      ...event.user && {
+        user: normalize2(event.user, depth, maxBreadth)
+      },
+      ...event.contexts && {
+        contexts: normalize2(event.contexts, depth, maxBreadth)
+      },
+      ...event.extra && {
+        extra: normalize2(event.extra, depth, maxBreadth)
+      }
+    };
+    return event.contexts && event.contexts.trace && normalized.contexts && (normalized.contexts.trace = event.contexts.trace, event.contexts.trace.data && (normalized.contexts.trace.data = normalize2(event.contexts.trace.data, depth, maxBreadth))), event.spans && (normalized.spans = event.spans.map((span) => ({
+      ...span,
+      ...span.data && {
+        data: normalize2(span.data, depth, maxBreadth)
+      }
+    }))), event.contexts && event.contexts.flags && normalized.contexts && (normalized.contexts.flags = normalize2(event.contexts.flags, 3, maxBreadth)), normalized;
+  }
+  function getFinalScope(scope, captureContext) {
+    if (!captureContext)
+      return scope;
+    let finalScope = scope ? scope.clone() : new Scope();
+    return finalScope.update(captureContext), finalScope;
+  }
+  function parseEventHintOrCaptureContext(hint) {
+    if (hint)
+      return hintIsScopeOrFunction(hint) ? { captureContext: hint } : hintIsScopeContext(hint) ? {
+        captureContext: hint
+      } : hint;
+  }
+  function hintIsScopeOrFunction(hint) {
+    return hint instanceof Scope || typeof hint == "function";
+  }
+  var captureContextKeys = [
+    "user",
+    "level",
+    "extra",
+    "contexts",
+    "tags",
+    "fingerprint",
+    "requestSession",
+    "propagationContext"
+  ];
+  function hintIsScopeContext(hint) {
+    return Object.keys(hint).some((key2) => captureContextKeys.includes(key2));
+  }
+
+  // node_modules/@sentry/core/build/esm/exports.js
+  function captureException(exception, hint) {
+    return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
+  }
+  function captureEvent(event, hint) {
+    return getCurrentScope().captureEvent(event, hint);
+  }
+  function setTag(key2, value) {
+    getIsolationScope().setTag(key2, value);
+  }
+  function setUser(user) {
+    getIsolationScope().setUser(user);
+  }
+  function startSession(context) {
+    let client = getClient(), isolationScope = getIsolationScope(), currentScope = getCurrentScope(), { release, environment = DEFAULT_ENVIRONMENT } = client && client.getOptions() || {}, { userAgent } = GLOBAL_OBJ.navigator || {}, session = makeSession({
+      release,
+      environment,
+      user: currentScope.getUser() || isolationScope.getUser(),
+      ...userAgent && { userAgent },
+      ...context
+    }), currentSession = isolationScope.getSession();
+    return currentSession && currentSession.status === "ok" && updateSession(currentSession, { status: "exited" }), endSession(), isolationScope.setSession(session), currentScope.setSession(session), session;
+  }
+  function endSession() {
+    let isolationScope = getIsolationScope(), currentScope = getCurrentScope(), session = currentScope.getSession() || isolationScope.getSession();
+    session && closeSession(session), _sendSessionUpdate(), isolationScope.setSession(), currentScope.setSession();
+  }
+  function _sendSessionUpdate() {
+    let isolationScope = getIsolationScope(), currentScope = getCurrentScope(), client = getClient(), session = currentScope.getSession() || isolationScope.getSession();
+    session && client && client.captureSession(session);
+  }
+  function captureSession(end = !1) {
+    if (end) {
+      endSession();
+      return;
+    }
+    _sendSessionUpdate();
+  }
+
+  // node_modules/@sentry/core/build/esm/api.js
+  var SENTRY_API_VERSION = "7";
+  function getBaseApiEndpoint(dsn) {
+    let protocol = dsn.protocol ? `${dsn.protocol}:` : "", port = dsn.port ? `:${dsn.port}` : "";
+    return `${protocol}//${dsn.host}${port}${dsn.path ? `/${dsn.path}` : ""}/api/`;
+  }
+  function _getIngestEndpoint(dsn) {
+    return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/envelope/`;
+  }
+  function _encodedAuth(dsn, sdkInfo) {
+    let params = {
+      sentry_version: SENTRY_API_VERSION
+    };
+    return dsn.publicKey && (params.sentry_key = dsn.publicKey), sdkInfo && (params.sentry_client = `${sdkInfo.name}/${sdkInfo.version}`), new URLSearchParams(params).toString();
+  }
+  function getEnvelopeEndpointWithUrlEncodedAuth(dsn, tunnel, sdkInfo) {
+    return tunnel || `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn, sdkInfo)}`;
+  }
+
+  // node_modules/@sentry/core/build/esm/integration.js
+  var installedIntegrations = [];
+  function filterDuplicates(integrations) {
+    let integrationsByName = {};
+    return integrations.forEach((currentInstance) => {
+      let { name } = currentInstance, existingInstance = integrationsByName[name];
+      existingInstance && !existingInstance.isDefaultInstance && currentInstance.isDefaultInstance || (integrationsByName[name] = currentInstance);
+    }), Object.values(integrationsByName);
+  }
+  function getIntegrationsToSetup(options) {
+    let defaultIntegrations = options.defaultIntegrations || [], userIntegrations = options.integrations;
+    defaultIntegrations.forEach((integration) => {
+      integration.isDefaultInstance = !0;
+    });
+    let integrations;
+    if (Array.isArray(userIntegrations))
+      integrations = [...defaultIntegrations, ...userIntegrations];
+    else if (typeof userIntegrations == "function") {
+      let resolvedUserIntegrations = userIntegrations(defaultIntegrations);
+      integrations = Array.isArray(resolvedUserIntegrations) ? resolvedUserIntegrations : [resolvedUserIntegrations];
+    } else
+      integrations = defaultIntegrations;
+    let finalIntegrations = filterDuplicates(integrations), debugIndex = finalIntegrations.findIndex((integration) => integration.name === "Debug");
+    if (debugIndex > -1) {
+      let [debugInstance] = finalIntegrations.splice(debugIndex, 1);
+      finalIntegrations.push(debugInstance);
+    }
+    return finalIntegrations;
+  }
+  function setupIntegrations(client, integrations) {
+    let integrationIndex = {};
+    return integrations.forEach((integration) => {
+      integration && setupIntegration(client, integration, integrationIndex);
+    }), integrationIndex;
+  }
+  function afterSetupIntegrations(client, integrations) {
+    for (let integration of integrations)
+      integration && integration.afterAllSetup && integration.afterAllSetup(client);
+  }
+  function setupIntegration(client, integration, integrationIndex) {
+    if (integrationIndex[integration.name]) {
+      DEBUG_BUILD && logger.log(`Integration skipped because it was already installed: ${integration.name}`);
+      return;
+    }
+    if (integrationIndex[integration.name] = integration, installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce == "function" && (integration.setupOnce(), installedIntegrations.push(integration.name)), integration.setup && typeof integration.setup == "function" && integration.setup(client), typeof integration.preprocessEvent == "function") {
+      let callback = integration.preprocessEvent.bind(integration);
+      client.on("preprocessEvent", (event, hint) => callback(event, hint, client));
+    }
+    if (typeof integration.processEvent == "function") {
+      let callback = integration.processEvent.bind(integration), processor = Object.assign((event, hint) => callback(event, hint, client), {
+        id: integration.name
+      });
+      client.addEventProcessor(processor);
+    }
+    DEBUG_BUILD && logger.log(`Integration installed: ${integration.name}`);
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/clientreport.js
+  function createClientReportEnvelope(discarded_events, dsn, timestamp) {
+    let clientReportItem = [
+      { type: "client_report" },
+      {
+        timestamp: timestamp || dateTimestampInSeconds(),
+        discarded_events
+      }
+    ];
+    return createEnvelope(dsn ? { dsn } : {}, [clientReportItem]);
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/error.js
+  var SentryError = class extends Error {
+    constructor(message, logLevel = "warn") {
+      super(message), this.message = message, this.logLevel = logLevel;
+    }
+  };
+
+  // node_modules/@sentry/core/build/esm/baseclient.js
+  var ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.", BaseClient = class {
+    /** Options passed to the SDK. */
+    /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
+    /** Array of set up integrations. */
+    /** Number of calls being processed */
+    /** Holds flushable  */
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    /**
+     * Initializes this client instance.
+     *
+     * @param options Options for the client.
+     */
+    constructor(options) {
+      if (this._options = options, this._integrations = {}, this._numProcessing = 0, this._outcomes = {}, this._hooks = {}, this._eventProcessors = [], options.dsn ? this._dsn = makeDsn(options.dsn) : DEBUG_BUILD && logger.warn("No DSN provided, client will not send events."), this._dsn) {
+        let url2 = getEnvelopeEndpointWithUrlEncodedAuth(
+          this._dsn,
+          options.tunnel,
+          options._metadata ? options._metadata.sdk : void 0
+        );
+        this._transport = options.transport({
+          tunnel: this._options.tunnel,
+          recordDroppedEvent: this.recordDroppedEvent.bind(this),
+          ...options.transportOptions,
+          url: url2
+        });
+      }
+      let undefinedOption = ["enableTracing", "tracesSampleRate", "tracesSampler"].find((option) => option in options && options[option] == null);
+      undefinedOption && consoleSandbox(() => {
+        console.warn(
+          `[Sentry] Deprecation warning: \`${undefinedOption}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`
+        );
+      });
+    }
+    /**
+     * @inheritDoc
+     */
+    captureException(exception, hint, scope) {
+      let eventId = uuid4();
+      if (checkOrSetAlreadyCaught(exception))
+        return DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR), eventId;
+      let hintWithEventId = {
+        event_id: eventId,
+        ...hint
+      };
+      return this._process(
+        this.eventFromException(exception, hintWithEventId).then(
+          (event) => this._captureEvent(event, hintWithEventId, scope)
+        )
+      ), hintWithEventId.event_id;
+    }
+    /**
+     * @inheritDoc
+     */
+    captureMessage(message, level, hint, currentScope) {
+      let hintWithEventId = {
+        event_id: uuid4(),
+        ...hint
+      }, eventMessage = isParameterizedString(message) ? message : String(message), promisedEvent = isPrimitive(message) ? this.eventFromMessage(eventMessage, level, hintWithEventId) : this.eventFromException(message, hintWithEventId);
+      return this._process(promisedEvent.then((event) => this._captureEvent(event, hintWithEventId, currentScope))), hintWithEventId.event_id;
+    }
+    /**
+     * @inheritDoc
+     */
+    captureEvent(event, hint, currentScope) {
+      let eventId = uuid4();
+      if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException))
+        return DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR), eventId;
+      let hintWithEventId = {
+        event_id: eventId,
+        ...hint
+      }, capturedSpanScope = (event.sdkProcessingMetadata || {}).capturedSpanScope;
+      return this._process(this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope)), hintWithEventId.event_id;
+    }
+    /**
+     * @inheritDoc
+     */
+    captureSession(session) {
+      typeof session.release != "string" ? DEBUG_BUILD && logger.warn("Discarded session because of missing or non-string release") : (this.sendSession(session), updateSession(session, { init: !1 }));
+    }
+    /**
+     * @inheritDoc
+     */
+    getDsn() {
+      return this._dsn;
+    }
+    /**
+     * @inheritDoc
+     */
+    getOptions() {
+      return this._options;
+    }
+    /**
+     * @see SdkMetadata
+     *
+     * @return The metadata of the SDK
+     */
+    getSdkMetadata() {
+      return this._options._metadata;
+    }
+    /**
+     * @inheritDoc
+     */
+    getTransport() {
+      return this._transport;
+    }
+    /**
+     * @inheritDoc
+     */
+    flush(timeout) {
+      let transport = this._transport;
+      return transport ? (this.emit("flush"), this._isClientDoneProcessing(timeout).then((clientFinished) => transport.flush(timeout).then((transportFlushed) => clientFinished && transportFlushed))) : resolvedSyncPromise(!0);
+    }
+    /**
+     * @inheritDoc
+     */
+    close(timeout) {
+      return this.flush(timeout).then((result) => (this.getOptions().enabled = !1, this.emit("close"), result));
+    }
+    /** Get all installed event processors. */
+    getEventProcessors() {
+      return this._eventProcessors;
+    }
+    /** @inheritDoc */
+    addEventProcessor(eventProcessor) {
+      this._eventProcessors.push(eventProcessor);
+    }
+    /** @inheritdoc */
+    init() {
+      (this._isEnabled() || // Force integrations to be setup even if no DSN was set when we have
+      // Spotlight enabled. This is particularly important for browser as we
+      // don't support the `spotlight` option there and rely on the users
+      // adding the `spotlightBrowserIntegration()` to their integrations which
+      // wouldn't get initialized with the check below when there's no DSN set.
+      this._options.integrations.some(({ name }) => name.startsWith("Spotlight"))) && this._setupIntegrations();
+    }
+    /**
+     * Gets an installed integration by its name.
+     *
+     * @returns The installed integration or `undefined` if no integration with that `name` was installed.
+     */
+    getIntegrationByName(integrationName) {
+      return this._integrations[integrationName];
+    }
+    /**
+     * @inheritDoc
+     */
+    addIntegration(integration) {
+      let isAlreadyInstalled = this._integrations[integration.name];
+      setupIntegration(this, integration, this._integrations), isAlreadyInstalled || afterSetupIntegrations(this, [integration]);
+    }
+    /**
+     * @inheritDoc
+     */
+    sendEvent(event, hint = {}) {
+      this.emit("beforeSendEvent", event, hint);
+      let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+      for (let attachment of hint.attachments || [])
+        env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+      let promise = this.sendEnvelope(env);
+      promise && promise.then((sendResponse) => this.emit("afterSendEvent", event, sendResponse), null);
+    }
+    /**
+     * @inheritDoc
+     */
+    sendSession(session) {
+      let env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+      this.sendEnvelope(env);
+    }
+    /**
+     * @inheritDoc
+     */
+    recordDroppedEvent(reason, category, eventOrCount) {
+      if (this._options.sendClientReports) {
+        let count = typeof eventOrCount == "number" ? eventOrCount : 1, key2 = `${reason}:${category}`;
+        DEBUG_BUILD && logger.log(`Recording outcome: "${key2}"${count > 1 ? ` (${count} times)` : ""}`), this._outcomes[key2] = (this._outcomes[key2] || 0) + count;
+      }
+    }
+    // Keep on() & emit() signatures in sync with types' client.ts interface
+    /* eslint-disable @typescript-eslint/unified-signatures */
+    /** @inheritdoc */
+    /** @inheritdoc */
+    on(hook, callback) {
+      let hooks = this._hooks[hook] = this._hooks[hook] || [];
+      return hooks.push(callback), () => {
+        let cbIndex = hooks.indexOf(callback);
+        cbIndex > -1 && hooks.splice(cbIndex, 1);
+      };
+    }
+    /** @inheritdoc */
+    /** @inheritdoc */
+    emit(hook, ...rest) {
+      let callbacks = this._hooks[hook];
+      callbacks && callbacks.forEach((callback) => callback(...rest));
+    }
+    /**
+     * @inheritdoc
+     */
+    sendEnvelope(envelope) {
+      return this.emit("beforeEnvelope", envelope), this._isEnabled() && this._transport ? this._transport.send(envelope).then(null, (reason) => (DEBUG_BUILD && logger.error("Error while sending envelope:", reason), reason)) : (DEBUG_BUILD && logger.error("Transport disabled"), resolvedSyncPromise({}));
+    }
+    /* eslint-enable @typescript-eslint/unified-signatures */
+    /** Setup integrations for this client. */
+    _setupIntegrations() {
+      let { integrations } = this._options;
+      this._integrations = setupIntegrations(this, integrations), afterSetupIntegrations(this, integrations);
+    }
+    /** Updates existing session based on the provided event */
+    _updateSessionFromEvent(session, event) {
+      let crashed = event.level === "fatal", errored = !1, exceptions = event.exception && event.exception.values;
+      if (exceptions) {
+        errored = !0;
+        for (let ex of exceptions) {
+          let mechanism = ex.mechanism;
+          if (mechanism && mechanism.handled === !1) {
+            crashed = !0;
+            break;
+          }
+        }
+      }
+      let sessionNonTerminal = session.status === "ok";
+      (sessionNonTerminal && session.errors === 0 || sessionNonTerminal && crashed) && (updateSession(session, {
+        ...crashed && { status: "crashed" },
+        errors: session.errors || Number(errored || crashed)
+      }), this.captureSession(session));
+    }
+    /**
+     * Determine if the client is finished processing. Returns a promise because it will wait `timeout` ms before saying
+     * "no" (resolving to `false`) in order to give the client a chance to potentially finish first.
+     *
+     * @param timeout The time, in ms, after which to resolve to `false` if the client is still busy. Passing `0` (or not
+     * passing anything) will make the promise wait as long as it takes for processing to finish before resolving to
+     * `true`.
+     * @returns A promise which will resolve to `true` if processing is already done or finishes before the timeout, and
+     * `false` otherwise
+     */
+    _isClientDoneProcessing(timeout) {
+      return new SyncPromise((resolve) => {
+        let ticked = 0, tick = 1, interval = setInterval(() => {
+          this._numProcessing == 0 ? (clearInterval(interval), resolve(!0)) : (ticked += tick, timeout && ticked >= timeout && (clearInterval(interval), resolve(!1)));
+        }, tick);
+      });
+    }
+    /** Determines whether this SDK is enabled and a transport is present. */
+    _isEnabled() {
+      return this.getOptions().enabled !== !1 && this._transport !== void 0;
+    }
+    /**
+     * Adds common information to events.
+     *
+     * The information includes release and environment from `options`,
+     * breadcrumbs and context (extra, tags and user) from the scope.
+     *
+     * Information that is already present in the event is never overwritten. For
+     * nested objects, such as the context, keys are merged.
+     *
+     * @param event The original event.
+     * @param hint May contain additional information about the original exception.
+     * @param currentScope A scope containing event metadata.
+     * @returns A new event with more information.
+     */
+    _prepareEvent(event, hint, currentScope = getCurrentScope(), isolationScope = getIsolationScope()) {
+      let options = this.getOptions(), integrations = Object.keys(this._integrations);
+      return !hint.integrations && integrations.length > 0 && (hint.integrations = integrations), this.emit("preprocessEvent", event, hint), event.type || isolationScope.setLastEventId(event.event_id || hint.event_id), prepareEvent(options, event, hint, currentScope, this, isolationScope).then((evt) => {
+        if (evt === null)
+          return evt;
+        evt.contexts = {
+          trace: getTraceContextFromScope(currentScope),
+          ...evt.contexts
+        };
+        let dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
+        return evt.sdkProcessingMetadata = {
+          dynamicSamplingContext,
+          ...evt.sdkProcessingMetadata
+        }, evt;
+      });
+    }
+    /**
+     * Processes the event and logs an error in case of rejection
+     * @param event
+     * @param hint
+     * @param scope
+     */
+    _captureEvent(event, hint = {}, scope) {
+      return this._processEvent(event, hint, scope).then(
+        (finalEvent) => finalEvent.event_id,
+        (reason) => {
+          DEBUG_BUILD && (reason instanceof SentryError && reason.logLevel === "log" ? logger.log(reason.message) : logger.warn(reason));
+        }
+      );
+    }
+    /**
+     * Processes an event (either error or message) and sends it to Sentry.
+     *
+     * This also adds breadcrumbs and context information to the event. However,
+     * platform specific meta data (such as the User's IP address) must be added
+     * by the SDK implementor.
+     *
+     *
+     * @param event The event to send to Sentry.
+     * @param hint May contain additional information about the original exception.
+     * @param currentScope A scope containing event metadata.
+     * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
+     */
+    _processEvent(event, hint, currentScope) {
+      let options = this.getOptions(), { sampleRate } = options, isTransaction = isTransactionEvent(event), isError2 = isErrorEvent2(event), eventType = event.type || "error", beforeSendLabel = `before send for type \`${eventType}\``, parsedSampleRate = typeof sampleRate > "u" ? void 0 : parseSampleRate(sampleRate);
+      if (isError2 && typeof parsedSampleRate == "number" && Math.random() > parsedSampleRate)
+        return this.recordDroppedEvent("sample_rate", "error", event), rejectedSyncPromise(
+          new SentryError(
+            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+            "log"
+          )
+        );
+      let dataCategory = eventType === "replay_event" ? "replay" : eventType, capturedSpanIsolationScope = (event.sdkProcessingMetadata || {}).capturedSpanIsolationScope;
+      return this._prepareEvent(event, hint, currentScope, capturedSpanIsolationScope).then((prepared) => {
+        if (prepared === null)
+          throw this.recordDroppedEvent("event_processor", dataCategory, event), new SentryError("An event processor returned `null`, will not send event.", "log");
+        if (hint.data && hint.data.__sentry__ === !0)
+          return prepared;
+        let result = processBeforeSend(this, options, prepared, hint);
+        return _validateBeforeSendResult(result, beforeSendLabel);
+      }).then((processedEvent) => {
+        if (processedEvent === null) {
+          if (this.recordDroppedEvent("before_send", dataCategory, event), isTransaction) {
+            let spanCount = 1 + (event.spans || []).length;
+            this.recordDroppedEvent("before_send", "span", spanCount);
+          }
+          throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, "log");
+        }
+        let session = currentScope && currentScope.getSession();
+        if (!isTransaction && session && this._updateSessionFromEvent(session, processedEvent), isTransaction) {
+          let spanCountBefore = processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing || 0, spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0, droppedSpanCount = spanCountBefore - spanCountAfter;
+          droppedSpanCount > 0 && this.recordDroppedEvent("before_send", "span", droppedSpanCount);
+        }
+        let transactionInfo = processedEvent.transaction_info;
+        if (isTransaction && transactionInfo && processedEvent.transaction !== event.transaction) {
+          let source = "custom";
+          processedEvent.transaction_info = {
+            ...transactionInfo,
+            source
+          };
+        }
+        return this.sendEvent(processedEvent, hint), processedEvent;
+      }).then(null, (reason) => {
+        throw reason instanceof SentryError ? reason : (this.captureException(reason, {
+          data: {
+            __sentry__: !0
+          },
+          originalException: reason
+        }), new SentryError(
+          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.
+Reason: ${reason}`
+        ));
+      });
+    }
+    /**
+     * Occupies the client with processing and event
+     */
+    _process(promise) {
+      this._numProcessing++, promise.then(
+        (value) => (this._numProcessing--, value),
+        (reason) => (this._numProcessing--, reason)
+      );
+    }
+    /**
+     * Clears outcomes on this client and returns them.
+     */
+    _clearOutcomes() {
+      let outcomes = this._outcomes;
+      return this._outcomes = {}, Object.entries(outcomes).map(([key2, quantity]) => {
+        let [reason, category] = key2.split(":");
+        return {
+          reason,
+          category,
+          quantity
+        };
+      });
+    }
+    /**
+     * Sends client reports as an envelope.
+     */
+    _flushOutcomes() {
+      DEBUG_BUILD && logger.log("Flushing outcomes...");
+      let outcomes = this._clearOutcomes();
+      if (outcomes.length === 0) {
+        DEBUG_BUILD && logger.log("No outcomes to send");
+        return;
+      }
+      if (!this._dsn) {
+        DEBUG_BUILD && logger.log("No dsn provided, will not send outcomes");
+        return;
+      }
+      DEBUG_BUILD && logger.log("Sending outcomes:", outcomes);
+      let envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
+      this.sendEnvelope(envelope);
+    }
+    /**
+     * @inheritDoc
+     */
+  };
+  function _validateBeforeSendResult(beforeSendResult, beforeSendLabel) {
+    let invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
+    if (isThenable(beforeSendResult))
+      return beforeSendResult.then(
+        (event) => {
+          if (!isPlainObject2(event) && event !== null)
+            throw new SentryError(invalidValueError);
+          return event;
+        },
+        (e) => {
+          throw new SentryError(`${beforeSendLabel} rejected with ${e}`);
+        }
+      );
+    if (!isPlainObject2(beforeSendResult) && beforeSendResult !== null)
+      throw new SentryError(invalidValueError);
+    return beforeSendResult;
+  }
+  function processBeforeSend(client, options, event, hint) {
+    let { beforeSend, beforeSendTransaction, beforeSendSpan } = options;
+    if (isErrorEvent2(event) && beforeSend)
+      return beforeSend(event, hint);
+    if (isTransactionEvent(event)) {
+      if (event.spans && beforeSendSpan) {
+        let processedSpans = [];
+        for (let span of event.spans) {
+          let processedSpan = beforeSendSpan(span);
+          processedSpan ? processedSpans.push(processedSpan) : (showSpanDropWarning(), client.recordDroppedEvent("before_send", "span"));
+        }
+        event.spans = processedSpans;
+      }
+      if (beforeSendTransaction) {
+        if (event.spans) {
+          let spanCountBefore = event.spans.length;
+          event.sdkProcessingMetadata = {
+            ...event.sdkProcessingMetadata,
+            spanCountBeforeProcessing: spanCountBefore
+          };
+        }
+        return beforeSendTransaction(event, hint);
+      }
+    }
+    return event;
+  }
+  function isErrorEvent2(event) {
+    return event.type === void 0;
+  }
+  function isTransactionEvent(event) {
+    return event.type === "transaction";
+  }
+
+  // node_modules/@sentry/core/build/esm/sdk.js
+  function initAndBind(clientClass, options) {
+    options.debug === !0 && (DEBUG_BUILD ? logger.enable() : consoleSandbox(() => {
+      console.warn("[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.");
+    })), getCurrentScope().update(options.initialScope);
+    let client = new clientClass(options);
+    return setCurrentClient(client), client.init(), client;
+  }
+  function setCurrentClient(client) {
+    getCurrentScope().setClient(client);
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/promisebuffer.js
+  function makePromiseBuffer(limit) {
+    let buffer = [];
+    function isReady() {
+      return limit === void 0 || buffer.length < limit;
+    }
+    function remove2(task) {
+      return buffer.splice(buffer.indexOf(task), 1)[0] || Promise.resolve(void 0);
+    }
+    function add(taskProducer) {
+      if (!isReady())
+        return rejectedSyncPromise(new SentryError("Not adding Promise because buffer limit was reached."));
+      let task = taskProducer();
+      return buffer.indexOf(task) === -1 && buffer.push(task), task.then(() => remove2(task)).then(
+        null,
+        () => remove2(task).then(null, () => {
+        })
+      ), task;
+    }
+    function drain(timeout) {
+      return new SyncPromise((resolve, reject) => {
+        let counter = buffer.length;
+        if (!counter)
+          return resolve(!0);
+        let capturedSetTimeout = setTimeout(() => {
+          timeout && timeout > 0 && resolve(!1);
+        }, timeout);
+        buffer.forEach((item) => {
+          resolvedSyncPromise(item).then(() => {
+            --counter || (clearTimeout(capturedSetTimeout), resolve(!0));
+          }, reject);
+        });
+      });
+    }
+    return {
+      $: buffer,
+      add,
+      drain
+    };
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/ratelimit.js
+  function parseRetryAfterHeader(header, now = Date.now()) {
+    let headerDelay = parseInt(`${header}`, 10);
+    if (!isNaN(headerDelay))
+      return headerDelay * 1e3;
+    let headerDate = Date.parse(`${header}`);
+    return isNaN(headerDate) ? 6e4 : headerDate - now;
+  }
+  function disabledUntil(limits, dataCategory) {
+    return limits[dataCategory] || limits.all || 0;
+  }
+  function isRateLimited(limits, dataCategory, now = Date.now()) {
+    return disabledUntil(limits, dataCategory) > now;
+  }
+  function updateRateLimits(limits, { statusCode, headers }, now = Date.now()) {
+    let updatedRateLimits = {
+      ...limits
+    }, rateLimitHeader = headers && headers["x-sentry-rate-limits"], retryAfterHeader = headers && headers["retry-after"];
+    if (rateLimitHeader)
+      for (let limit of rateLimitHeader.trim().split(",")) {
+        let [retryAfter, categories, , , namespaces] = limit.split(":", 5), headerDelay = parseInt(retryAfter, 10), delay = (isNaN(headerDelay) ? 60 : headerDelay) * 1e3;
+        if (!categories)
+          updatedRateLimits.all = now + delay;
+        else
+          for (let category of categories.split(";"))
+            category === "metric_bucket" ? (!namespaces || namespaces.split(";").includes("custom")) && (updatedRateLimits[category] = now + delay) : updatedRateLimits[category] = now + delay;
+      }
+    else retryAfterHeader ? updatedRateLimits.all = now + parseRetryAfterHeader(retryAfterHeader, now) : statusCode === 429 && (updatedRateLimits.all = now + 60 * 1e3);
+    return updatedRateLimits;
+  }
+
+  // node_modules/@sentry/core/build/esm/transports/base.js
+  var DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
+  function createTransport(options, makeRequest, buffer = makePromiseBuffer(
+    options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE
+  )) {
+    let rateLimits = {}, flush2 = (timeout) => buffer.drain(timeout);
+    function send(envelope) {
+      let filteredEnvelopeItems = [];
+      if (forEachEnvelopeItem(envelope, (item, type) => {
+        let dataCategory = envelopeItemTypeToDataCategory(type);
+        if (isRateLimited(rateLimits, dataCategory)) {
+          let event = getEventForEnvelopeItem(item, type);
+          options.recordDroppedEvent("ratelimit_backoff", dataCategory, event);
+        } else
+          filteredEnvelopeItems.push(item);
+      }), filteredEnvelopeItems.length === 0)
+        return resolvedSyncPromise({});
+      let filteredEnvelope = createEnvelope(envelope[0], filteredEnvelopeItems), recordEnvelopeLoss = (reason) => {
+        forEachEnvelopeItem(filteredEnvelope, (item, type) => {
+          let event = getEventForEnvelopeItem(item, type);
+          options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type), event);
+        });
+      }, requestTask = () => makeRequest({ body: serializeEnvelope(filteredEnvelope) }).then(
+        (response) => (response.statusCode !== void 0 && (response.statusCode < 200 || response.statusCode >= 300) && DEBUG_BUILD && logger.warn(`Sentry responded with status code ${response.statusCode} to sent event.`), rateLimits = updateRateLimits(rateLimits, response), response),
+        (error) => {
+          throw recordEnvelopeLoss("network_error"), error;
+        }
+      );
+      return buffer.add(requestTask).then(
+        (result) => result,
+        (error) => {
+          if (error instanceof SentryError)
+            return DEBUG_BUILD && logger.error("Skipped sending event because buffer is full."), recordEnvelopeLoss("queue_overflow"), resolvedSyncPromise({});
+          throw error;
+        }
+      );
+    }
+    return {
+      send,
+      flush: flush2
+    };
+  }
+  function getEventForEnvelopeItem(item, type) {
+    if (!(type !== "event" && type !== "transaction"))
+      return Array.isArray(item) ? item[1] : void 0;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils/sdkMetadata.js
+  function applySdkMetadata(options, name, names = [name], source = "npm") {
+    let metadata = options._metadata || {};
+    metadata.sdk || (metadata.sdk = {
+      name: `sentry.javascript.${name}`,
+      packages: names.map((name2) => ({
+        name: `${source}:@sentry/${name2}`,
+        version: SDK_VERSION
+      })),
+      version: SDK_VERSION
+    }), options._metadata = metadata;
+  }
+
+  // node_modules/@sentry/core/build/esm/breadcrumbs.js
+  var DEFAULT_BREADCRUMBS = 100;
+  function addBreadcrumb(breadcrumb, hint) {
+    let client = getClient(), isolationScope = getIsolationScope();
+    if (!client) return;
+    let { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = client.getOptions();
+    if (maxBreadcrumbs <= 0) return;
+    let mergedBreadcrumb = { timestamp: dateTimestampInSeconds(), ...breadcrumb }, finalBreadcrumb = beforeBreadcrumb ? consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) : mergedBreadcrumb;
+    finalBreadcrumb !== null && (client.emit && client.emit("beforeAddBreadcrumb", finalBreadcrumb, hint), isolationScope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs));
+  }
+
+  // node_modules/@sentry/core/build/esm/integrations/functiontostring.js
+  var originalFunctionToString, INTEGRATION_NAME = "FunctionToString", SETUP_CLIENTS = /* @__PURE__ */ new WeakMap(), _functionToStringIntegration = (() => ({
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      originalFunctionToString = Function.prototype.toString;
+      try {
+        Function.prototype.toString = function(...args) {
+          let originalFunction = getOriginalFunction(this), context = SETUP_CLIENTS.has(getClient()) && originalFunction !== void 0 ? originalFunction : this;
+          return originalFunctionToString.apply(context, args);
+        };
+      } catch {
+      }
+    },
+    setup(client) {
+      SETUP_CLIENTS.set(client, !0);
+    }
+  })), functionToStringIntegration = _functionToStringIntegration;
+
+  // node_modules/@sentry/core/build/esm/integrations/inboundfilters.js
+  var DEFAULT_IGNORE_ERRORS = [
+    /^Script error\.?$/,
+    /^Javascript error: Script error\.? on line 0$/,
+    /^ResizeObserver loop completed with undelivered notifications.$/,
+    // The browser logs this when a ResizeObserver handler takes a bit longer. Usually this is not an actual issue though. It indicates slowness.
+    /^Cannot redefine property: googletag$/,
+    // This is thrown when google tag manager is used in combination with an ad blocker
+    /^Can't find variable: gmo$/,
+    // Error from Google Search App https://issuetracker.google.com/issues/396043331
+    "undefined is not an object (evaluating 'a.L')",
+    // Random error that happens but not actionable or noticeable to end-users.
+    `can't redefine non-configurable property "solana"`,
+    // Probably a browser extension or custom browser (Brave) throwing this error
+    "vv().getRestrictions is not a function. (In 'vv().getRestrictions(1,a)', 'vv().getRestrictions' is undefined)",
+    // Error thrown by GTM, seemingly not affecting end-users
+    "Can't find variable: _AutofillCallbackHandler",
+    // Unactionable error in instagram webview https://developers.facebook.com/community/threads/320013549791141/
+    /^Non-Error promise rejection captured with value: Object Not Found Matching Id:\d+, MethodName:simulateEvent, ParamCount:\d+$/,
+    // unactionable error from CEFSharp, a .NET library that embeds chromium in .NET apps
+    /^Java exception was raised during method invocation$/
+    // error from Facebook Mobile browser (https://github.com/getsentry/sentry-javascript/issues/15065)
+  ], INTEGRATION_NAME2 = "InboundFilters", _inboundFiltersIntegration = ((options = {}) => ({
+    name: INTEGRATION_NAME2,
+    processEvent(event, _hint, client) {
+      let clientOptions = client.getOptions(), mergedOptions = _mergeOptions(options, clientOptions);
+      return _shouldDropEvent(event, mergedOptions) ? null : event;
+    }
+  })), inboundFiltersIntegration = _inboundFiltersIntegration;
+  function _mergeOptions(internalOptions = {}, clientOptions = {}) {
+    return {
+      allowUrls: [...internalOptions.allowUrls || [], ...clientOptions.allowUrls || []],
+      denyUrls: [...internalOptions.denyUrls || [], ...clientOptions.denyUrls || []],
+      ignoreErrors: [
+        ...internalOptions.ignoreErrors || [],
+        ...clientOptions.ignoreErrors || [],
+        ...internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS
+      ],
+      ignoreTransactions: [...internalOptions.ignoreTransactions || [], ...clientOptions.ignoreTransactions || []],
+      ignoreInternal: internalOptions.ignoreInternal !== void 0 ? internalOptions.ignoreInternal : !0
+    };
+  }
+  function _shouldDropEvent(event, options) {
+    return options.ignoreInternal && _isSentryError(event) ? (DEBUG_BUILD && logger.warn(`Event dropped due to being internal Sentry Error.
+Event: ${getEventDescription(event)}`), !0) : _isIgnoredError(event, options.ignoreErrors) ? (DEBUG_BUILD && logger.warn(
+      `Event dropped due to being matched by \`ignoreErrors\` option.
+Event: ${getEventDescription(event)}`
+    ), !0) : _isUselessError(event) ? (DEBUG_BUILD && logger.warn(
+      `Event dropped due to not having an error message, error type or stacktrace.
+Event: ${getEventDescription(
+        event
+      )}`
+    ), !0) : _isIgnoredTransaction(event, options.ignoreTransactions) ? (DEBUG_BUILD && logger.warn(
+      `Event dropped due to being matched by \`ignoreTransactions\` option.
+Event: ${getEventDescription(event)}`
+    ), !0) : _isDeniedUrl(event, options.denyUrls) ? (DEBUG_BUILD && logger.warn(
+      `Event dropped due to being matched by \`denyUrls\` option.
+Event: ${getEventDescription(
+        event
+      )}.
+Url: ${_getEventFilterUrl(event)}`
+    ), !0) : _isAllowedUrl(event, options.allowUrls) ? !1 : (DEBUG_BUILD && logger.warn(
+      `Event dropped due to not being matched by \`allowUrls\` option.
+Event: ${getEventDescription(
+        event
+      )}.
+Url: ${_getEventFilterUrl(event)}`
+    ), !0);
+  }
+  function _isIgnoredError(event, ignoreErrors) {
+    return event.type || !ignoreErrors || !ignoreErrors.length ? !1 : _getPossibleEventMessages(event).some((message) => stringMatchesSomePattern(message, ignoreErrors));
+  }
+  function _isIgnoredTransaction(event, ignoreTransactions) {
+    if (event.type !== "transaction" || !ignoreTransactions || !ignoreTransactions.length)
+      return !1;
+    let name = event.transaction;
+    return name ? stringMatchesSomePattern(name, ignoreTransactions) : !1;
+  }
+  function _isDeniedUrl(event, denyUrls) {
+    if (!denyUrls || !denyUrls.length)
+      return !1;
+    let url2 = _getEventFilterUrl(event);
+    return url2 ? stringMatchesSomePattern(url2, denyUrls) : !1;
+  }
+  function _isAllowedUrl(event, allowUrls) {
+    if (!allowUrls || !allowUrls.length)
+      return !0;
+    let url2 = _getEventFilterUrl(event);
+    return url2 ? stringMatchesSomePattern(url2, allowUrls) : !0;
+  }
+  function _getPossibleEventMessages(event) {
+    let possibleMessages = [];
+    event.message && possibleMessages.push(event.message);
+    let lastException;
+    try {
+      lastException = event.exception.values[event.exception.values.length - 1];
+    } catch {
+    }
+    return lastException && lastException.value && (possibleMessages.push(lastException.value), lastException.type && possibleMessages.push(`${lastException.type}: ${lastException.value}`)), possibleMessages;
+  }
+  function _isSentryError(event) {
+    try {
+      return event.exception.values[0].type === "SentryError";
+    } catch {
+    }
+    return !1;
+  }
+  function _getLastValidUrl(frames = []) {
+    for (let i = frames.length - 1; i >= 0; i--) {
+      let frame = frames[i];
+      if (frame && frame.filename !== "<anonymous>" && frame.filename !== "[native code]")
+        return frame.filename || null;
+    }
+    return null;
+  }
+  function _getEventFilterUrl(event) {
+    try {
+      let frames;
+      try {
+        frames = event.exception.values[0].stacktrace.frames;
+      } catch {
+      }
+      return frames ? _getLastValidUrl(frames) : null;
+    } catch {
+      return DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`), null;
+    }
+  }
+  function _isUselessError(event) {
+    return event.type || !event.exception || !event.exception.values || event.exception.values.length === 0 ? !1 : (
+      // No top-level message
+      !event.message && // There are no exception values that have a stacktrace, a non-generic-Error type or value
+      !event.exception.values.some((value) => value.stacktrace || value.type && value.type !== "Error" || value.value)
+    );
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/aggregate-errors.js
+  function applyAggregateErrorsToEvent(exceptionFromErrorImplementation, parser, maxValueLimit = 250, key2, limit, event, hint) {
+    if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error))
+      return;
+    let originalException = event.exception.values.length > 0 ? event.exception.values[event.exception.values.length - 1] : void 0;
+    originalException && (event.exception.values = truncateAggregateExceptions(
+      aggregateExceptionsFromError(
+        exceptionFromErrorImplementation,
+        parser,
+        limit,
+        hint.originalException,
+        key2,
+        event.exception.values,
+        originalException,
+        0
+      ),
+      maxValueLimit
+    ));
+  }
+  function aggregateExceptionsFromError(exceptionFromErrorImplementation, parser, limit, error, key2, prevExceptions, exception, exceptionId) {
+    if (prevExceptions.length >= limit + 1)
+      return prevExceptions;
+    let newExceptions = [...prevExceptions];
+    if (isInstanceOf(error[key2], Error)) {
+      applyExceptionGroupFieldsForParentException(exception, exceptionId);
+      let newException = exceptionFromErrorImplementation(parser, error[key2]), newExceptionId = newExceptions.length;
+      applyExceptionGroupFieldsForChildException(newException, key2, newExceptionId, exceptionId), newExceptions = aggregateExceptionsFromError(
+        exceptionFromErrorImplementation,
+        parser,
+        limit,
+        error[key2],
+        key2,
+        [newException, ...newExceptions],
+        newException,
+        newExceptionId
+      );
+    }
+    return Array.isArray(error.errors) && error.errors.forEach((childError, i) => {
+      if (isInstanceOf(childError, Error)) {
+        applyExceptionGroupFieldsForParentException(exception, exceptionId);
+        let newException = exceptionFromErrorImplementation(parser, childError), newExceptionId = newExceptions.length;
+        applyExceptionGroupFieldsForChildException(newException, `errors[${i}]`, newExceptionId, exceptionId), newExceptions = aggregateExceptionsFromError(
+          exceptionFromErrorImplementation,
+          parser,
+          limit,
+          childError,
+          key2,
+          [newException, ...newExceptions],
+          newException,
+          newExceptionId
+        );
+      }
+    }), newExceptions;
+  }
+  function applyExceptionGroupFieldsForParentException(exception, exceptionId) {
+    exception.mechanism = exception.mechanism || { type: "generic", handled: !0 }, exception.mechanism = {
+      ...exception.mechanism,
+      ...exception.type === "AggregateError" && { is_exception_group: !0 },
+      exception_id: exceptionId
+    };
+  }
+  function applyExceptionGroupFieldsForChildException(exception, source, exceptionId, parentId) {
+    exception.mechanism = exception.mechanism || { type: "generic", handled: !0 }, exception.mechanism = {
+      ...exception.mechanism,
+      type: "chained",
+      source,
+      exception_id: exceptionId,
+      parent_id: parentId
+    };
+  }
+  function truncateAggregateExceptions(exceptions, maxValueLength) {
+    return exceptions.map((exception) => (exception.value && (exception.value = truncate(exception.value, maxValueLength)), exception));
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/url.js
+  function parseUrl(url2) {
+    if (!url2)
+      return {};
+    let match = url2.match(/^(([^:/?#]+):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
+    if (!match)
+      return {};
+    let query = match[6] || "", fragment = match[8] || "";
+    return {
+      host: match[4],
+      path: match[5],
+      protocol: match[2],
+      search: query,
+      hash: fragment,
+      relative: match[5] + query + fragment
+      // everything minus origin
+    };
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/instrument/console.js
+  function addConsoleInstrumentationHandler(handler) {
+    let type = "console";
+    addHandler(type, handler), maybeInstrument(type, instrumentConsole);
+  }
+  function instrumentConsole() {
+    "console" in GLOBAL_OBJ && CONSOLE_LEVELS.forEach(function(level) {
+      level in GLOBAL_OBJ.console && fill(GLOBAL_OBJ.console, level, function(originalConsoleMethod) {
+        return originalConsoleMethods[level] = originalConsoleMethod, function(...args) {
+          triggerHandlers("console", { args, level });
+          let log = originalConsoleMethods[level];
+          log && log.apply(GLOBAL_OBJ.console, args);
+        };
+      });
+    });
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/severity.js
+  function severityLevelFromString(level) {
+    return level === "warn" ? "warning" : ["fatal", "error", "warning", "log", "info", "debug"].includes(level) ? level : "log";
+  }
+
+  // node_modules/@sentry/core/build/esm/integrations/dedupe.js
+  var INTEGRATION_NAME3 = "Dedupe", _dedupeIntegration = (() => {
+    let previousEvent;
+    return {
+      name: INTEGRATION_NAME3,
+      processEvent(currentEvent) {
+        if (currentEvent.type)
+          return currentEvent;
+        try {
+          if (_shouldDropEvent2(currentEvent, previousEvent))
+            return DEBUG_BUILD && logger.warn("Event dropped due to being a duplicate of previously captured event."), null;
+        } catch {
+        }
+        return previousEvent = currentEvent;
+      }
+    };
+  }), dedupeIntegration = _dedupeIntegration;
+  function _shouldDropEvent2(currentEvent, previousEvent) {
+    return previousEvent ? !!(_isSameMessageEvent(currentEvent, previousEvent) || _isSameExceptionEvent(currentEvent, previousEvent)) : !1;
+  }
+  function _isSameMessageEvent(currentEvent, previousEvent) {
+    let currentMessage = currentEvent.message, previousMessage = previousEvent.message;
+    return !(!currentMessage && !previousMessage || currentMessage && !previousMessage || !currentMessage && previousMessage || currentMessage !== previousMessage || !_isSameFingerprint(currentEvent, previousEvent) || !_isSameStacktrace(currentEvent, previousEvent));
+  }
+  function _isSameExceptionEvent(currentEvent, previousEvent) {
+    let previousException = _getExceptionFromEvent(previousEvent), currentException = _getExceptionFromEvent(currentEvent);
+    return !(!previousException || !currentException || previousException.type !== currentException.type || previousException.value !== currentException.value || !_isSameFingerprint(currentEvent, previousEvent) || !_isSameStacktrace(currentEvent, previousEvent));
+  }
+  function _isSameStacktrace(currentEvent, previousEvent) {
+    let currentFrames = getFramesFromEvent(currentEvent), previousFrames = getFramesFromEvent(previousEvent);
+    if (!currentFrames && !previousFrames)
+      return !0;
+    if (currentFrames && !previousFrames || !currentFrames && previousFrames || (currentFrames = currentFrames, previousFrames = previousFrames, previousFrames.length !== currentFrames.length))
+      return !1;
+    for (let i = 0; i < previousFrames.length; i++) {
+      let frameA = previousFrames[i], frameB = currentFrames[i];
+      if (frameA.filename !== frameB.filename || frameA.lineno !== frameB.lineno || frameA.colno !== frameB.colno || frameA.function !== frameB.function)
+        return !1;
+    }
+    return !0;
+  }
+  function _isSameFingerprint(currentEvent, previousEvent) {
+    let currentFingerprint = currentEvent.fingerprint, previousFingerprint = previousEvent.fingerprint;
+    if (!currentFingerprint && !previousFingerprint)
+      return !0;
+    if (currentFingerprint && !previousFingerprint || !currentFingerprint && previousFingerprint)
+      return !1;
+    currentFingerprint = currentFingerprint, previousFingerprint = previousFingerprint;
+    try {
+      return currentFingerprint.join("") === previousFingerprint.join("");
+    } catch {
+      return !1;
+    }
+  }
+  function _getExceptionFromEvent(event) {
+    return event.exception && event.exception.values && event.exception.values[0];
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/breadcrumb-log-level.js
+  function getBreadcrumbLogLevelFromHttpStatusCode(statusCode) {
+    if (statusCode !== void 0)
+      return statusCode >= 400 && statusCode < 500 ? "warning" : statusCode >= 500 ? "error" : void 0;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/supports.js
+  var WINDOW2 = GLOBAL_OBJ;
+  function supportsFetch() {
+    if (!("fetch" in WINDOW2))
+      return !1;
+    try {
+      return new Headers(), new Request("http://www.example.com"), new Response(), !0;
+    } catch {
+      return !1;
+    }
+  }
+  function isNativeFunction(func) {
+    return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+  }
+  function supportsNativeFetch() {
+    if (typeof EdgeRuntime == "string")
+      return !0;
+    if (!supportsFetch())
+      return !1;
+    if (isNativeFunction(WINDOW2.fetch))
+      return !0;
+    let result = !1, doc = WINDOW2.document;
+    if (doc && typeof doc.createElement == "function")
+      try {
+        let sandbox = doc.createElement("iframe");
+        sandbox.hidden = !0, doc.head.appendChild(sandbox), sandbox.contentWindow && sandbox.contentWindow.fetch && (result = isNativeFunction(sandbox.contentWindow.fetch)), doc.head.removeChild(sandbox);
+      } catch (err) {
+        DEBUG_BUILD2 && logger.warn("Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ", err);
+      }
+    return result;
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/instrument/fetch.js
+  function addFetchInstrumentationHandler(handler, skipNativeFetchCheck) {
+    let type = "fetch";
+    addHandler(type, handler), maybeInstrument(type, () => instrumentFetch(void 0, skipNativeFetchCheck));
+  }
+  function instrumentFetch(onFetchResolved, skipNativeFetchCheck = !1) {
+    skipNativeFetchCheck && !supportsNativeFetch() || fill(GLOBAL_OBJ, "fetch", function(originalFetch) {
+      return function(...args) {
+        let virtualError = new Error(), { method, url: url2 } = parseFetchArgs(args), handlerData = {
+          args,
+          fetchData: {
+            method,
+            url: url2
+          },
+          startTimestamp: timestampInSeconds() * 1e3,
+          // // Adding the error to be able to fingerprint the failed fetch event in HttpClient instrumentation
+          virtualError
+        };
+        return onFetchResolved || triggerHandlers("fetch", {
+          ...handlerData
+        }), originalFetch.apply(GLOBAL_OBJ, args).then(
+          async (response) => (onFetchResolved ? onFetchResolved(response) : triggerHandlers("fetch", {
+            ...handlerData,
+            endTimestamp: timestampInSeconds() * 1e3,
+            response
+          }), response),
+          (error) => {
+            throw triggerHandlers("fetch", {
+              ...handlerData,
+              endTimestamp: timestampInSeconds() * 1e3,
+              error
+            }), isError(error) && error.stack === void 0 && (error.stack = virtualError.stack, addNonEnumerableProperty(error, "framesToPop", 1)), error;
+          }
+        );
+      };
+    });
+  }
+  function hasProp(obj, prop) {
+    return !!obj && typeof obj == "object" && !!obj[prop];
+  }
+  function getUrlFromResource(resource) {
+    return typeof resource == "string" ? resource : resource ? hasProp(resource, "url") ? resource.url : resource.toString ? resource.toString() : "" : "";
+  }
+  function parseFetchArgs(fetchArgs) {
+    if (fetchArgs.length === 0)
+      return { method: "GET", url: "" };
+    if (fetchArgs.length === 2) {
+      let [url2, options] = fetchArgs;
+      return {
+        url: getUrlFromResource(url2),
+        method: hasProp(options, "method") ? String(options.method).toUpperCase() : "GET"
+      };
+    }
+    let arg = fetchArgs[0];
+    return {
+      url: getUrlFromResource(arg),
+      method: hasProp(arg, "method") ? String(arg.method).toUpperCase() : "GET"
+    };
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/env.js
+  function getSDKSource() {
+    return "npm";
+  }
+
+  // node_modules/@sentry/core/build/esm/utils-hoist/vendor/supportsHistory.js
+  var WINDOW3 = GLOBAL_OBJ;
+  function supportsHistory() {
+    let chromeVar = WINDOW3.chrome, isChromePackagedApp = chromeVar && chromeVar.app && chromeVar.app.runtime, hasHistoryApi = "history" in WINDOW3 && !!WINDOW3.history.pushState && !!WINDOW3.history.replaceState;
+    return !isChromePackagedApp && hasHistoryApi;
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/helpers.js
+  var WINDOW4 = GLOBAL_OBJ, ignoreOnError = 0;
+  function shouldIgnoreOnError() {
+    return ignoreOnError > 0;
+  }
+  function ignoreNextOnError() {
+    ignoreOnError++, setTimeout(() => {
+      ignoreOnError--;
+    });
+  }
+  function wrap(fn, options = {}) {
+    function isFunction(fn2) {
+      return typeof fn2 == "function";
+    }
+    if (!isFunction(fn))
+      return fn;
+    try {
+      let wrapper = fn.__sentry_wrapped__;
+      if (wrapper)
+        return typeof wrapper == "function" ? wrapper : fn;
+      if (getOriginalFunction(fn))
+        return fn;
+    } catch {
+      return fn;
+    }
+    let sentryWrapped = function(...args) {
+      try {
+        let wrappedArguments = args.map((arg) => wrap(arg, options));
+        return fn.apply(this, wrappedArguments);
+      } catch (ex) {
+        throw ignoreNextOnError(), withScope2((scope) => {
+          scope.addEventProcessor((event) => (options.mechanism && (addExceptionTypeValue(event, void 0, void 0), addExceptionMechanism(event, options.mechanism)), event.extra = {
+            ...event.extra,
+            arguments: args
+          }, event)), captureException(ex);
+        }), ex;
+      }
+    };
+    try {
+      for (let property in fn)
+        Object.prototype.hasOwnProperty.call(fn, property) && (sentryWrapped[property] = fn[property]);
+    } catch {
+    }
+    markFunctionWrapped(sentryWrapped, fn), addNonEnumerableProperty(fn, "__sentry_wrapped__", sentryWrapped);
+    try {
+      Object.getOwnPropertyDescriptor(sentryWrapped, "name").configurable && Object.defineProperty(sentryWrapped, "name", {
+        get() {
+          return fn.name;
+        }
+      });
+    } catch {
+    }
+    return sentryWrapped;
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/debug-build.js
+  var DEBUG_BUILD3 = typeof __SENTRY_DEBUG__ > "u" || __SENTRY_DEBUG__;
+
+  // node_modules/@sentry/browser/build/npm/esm/eventbuilder.js
+  function exceptionFromError(stackParser, ex) {
+    let frames = parseStackFrames(stackParser, ex), exception = {
+      type: extractType(ex),
+      value: extractMessage(ex)
+    };
+    return frames.length && (exception.stacktrace = { frames }), exception.type === void 0 && exception.value === "" && (exception.value = "Unrecoverable error caught"), exception;
+  }
+  function eventFromPlainObject(stackParser, exception, syntheticException, isUnhandledRejection) {
+    let client = getClient(), normalizeDepth = client && client.getOptions().normalizeDepth, errorFromProp = getErrorPropertyFromObject(exception), extra = {
+      __serialized__: normalizeToSize(exception, normalizeDepth)
+    };
+    if (errorFromProp)
+      return {
+        exception: {
+          values: [exceptionFromError(stackParser, errorFromProp)]
+        },
+        extra
+      };
+    let event = {
+      exception: {
+        values: [
+          {
+            type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? "UnhandledRejection" : "Error",
+            value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection })
+          }
+        ]
+      },
+      extra
+    };
+    if (syntheticException) {
+      let frames = parseStackFrames(stackParser, syntheticException);
+      frames.length && (event.exception.values[0].stacktrace = { frames });
+    }
+    return event;
+  }
+  function eventFromError(stackParser, ex) {
+    return {
+      exception: {
+        values: [exceptionFromError(stackParser, ex)]
+      }
+    };
+  }
+  function parseStackFrames(stackParser, ex) {
+    let stacktrace = ex.stacktrace || ex.stack || "", skipLines = getSkipFirstStackStringLines(ex), framesToPop = getPopFirstTopFrames(ex);
+    try {
+      return stackParser(stacktrace, skipLines, framesToPop);
+    } catch {
+    }
+    return [];
+  }
+  var reactMinifiedRegexp = /Minified React error #\d+;/i;
+  function getSkipFirstStackStringLines(ex) {
+    return ex && reactMinifiedRegexp.test(ex.message) ? 1 : 0;
+  }
+  function getPopFirstTopFrames(ex) {
+    return typeof ex.framesToPop == "number" ? ex.framesToPop : 0;
+  }
+  function isWebAssemblyException(exception) {
+    return typeof WebAssembly < "u" && typeof WebAssembly.Exception < "u" ? exception instanceof WebAssembly.Exception : !1;
+  }
+  function extractType(ex) {
+    let name = ex && ex.name;
+    return !name && isWebAssemblyException(ex) ? ex.message && Array.isArray(ex.message) && ex.message.length == 2 ? ex.message[0] : "WebAssembly.Exception" : name;
+  }
+  function extractMessage(ex) {
+    let message = ex && ex.message;
+    return message ? message.error && typeof message.error.message == "string" ? message.error.message : isWebAssemblyException(ex) && Array.isArray(ex.message) && ex.message.length == 2 ? ex.message[1] : message : "No error message";
+  }
+  function eventFromException(stackParser, exception, hint, attachStacktrace) {
+    let syntheticException = hint && hint.syntheticException || void 0, event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
+    return addExceptionMechanism(event), event.level = "error", hint && hint.event_id && (event.event_id = hint.event_id), resolvedSyncPromise(event);
+  }
+  function eventFromMessage(stackParser, message, level = "info", hint, attachStacktrace) {
+    let syntheticException = hint && hint.syntheticException || void 0, event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
+    return event.level = level, hint && hint.event_id && (event.event_id = hint.event_id), resolvedSyncPromise(event);
+  }
+  function eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace, isUnhandledRejection) {
+    let event;
+    if (isErrorEvent(exception) && exception.error)
+      return eventFromError(stackParser, exception.error);
+    if (isDOMError(exception) || isDOMException(exception)) {
+      let domException = exception;
+      if ("stack" in exception)
+        event = eventFromError(stackParser, exception);
+      else {
+        let name = domException.name || (isDOMError(domException) ? "DOMError" : "DOMException"), message = domException.message ? `${name}: ${domException.message}` : name;
+        event = eventFromString(stackParser, message, syntheticException, attachStacktrace), addExceptionTypeValue(event, message);
+      }
+      return "code" in domException && (event.tags = { ...event.tags, "DOMException.code": `${domException.code}` }), event;
+    }
+    return isError(exception) ? eventFromError(stackParser, exception) : isPlainObject2(exception) || isEvent(exception) ? (event = eventFromPlainObject(stackParser, exception, syntheticException, isUnhandledRejection), addExceptionMechanism(event, {
+      synthetic: !0
+    }), event) : (event = eventFromString(stackParser, exception, syntheticException, attachStacktrace), addExceptionTypeValue(event, `${exception}`, void 0), addExceptionMechanism(event, {
+      synthetic: !0
+    }), event);
+  }
+  function eventFromString(stackParser, message, syntheticException, attachStacktrace) {
+    let event = {};
+    if (attachStacktrace && syntheticException) {
+      let frames = parseStackFrames(stackParser, syntheticException);
+      frames.length && (event.exception = {
+        values: [{ value: message, stacktrace: { frames } }]
+      }), addExceptionMechanism(event, { synthetic: !0 });
+    }
+    if (isParameterizedString(message)) {
+      let { __sentry_template_string__, __sentry_template_values__ } = message;
+      return event.logentry = {
+        message: __sentry_template_string__,
+        params: __sentry_template_values__
+      }, event;
+    }
+    return event.message = message, event;
+  }
+  function getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }) {
+    let keys = extractExceptionKeysForMessage(exception), captureType = isUnhandledRejection ? "promise rejection" : "exception";
+    return isErrorEvent(exception) ? `Event \`ErrorEvent\` captured as ${captureType} with message \`${exception.message}\`` : isEvent(exception) ? `Event \`${getObjectClassName(exception)}\` (type=${exception.type}) captured as ${captureType}` : `Object captured as ${captureType} with keys: ${keys}`;
+  }
+  function getObjectClassName(obj) {
+    try {
+      let prototype = Object.getPrototypeOf(obj);
+      return prototype ? prototype.constructor.name : void 0;
+    } catch {
+    }
+  }
+  function getErrorPropertyFromObject(obj) {
+    for (let prop in obj)
+      if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+        let value = obj[prop];
+        if (value instanceof Error)
+          return value;
+      }
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/userfeedback.js
+  function createUserFeedbackEnvelope(feedback, {
+    metadata,
+    tunnel,
+    dsn
+  }) {
+    let headers = {
+      event_id: feedback.event_id,
+      sent_at: (/* @__PURE__ */ new Date()).toISOString(),
+      ...metadata && metadata.sdk && {
+        sdk: {
+          name: metadata.sdk.name,
+          version: metadata.sdk.version
+        }
+      },
+      ...!!tunnel && !!dsn && { dsn: dsnToString(dsn) }
+    }, item = createUserFeedbackEnvelopeItem(feedback);
+    return createEnvelope(headers, [item]);
+  }
+  function createUserFeedbackEnvelopeItem(feedback) {
+    return [{
+      type: "user_report"
+    }, feedback];
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/client.js
+  var BrowserClient = class extends BaseClient {
+    /**
+     * Creates a new Browser SDK instance.
+     *
+     * @param options Configuration options for this SDK.
+     */
+    constructor(options) {
+      let opts = {
+        // We default this to true, as it is the safer scenario
+        parentSpanIsAlwaysRootSpan: !0,
+        ...options
+      }, sdkSource = WINDOW4.SENTRY_SDK_SOURCE || getSDKSource();
+      applySdkMetadata(opts, "browser", ["browser"], sdkSource), super(opts), opts.sendClientReports && WINDOW4.document && WINDOW4.document.addEventListener("visibilitychange", () => {
+        WINDOW4.document.visibilityState === "hidden" && this._flushOutcomes();
+      });
+    }
+    /**
+     * @inheritDoc
+     */
+    eventFromException(exception, hint) {
+      return eventFromException(this._options.stackParser, exception, hint, this._options.attachStacktrace);
+    }
+    /**
+     * @inheritDoc
+     */
+    eventFromMessage(message, level = "info", hint) {
+      return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
+    }
+    /**
+     * Sends user feedback to Sentry.
+     *
+     * @deprecated Use `captureFeedback` instead.
+     */
+    captureUserFeedback(feedback) {
+      if (!this._isEnabled()) {
+        DEBUG_BUILD3 && logger.warn("SDK not enabled, will not capture user feedback.");
+        return;
+      }
+      let envelope = createUserFeedbackEnvelope(feedback, {
+        metadata: this.getSdkMetadata(),
+        dsn: this.getDsn(),
+        tunnel: this.getOptions().tunnel
+      });
+      this.sendEnvelope(envelope);
+    }
+    /**
+     * @inheritDoc
+     */
+    _prepareEvent(event, hint, scope) {
+      return event.platform = event.platform || "javascript", super._prepareEvent(event, hint, scope);
+    }
+  };
+
+  // node_modules/@sentry-internal/browser-utils/build/esm/debug-build.js
+  var DEBUG_BUILD4 = typeof __SENTRY_DEBUG__ > "u" || __SENTRY_DEBUG__;
+
+  // node_modules/@sentry-internal/browser-utils/build/esm/types.js
+  var WINDOW5 = GLOBAL_OBJ;
+
+  // node_modules/@sentry-internal/browser-utils/build/esm/instrument/dom.js
+  var DEBOUNCE_DURATION = 1e3, debounceTimerID, lastCapturedEventType, lastCapturedEventTargetId;
+  function addClickKeypressInstrumentationHandler(handler) {
+    addHandler("dom", handler), maybeInstrument("dom", instrumentDOM);
+  }
+  function instrumentDOM() {
+    if (!WINDOW5.document)
+      return;
+    let triggerDOMHandler = triggerHandlers.bind(null, "dom"), globalDOMEventHandler = makeDOMEventHandler(triggerDOMHandler, !0);
+    WINDOW5.document.addEventListener("click", globalDOMEventHandler, !1), WINDOW5.document.addEventListener("keypress", globalDOMEventHandler, !1), ["EventTarget", "Node"].forEach((target) => {
+      let targetObj = WINDOW5[target], proto = targetObj && targetObj.prototype;
+      !proto || !proto.hasOwnProperty || !proto.hasOwnProperty("addEventListener") || (fill(proto, "addEventListener", function(originalAddEventListener) {
+        return function(type, listener, options) {
+          if (type === "click" || type == "keypress")
+            try {
+              let handlers2 = this.__sentry_instrumentation_handlers__ = this.__sentry_instrumentation_handlers__ || {}, handlerForType = handlers2[type] = handlers2[type] || { refCount: 0 };
+              if (!handlerForType.handler) {
+                let handler = makeDOMEventHandler(triggerDOMHandler);
+                handlerForType.handler = handler, originalAddEventListener.call(this, type, handler, options);
+              }
+              handlerForType.refCount++;
+            } catch {
+            }
+          return originalAddEventListener.call(this, type, listener, options);
+        };
+      }), fill(
+        proto,
+        "removeEventListener",
+        function(originalRemoveEventListener) {
+          return function(type, listener, options) {
+            if (type === "click" || type == "keypress")
+              try {
+                let handlers2 = this.__sentry_instrumentation_handlers__ || {}, handlerForType = handlers2[type];
+                handlerForType && (handlerForType.refCount--, handlerForType.refCount <= 0 && (originalRemoveEventListener.call(this, type, handlerForType.handler, options), handlerForType.handler = void 0, delete handlers2[type]), Object.keys(handlers2).length === 0 && delete this.__sentry_instrumentation_handlers__);
+              } catch {
+              }
+            return originalRemoveEventListener.call(this, type, listener, options);
+          };
+        }
+      ));
+    });
+  }
+  function isSimilarToLastCapturedEvent(event) {
+    if (event.type !== lastCapturedEventType)
+      return !1;
+    try {
+      if (!event.target || event.target._sentryId !== lastCapturedEventTargetId)
+        return !1;
+    } catch {
+    }
+    return !0;
+  }
+  function shouldSkipDOMEvent(eventType, target) {
+    return eventType !== "keypress" ? !1 : !target || !target.tagName ? !0 : !(target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+  }
+  function makeDOMEventHandler(handler, globalListener = !1) {
+    return (event) => {
+      if (!event || event._sentryCaptured)
+        return;
+      let target = getEventTarget(event);
+      if (shouldSkipDOMEvent(event.type, target))
+        return;
+      addNonEnumerableProperty(event, "_sentryCaptured", !0), target && !target._sentryId && addNonEnumerableProperty(target, "_sentryId", uuid4());
+      let name = event.type === "keypress" ? "input" : event.type;
+      isSimilarToLastCapturedEvent(event) || (handler({ event, name, global: globalListener }), lastCapturedEventType = event.type, lastCapturedEventTargetId = target ? target._sentryId : void 0), clearTimeout(debounceTimerID), debounceTimerID = WINDOW5.setTimeout(() => {
+        lastCapturedEventTargetId = void 0, lastCapturedEventType = void 0;
+      }, DEBOUNCE_DURATION);
+    };
+  }
+  function getEventTarget(event) {
+    try {
+      return event.target;
+    } catch {
+      return null;
+    }
+  }
+
+  // node_modules/@sentry-internal/browser-utils/build/esm/instrument/history.js
+  var lastHref;
+  function addHistoryInstrumentationHandler(handler) {
+    let type = "history";
+    addHandler(type, handler), maybeInstrument(type, instrumentHistory);
+  }
+  function instrumentHistory() {
+    if (!supportsHistory())
+      return;
+    let oldOnPopState = WINDOW5.onpopstate;
+    WINDOW5.onpopstate = function(...args) {
+      let to = WINDOW5.location.href, from = lastHref;
+      if (lastHref = to, triggerHandlers("history", { from, to }), oldOnPopState)
+        try {
+          return oldOnPopState.apply(this, args);
+        } catch {
+        }
+    };
+    function historyReplacementFunction(originalHistoryFunction) {
+      return function(...args) {
+        let url2 = args.length > 2 ? args[2] : void 0;
+        if (url2) {
+          let from = lastHref, to = String(url2);
+          lastHref = to, triggerHandlers("history", { from, to });
+        }
+        return originalHistoryFunction.apply(this, args);
+      };
+    }
+    fill(WINDOW5.history, "pushState", historyReplacementFunction), fill(WINDOW5.history, "replaceState", historyReplacementFunction);
+  }
+
+  // node_modules/@sentry-internal/browser-utils/build/esm/getNativeImplementation.js
+  var cachedImplementations = {};
+  function getNativeImplementation(name) {
+    let cached = cachedImplementations[name];
+    if (cached)
+      return cached;
+    let impl = WINDOW5[name];
+    if (isNativeFunction(impl))
+      return cachedImplementations[name] = impl.bind(WINDOW5);
+    let document2 = WINDOW5.document;
+    if (document2 && typeof document2.createElement == "function")
+      try {
+        let sandbox = document2.createElement("iframe");
+        sandbox.hidden = !0, document2.head.appendChild(sandbox);
+        let contentWindow = sandbox.contentWindow;
+        contentWindow && contentWindow[name] && (impl = contentWindow[name]), document2.head.removeChild(sandbox);
+      } catch (e) {
+        DEBUG_BUILD4 && logger.warn(`Could not create sandbox iframe for ${name} check, bailing to window.${name}: `, e);
+      }
+    return impl && (cachedImplementations[name] = impl.bind(WINDOW5));
+  }
+  function clearCachedImplementation(name) {
+    cachedImplementations[name] = void 0;
+  }
+
+  // node_modules/@sentry-internal/browser-utils/build/esm/instrument/xhr.js
+  var SENTRY_XHR_DATA_KEY = "__sentry_xhr_v3__";
+  function addXhrInstrumentationHandler(handler) {
+    addHandler("xhr", handler), maybeInstrument("xhr", instrumentXHR);
+  }
+  function instrumentXHR() {
+    if (!WINDOW5.XMLHttpRequest)
+      return;
+    let xhrproto = XMLHttpRequest.prototype;
+    xhrproto.open = new Proxy(xhrproto.open, {
+      apply(originalOpen, xhrOpenThisArg, xhrOpenArgArray) {
+        let virtualError = new Error(), startTimestamp = timestampInSeconds() * 1e3, method = isString(xhrOpenArgArray[0]) ? xhrOpenArgArray[0].toUpperCase() : void 0, url2 = parseUrl2(xhrOpenArgArray[1]);
+        if (!method || !url2)
+          return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
+        xhrOpenThisArg[SENTRY_XHR_DATA_KEY] = {
+          method,
+          url: url2,
+          request_headers: {}
+        }, method === "POST" && url2.match(/sentry_key/) && (xhrOpenThisArg.__sentry_own_request__ = !0);
+        let onreadystatechangeHandler = () => {
+          let xhrInfo = xhrOpenThisArg[SENTRY_XHR_DATA_KEY];
+          if (xhrInfo && xhrOpenThisArg.readyState === 4) {
+            try {
+              xhrInfo.status_code = xhrOpenThisArg.status;
+            } catch {
+            }
+            let handlerData = {
+              endTimestamp: timestampInSeconds() * 1e3,
+              startTimestamp,
+              xhr: xhrOpenThisArg,
+              virtualError
+            };
+            triggerHandlers("xhr", handlerData);
+          }
+        };
+        return "onreadystatechange" in xhrOpenThisArg && typeof xhrOpenThisArg.onreadystatechange == "function" ? xhrOpenThisArg.onreadystatechange = new Proxy(xhrOpenThisArg.onreadystatechange, {
+          apply(originalOnreadystatechange, onreadystatechangeThisArg, onreadystatechangeArgArray) {
+            return onreadystatechangeHandler(), originalOnreadystatechange.apply(onreadystatechangeThisArg, onreadystatechangeArgArray);
+          }
+        }) : xhrOpenThisArg.addEventListener("readystatechange", onreadystatechangeHandler), xhrOpenThisArg.setRequestHeader = new Proxy(xhrOpenThisArg.setRequestHeader, {
+          apply(originalSetRequestHeader, setRequestHeaderThisArg, setRequestHeaderArgArray) {
+            let [header, value] = setRequestHeaderArgArray, xhrInfo = setRequestHeaderThisArg[SENTRY_XHR_DATA_KEY];
+            return xhrInfo && isString(header) && isString(value) && (xhrInfo.request_headers[header.toLowerCase()] = value), originalSetRequestHeader.apply(setRequestHeaderThisArg, setRequestHeaderArgArray);
+          }
+        }), originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
+      }
+    }), xhrproto.send = new Proxy(xhrproto.send, {
+      apply(originalSend, sendThisArg, sendArgArray) {
+        let sentryXhrData = sendThisArg[SENTRY_XHR_DATA_KEY];
+        if (!sentryXhrData)
+          return originalSend.apply(sendThisArg, sendArgArray);
+        sendArgArray[0] !== void 0 && (sentryXhrData.body = sendArgArray[0]);
+        let handlerData = {
+          startTimestamp: timestampInSeconds() * 1e3,
+          xhr: sendThisArg
+        };
+        return triggerHandlers("xhr", handlerData), originalSend.apply(sendThisArg, sendArgArray);
+      }
+    });
+  }
+  function parseUrl2(url2) {
+    if (isString(url2))
+      return url2;
+    try {
+      return url2.toString();
+    } catch {
+    }
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/transports/fetch.js
+  function makeFetchTransport(options, nativeFetch = getNativeImplementation("fetch")) {
+    let pendingBodySize = 0, pendingCount = 0;
+    function makeRequest(request) {
+      let requestSize = request.body.length;
+      pendingBodySize += requestSize, pendingCount++;
+      let requestOptions = {
+        body: request.body,
+        method: "POST",
+        referrerPolicy: "origin",
+        headers: options.headers,
+        // Outgoing requests are usually cancelled when navigating to a different page, causing a "TypeError: Failed to
+        // fetch" error and sending a "network_error" client-outcome - in Chrome, the request status shows "(cancelled)".
+        // The `keepalive` flag keeps outgoing requests alive, even when switching pages. We want this since we're
+        // frequently sending events right before the user is switching pages (eg. when finishing navigation transactions).
+        // Gotchas:
+        // - `keepalive` isn't supported by Firefox
+        // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch):
+        //   If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
+        //   We will therefore only activate the flag when we're below that limit.
+        // There is also a limit of requests that can be open at the same time, so we also limit this to 15
+        // See https://github.com/getsentry/sentry-javascript/pull/7553 for details
+        keepalive: pendingBodySize <= 6e4 && pendingCount < 15,
+        ...options.fetchOptions
+      };
+      if (!nativeFetch)
+        return clearCachedImplementation("fetch"), rejectedSyncPromise("No fetch implementation available");
+      try {
+        return nativeFetch(options.url, requestOptions).then((response) => (pendingBodySize -= requestSize, pendingCount--, {
+          statusCode: response.status,
+          headers: {
+            "x-sentry-rate-limits": response.headers.get("X-Sentry-Rate-Limits"),
+            "retry-after": response.headers.get("Retry-After")
+          }
+        }));
+      } catch (e) {
+        return clearCachedImplementation("fetch"), pendingBodySize -= requestSize, pendingCount--, rejectedSyncPromise(e);
+      }
+    }
+    return createTransport(options, makeRequest);
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/stack-parsers.js
+  var CHROME_PRIORITY = 30;
+  var GECKO_PRIORITY = 50;
+  function createFrame(filename, func, lineno, colno) {
+    let frame = {
+      filename,
+      function: func === "<anonymous>" ? "?" : func,
+      in_app: !0
+      // All browser frames are considered in_app
+    };
+    return lineno !== void 0 && (frame.lineno = lineno), colno !== void 0 && (frame.colno = colno), frame;
+  }
+  var chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i, chromeRegex = /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i, chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/, chromeStackParserFn = (line) => {
+    let noFnParts = chromeRegexNoFnName.exec(line);
+    if (noFnParts) {
+      let [, filename, line2, col] = noFnParts;
+      return createFrame(filename, "?", +line2, +col);
+    }
+    let parts = chromeRegex.exec(line);
+    if (parts) {
+      if (parts[2] && parts[2].indexOf("eval") === 0) {
+        let subMatch = chromeEvalRegex.exec(parts[2]);
+        subMatch && (parts[2] = subMatch[1], parts[3] = subMatch[2], parts[4] = subMatch[3]);
+      }
+      let [func, filename] = extractSafariExtensionDetails(parts[1] || "?", parts[2]);
+      return createFrame(filename, func, parts[3] ? +parts[3] : void 0, parts[4] ? +parts[4] : void 0);
+    }
+  }, chromeStackLineParser = [CHROME_PRIORITY, chromeStackParserFn], geckoREgex = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:[-a-z]+)?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i, geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i, gecko = (line) => {
+    let parts = geckoREgex.exec(line);
+    if (parts) {
+      if (parts[3] && parts[3].indexOf(" > eval") > -1) {
+        let subMatch = geckoEvalRegex.exec(parts[3]);
+        subMatch && (parts[1] = parts[1] || "eval", parts[3] = subMatch[1], parts[4] = subMatch[2], parts[5] = "");
+      }
+      let filename = parts[3], func = parts[1] || "?";
+      return [func, filename] = extractSafariExtensionDetails(func, filename), createFrame(filename, func, parts[4] ? +parts[4] : void 0, parts[5] ? +parts[5] : void 0);
+    }
+  }, geckoStackLineParser = [GECKO_PRIORITY, gecko];
+  var defaultStackLineParsers = [chromeStackLineParser, geckoStackLineParser], defaultStackParser = createStackParser(...defaultStackLineParsers), extractSafariExtensionDetails = (func, filename) => {
+    let isSafariExtension = func.indexOf("safari-extension") !== -1, isSafariWebExtension = func.indexOf("safari-web-extension") !== -1;
+    return isSafariExtension || isSafariWebExtension ? [
+      func.indexOf("@") !== -1 ? func.split("@")[0] : "?",
+      isSafariExtension ? `safari-extension:${filename}` : `safari-web-extension:${filename}`
+    ] : [func, filename];
+  };
+
+  // node_modules/@sentry/browser/build/npm/esm/integrations/breadcrumbs.js
+  var MAX_ALLOWED_STRING_LENGTH = 1024, INTEGRATION_NAME4 = "Breadcrumbs", _breadcrumbsIntegration = ((options = {}) => {
+    let _options = {
+      console: !0,
+      dom: !0,
+      fetch: !0,
+      history: !0,
+      sentry: !0,
+      xhr: !0,
+      ...options
+    };
+    return {
+      name: INTEGRATION_NAME4,
+      setup(client) {
+        _options.console && addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client)), _options.dom && addClickKeypressInstrumentationHandler(_getDomBreadcrumbHandler(client, _options.dom)), _options.xhr && addXhrInstrumentationHandler(_getXhrBreadcrumbHandler(client)), _options.fetch && addFetchInstrumentationHandler(_getFetchBreadcrumbHandler(client)), _options.history && addHistoryInstrumentationHandler(_getHistoryBreadcrumbHandler(client)), _options.sentry && client.on("beforeSendEvent", _getSentryBreadcrumbHandler(client));
+      }
+    };
+  }), breadcrumbsIntegration = _breadcrumbsIntegration;
+  function _getSentryBreadcrumbHandler(client) {
+    return function(event) {
+      getClient() === client && addBreadcrumb(
+        {
+          category: `sentry.${event.type === "transaction" ? "transaction" : "event"}`,
+          event_id: event.event_id,
+          level: event.level,
+          message: getEventDescription(event)
+        },
+        {
+          event
+        }
+      );
+    };
+  }
+  function _getDomBreadcrumbHandler(client, dom) {
+    return function(handlerData) {
+      if (getClient() !== client)
+        return;
+      let target, componentName, keyAttrs = typeof dom == "object" ? dom.serializeAttribute : void 0, maxStringLength = typeof dom == "object" && typeof dom.maxStringLength == "number" ? dom.maxStringLength : void 0;
+      maxStringLength && maxStringLength > MAX_ALLOWED_STRING_LENGTH && (DEBUG_BUILD3 && logger.warn(
+        `\`dom.maxStringLength\` cannot exceed ${MAX_ALLOWED_STRING_LENGTH}, but a value of ${maxStringLength} was configured. Sentry will use ${MAX_ALLOWED_STRING_LENGTH} instead.`
+      ), maxStringLength = MAX_ALLOWED_STRING_LENGTH), typeof keyAttrs == "string" && (keyAttrs = [keyAttrs]);
+      try {
+        let event = handlerData.event, element = _isEvent(event) ? event.target : event;
+        target = htmlTreeAsString(element, { keyAttrs, maxStringLength }), componentName = getComponentName(element);
+      } catch {
+        target = "<unknown>";
+      }
+      if (target.length === 0)
+        return;
+      let breadcrumb = {
+        category: `ui.${handlerData.name}`,
+        message: target
+      };
+      componentName && (breadcrumb.data = { "ui.component_name": componentName }), addBreadcrumb(breadcrumb, {
+        event: handlerData.event,
+        name: handlerData.name,
+        global: handlerData.global
+      });
+    };
+  }
+  function _getConsoleBreadcrumbHandler(client) {
+    return function(handlerData) {
+      if (getClient() !== client)
+        return;
+      let breadcrumb = {
+        category: "console",
+        data: {
+          arguments: handlerData.args,
+          logger: "console"
+        },
+        level: severityLevelFromString(handlerData.level),
+        message: safeJoin(handlerData.args, " ")
+      };
+      if (handlerData.level === "assert")
+        if (handlerData.args[0] === !1)
+          breadcrumb.message = `Assertion failed: ${safeJoin(handlerData.args.slice(1), " ") || "console.assert"}`, breadcrumb.data.arguments = handlerData.args.slice(1);
+        else
+          return;
+      addBreadcrumb(breadcrumb, {
+        input: handlerData.args,
+        level: handlerData.level
+      });
+    };
+  }
+  function _getXhrBreadcrumbHandler(client) {
+    return function(handlerData) {
+      if (getClient() !== client)
+        return;
+      let { startTimestamp, endTimestamp } = handlerData, sentryXhrData = handlerData.xhr[SENTRY_XHR_DATA_KEY];
+      if (!startTimestamp || !endTimestamp || !sentryXhrData)
+        return;
+      let { method, url: url2, status_code, body } = sentryXhrData, data = {
+        method,
+        url: url2,
+        status_code
+      }, hint = {
+        xhr: handlerData.xhr,
+        input: body,
+        startTimestamp,
+        endTimestamp
+      }, level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+      addBreadcrumb(
+        {
+          category: "xhr",
+          data,
+          type: "http",
+          level
+        },
+        hint
+      );
+    };
+  }
+  function _getFetchBreadcrumbHandler(client) {
+    return function(handlerData) {
+      if (getClient() !== client)
+        return;
+      let { startTimestamp, endTimestamp } = handlerData;
+      if (endTimestamp && !(handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === "POST"))
+        if (handlerData.error) {
+          let data = handlerData.fetchData, hint = {
+            data: handlerData.error,
+            input: handlerData.args,
+            startTimestamp,
+            endTimestamp
+          };
+          addBreadcrumb(
+            {
+              category: "fetch",
+              data,
+              level: "error",
+              type: "http"
+            },
+            hint
+          );
+        } else {
+          let response = handlerData.response, data = {
+            ...handlerData.fetchData,
+            status_code: response && response.status
+          }, hint = {
+            input: handlerData.args,
+            response,
+            startTimestamp,
+            endTimestamp
+          }, level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+          addBreadcrumb(
+            {
+              category: "fetch",
+              data,
+              type: "http",
+              level
+            },
+            hint
+          );
+        }
+    };
+  }
+  function _getHistoryBreadcrumbHandler(client) {
+    return function(handlerData) {
+      if (getClient() !== client)
+        return;
+      let from = handlerData.from, to = handlerData.to, parsedLoc = parseUrl(WINDOW4.location.href), parsedFrom = from ? parseUrl(from) : void 0, parsedTo = parseUrl(to);
+      (!parsedFrom || !parsedFrom.path) && (parsedFrom = parsedLoc), parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host && (to = parsedTo.relative), parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host && (from = parsedFrom.relative), addBreadcrumb({
+        category: "navigation",
+        data: {
+          from,
+          to
+        }
+      });
+    };
+  }
+  function _isEvent(event) {
+    return !!event && !!event.target;
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/integrations/browserapierrors.js
+  var DEFAULT_EVENT_TARGET = [
+    "EventTarget",
+    "Window",
+    "Node",
+    "ApplicationCache",
+    "AudioTrackList",
+    "BroadcastChannel",
+    "ChannelMergerNode",
+    "CryptoOperation",
+    "EventSource",
+    "FileReader",
+    "HTMLUnknownElement",
+    "IDBDatabase",
+    "IDBRequest",
+    "IDBTransaction",
+    "KeyOperation",
+    "MediaController",
+    "MessagePort",
+    "ModalWindow",
+    "Notification",
+    "SVGElementInstance",
+    "Screen",
+    "SharedWorker",
+    "TextTrack",
+    "TextTrackCue",
+    "TextTrackList",
+    "WebSocket",
+    "WebSocketWorker",
+    "Worker",
+    "XMLHttpRequest",
+    "XMLHttpRequestEventTarget",
+    "XMLHttpRequestUpload"
+  ], INTEGRATION_NAME5 = "BrowserApiErrors", _browserApiErrorsIntegration = ((options = {}) => {
+    let _options = {
+      XMLHttpRequest: !0,
+      eventTarget: !0,
+      requestAnimationFrame: !0,
+      setInterval: !0,
+      setTimeout: !0,
+      ...options
+    };
+    return {
+      name: INTEGRATION_NAME5,
+      // TODO: This currently only works for the first client this is setup
+      // We may want to adjust this to check for client etc.
+      setupOnce() {
+        _options.setTimeout && fill(WINDOW4, "setTimeout", _wrapTimeFunction), _options.setInterval && fill(WINDOW4, "setInterval", _wrapTimeFunction), _options.requestAnimationFrame && fill(WINDOW4, "requestAnimationFrame", _wrapRAF), _options.XMLHttpRequest && "XMLHttpRequest" in WINDOW4 && fill(XMLHttpRequest.prototype, "send", _wrapXHR);
+        let eventTargetOption = _options.eventTarget;
+        eventTargetOption && (Array.isArray(eventTargetOption) ? eventTargetOption : DEFAULT_EVENT_TARGET).forEach(_wrapEventTarget);
+      }
+    };
+  }), browserApiErrorsIntegration = _browserApiErrorsIntegration;
+  function _wrapTimeFunction(original) {
+    return function(...args) {
+      let originalCallback = args[0];
+      return args[0] = wrap(originalCallback, {
+        mechanism: {
+          data: { function: getFunctionName(original) },
+          handled: !1,
+          type: "instrument"
+        }
+      }), original.apply(this, args);
+    };
+  }
+  function _wrapRAF(original) {
+    return function(callback) {
+      return original.apply(this, [
+        wrap(callback, {
+          mechanism: {
+            data: {
+              function: "requestAnimationFrame",
+              handler: getFunctionName(original)
+            },
+            handled: !1,
+            type: "instrument"
+          }
+        })
+      ]);
+    };
+  }
+  function _wrapXHR(originalSend) {
+    return function(...args) {
+      let xhr = this;
+      return ["onload", "onerror", "onprogress", "onreadystatechange"].forEach((prop) => {
+        prop in xhr && typeof xhr[prop] == "function" && fill(xhr, prop, function(original) {
+          let wrapOptions = {
+            mechanism: {
+              data: {
+                function: prop,
+                handler: getFunctionName(original)
+              },
+              handled: !1,
+              type: "instrument"
+            }
+          }, originalFunction = getOriginalFunction(original);
+          return originalFunction && (wrapOptions.mechanism.data.handler = getFunctionName(originalFunction)), wrap(original, wrapOptions);
+        });
+      }), originalSend.apply(this, args);
+    };
+  }
+  function _wrapEventTarget(target) {
+    let targetObj = WINDOW4[target], proto = targetObj && targetObj.prototype;
+    !proto || !proto.hasOwnProperty || !proto.hasOwnProperty("addEventListener") || (fill(proto, "addEventListener", function(original) {
+      return function(eventName, fn, options) {
+        try {
+          isEventListenerObject(fn) && (fn.handleEvent = wrap(fn.handleEvent, {
+            mechanism: {
+              data: {
+                function: "handleEvent",
+                handler: getFunctionName(fn),
+                target
+              },
+              handled: !1,
+              type: "instrument"
+            }
+          }));
+        } catch {
+        }
+        return original.apply(this, [
+          eventName,
+          wrap(fn, {
+            mechanism: {
+              data: {
+                function: "addEventListener",
+                handler: getFunctionName(fn),
+                target
+              },
+              handled: !1,
+              type: "instrument"
+            }
+          }),
+          options
+        ]);
+      };
+    }), fill(proto, "removeEventListener", function(originalRemoveEventListener) {
+      return function(eventName, fn, options) {
+        try {
+          let originalEventHandler = fn.__sentry_wrapped__;
+          originalEventHandler && originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
+        } catch {
+        }
+        return originalRemoveEventListener.call(this, eventName, fn, options);
+      };
+    }));
+  }
+  function isEventListenerObject(obj) {
+    return typeof obj.handleEvent == "function";
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/integrations/browsersession.js
+  var browserSessionIntegration = () => ({
+    name: "BrowserSession",
+    setupOnce() {
+      if (typeof WINDOW4.document > "u") {
+        DEBUG_BUILD3 && logger.warn("Using the `browserSessionIntegration` in non-browser environments is not supported.");
+        return;
+      }
+      startSession({ ignoreDuration: !0 }), captureSession(), addHistoryInstrumentationHandler(({ from, to }) => {
+        from !== void 0 && from !== to && (startSession({ ignoreDuration: !0 }), captureSession());
+      });
+    }
+  });
+
+  // node_modules/@sentry/browser/build/npm/esm/integrations/globalhandlers.js
+  var INTEGRATION_NAME6 = "GlobalHandlers", _globalHandlersIntegration = ((options = {}) => {
+    let _options = {
+      onerror: !0,
+      onunhandledrejection: !0,
+      ...options
+    };
+    return {
+      name: INTEGRATION_NAME6,
+      setupOnce() {
+        Error.stackTraceLimit = 50;
+      },
+      setup(client) {
+        _options.onerror && (_installGlobalOnErrorHandler(client), globalHandlerLog("onerror")), _options.onunhandledrejection && (_installGlobalOnUnhandledRejectionHandler(client), globalHandlerLog("onunhandledrejection"));
+      }
+    };
+  }), globalHandlersIntegration = _globalHandlersIntegration;
+  function _installGlobalOnErrorHandler(client) {
+    addGlobalErrorInstrumentationHandler((data) => {
+      let { stackParser, attachStacktrace } = getOptions();
+      if (getClient() !== client || shouldIgnoreOnError())
+        return;
+      let { msg, url: url2, line, column, error } = data, event = _enhanceEventWithInitialFrame(
+        eventFromUnknownInput(stackParser, error || msg, void 0, attachStacktrace, !1),
+        url2,
+        line,
+        column
+      );
+      event.level = "error", captureEvent(event, {
+        originalException: error,
+        mechanism: {
+          handled: !1,
+          type: "onerror"
+        }
+      });
+    });
+  }
+  function _installGlobalOnUnhandledRejectionHandler(client) {
+    addGlobalUnhandledRejectionInstrumentationHandler((e) => {
+      let { stackParser, attachStacktrace } = getOptions();
+      if (getClient() !== client || shouldIgnoreOnError())
+        return;
+      let error = _getUnhandledRejectionError(e), event = isPrimitive(error) ? _eventFromRejectionWithPrimitive(error) : eventFromUnknownInput(stackParser, error, void 0, attachStacktrace, !0);
+      event.level = "error", captureEvent(event, {
+        originalException: error,
+        mechanism: {
+          handled: !1,
+          type: "onunhandledrejection"
+        }
+      });
+    });
+  }
+  function _getUnhandledRejectionError(error) {
+    if (isPrimitive(error))
+      return error;
+    try {
+      if ("reason" in error)
+        return error.reason;
+      if ("detail" in error && "reason" in error.detail)
+        return error.detail.reason;
+    } catch {
+    }
+    return error;
+  }
+  function _eventFromRejectionWithPrimitive(reason) {
+    return {
+      exception: {
+        values: [
+          {
+            type: "UnhandledRejection",
+            // String() is needed because the Primitive type includes symbols (which can't be automatically stringified)
+            value: `Non-Error promise rejection captured with value: ${String(reason)}`
+          }
+        ]
+      }
+    };
+  }
+  function _enhanceEventWithInitialFrame(event, url2, line, column) {
+    let e = event.exception = event.exception || {}, ev = e.values = e.values || [], ev0 = ev[0] = ev[0] || {}, ev0s = ev0.stacktrace = ev0.stacktrace || {}, ev0sf = ev0s.frames = ev0s.frames || [], colno = column, lineno = line, filename = isString(url2) && url2.length > 0 ? url2 : getLocationHref();
+    return ev0sf.length === 0 && ev0sf.push({
+      colno,
+      filename,
+      function: "?",
+      in_app: !0,
+      lineno
+    }), event;
+  }
+  function globalHandlerLog(type) {
+    DEBUG_BUILD3 && logger.log(`Global Handler attached: ${type}`);
+  }
+  function getOptions() {
+    let client = getClient();
+    return client && client.getOptions() || {
+      stackParser: () => [],
+      attachStacktrace: !1
+    };
+  }
+
+  // node_modules/@sentry/browser/build/npm/esm/integrations/httpcontext.js
+  var httpContextIntegration = () => ({
+    name: "HttpContext",
+    preprocessEvent(event) {
+      if (!WINDOW4.navigator && !WINDOW4.location && !WINDOW4.document)
+        return;
+      let url2 = event.request && event.request.url || WINDOW4.location && WINDOW4.location.href, { referrer } = WINDOW4.document || {}, { userAgent } = WINDOW4.navigator || {}, headers = {
+        ...event.request && event.request.headers,
+        ...referrer && { Referer: referrer },
+        ...userAgent && { "User-Agent": userAgent }
+      }, request = { ...event.request, ...url2 && { url: url2 }, headers };
+      event.request = request;
+    }
+  });
+
+  // node_modules/@sentry/browser/build/npm/esm/integrations/linkederrors.js
+  var DEFAULT_KEY = "cause", DEFAULT_LIMIT = 5, INTEGRATION_NAME7 = "LinkedErrors", _linkedErrorsIntegration = ((options = {}) => {
+    let limit = options.limit || DEFAULT_LIMIT, key2 = options.key || DEFAULT_KEY;
+    return {
+      name: INTEGRATION_NAME7,
+      preprocessEvent(event, hint, client) {
+        let options2 = client.getOptions();
+        applyAggregateErrorsToEvent(
+          // This differs from the LinkedErrors integration in core by using a different exceptionFromError function
+          exceptionFromError,
+          options2.stackParser,
+          options2.maxValueLength,
+          key2,
+          limit,
+          event,
+          hint
+        );
+      }
+    };
+  }), linkedErrorsIntegration = _linkedErrorsIntegration;
+
+  // node_modules/@sentry/browser/build/npm/esm/sdk.js
+  function getDefaultIntegrations(options) {
+    let integrations = [
+      inboundFiltersIntegration(),
+      functionToStringIntegration(),
+      browserApiErrorsIntegration(),
+      breadcrumbsIntegration(),
+      globalHandlersIntegration(),
+      linkedErrorsIntegration(),
+      dedupeIntegration(),
+      httpContextIntegration()
+    ];
+    return options.autoSessionTracking !== !1 && integrations.push(browserSessionIntegration()), integrations;
+  }
+  function applyDefaultOptions(optionsArg = {}) {
+    let defaultOptions = {
+      defaultIntegrations: getDefaultIntegrations(optionsArg),
+      release: typeof __SENTRY_RELEASE__ == "string" ? __SENTRY_RELEASE__ : WINDOW4.SENTRY_RELEASE && WINDOW4.SENTRY_RELEASE.id ? WINDOW4.SENTRY_RELEASE.id : void 0,
+      autoSessionTracking: !0,
+      sendClientReports: !0
+    };
+    return optionsArg.defaultIntegrations == null && delete optionsArg.defaultIntegrations, { ...defaultOptions, ...optionsArg };
+  }
+  function shouldShowBrowserExtensionError() {
+    let windowWithMaybeExtension = typeof WINDOW4.window < "u" && WINDOW4;
+    if (!windowWithMaybeExtension)
+      return !1;
+    let extensionKey = windowWithMaybeExtension.chrome ? "chrome" : "browser", extensionObject = windowWithMaybeExtension[extensionKey], runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id, href = WINDOW4.location && WINDOW4.location.href || "", extensionProtocols = ["chrome-extension:", "moz-extension:", "ms-browser-extension:", "safari-web-extension:"], isDedicatedExtensionPage = !!runtimeId && WINDOW4 === WINDOW4.top && extensionProtocols.some((protocol) => href.startsWith(`${protocol}//`)), isNWjs = typeof windowWithMaybeExtension.nw < "u";
+    return !!runtimeId && !isDedicatedExtensionPage && !isNWjs;
+  }
+  function init(browserOptions = {}) {
+    let options = applyDefaultOptions(browserOptions);
+    if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
+      consoleSandbox(() => {
+        console.error(
+          "[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/"
+        );
+      });
+      return;
+    }
+    DEBUG_BUILD3 && (supportsFetch() || logger.warn(
+      "No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill."
+    ));
+    let clientOptions = {
+      ...options,
+      stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
+      integrations: getIntegrationsToSetup(options),
+      transport: options.transport || makeFetchTransport
+    };
+    return initAndBind(BrowserClient, clientOptions);
+  }
+
+  // src/lib/sentry.js
+  var DSN = "", ENVIRONMENT = "production", initialized = !1;
+  function initSentry(opts = {}) {
+    if (!(initialized || !DSN))
+      try {
+        init({
+          dsn: DSN,
+          environment: ENVIRONMENT,
+          release: void 0,
+          tracesSampleRate: 0,
+          sendDefaultPii: !1,
+          beforeSend(event) {
+            try {
+              if (event.request?.cookies && delete event.request.cookies, event.request?.headers) {
+                let h = event.request.headers;
+                h.Authorization && delete h.Authorization, h.authorization && delete h.authorization, h.Cookie && delete h.Cookie, h.cookie && delete h.cookie;
+              }
+            } catch {
+            }
+            return event;
+          }
+        }), initialized = !0, opts && typeof opts == "object" && (opts.user && setUserContext(opts.user), opts.route && setRouteContext(opts.route));
+      } catch (err) {
+        try {
+          console.warn("[sentry] init failed:", err?.message || err);
+        } catch {
+        }
+      }
+  }
+  function captureException2(error, context) {
+    if (!initialized || !DSN) {
+      try {
+        console.error("[capture]", error, context || "");
+      } catch {
+      }
+      return;
+    }
+    try {
+      withScope2((scope) => {
+        if (context && typeof context == "object") {
+          for (let [k, v] of Object.entries(context))
+            if (v != null)
+              try {
+                scope.setExtra(k, v);
+              } catch {
+              }
+          context.scope && scope.setTag("component", String(context.scope));
+        }
+        captureException(error);
+      });
+    } catch {
+    }
+  }
+  function setUserContext({ id, email, org, role } = {}) {
+    if (initialized)
+      try {
+        setUser(id || email ? { id: id || void 0, email: email || void 0 } : null), org && setTag("organization_id", String(org)), role && setTag("role", String(role));
+      } catch {
+      }
+  }
+  function setRouteContext(route) {
+    if (initialized)
+      try {
+        setTag("route", String(route || "unknown"));
+      } catch {
+      }
+  }
+  function clearUserContext() {
+    if (initialized)
+      try {
+        setUser(null);
+      } catch {
+      }
+  }
+
+  // src/components/ErrorBoundary.jsx
+  var ErrorBoundary = class extends import_react4.default.Component {
+    constructor(props) {
+      super(props), this.state = { error: null };
+    }
+    static getDerivedStateFromError(error) {
+      return { error };
+    }
+    componentDidCatch(error, info) {
+      try {
+        captureException2(error, {
+          scope: this.props.scope || "unknown",
+          componentStack: info?.componentStack
+        });
+      } catch {
+      }
+      try {
+        console.error(`[ErrorBoundary:${this.props.scope || "unknown"}]`, error);
+      } catch {
+      }
+    }
+    handleRetry = () => {
+      if (this.setState({ error: null }), this.props.onRetry)
+        try {
+          this.props.onRetry();
+        } catch {
+        }
+    };
+    handleReload = () => {
+      typeof window < "u" && window.location.reload();
+    };
+    render() {
+      if (!this.state.error) return this.props.children;
+      let compact = !!this.props.compact, scope = this.props.scope || "app", palette = {
+        bg: "#0f1117",
+        surf: "#171b24",
+        text: "#e9ecf2",
+        textM: "#9aa3b2",
+        textD: "#6b7280",
+        border: "#262b36",
+        red: "#ef4444",
+        em: "#10b981"
+      }, wrap2 = compact ? {
+        padding: 24,
+        background: palette.surf,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 12,
+        margin: 16,
+        fontFamily: "'DM Sans',sans-serif",
+        color: palette.text,
+        maxWidth: 560
+      } : {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        background: palette.bg,
+        padding: 24,
+        fontFamily: "'DM Sans',sans-serif",
+        color: palette.text
+      }, inner = compact ? { width: "100%" } : { maxWidth: 460, width: "100%", textAlign: "center" }, btn = (bg, primary) => ({
+        background: primary ? bg : "transparent",
+        color: primary ? "#0f1117" : palette.textM,
+        border: primary ? "none" : `1px solid ${palette.border}`,
+        borderRadius: 8,
+        padding: "10px 18px",
+        fontSize: 13,
+        cursor: "pointer",
+        fontWeight: 600,
+        fontFamily: "'DM Sans',sans-serif"
+      });
+      return /* @__PURE__ */ import_react4.default.createElement("div", { style: wrap2 }, /* @__PURE__ */ import_react4.default.createElement("div", { style: inner }, /* @__PURE__ */ import_react4.default.createElement("div", { style: {
+        width: 44,
+        height: 44,
+        background: palette.red,
+        borderRadius: 10,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 22,
+        marginBottom: 14
+      } }, "!"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, marginBottom: 8 } }, "Une erreur est survenue"), /* @__PURE__ */ import_react4.default.createElement("div", { style: { fontSize: 13, color: palette.textM, marginBottom: 16, lineHeight: 1.5 } }, "Le module a rencontr\xE9 un probl\xE8me inattendu. R\xE9essayez ou rechargez la page. Si le probl\xE8me persiste, l'incident a \xE9t\xE9 automatiquement signal\xE9."), /* @__PURE__ */ import_react4.default.createElement("div", { style: {
+        fontSize: 10,
+        color: palette.textD,
+        marginBottom: 18,
+        fontFamily: "'DM Mono',monospace"
+      } }, "scope: ", scope), /* @__PURE__ */ import_react4.default.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react4.default.createElement("button", { onClick: this.handleRetry, style: btn(palette.em, !0) }, "R\xE9essayer"), /* @__PURE__ */ import_react4.default.createElement("button", { onClick: this.handleReload, style: btn(palette.em, !1) }, "Recharger la page"))));
+    }
+  };
+
   // src/modules/Workshop.jsx
-  var import_react4 = __require("react");
+  var import_react5 = __require("react");
 
   // src/components/Badge.jsx
   function Badge({ label, color, size = 10 }) {
@@ -21950,7 +26326,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
     }
   ];
   function ModuleWorkshop() {
-    let [search, setSearch] = (0, import_react4.useState)(""), [activeCategory, setActiveCategory] = (0, import_react4.useState)("Tous"), [openId, setOpenId] = (0, import_react4.useState)(null), [activeSection, setActiveSection] = (0, import_react4.useState)({}), [coachId, setCoachId] = (0, import_react4.useState)(null), [coachSit, setCoachSit] = (0, import_react4.useState)({}), [coachCtx, setCoachCtx] = (0, import_react4.useState)({}), [coachMgr, setCoachMgr] = (0, import_react4.useState)({}), [coachPrompt, setCoachPrompt] = (0, import_react4.useState)({}), [coachCopied, setCoachCopied] = (0, import_react4.useState)(null), buildPrompt = (w, situation, context, manager) => {
+    let [search, setSearch] = (0, import_react5.useState)(""), [activeCategory, setActiveCategory] = (0, import_react5.useState)("Tous"), [openId, setOpenId] = (0, import_react5.useState)(null), [activeSection, setActiveSection] = (0, import_react5.useState)({}), [coachId, setCoachId] = (0, import_react5.useState)(null), [coachSit, setCoachSit] = (0, import_react5.useState)({}), [coachCtx, setCoachCtx] = (0, import_react5.useState)({}), [coachMgr, setCoachMgr] = (0, import_react5.useState)({}), [coachPrompt, setCoachPrompt] = (0, import_react5.useState)({}), [coachCopied, setCoachCopied] = (0, import_react5.useState)(null), buildPrompt = (w, situation, context, manager) => {
       let steps = w.structure.map((s, i) => `  ${s.step}: ${s.detail}`).join(`
 `), questions = w.questions.map((q) => `  - "${q}"`).join(`
 `), signals = w.signals.map((s) => `  - ${s}`).join(`
@@ -22302,7 +26678,7 @@ Be direct. Be challenging. Do not soften the diagnosis. I need to act, not refle
   }
 
   // src/modules/ConvKit.jsx
-  var import_react5 = __require("react");
+  var import_react6 = __require("react");
   var CONV_SITUATIONS = [
     {
       id: "avoidant-perf",
@@ -22690,7 +27066,7 @@ Pour chaque point identifi\xE9 \u2014 1 action correctrice concr\xE8te pour la s
     }
   ], CONV_CATEGORIES = ["Tous", "Performance", "Leadership", "R\xE9tention", "Relations de travail", "Strat\xE9gie RH", "D\xE9veloppement", "Gestion des absences"], PROMPT_CATEGORIES = ["Tous", "Strat\xE9gie hebdomadaire", "Coaching gestionnaires", "Situations difficiles", "R\xE9tention", "Gestion de la performance", "Communication ex\xE9cutive", "Diagnostic organisationnel"];
   function ModuleConvKit() {
-    let [tab, setTab] = (0, import_react5.useState)("conv"), [convCat, setConvCat] = (0, import_react5.useState)("Tous"), [promptCat, setPromptCat] = (0, import_react5.useState)("Tous"), [openId, setOpenId] = (0, import_react5.useState)(null), [copied, setCopied] = (0, import_react5.useState)(null), [search, setSearch] = (0, import_react5.useState)(""), copyText = (text, id) => {
+    let [tab, setTab] = (0, import_react6.useState)("conv"), [convCat, setConvCat] = (0, import_react6.useState)("Tous"), [promptCat, setPromptCat] = (0, import_react6.useState)("Tous"), [openId, setOpenId] = (0, import_react6.useState)(null), [copied, setCopied] = (0, import_react6.useState)(null), [search, setSearch] = (0, import_react6.useState)(""), copyText = (text, id) => {
       let ta = document.createElement("textarea");
       ta.value = text, ta.style.cssText = "position:fixed;opacity:0", document.body.appendChild(ta), ta.focus(), ta.select(), document.execCommand("copy"), document.body.removeChild(ta), setCopied(id), setTimeout(() => setCopied(null), 2e3);
     }, convFiltered = CONV_SITUATIONS.filter((s) => !(convCat !== "Tous" && s.category !== convCat || search && !s.title.toLowerCase().includes(search.toLowerCase()) && !s.situation.toLowerCase().includes(search.toLowerCase()))), promptFiltered = PROMPT_LIBRARY.filter((p) => !(promptCat !== "Tous" && p.category !== promptCat || search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.when.toLowerCase().includes(search.toLowerCase()))), CONV_FIELD_COLORS = {
@@ -22970,9 +27346,9 @@ CLOSING: ${s.closing}`;
   }
 
   // src/modules/Knowledge.jsx
-  var import_react6 = __require("react");
+  var import_react7 = __require("react");
   function ModuleKnowledge({ data } = {}) {
-    let { t: t2 } = useT(), [activeSection, setActiveSection] = (0, import_react6.useState)("home"), [search, setSearch] = (0, import_react6.useState)(""), [openCards, setOpenCards] = (0, import_react6.useState)({}), [selected9, setSelected9] = (0, import_react6.useState)(null), [openKpi, setOpenKpi] = (0, import_react6.useState)(null), [openCase, setOpenCase] = (0, import_react6.useState)(null), [copiedCase, setCopiedCase] = (0, import_react6.useState)(null), [templateSel, setTemplateSel] = (0, import_react6.useState)(0), [templateCopied, setTemplateCopied] = (0, import_react6.useState)(!1), [selectedProvince, setSelectedProvince] = (0, import_react6.useState)(data?.profile?.defaultProvince || ""), toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] })), knowledgeByProvince = {
+    let { t: t2 } = useT(), [activeSection, setActiveSection] = (0, import_react7.useState)("home"), [search, setSearch] = (0, import_react7.useState)(""), [openCards, setOpenCards] = (0, import_react7.useState)({}), [selected9, setSelected9] = (0, import_react7.useState)(null), [openKpi, setOpenKpi] = (0, import_react7.useState)(null), [openCase, setOpenCase] = (0, import_react7.useState)(null), [copiedCase, setCopiedCase] = (0, import_react7.useState)(null), [templateSel, setTemplateSel] = (0, import_react7.useState)(0), [templateCopied, setTemplateCopied] = (0, import_react7.useState)(!1), [selectedProvince, setSelectedProvince] = (0, import_react7.useState)(data?.profile?.defaultProvince || ""), toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] })), knowledgeByProvince = {
       QC: {
         label: "Qu\xE9bec",
         laws: [
@@ -24222,7 +28598,7 @@ Signature gestionnaire : _____ Date : _____`
   }
 
   // src/modules/Decisions.jsx
-  var import_react7 = __require("react");
+  var import_react8 = __require("react");
 
   // src/components/Card.jsx
   function Card({ children, style = {} }) {
@@ -24359,8 +28735,8 @@ Reponds UNIQUEMENT en JSON strict. Structure:
 Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les valeurs.`, user: ctx + retro };
   }
   function ModuleDecisions({ data, onSave, onNavigate, focusDecisionId, onClearFocus }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react7.useState)("list"), [form, setForm] = (0, import_react7.useState)({ ...EMPTY_DECISION }), [editId, setEditId] = (0, import_react7.useState)(null), [search, setSearch] = (0, import_react7.useState)(""), [filterStatus, setFilterStatus] = (0, import_react7.useState)("all"), [filterType, setFilterType] = (0, import_react7.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react7.useState)("all"), [aiLoading, setAiLoading] = (0, import_react7.useState)(""), [aiResult, setAiResult] = (0, import_react7.useState)(null), [aiError, setAiError] = (0, import_react7.useState)("");
-    (0, import_react7.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react8.useState)("list"), [form, setForm] = (0, import_react8.useState)({ ...EMPTY_DECISION }), [editId, setEditId] = (0, import_react8.useState)(null), [search, setSearch] = (0, import_react8.useState)(""), [filterStatus, setFilterStatus] = (0, import_react8.useState)("all"), [filterType, setFilterType] = (0, import_react8.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react8.useState)("all"), [aiLoading, setAiLoading] = (0, import_react8.useState)(""), [aiResult, setAiResult] = (0, import_react8.useState)(null), [aiError, setAiError] = (0, import_react8.useState)("");
+    (0, import_react8.useEffect)(() => {
       let pending = sessionStorage.getItem("hrbpos:pendingDecision");
       if (pending)
         try {
@@ -24387,7 +28763,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
           target && (setForm(migrateDecision(target)), setEditId(target.id), setView("form"));
         } catch {
         }
-    }, []), (0, import_react7.useEffect)(() => {
+    }, []), (0, import_react8.useEffect)(() => {
       if (!focusDecisionId) return;
       let target = (data.decisions || []).map(migrateDecision).find((d) => d.id === focusDecisionId);
       target && (setForm(target), setEditId(target.id), setView("form")), onClearFocus && onClearFocus();
@@ -24459,7 +28835,7 @@ Pas de guillemets simples dans les valeurs. Pas de retours a la ligne dans les v
   }
 
   // src/modules/Signals.jsx
-  var import_react8 = __require("react");
+  var import_react9 = __require("react");
 
   // src/prompts/signals.js
   var SIGNAL_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Qu\xE9bec. Analyse le signal organisationnel fourni.
@@ -24475,8 +28851,8 @@ R\xE9ponds UNIQUEMENT en JSON strict. Structure :
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${color}28` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, icon), /* @__PURE__ */ React.createElement(Mono, { size: 10, color }, label));
   }
   function ModuleSignals({ data, onSave, focusSignalId, onClearFocus }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react8.useState)("list"), [signalText, setSignalText] = (0, import_react8.useState)(""), [source, setSource] = (0, import_react8.useState)("meeting"), [director, setDirector] = (0, import_react8.useState)(""), [loading, setLoading] = (0, import_react8.useState)(!1), [error, setError] = (0, import_react8.useState)(""), [result, setResult] = (0, import_react8.useState)(null), [saved, setSaved] = (0, import_react8.useState)(!1), [signalPrompt, setSignalPrompt] = (0, import_react8.useState)(""), [signalDate, setSignalDate] = (0, import_react8.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    (0, import_react8.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react9.useState)("list"), [signalText, setSignalText] = (0, import_react9.useState)(""), [source, setSource] = (0, import_react9.useState)("meeting"), [director, setDirector] = (0, import_react9.useState)(""), [loading, setLoading] = (0, import_react9.useState)(!1), [error, setError] = (0, import_react9.useState)(""), [result, setResult] = (0, import_react9.useState)(null), [saved, setSaved] = (0, import_react9.useState)(!1), [signalPrompt, setSignalPrompt] = (0, import_react9.useState)(""), [signalDate, setSignalDate] = (0, import_react9.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    (0, import_react9.useEffect)(() => {
       if (!focusSignalId) return;
       let target = (data.signals || []).find((s) => s.id === focusSignalId);
       target && (setResult(target.analysis), setSaved(!0), setView("result")), onClearFocus && onClearFocus();
@@ -24605,7 +28981,7 @@ ${signalText}`, parsed = await callAI(SIGNAL_SP, prompt);
   }
 
   // src/modules/Coaching.jsx
-  var import_react9 = __require("react");
+  var import_react10 = __require("react");
 
   // src/prompts/coaching.js
   var COACHING_SP = `Tu es expert en coaching manag\xE9rial, gestionnaires IT qu\xE9b\xE9cois. Samuel Chartrand, HRBP senior.
@@ -24627,7 +29003,7 @@ R\xE9ponds UNIQUEMENT en JSON strict.
     { id: "credibility", icon: "\u{1F3AF}", labelKey: "coaching.scenario.credibility", color: C.amber }
   ];
   function ModuleCoaching({ data, onSave }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react9.useState)("list"), [scenario, setScenario] = (0, import_react9.useState)("perf"), [managerDesc, setManagerDesc] = (0, import_react9.useState)(""), [situation, setSituation] = (0, import_react9.useState)(""), [loading, setLoading] = (0, import_react9.useState)(!1), [error, setError] = (0, import_react9.useState)(""), [result, setResult] = (0, import_react9.useState)(null), [saved, setSaved] = (0, import_react9.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react9.useState)(""), plans = data.coaching || [], generate = async () => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react10.useState)("list"), [scenario, setScenario] = (0, import_react10.useState)("perf"), [managerDesc, setManagerDesc] = (0, import_react10.useState)(""), [situation, setSituation] = (0, import_react10.useState)(""), [loading, setLoading] = (0, import_react10.useState)(!1), [error, setError] = (0, import_react10.useState)(""), [result, setResult] = (0, import_react10.useState)(null), [saved, setSaved] = (0, import_react10.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react10.useState)(""), plans = data.coaching || [], generate = async () => {
       if (situation.trim().length < 30) return;
       let sc = COACHING_SCENARIOS.find((s) => s.id === scenario), _coachProv = data.profile?.defaultProvince || "QC";
       setLoading(!0), setError(""), setResult(null), setSaved(!1);
@@ -24658,7 +29034,7 @@ ${situation}`);
   }
 
   // src/modules/Exit.jsx
-  var import_react10 = __require("react");
+  var import_react11 = __require("react");
 
   // src/prompts/exit.js
   var EXIT_SP = `Tu es un expert en ressources humaines sp\xE9cialis\xE9 en analyse d'entrevues de d\xE9part. Contexte l\xE9gal : Qu\xE9bec \u2014 LNT, CNESST, Loi 25, Charte QC.
@@ -24681,8 +29057,8 @@ R\xE8gles :
     return items?.length ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item == "string" ? item : item.text || JSON.stringify(item))))) : null;
   }
   function ModuleExit({ data, onSave, focusExitId, onClearFocus }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react10.useState)("list"), [exitDate, setExitDate] = (0, import_react10.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [notes, setNotes] = (0, import_react10.useState)(""), [employeeName, setEmployeeName] = (0, import_react10.useState)(""), [role, setRole] = (0, import_react10.useState)(""), [tenure, setTenure] = (0, import_react10.useState)(""), [seniority, setSeniority] = (0, import_react10.useState)(""), [team, setTeam] = (0, import_react10.useState)(""), [managerName, setManagerName] = (0, import_react10.useState)(""), [exitProvince, setExitProvince] = (0, import_react10.useState)("QC"), [generatedPrompt, setGeneratedPrompt] = (0, import_react10.useState)(""), [loading, setLoading] = (0, import_react10.useState)(!1), [error, setError] = (0, import_react10.useState)(""), [result, setResult] = (0, import_react10.useState)(null), [saved, setSaved] = (0, import_react10.useState)(!1);
-    (0, import_react10.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react11.useState)("list"), [exitDate, setExitDate] = (0, import_react11.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [notes, setNotes] = (0, import_react11.useState)(""), [employeeName, setEmployeeName] = (0, import_react11.useState)(""), [role, setRole] = (0, import_react11.useState)(""), [tenure, setTenure] = (0, import_react11.useState)(""), [seniority, setSeniority] = (0, import_react11.useState)(""), [team, setTeam] = (0, import_react11.useState)(""), [managerName, setManagerName] = (0, import_react11.useState)(""), [exitProvince, setExitProvince] = (0, import_react11.useState)("QC"), [generatedPrompt, setGeneratedPrompt] = (0, import_react11.useState)(""), [loading, setLoading] = (0, import_react11.useState)(!1), [error, setError] = (0, import_react11.useState)(""), [result, setResult] = (0, import_react11.useState)(null), [saved, setSaved] = (0, import_react11.useState)(!1);
+    (0, import_react11.useEffect)(() => {
       if (!focusExitId) return;
       let target = (data.exits || []).find((e) => e.id === focusExitId);
       target && (setResult(target.result), setSaved(!0), setView("result")), onClearFocus && onClearFocus();
@@ -24729,7 +29105,7 @@ ${notes}`);
   }
 
   // src/modules/Plan306090.jsx
-  var import_react11 = __require("react");
+  var import_react12 = __require("react");
 
   // src/prompts/plan306090.js
   var PLAN_306090_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Genere un plan 30-60-90 jours structure et pratique pour une transition de role.
@@ -24837,7 +29213,7 @@ Max 3 goals par phase. Max 3 actions par goal. Max 2 watchouts par phase. Max 2 
     } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: meta.color, fontWeight: 700 } }, "\u2713 Succ\xE8s: "), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, g.success)))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, (ph.watchouts || []).length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, "SIGNAUX D'ALERTE HRBP"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 5 } }, ph.watchouts.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 7, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.amber, flexShrink: 0, fontSize: 11 } }, "\u26A0"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.55 } }, w))))), (ph.managerQuestions || []).length > 0 && /* @__PURE__ */ React.createElement(Card, { style: { borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, "QUESTIONS GESTIONNAIRE"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", flexDirection: "column", gap: 5 } }, ph.managerQuestions.map((q, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 7, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, flexShrink: 0, fontSize: 11 } }, "Q"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.55, fontStyle: "italic" } }, '"', q, '"'))))))) : null;
   }
   function Module306090({ data, onSave }) {
-    let plans = data.plans306090 || [], [view, setView] = (0, import_react11.useState)("list"), [tab, setTab] = (0, import_react11.useState)("summary"), [loading, setLoading] = (0, import_react11.useState)(!1), [error, setError] = (0, import_react11.useState)(""), [result, setResult] = (0, import_react11.useState)(null), [saved, setSaved] = (0, import_react11.useState)(!1), [copied, setCopied] = (0, import_react11.useState)(!1), [activePlan, setActivePlan] = (0, import_react11.useState)(null), [generatedPrompt, setGeneratedPrompt] = (0, import_react11.useState)(""), [form, setForm] = (0, import_react11.useState)({
+    let plans = data.plans306090 || [], [view, setView] = (0, import_react12.useState)("list"), [tab, setTab] = (0, import_react12.useState)("summary"), [loading, setLoading] = (0, import_react12.useState)(!1), [error, setError] = (0, import_react12.useState)(""), [result, setResult] = (0, import_react12.useState)(null), [saved, setSaved] = (0, import_react12.useState)(!1), [copied, setCopied] = (0, import_react12.useState)(!1), [activePlan, setActivePlan] = (0, import_react12.useState)(null), [generatedPrompt, setGeneratedPrompt] = (0, import_react12.useState)(""), [form, setForm] = (0, import_react12.useState)({
       employeeName: "",
       role: "",
       team: "",
@@ -25196,7 +29572,7 @@ ${(c.questions || []).map((q) => `  \u2022 ${q}`).join(`
   }
 
   // src/modules/Radar.jsx
-  var import_react12 = __require("react");
+  var import_react13 = __require("react");
 
   // src/prompts/radar.js
   var RADAR_SP = `Tu es un HRBP senior, groupe IT, Quebec. Tu analyses un portefeuille RH complet pour produire un radar organisationnel strategique.
@@ -25278,7 +29654,7 @@ REGLES DE SPECIFICITE ABSOLUE pour themeOfWeek:
 
   // src/modules/Radar.jsx
   function ModuleRadar({ data, onSave, subscription, userEmail }) {
-    let [radar, setRadar] = (0, import_react12.useState)(() => (data.radars || [])[0]?.radar || null), [loading, setLoading] = (0, import_react12.useState)(!1), [error, setError] = (0, import_react12.useState)(""), [done, setDone] = (0, import_react12.useState)({}), [week, setWeek] = (0, import_react12.useState)(0), [generatedPrompt, setGeneratedPrompt] = (0, import_react12.useState)(""), [actionFeedback, setActionFeedback] = (0, import_react12.useState)({}), rC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue, savedRadars = data.radars || [], buildContext = () => {
+    let [radar, setRadar] = (0, import_react13.useState)(() => (data.radars || [])[0]?.radar || null), [loading, setLoading] = (0, import_react13.useState)(!1), [error, setError] = (0, import_react13.useState)(""), [done, setDone] = (0, import_react13.useState)({}), [week, setWeek] = (0, import_react13.useState)(0), [generatedPrompt, setGeneratedPrompt] = (0, import_react13.useState)(""), [actionFeedback, setActionFeedback] = (0, import_react13.useState)({}), rC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue, savedRadars = data.radars || [], buildContext = () => {
       let cases = (data.cases || []).filter(isCaseActive), meetings = (data.meetings || []).slice().reverse().slice(0, 15), signals = (data.signals || []).slice().reverse().slice(0, 10), prevPatterns = savedRadars[0]?.radar?.patternTracking, prevPatternsCtx = prevPatterns?.length ? `
 PATTERN TRACKING PRECEDENT (${fmtDate(savedRadars[0]?.savedAt) || "semaine precedente"}):
 ${prevPatterns.map((p) => `- ${p.pattern}: ${p.count} ${p.unit} (${p.trend})`).join(`
@@ -25630,10 +30006,10 @@ Preuve: ` + r.evidence : ""}`,
   }
 
   // src/modules/Cases.jsx
-  var import_react14 = __require("react");
+  var import_react15 = __require("react");
 
   // src/components/CaseBrief.jsx
-  var import_react13 = __require("react");
+  var import_react14 = __require("react");
 
   // src/prompts/copilot.js
   var CASE_BRIEF_SP = `Tu es un HRBP senior (Qu\xE9bec / Canada, contexte IT corporatif).
@@ -25946,7 +30322,7 @@ ${similarBlock}`;
     }).filter(Boolean);
   }
   function CaseBrief({ caseObj, data }) {
-    let cached = briefCache.get(caseObj.id) || null, [text, setText] = (0, import_react13.useState)(cached), [loading, setLoading] = (0, import_react13.useState)(!1), [error, setError] = (0, import_react13.useState)(""), generate = () => {
+    let cached = briefCache.get(caseObj.id) || null, [text, setText] = (0, import_react14.useState)(cached), [loading, setLoading] = (0, import_react14.useState)(!1), [error, setError] = (0, import_react14.useState)(""), generate = () => {
       setText(null), setError(""), setLoading(!0), callAIText(CASE_BRIEF_SP, buildBriefUserMsg(caseObj, data), 1e3).then((t2) => {
         briefCache.set(caseObj.id, t2), setText(t2);
       }).catch((e) => setError(e.message || "Erreur brief")).finally(() => setLoading(!1));
@@ -26141,7 +30517,7 @@ ${similarBlock}`;
     return /* @__PURE__ */ React.createElement(Badge, { label: tRisk(t2, norm), color: r.color });
   }
   function CaseTasksPanel({ caseId, legacyFollowUp, onTasksChange }) {
-    let [tasks, setTasks] = (0, import_react14.useState)([]), [loading, setLoading] = (0, import_react14.useState)(!1), [unavailable, setUnavailable] = (0, import_react14.useState)(!1), [title, setTitle] = (0, import_react14.useState)(""), [dueDate, setDueDate] = (0, import_react14.useState)(""), [busy, setBusy] = (0, import_react14.useState)(!1), [error, setError] = (0, import_react14.useState)(""), refetch = async () => {
+    let [tasks, setTasks] = (0, import_react15.useState)([]), [loading, setLoading] = (0, import_react15.useState)(!1), [unavailable, setUnavailable] = (0, import_react15.useState)(!1), [title, setTitle] = (0, import_react15.useState)(""), [dueDate, setDueDate] = (0, import_react15.useState)(""), [busy, setBusy] = (0, import_react15.useState)(!1), [error, setError] = (0, import_react15.useState)(""), refetch = async () => {
       if (!caseId) return;
       setLoading(!0), setError("");
       let res = await listCaseTasks(caseId);
@@ -26151,7 +30527,7 @@ ${similarBlock}`;
       } else res.reason === "no-client" ? (setUnavailable(!0), setTasks([])) : (setError(res.reason || "load-failed"), setTasks([]));
       setLoading(!1);
     };
-    (0, import_react14.useEffect)(() => {
+    (0, import_react15.useEffect)(() => {
       refetch();
     }, [caseId]);
     let addTask = async () => {
@@ -26580,12 +30956,12 @@ ${similarBlock}`;
 `);
   }
   function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription, userEmail }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react14.useState)("list"), [form, setForm] = (0, import_react14.useState)({ ...EMPTY_FORM }), [editId, setEditId] = (0, import_react14.useState)(null), [detail, setDetail] = (0, import_react14.useState)(null), [copied, setCopied] = (0, import_react14.useState)(!1), [search, setSearch] = (0, import_react14.useState)(""), [filterStatus, setFilterStatus] = (0, import_react14.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react14.useState)(""), [filterArchived, setFilterArchived] = (0, import_react14.useState)("active"), [tasksByCase, setTasksByCase] = (0, import_react14.useState)({});
-    (0, import_react14.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react15.useState)("list"), [form, setForm] = (0, import_react15.useState)({ ...EMPTY_FORM }), [editId, setEditId] = (0, import_react15.useState)(null), [detail, setDetail] = (0, import_react15.useState)(null), [copied, setCopied] = (0, import_react15.useState)(!1), [search, setSearch] = (0, import_react15.useState)(""), [filterStatus, setFilterStatus] = (0, import_react15.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react15.useState)(""), [filterArchived, setFilterArchived] = (0, import_react15.useState)("active"), [tasksByCase, setTasksByCase] = (0, import_react15.useState)({});
+    (0, import_react15.useEffect)(() => {
       if (!focusCaseId) return;
       let target = (data.cases || []).find((c) => c.id === focusCaseId);
       target && (setDetail(target), setView("detail")), onClearFocus && onClearFocus();
-    }, [focusCaseId]), (0, import_react14.useEffect)(() => {
+    }, [focusCaseId]), (0, import_react15.useEffect)(() => {
       let cancelled = !1;
       return (async () => {
         let map = await fetchTasksForCases(data.cases || []);
@@ -26980,7 +31356,7 @@ ${similarBlock}`;
   }
 
   // src/modules/Investigation.jsx
-  var import_react15 = __require("react");
+  var import_react16 = __require("react");
 
   // src/prompts/investigation.js
   var INV_SP_1 = `Tu es un expert en enquetes en milieu de travail au Canada et au Quebec, forme selon les standards Rubin Thomlinson. Tu travailles avec Samuel Chartrand, HRBP senior.
@@ -27185,14 +31561,14 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     title: ""
   });
   function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription, userEmail }) {
-    let [view, setView] = (0, import_react15.useState)("list"), [complaint, setComplaint] = (0, import_react15.useState)(""), [context, setContext] = (0, import_react15.useState)(""), [parties, setParties] = (0, import_react15.useState)(""), [policy, setPolicy] = (0, import_react15.useState)(""), [evidence, setEvidence] = (0, import_react15.useState)(""), [invProvince, setInvProvince] = (0, import_react15.useState)("QC"), [invPrompt, setInvPrompt] = (0, import_react15.useState)(""), [activeTab, setActiveTab] = (0, import_react15.useState)("summary"), [caseData, setCaseData] = (0, import_react15.useState)(null), [error, setError] = (0, import_react15.useState)(""), [saved, setSaved] = (0, import_react15.useState)(!1), [gtab, setGtab] = (0, import_react15.useState)("complainant"), [people, setPeople] = (0, import_react15.useState)([]), [openInvId, setOpenInvId] = (0, import_react15.useState)(null), investigations = data.investigations || [], openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null, isDraftOpen = !!(openInv && openInv.status === "draft");
-    (0, import_react15.useEffect)(() => {
+    let [view, setView] = (0, import_react16.useState)("list"), [complaint, setComplaint] = (0, import_react16.useState)(""), [context, setContext2] = (0, import_react16.useState)(""), [parties, setParties] = (0, import_react16.useState)(""), [policy, setPolicy] = (0, import_react16.useState)(""), [evidence, setEvidence] = (0, import_react16.useState)(""), [invProvince, setInvProvince] = (0, import_react16.useState)("QC"), [invPrompt, setInvPrompt] = (0, import_react16.useState)(""), [activeTab, setActiveTab] = (0, import_react16.useState)("summary"), [caseData, setCaseData] = (0, import_react16.useState)(null), [error, setError] = (0, import_react16.useState)(""), [saved, setSaved] = (0, import_react16.useState)(!1), [gtab, setGtab] = (0, import_react16.useState)("complainant"), [people, setPeople] = (0, import_react16.useState)([]), [openInvId, setOpenInvId] = (0, import_react16.useState)(null), investigations = data.investigations || [], openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null, isDraftOpen = !!(openInv && openInv.status === "draft");
+    (0, import_react16.useEffect)(() => {
       if (!focusInvestigationId) return;
       let target = investigations.find((x) => x.id === focusInvestigationId);
       target && (setCaseData(target.caseData || {}), setPeople(migratePeople(target.people)), setOpenInvId(target.id), setActiveTab("summary"), setSaved(!0), setView("case")), onClearFocus && onClearFocus();
     }, [focusInvestigationId]);
     let enrichDraft = (inv) => {
-      setOpenInvId(inv.id), setComplaint(""), setContext(""), setParties(""), setPolicy(""), setEvidence(""), setPeople(migratePeople(inv.people)), setInvProvince(inv.province || data.profile?.defaultProvince || "QC"), setError(""), setView("input");
+      setOpenInvId(inv.id), setComplaint(""), setContext2(""), setParties(""), setPolicy(""), setEvidence(""), setPeople(migratePeople(inv.people)), setInvProvince(inv.province || data.profile?.defaultProvince || "QC"), setError(""), setView("input");
     }, addPerson = () => setPeople((ps) => [...ps, newPerson()]), updatePerson = (id, patch) => setPeople((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p)), removePerson = (id) => setPeople((ps) => ps.filter((p) => p.id !== id)), generate = async () => {
       if (!complaint.trim()) return;
       setError("");
@@ -27318,7 +31694,7 @@ ${evidence}` : ""
       report: renderReport
     };
     return view === "list" ? /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, "Enqu\xEAtes & Investigations"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, investigations.length, " dossier(s) archiv\xE9(s) \xB7 Standards Rubin Thomlinson")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
-      setComplaint(""), setContext(""), setParties(""), setPolicy(""), setEvidence(""), setPeople([]), setCaseData(null), setOpenInvId(null), setView("input");
+      setComplaint(""), setContext2(""), setParties(""), setPolicy(""), setEvidence(""), setPeople([]), setCaseData(null), setOpenInvId(null), setView("input");
     }, style: { ...css.btn(INV_RED) } }, "\u{1F50D} Ouvrir un dossier d'enqu\xEAte")), investigations.length === 0 && /* @__PURE__ */ React.createElement(Card, { style: { textAlign: "center", padding: "40px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 12 } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.textM } }, "Aucun dossier d'enqu\xEAte archiv\xE9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, marginTop: 4 } }, 'Clique sur "Ouvrir un dossier" pour d\xE9marrer une enqu\xEAte structur\xE9e')), investigations.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, investigations.slice().reverse().map((inv, i) => {
       let fc = INV_FINDING[inv.caseData?.findings?.overallFinding], uc = RISK[inv.urgencyLevel] || RISK.Mod\u00E9r\u00E9, isDraft = inv.status === "draft", fromMeeting = inv.source === "meeting-engine-express", accent = isDraft ? C.amber : INV_RED;
       return /* @__PURE__ */ React.createElement(
@@ -27482,7 +31858,7 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
         onBlur: (e) => e.target.style.borderColor = C.border
       }
     )), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 } }, [
-      ["Contexte organisationnel", context, setContext, "D\xE9partement, type de relation, anciennet\xE9, historique..."],
+      ["Contexte organisationnel", context, setContext2, "D\xE9partement, type de relation, anciennet\xE9, historique..."],
       ["Parties impliqu\xE9es (r\xF4les g\xE9n\xE9riques)", parties, setParties, "Ex: Gestionnaire senior, 15 ans / Employ\xE9 subordonn\xE9, 2 ans. \xC9viter les noms."],
       ["Politiques ou lois applicables", policy, setPolicy, "LNT art. 81.18-81.20, Charte des droits, LSST..."],
       ["Preuves initiales disponibles", evidence, setEvidence, "Courriels, t\xE9moignages initiaux, documents, dates..."]
@@ -27676,7 +32052,7 @@ Entrer le num\xE9ro (vide = d\xE9lier):`, currentIdx || "");
   }
 
   // src/modules/AutoPrompt.jsx
-  var import_react16 = __require("react");
+  var import_react17 = __require("react");
 
   // src/utils/situations.js
   var APE_TEMPLATES = {
@@ -28305,7 +32681,7 @@ Pr\xE9pare la conversation d'accueil:
 
   // src/modules/AutoPrompt.jsx
   function ModuleAutoPrompt({ data }) {
-    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react16.useState)(null), [mode, setMode] = (0, import_react16.useState)(null), [generated, setGenerated] = (0, import_react16.useState)(""), [copied, setCopied] = (0, import_react16.useState)(!1), [variant, setVariant] = (0, import_react16.useState)(null), situations = detectSituations(data), riskC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, generate = (sit, m, vari) => {
+    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react17.useState)(null), [mode, setMode] = (0, import_react17.useState)(null), [generated, setGenerated] = (0, import_react17.useState)(""), [copied, setCopied] = (0, import_react17.useState)(!1), [variant, setVariant] = (0, import_react17.useState)(null), situations = detectSituations(data), riskC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, generate = (sit, m, vari) => {
       let tpl2 = APE_TEMPLATES[sit.template];
       if (!tpl2) return;
       let base = tpl2[m]?.(sit.context) || "";
@@ -28518,7 +32894,7 @@ Reformule pour un VP ou CODIR. Langage business, pas RH. Enjeu organisationnel e
   }
 
   // src/modules/Meetings.jsx
-  var import_react19 = __require("react");
+  var import_react20 = __require("react");
 
   // src/prompts/meetings.js
   var MEETING_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec. Analyse le transcript de reunion et reponds UNIQUEMENT en JSON valide.
@@ -28613,7 +32989,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
 {"meetingTitle":"titre incluant semaine ou date","director":"facilitateur ou null","meetingDate":"date ou null","overallRisk":"Critique|Eleve|Modere|Faible","overallRiskRationale":"1 phrase sur l etat global du portefeuille","summary":["point 1","point 2","point 3"],"initiatives":[{"nom":"nom exact","categorie":"Performance|Talent|Culture|Processus RH|Leadership|Engagement|Technologie|Conformite|Autre","responsable":"nom ou role ou null","statut":"Planifiee|En cours|En attente|Bloquee|Completee|Annulee","avancement":"0-25%|25-50%|50-75%|75-100%|Complete","statutDetail":"ou on en est \u2014 1 phrase","dateDebut":"date ou null","dateCible":"date cible ou null","changementSemaine":"ce qui a avance cette semaine ou null","blocages":["blocage identifie"],"risque":"Eleve|Modere|Faible","risqueDetail":"enjeu principal ou null","prochainePriorite":"prochaine action avec owner","impactOrg":"impact attendu en 1 phrase"}],"blocagesGlobaux":[{"blocage":"description","initiativesConcernees":["nom"],"actionRequise":"action","owner":"HRBP|Direction|Gestionnaire|Externe"}],"decisions":[{"decision":"decision prise ou a prendre","initiative":"nom","echeance":"delai ou null"}],"actions":[{"action":"action concrete","delay":"Immediat|7 jours|30 jours|Continu","owner":"HRBP|Direction|Gestionnaire","initiative":"nom ou null"}],"metriques":{"total":0,"enCours":0,"bloquees":0,"completees":0,"aRisque":0},"questions":[{"question":"question pour prochain meeting","why":"objectif strategique","initiative":"nom ou null"}]}`;
 
   // src/modules/Prep1on1.jsx
-  var import_react17 = __require("react");
+  var import_react18 = __require("react");
   function RiskBadge3({ level }) {
     let r = RISK[level] || RISK.Mod\u00E9r\u00E9;
     return /* @__PURE__ */ React.createElement(Badge, { label: level, color: r.color });
@@ -28694,7 +33070,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     { value: "other", labelKey: "prep1on1.function.other" }
   ];
   function PrepObsSelector({ label, values }) {
-    let [selected, setSelected] = (0, import_react17.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
+    let [selected, setSelected] = (0, import_react18.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
       border: `1px solid ${selected === i ? colors[i] + "80" : C.border}`,
@@ -28727,7 +33103,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
     executif: "Focus transformation : leadership bench, risques culturels, enjeux organisationnels majeurs, alignement strat\xE9gique."
   };
   function Module1on1Prep({ data, onSave, onNavigate, level = "gestionnaire" }) {
-    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react17.useState)("context"), [ctx, setCtx] = (0, import_react17.useState)({
+    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react18.useState)("context"), [ctx, setCtx] = (0, import_react18.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -28737,7 +33113,7 @@ Extrais chaque initiative mentionnee avec son etat d avancement, blocages et pro
       activeCases: "",
       recentData: "",
       alerts: ""
-    }), [prep, setPrep] = (0, import_react17.useState)(null), [prepLoading, setPrepLoading] = (0, import_react17.useState)(!1), [prepAI, setPrepAI] = (0, import_react17.useState)(!1), [notes, setNotes] = (0, import_react17.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react17.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react17.useState)(null), [outputLoading, setOutputLoading] = (0, import_react17.useState)(!1), [copied, setCopied] = (0, import_react17.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react17.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react17.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react17.useState)(""), [sigExp, setSigExp] = (0, import_react17.useState)({}), [histExp, setHistExp] = (0, import_react17.useState)({}), managerHistory = (data.meetings || []).filter((m) => !m.director || !ctx.managerName ? !1 : normKey(m.director) === normKey(ctx.managerName)).sort((a, b) => Number(b.id) - Number(a.id)), lastMeeting = managerHistory[0] || null, lastAnalysis = lastMeeting?.analysis || null, histCount = managerHistory.length, buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
+    }), [prep, setPrep] = (0, import_react18.useState)(null), [prepLoading, setPrepLoading] = (0, import_react18.useState)(!1), [prepAI, setPrepAI] = (0, import_react18.useState)(!1), [notes, setNotes] = (0, import_react18.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react18.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react18.useState)(null), [outputLoading, setOutputLoading] = (0, import_react18.useState)(!1), [copied, setCopied] = (0, import_react18.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react18.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react18.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react18.useState)(""), [sigExp, setSigExp] = (0, import_react18.useState)({}), [histExp, setHistExp] = (0, import_react18.useState)({}), managerHistory = (data.meetings || []).filter((m) => !m.director || !ctx.managerName ? !1 : normKey(m.director) === normKey(ctx.managerName)).sort((a, b) => Number(b.id) - Number(a.id)), lastMeeting = managerHistory[0] || null, lastAnalysis = lastMeeting?.analysis || null, histCount = managerHistory.length, buildHistCtx = () => managerHistory.slice(0, 3).map((m, i) => {
       let a = m.analysis || {}, risks = toArray(a.risks).slice(0, 2).map((r) => r.risk || r).join("; "), actions = toArray(a.actions).slice(0, 3).map((ac) => ac.action || ac).join("; "), questions2 = toArray(a.questions).slice(0, 3).map((q) => q.question || q).join("; ");
       return `[Meeting ${i + 1} \u2014 ${m.savedAt}]
 Titre: ${a.meetingTitle || "N/D"} | Risque: ${a.overallRisk || "N/D"}
@@ -29712,7 +34088,7 @@ ${(output.actionPlan || []).map((a) => `- ${a.action} [${a.owner} / ${a.delay} /
   }
 
   // src/modules/MeetingEngine.jsx
-  var import_react18 = __require("react");
+  var import_react19 = __require("react");
 
   // src/prompts/meetingEngine.js
   var MEETING_ENGINE_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
@@ -29988,7 +34364,7 @@ Si des champs specifiques a un type ne sont pas pertinents, omettre ces champs. 
     }
   }, ENGINE_TYPES = ENGINE_MEETING_TYPES;
   function PrepObsSelector2({ label, values }) {
-    let [selected, setSelected] = (0, import_react18.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
+    let [selected, setSelected] = (0, import_react19.useState)(null), colors = [C.em, C.teal, C.amber, C.red];
     return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6, fontWeight: 500 } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, values.map((v, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setSelected(i), style: {
       background: selected === i ? colors[i] + "25" : "transparent",
       border: `1px solid ${selected === i ? colors[i] + "80" : C.border}`,
@@ -30167,7 +34543,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
   }
   var DRAFT_KEY = "hrbpos_meeting_engine_draft";
   function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription, userEmail }) {
-    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react18.useState)("context"), [engineType, setEngineType] = (0, import_react18.useState)("1on1"), [niveau, setNiveau] = (0, import_react18.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react18.useState)({
+    let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react19.useState)("context"), [engineType, setEngineType] = (0, import_react19.useState)("1on1"), [niveau, setNiveau] = (0, import_react19.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react19.useState)({
       managerName: "",
       team: "",
       date: "",
@@ -30177,7 +34553,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       activeCases: "",
       recentData: "",
       alerts: ""
-    }), [managerManual, setManagerManual] = (0, import_react18.useState)(!1), [prep, setPrep] = (0, import_react18.useState)(null), [prepLoading, setPrepLoading] = (0, import_react18.useState)(!1), [prepAI, setPrepAI] = (0, import_react18.useState)(!1), [notes, setNotes] = (0, import_react18.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react18.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react18.useState)(null), [outputLoading, setOutputLoading] = (0, import_react18.useState)(!1), [copied, setCopied] = (0, import_react18.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react18.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react18.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react18.useState)(""), [sigExp, setSigExp] = (0, import_react18.useState)({}), [histExp, setHistExp] = (0, import_react18.useState)({}), [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react18.useState)(null), [caseCandidates, setCaseCandidates] = (0, import_react18.useState)([]), [candidateActions, setCandidateActions] = (0, import_react18.useState)({}), [showCandidatesModal, setShowCandidatesModal] = (0, import_react18.useState)(!1), [archivedMeetingId, setArchivedMeetingId] = (0, import_react18.useState)(null), needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId, makeExpressCaseId = (existing) => {
+    }), [managerManual, setManagerManual] = (0, import_react19.useState)(!1), [prep, setPrep] = (0, import_react19.useState)(null), [prepLoading, setPrepLoading] = (0, import_react19.useState)(!1), [prepAI, setPrepAI] = (0, import_react19.useState)(!1), [notes, setNotes] = (0, import_react19.useState)({ people: "", performance: "", risks: "", org: "", leadership: "", actions: "", followups: "" }), [meetingAnalysis, setMeetingAnalysis] = (0, import_react19.useState)({ transcript: "", keyPoints: "" }), [output, setOutput] = (0, import_react19.useState)(null), [outputLoading, setOutputLoading] = (0, import_react19.useState)(!1), [copied, setCopied] = (0, import_react19.useState)(!1), [saved1on1, setSaved1on1] = (0, import_react19.useState)(!1), [prepPrompt, setPrepPrompt] = (0, import_react19.useState)(""), [outputPrompt, setOutputPrompt] = (0, import_react19.useState)(""), [sigExp, setSigExp] = (0, import_react19.useState)({}), [histExp, setHistExp] = (0, import_react19.useState)({}), [linkedInvestigationId, setLinkedInvestigationId] = (0, import_react19.useState)(null), [caseCandidates, setCaseCandidates] = (0, import_react19.useState)([]), [candidateActions, setCandidateActions] = (0, import_react19.useState)({}), [showCandidatesModal, setShowCandidatesModal] = (0, import_react19.useState)(!1), [archivedMeetingId, setArchivedMeetingId] = (0, import_react19.useState)(null), needsInvestigationLink = engineType === "enquete" && !linkedInvestigationId, makeExpressCaseId = (existing) => {
       let year = (/* @__PURE__ */ new Date()).getFullYear(), existingIds = new Set((existing || []).map((i) => i.caseId).filter(Boolean)), A = "ABCDEFGHJKLMNPQRSTUVWXYZ", rand3 = () => A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)];
       for (let i = 0; i < 40; i++) {
         let id = `ENQ-${year}-${rand3()}`;
@@ -30205,7 +34581,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       };
       onSave("investigations", [...invs, draft]), setLinkedInvestigationId(draft.id), console.info("[MeetingEngine] express investigation created", { id: draft.id, caseId: draft.caseId });
     };
-    (0, import_react18.useEffect)(() => {
+    (0, import_react19.useEffect)(() => {
       try {
         if (typeof sessionStorage > "u") return;
         let raw = sessionStorage.getItem("hrbpos:pendingMeetingContext");
@@ -30217,7 +34593,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
         bridge?.engineType && validTypes.includes(bridge.engineType) && setEngineType(bridge.engineType), bridge?.ctx && typeof bridge.ctx == "object" && (setCtx((p) => ({ ...p, ...bridge.ctx })), bridge.ctx.managerName && setManagerManual(!1)), setPTab("context");
       } catch {
       }
-    }, []), (0, import_react18.useEffect)(() => {
+    }, []), (0, import_react19.useEffect)(() => {
       try {
         if (typeof localStorage > "u") return;
         let raw = localStorage.getItem(DRAFT_KEY);
@@ -30227,7 +34603,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
         draft.prep && setPrep(draft.prep), typeof draft.prepAI == "boolean" && setPrepAI(draft.prepAI), draft.ctx && typeof draft.ctx == "object" && (setCtx((p) => ({ ...p, ...draft.ctx })), draft.ctx.managerName && setManagerManual(!1)), draft.notes && typeof draft.notes == "object" && setNotes((p) => ({ ...p, ...draft.notes })), draft.meetingAnalysis && typeof draft.meetingAnalysis == "object" && setMeetingAnalysis((p) => ({ ...p, ...draft.meetingAnalysis })), draft.output && setOutput(draft.output), draft.engineType && setEngineType(draft.engineType), draft.niveau && setNiveau(draft.niveau), draft.linkedInvestigationId && setLinkedInvestigationId(draft.linkedInvestigationId);
       } catch {
       }
-    }, []), (0, import_react18.useEffect)(() => {
+    }, []), (0, import_react19.useEffect)(() => {
       try {
         if (typeof localStorage > "u" || !(!!prep || !!output || Object.values(ctx).some((v) => typeof v == "string" && v.trim() !== "" && v !== "regular") || Object.values(notes).some((v) => typeof v == "string" && v.trim() !== "") || meetingAnalysis.transcript && meetingAnalysis.transcript.trim() !== "" || meetingAnalysis.keyPoints && meetingAnalysis.keyPoints.trim() !== "")) return;
         let draft = { prep, prepAI, ctx, notes, meetingAnalysis, output, engineType, niveau, linkedInvestigationId };
@@ -31098,9 +35474,9 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
       { key: "performance", labelKey: "prep1on1.noteCat.performance", icon: "\u{1F4C8}", color: C.blue },
       { key: "leadership", labelKey: "prep1on1.noteCat.leadership", icon: "\u{1F9ED}", color: C.purple },
       { key: "engagement", labelKey: "prep1on1.signalCat.disengagement", icon: "\u{1F321}", color: C.amber }
-    ].map(({ key: key2, labelKey, icon, color }) => /* @__PURE__ */ React.createElement("div", { key: key2, style: { ...css.card, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, key2 === "engagement" ? "Engagement" : t2(labelKey))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6 } }, typeof output.people[key2] == "string" ? output.people[key2] : Array.isArray(output.people[key2]) ? output.people[key2].join(". ") : "N/D")))), (engineType === "disciplinaire" || engineType === "enquete") && output.cadreJuridique && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}`, background: C.red + "06" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, t2("meetingEngine.output.cadre.title")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, output.cadreJuridique.politiquesVisees?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 4 } }, t2("meetingEngine.output.cadre.policies")), output.cadreJuridique.politiquesVisees.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontSize: 10 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, p)))), output.cadreJuridique.loisApplicables?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 4 } }, t2("meetingEngine.output.cadre.laws")), output.cadreJuridique.loisApplicables.map((l, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontSize: 10 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, l)))), output.cadreJuridique.progressivite && /* @__PURE__ */ React.createElement("div", { style: { padding: "6px 10px", background: C.amber + "10", borderRadius: 6, fontSize: 11, color: C.amber } }, t2("meetingEngine.output.cadre.progressivityPrefix"), output.cadreJuridique.progressivite, output.cadreJuridique.progressiviteNote ? ` \u2014 ${output.cadreJuridique.progressiviteNote}` : ""))), (engineType === "disciplinaire" || engineType === "enquete") && output.sanctions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, t2("meetingEngine.output.sanctions.title")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.sanctions.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "8px 12px", background: C.red + "08", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.red } }, s.type), s.duree && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginTop: 3 } }, t2("meetingEngine.output.sanctions.duration"), s.duree), s.conditions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6 } }, s.conditions.map((c, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { fontSize: 11, color: C.textM } }, "\u2192 ", c))))))), (engineType === "disciplinaire" || engineType === "enquete") && output.risquesLegaux?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetingEngine.output.legalRisks")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.risquesLegaux.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "8px 12px", background: C.amber + "08", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", marginBottom: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: r.niveau, color: RISK_C[r.niveau] || C.textD, size: 9 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, r.risque)), r.mitigation && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", r.mitigation))))), engineType === "mediation" && (output.partieA || output.partieB) && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("meetingEngine.output.parties.title")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, [{ key: "partieA", label: t2("meetingEngine.output.parties.partyA"), data: output.partieA }, { key: "partieB", label: t2("meetingEngine.output.parties.partyB"), data: output.partieB }].map((p) => p.data && /* @__PURE__ */ React.createElement("div", { key: p.key, style: { padding: "10px 12px", background: C.purple + "08", borderRadius: 7, border: `1px solid ${C.purple}25` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: C.purple, marginBottom: 6 } }, p.label, p.data.nom ? ` \u2014 ${p.data.nom}` : ""), p.data.position && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontWeight: 600 } }, t2("meetingEngine.output.parties.position")), p.data.position), p.data.perception && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontWeight: 600 } }, t2("meetingEngine.output.parties.perception")), p.data.perception), p.data.attentes?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, fontWeight: 600, marginBottom: 3 } }, t2("meetingEngine.output.parties.expectations")), p.data.attentes.map((a, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 6, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontSize: 10 } }, "\u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, a)))))))), engineType === "ta" && output.postes?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.teal}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.teal, size: 9 }, t2("meetingEngine.output.ta.title")), output.pipeline && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 8, marginBottom: 12, flexWrap: "wrap" } }, [{ l: t2("meetingEngine.output.ta.active"), v: output.pipeline.postesActifs, c: C.blue }, { l: t2("meetingEngine.output.ta.inOffer"), v: output.pipeline.enOffre, c: C.amber }, { l: t2("meetingEngine.output.ta.closed"), v: output.pipeline.fermes, c: C.teal }].map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: m.c + "12", border: `1px solid ${m.c}30`, borderRadius: 7, padding: "8px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 800, color: m.c } }, m.v ?? "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, fontFamily: "'DM Mono',monospace" } }, m.l.toUpperCase())))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, output.postes.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "9px 12px", background: C.teal + "08", borderRadius: 7, border: `1px solid ${C.teal}20` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, p.titre), p.etape && /* @__PURE__ */ React.createElement(Badge, { label: p.etape, color: C.blue, size: 9 }), p.risque && /* @__PURE__ */ React.createElement(Badge, { label: p.risque, color: RISK_C[p.risque] || C.textD, size: 9 })), p.prochainePriorite && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", p.prochainePriorite))))), engineType === "initiatives" && output.initiatives?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("meetingEngine.output.initiatives")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.initiatives.map((init, i) => {
-      let sc = { "En cours": C.em, Planifiee: C.blue, Planifi\u00E9e: C.blue, Bloquee: C.red, Bloqu\u00E9e: C.red, Completee: C.teal, Compl\u00E9t\u00E9e: C.teal }[init.statut] || C.blue;
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "10px 12px", background: sc + "08", borderRadius: 7, border: `1px solid ${sc}25` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, init.nom), /* @__PURE__ */ React.createElement(Badge, { label: init.statut, color: sc, size: 9 }), init.avancement && /* @__PURE__ */ React.createElement(Badge, { label: init.avancement, color: C.textD, size: 9 })), init.prochainePas && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", init.prochainePas));
+    ].map(({ key: key2, labelKey, icon, color }) => /* @__PURE__ */ React.createElement("div", { key: key2, style: { ...css.card, borderLeft: `3px solid ${color}` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, key2 === "engagement" ? "Engagement" : t2(labelKey))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6 } }, typeof output.people[key2] == "string" ? output.people[key2] : Array.isArray(output.people[key2]) ? output.people[key2].join(". ") : "N/D")))), (engineType === "disciplinaire" || engineType === "enquete") && output.cadreJuridique && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}`, background: C.red + "06" } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, t2("meetingEngine.output.cadre.title")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10 } }, output.cadreJuridique.politiquesVisees?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 4 } }, t2("meetingEngine.output.cadre.policies")), output.cadreJuridique.politiquesVisees.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.red, fontSize: 10 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, p)))), output.cadreJuridique.loisApplicables?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textD, fontWeight: 600, marginBottom: 4 } }, t2("meetingEngine.output.cadre.laws")), output.cadreJuridique.loisApplicables.map((l, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontSize: 10 } }, "\u2022"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM } }, l)))), output.cadreJuridique.progressivite && /* @__PURE__ */ React.createElement("div", { style: { padding: "6px 10px", background: C.amber + "10", borderRadius: 6, fontSize: 11, color: C.amber } }, t2("meetingEngine.output.cadre.progressivityPrefix"), output.cadreJuridique.progressivite, output.cadreJuridique.progressiviteNote ? ` \u2014 ${output.cadreJuridique.progressiviteNote}` : ""))), (engineType === "disciplinaire" || engineType === "enquete") && output.sanctions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.red}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.red, size: 9 }, t2("meetingEngine.output.sanctions.title")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.sanctions.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "8px 12px", background: C.red + "08", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.red } }, s.type), s.duree && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginTop: 3 } }, t2("meetingEngine.output.sanctions.duration"), s.duree), s.conditions?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6 } }, s.conditions.map((c, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { fontSize: 11, color: C.textM } }, "\u2192 ", c))))))), (engineType === "disciplinaire" || engineType === "enquete") && output.risquesLegaux?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.amber}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.amber, size: 9 }, t2("meetingEngine.output.legalRisks")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.risquesLegaux.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "8px 12px", background: C.amber + "08", borderRadius: 7 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", marginBottom: 4 } }, /* @__PURE__ */ React.createElement(Badge, { label: r.niveau, color: RISK_C[r.niveau] || C.textD, size: 9 }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.text } }, r.risque)), r.mitigation && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", r.mitigation))))), engineType === "mediation" && (output.partieA || output.partieB) && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.purple}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("meetingEngine.output.parties.title")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, [{ key: "partieA", label: t2("meetingEngine.output.parties.partyA"), data: output.partieA }, { key: "partieB", label: t2("meetingEngine.output.parties.partyB"), data: output.partieB }].map((p) => p.data && /* @__PURE__ */ React.createElement("div", { key: p.key, style: { padding: "10px 12px", background: C.purple + "08", borderRadius: 7, border: `1px solid ${C.purple}25` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: C.purple, marginBottom: 6 } }, p.label, p.data.nom ? ` \u2014 ${p.data.nom}` : ""), p.data.position && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontWeight: 600 } }, t2("meetingEngine.output.parties.position")), p.data.position), p.data.perception && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.textD, fontWeight: 600 } }, t2("meetingEngine.output.parties.perception")), p.data.perception), p.data.attentes?.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, fontWeight: 600, marginBottom: 3 } }, t2("meetingEngine.output.parties.expectations")), p.data.attentes.map((a, j) => /* @__PURE__ */ React.createElement("div", { key: j, style: { display: "flex", gap: 6, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontSize: 10 } }, "\u2192"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM } }, a)))))))), engineType === "ta" && output.postes?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.teal}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.teal, size: 9 }, t2("meetingEngine.output.ta.title")), output.pipeline && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 8, marginBottom: 12, flexWrap: "wrap" } }, [{ l: t2("meetingEngine.output.ta.active"), v: output.pipeline.postesActifs, c: C.blue }, { l: t2("meetingEngine.output.ta.inOffer"), v: output.pipeline.enOffre, c: C.amber }, { l: t2("meetingEngine.output.ta.closed"), v: output.pipeline.fermes, c: C.teal }].map((m, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: m.c + "12", border: `1px solid ${m.c}30`, borderRadius: 7, padding: "8px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 800, color: m.c } }, m.v ?? "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: C.textD, fontFamily: "'DM Mono',monospace" } }, m.l.toUpperCase())))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, output.postes.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "9px 12px", background: C.teal + "08", borderRadius: 7, border: `1px solid ${C.teal}20` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, p.titre), p.etape && /* @__PURE__ */ React.createElement(Badge, { label: p.etape, color: C.blue, size: 9 }), p.risque && /* @__PURE__ */ React.createElement(Badge, { label: p.risque, color: RISK_C[p.risque] || C.textD, size: 9 })), p.prochainePriorite && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", p.prochainePriorite))))), engineType === "initiatives" && output.initiatives?.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("meetingEngine.output.initiatives")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 8 } }, output.initiatives.map((init2, i) => {
+      let sc = { "En cours": C.em, Planifiee: C.blue, Planifi\u00E9e: C.blue, Bloquee: C.red, Bloqu\u00E9e: C.red, Completee: C.teal, Compl\u00E9t\u00E9e: C.teal }[init2.statut] || C.blue;
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { padding: "10px 12px", background: sc + "08", borderRadius: 7, border: `1px solid ${sc}25` } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, init2.nom), /* @__PURE__ */ React.createElement(Badge, { label: init2.statut, color: sc, size: 9 }), init2.avancement && /* @__PURE__ */ React.createElement(Badge, { label: init2.avancement, color: C.textD, size: 9 })), init2.prochainePas && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.em } }, "\u2192 ", init2.prochainePas));
     }))), /* @__PURE__ */ React.createElement("div", { style: { ...css.card, borderLeft: `3px solid ${C.em}` } }, /* @__PURE__ */ React.createElement(Mono, { color: C.em, size: 9 }, t2("prep1on1.output.actionPlan")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 } }, (output.actions || []).map((a, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", background: C.surfLL, borderRadius: 8, border: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontFamily: "'DM Mono',monospace", fontSize: 10, flexShrink: 0 } }, String(i + 1).padStart(2, "0")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, flex: 1 } }, a.action), /* @__PURE__ */ React.createElement(Badge, { label: a.owner, color: C.blue, size: 10 }), /* @__PURE__ */ React.createElement(Badge, { label: a.delai, color: DELAY_C[a.delai] || C.teal, size: 10 }), /* @__PURE__ */ React.createElement(Badge, { label: a.priorite, color: a.priorite === "Critique" ? C.red : a.priorite === "Elevee" || a.priorite === "\xC9lev\xE9e" ? C.red : C.textD, size: 10 }))))), output.strategieHRBP && (() => {
       let s = output.strategieHRBP, postureColor = { Coach: C.em, Challenge: C.amber, Directif: C.red, Escalader: "#7a1e2e" }[s.postureHRBP?.mode] || C.purple, perfColor = { Forte: C.em, Correcte: C.blue, "A risque": C.amber, Critique: C.red }[s.santeEquipe?.performance] || C.textD, engColor = { Eleve: C.em, Modere: C.blue, Fragile: C.amber, Critique: C.red }[s.santeEquipe?.engagement] || C.textD, riskColor = RISK_C[s.risqueCle?.niveau] || C.textD;
       return /* @__PURE__ */ React.createElement("div", { style: { border: `2px solid ${C.purple}40`, borderRadius: 11, background: C.purple + "06", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "12px 18px", borderBottom: `1px solid ${C.purple}25`, display: "flex", alignItems: "center", gap: 10, background: C.purple + "10" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 28, height: 28, background: C.purple, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 } }, "\u{1F9E0}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: C.purple } }, t2("prep1on1.strategy.title")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5 } }, "ANALYSE STRAT\xC9GIQUE"))), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 } }, s.lectureGestionnaire && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.managerRead")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { background: C.purple + "18", border: `1px solid ${C.purple}40`, borderRadius: 7, padding: "5px 12px", fontSize: 12, color: C.purple, fontWeight: 600 } }, s.lectureGestionnaire.style)), s.lectureGestionnaire.forces && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.em, fontSize: 11, flexShrink: 0, marginTop: 2 } }, "+"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.textM, lineHeight: 1.6 } }, typeof s.lectureGestionnaire.forces == "string" ? s.lectureGestionnaire.forces : (s.lectureGestionnaire.forces || []).join(", "))), s.lectureGestionnaire.angle && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, padding: "7px 10px", background: C.purple + "10", borderRadius: 7, fontSize: 12, color: C.text, lineHeight: 1.6 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.purple, fontWeight: 600 } }, t2("prep1on1.strategy.angleArrow")), s.lectureGestionnaire.angle)), s.santeEquipe && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.teamHealth")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", padding: "5px 11px", borderRadius: 7, background: perfColor + "15", border: `1px solid ${perfColor}35` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("prep1on1.strategy.perf")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: perfColor } }, s.santeEquipe.performance)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", padding: "5px 11px", borderRadius: 7, background: engColor + "15", border: `1px solid ${engColor}35` } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.textD, fontFamily: "'DM Mono',monospace" } }, t2("prep1on1.strategy.eng")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: engColor } }, s.santeEquipe.engagement))), s.santeEquipe.dynamique && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, fontSize: 12, color: C.textM, lineHeight: 1.6 } }, s.santeEquipe.dynamique)), s.risqueCle && /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 12px", background: riskColor + "10", border: `1px solid ${riskColor}30`, borderRadius: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement(Mono, { color: riskColor, size: 9 }, t2("prep1on1.strategy.keyRisk")), /* @__PURE__ */ React.createElement("div", { style: { background: riskColor + "20", border: `1px solid ${riskColor}50`, borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700, color: riskColor } }, s.risqueCle.niveau), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: riskColor } }, s.risqueCle.nature)), s.risqueCle.rationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textM } }, s.risqueCle.rationale)), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, s.postureHRBP && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.posture")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", background: postureColor + "15", border: `2px solid ${postureColor}50`, borderRadius: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18, flexShrink: 0 } }, { Coach: "\u{1F3AF}", Challenge: "\u26A1", Directif: "\u{1F534}", Escalader: "\u{1F6A8}" }[s.postureHRBP.mode] || "\u{1F9E0}"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: postureColor } }, s.postureHRBP.mode), s.postureHRBP.rationale && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.5, marginTop: 2 } }, s.postureHRBP.rationale)))), s.objectifRencontre && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.objective")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, padding: "8px 12px", background: C.em + "10", border: `1px solid ${C.em}30`, borderRadius: 8, fontSize: 12, color: C.text, lineHeight: 1.65 } }, s.objectifRencontre))), s.strategieInfluence && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Mono, { color: C.purple, size: 9 }, t2("prep1on1.strategy.influence")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, padding: "9px 12px", background: C.purple + "10", border: `1px solid ${C.purple}25`, borderRadius: 8, fontSize: 12, color: C.text, lineHeight: 1.7, fontStyle: "italic" } }, '"', s.strategieInfluence, '"'))));
@@ -31276,8 +35652,8 @@ ${(output.actions || []).map((a) => `- ${a.action} [${a.owner} / ${a.delai} / ${
     return items?.length ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, items.map((item, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 7 } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.text, lineHeight: 1.65 } }, typeof item == "string" ? item : item.text || JSON.stringify(item))))) : null;
   }
   function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate, focusMeetingId, onClearFocus, onSwitchTab }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react19.useState)("list"), [transcript, setTranscript] = (0, import_react19.useState)(""), [meetingType, setMeetingType] = (0, import_react19.useState)("director"), [meetingProvince, setMeetingProvince] = (0, import_react19.useState)("QC"), [dirName, setDirName] = (0, import_react19.useState)(""), [context, setContext] = (0, import_react19.useState)(""), [loading, setLoading] = (0, import_react19.useState)(!1), [error, setError] = (0, import_react19.useState)(""), [result, setResult] = (0, import_react19.useState)(null), [saved, setSaved] = (0, import_react19.useState)(!1), [briefPrompt, setBriefPrompt] = (0, import_react19.useState)(""), [meetingPrompt, setMeetingPrompt] = (0, import_react19.useState)(""), [activeDir, setActiveDir] = (0, import_react19.useState)(null), [activeSession, setActiveSession] = (0, import_react19.useState)(null), [meetingDate, setMeetingDate] = (0, import_react19.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [meetingScope, setMeetingScope] = (0, import_react19.useState)("leader");
-    (0, import_react19.useEffect)(() => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react20.useState)("list"), [transcript, setTranscript] = (0, import_react20.useState)(""), [meetingType, setMeetingType] = (0, import_react20.useState)("director"), [meetingProvince, setMeetingProvince] = (0, import_react20.useState)("QC"), [dirName, setDirName] = (0, import_react20.useState)(""), [context, setContext2] = (0, import_react20.useState)(""), [loading, setLoading] = (0, import_react20.useState)(!1), [error, setError] = (0, import_react20.useState)(""), [result, setResult] = (0, import_react20.useState)(null), [saved, setSaved] = (0, import_react20.useState)(!1), [briefPrompt, setBriefPrompt] = (0, import_react20.useState)(""), [meetingPrompt, setMeetingPrompt] = (0, import_react20.useState)(""), [activeDir, setActiveDir] = (0, import_react20.useState)(null), [activeSession, setActiveSession] = (0, import_react20.useState)(null), [meetingDate, setMeetingDate] = (0, import_react20.useState)(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]), [meetingScope, setMeetingScope] = (0, import_react20.useState)("leader");
+    (0, import_react20.useEffect)(() => {
       if (!focusMeetingId) return;
       let meetings2 = data.meetings || [];
       console.log("[focus]", focusMeetingId, meetings2.map((m) => m.id));
@@ -31358,7 +35734,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
       { id: "actions", icon: "\u{1F3AF}", label: t2("meetings.tab.actions") },
       { id: "questions", icon: "\u{1F4AC}", label: t2("meetings.tab.questions"), badge: result?.crossQuestions?.length > 0 ? `+${result.crossQuestions.length}` : null },
       { id: "case", icon: "\u{1F4C2}", label: t2("meetings.tab.case") }
-    ], [tab, setTab] = (0, import_react19.useState)("summary"), [qsub, setQsub] = (0, import_react19.useState)("meeting"), [groupBy, setGroupBy] = (0, import_react19.useState)("director"), [editingMeta, setEditingMeta] = (0, import_react19.useState)(!1), [metaDraft, setMetaDraft] = (0, import_react19.useState)({});
+    ], [tab, setTab] = (0, import_react20.useState)("summary"), [qsub, setQsub] = (0, import_react20.useState)("meeting"), [groupBy, setGroupBy] = (0, import_react20.useState)("director"), [editingMeta, setEditingMeta] = (0, import_react20.useState)(!1), [metaDraft, setMetaDraft] = (0, import_react20.useState)({});
     if (view === "list") {
       let TYPE_META2 = {
         executif: { label: t2("meetings.type.executif").replace(/^[^\s]+\s/, ""), icon: "\u{1F3DB}", color: C.purple },
@@ -31615,7 +35991,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
       "button",
       {
         onClick: () => {
-          setView("list"), setResult(null), setTranscript(""), setContext(""), setEditingMeta(!1);
+          setView("list"), setResult(null), setTranscript(""), setContext2(""), setEditingMeta(!1);
         },
         style: { ...css.btn(C.textM, !0), padding: "6px 12px", fontSize: 11 }
       },
@@ -32043,7 +36419,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
       "button",
       {
         onClick: () => {
-          setView("new"), setResult(null), setTranscript(""), setContext("");
+          setView("new"), setResult(null), setTranscript(""), setContext2("");
         },
         style: {
           background: "none",
@@ -32105,7 +36481,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
     return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, subscription: props.subscription, userEmail: props.userEmail });
   }
   function ModuleMeetings(props) {
-    let { t: t2 } = useT(), [tab, setTab] = (0, import_react19.useState)(() => {
+    let { t: t2 } = useT(), [tab, setTab] = (0, import_react20.useState)(() => {
       try {
         if (typeof sessionStorage < "u" && sessionStorage.getItem("hrbpos:pendingMeetingContext"))
           return "engine";
@@ -32113,7 +36489,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
       }
       return "transcripts";
     });
-    (0, import_react19.useEffect)(() => {
+    (0, import_react20.useEffect)(() => {
       props.focusMeetingId && setTab("transcripts");
     }, [props.focusMeetingId]);
     let tabs = [
@@ -32138,7 +36514,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
   }
 
   // src/modules/Brief.jsx
-  var import_react20 = __require("react");
+  var import_react21 = __require("react");
 
   // src/prompts/brief.js
   var BRIEF_SP = `Tu es un HRBP senior expert, groupe IT corporatif, Quebec. Tu produis des briefings strategiques RH hebdomadaires pour Samuel Chartrand.
@@ -32189,15 +36565,15 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, icon), /* @__PURE__ */ React.createElement(Mono, { color, size: 9 }, label));
   }
   function ModuleBrief({ data, onSave }) {
-    let { t: t2 } = useT(), [view, setView] = (0, import_react20.useState)("new"), [briefTab, setBriefTab] = (0, import_react20.useState)("brief"), [inputs, setInputs] = (0, import_react20.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" }), [recapSubTab, setRecapSubTab] = (0, import_react20.useState)("generate"), [sentRecapText, setSentRecapText] = (0, import_react20.useState)(""), [sentRecapSaved, setSentRecapSaved] = (0, import_react20.useState)(!1), [editingRecapId, setEditingRecapId] = (0, import_react20.useState)(null), [recapResult, setRecapResult] = (0, import_react20.useState)(null), [recapLoading, setRecapLoading] = (0, import_react20.useState)(!1), [recapError, setRecapError] = (0, import_react20.useState)(""), [copied, setCopied] = (0, import_react20.useState)(!1), [recapPrompt, setRecapPrompt] = (0, import_react20.useState)(""), [nwlSourceIdx, setNwlSourceIdx] = (0, import_react20.useState)(0), [nwlResult, setNwlResult] = (0, import_react20.useState)(null), [nwlLoading, setNwlLoading] = (0, import_react20.useState)(!1), [nwlError, setNwlError] = (0, import_react20.useState)(""), [nwlSaved, setNwlSaved] = (0, import_react20.useState)(!1), [nwlCopied, setNwlCopied] = (0, import_react20.useState)(!1), [nwlPrompt, setNwlPrompt] = (0, import_react20.useState)(""), [loading, setLoading] = (0, import_react20.useState)(!1), [error, setError] = (0, import_react20.useState)(""), [result, setResult] = (0, import_react20.useState)(null), [saved, setSaved] = (0, import_react20.useState)(!1), getWeekBounds = () => {
+    let { t: t2 } = useT(), [view, setView] = (0, import_react21.useState)("new"), [briefTab, setBriefTab] = (0, import_react21.useState)("brief"), [inputs, setInputs] = (0, import_react21.useState)({ meetings: "", signals: "", cases: "", kpi: "", other: "", weekOf: "" }), [recapSubTab, setRecapSubTab] = (0, import_react21.useState)("generate"), [sentRecapText, setSentRecapText] = (0, import_react21.useState)(""), [sentRecapSaved, setSentRecapSaved] = (0, import_react21.useState)(!1), [editingRecapId, setEditingRecapId] = (0, import_react21.useState)(null), [recapResult, setRecapResult] = (0, import_react21.useState)(null), [recapLoading, setRecapLoading] = (0, import_react21.useState)(!1), [recapError, setRecapError] = (0, import_react21.useState)(""), [copied, setCopied] = (0, import_react21.useState)(!1), [recapPrompt, setRecapPrompt] = (0, import_react21.useState)(""), [nwlSourceIdx, setNwlSourceIdx] = (0, import_react21.useState)(0), [nwlResult, setNwlResult] = (0, import_react21.useState)(null), [nwlLoading, setNwlLoading] = (0, import_react21.useState)(!1), [nwlError, setNwlError] = (0, import_react21.useState)(""), [nwlSaved, setNwlSaved] = (0, import_react21.useState)(!1), [nwlCopied, setNwlCopied] = (0, import_react21.useState)(!1), [nwlPrompt, setNwlPrompt] = (0, import_react21.useState)(""), [loading, setLoading] = (0, import_react21.useState)(!1), [error, setError] = (0, import_react21.useState)(""), [result, setResult] = (0, import_react21.useState)(null), [saved, setSaved] = (0, import_react21.useState)(!1), getWeekBounds = () => {
       let today = /* @__PURE__ */ new Date(), day = today.getDay(), monday = new Date(today);
       monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1)), monday.setHours(0, 0, 0, 0);
       let friday = new Date(monday);
       friday.setDate(monday.getDate() + 4), friday.setHours(23, 59, 59, 999);
       let toISO2 = (d) => d.toISOString().split("T")[0];
       return { start: toISO2(monday), end: toISO2(friday) };
-    }, [periodStart, setPeriodStart] = (0, import_react20.useState)(""), [periodEnd, setPeriodEnd] = (0, import_react20.useState)(""), briefs = data.briefs || [], [tasksByCase, setTasksByCase] = (0, import_react20.useState)({});
-    (0, import_react20.useEffect)(() => {
+    }, [periodStart, setPeriodStart] = (0, import_react21.useState)(""), [periodEnd, setPeriodEnd] = (0, import_react21.useState)(""), briefs = data.briefs || [], [tasksByCase, setTasksByCase] = (0, import_react21.useState)({});
+    (0, import_react21.useEffect)(() => {
       let cancelled = !1;
       return (async () => {
         let map = await fetchTasksForCases(data.cases || []);
@@ -32390,7 +36766,7 @@ ${prepsTxt}` : ""}`, parsed = await callAI(RECAP_SP, prompt, prompt.length);
       { id: "brief", label: t2("brief.tab.intel") },
       { id: "recap", label: t2("brief.tab.recap") },
       { id: "insights", label: t2("brief.tab.insights") }
-    ], [insightsResult, setInsightsResult] = (0, import_react20.useState)(null), [insightsLoading, setInsightsLoading] = (0, import_react20.useState)(!1), [insightsError, setInsightsError] = (0, import_react20.useState)(""), [insightsSaved, setInsightsSaved] = (0, import_react20.useState)(!1), generateInsights = async () => {
+    ], [insightsResult, setInsightsResult] = (0, import_react21.useState)(null), [insightsLoading, setInsightsLoading] = (0, import_react21.useState)(!1), [insightsError, setInsightsError] = (0, import_react21.useState)(""), [insightsSaved, setInsightsSaved] = (0, import_react21.useState)(!1), generateInsights = async () => {
       setInsightsLoading(!0), setInsightsError(""), setInsightsResult(null), setInsightsSaved(!1);
       try {
         let todayISO = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], sevenDaysAgo = Date.now() - 10080 * 60 * 1e3, activeCasesIns = filterActiveCases(data.cases || []).slice(0, 8).map((c) => `- [${c.type || ""}] ${c.title || "Sans titre"} \u2014 Risque: ${c.riskLevel || "?"} \u2014 Statut: ${c.status || "?"} \u2014 ${c.director || c.employee || ""}`).join(`
@@ -33487,7 +37863,7 @@ ${recap.sentText}`,
   }
 
   // src/modules/Leader.jsx
-  var import_react22 = __require("react");
+  var import_react23 = __require("react");
 
   // src/prompts/portfolio.js
   var PORTFOLIO_ASSESS_SP = `Tu es Samuel Chartrand, HRBP senior, groupe IT, Quebec.
@@ -33496,7 +37872,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
 {"riskAssessment":"Critique|Eleve|Modere|Faible","pressureLevel":"Elevee|Moderee|Faible","managerType":"Solide|En developpement|A risque|Critique","topIssue":"enjeu principal identifie en 1 phrase courte","recommendedAction":"action HRBP recommandee en 1 phrase courte"}`;
 
   // src/components/IdentityRenameForm.jsx
-  var import_react21 = __require("react");
+  var import_react22 = __require("react");
 
   // src/utils/identity.js
   function normalizeIdentityKey(s) {
@@ -33731,7 +38107,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     onApplied,
     compact = !1
   }) {
-    let [current, setCurrent] = (0, import_react21.useState)(defaultCurrent || ""), [corrected, setCorrected] = (0, import_react21.useState)(""), [busy, setBusy] = (0, import_react21.useState)(!1), [preview, setPreview] = (0, import_react21.useState)(null), [result, setResult] = (0, import_react21.useState)(null), [error, setError] = (0, import_react21.useState)(""), canSubmit = current.trim().length > 0 && corrected.trim().length > 0 && current.trim() !== corrected.trim(), invalidateOnEdit = () => {
+    let [current, setCurrent] = (0, import_react22.useState)(defaultCurrent || ""), [corrected, setCorrected] = (0, import_react22.useState)(""), [busy, setBusy] = (0, import_react22.useState)(!1), [preview, setPreview] = (0, import_react22.useState)(null), [result, setResult] = (0, import_react22.useState)(null), [error, setError] = (0, import_react22.useState)(""), canSubmit = current.trim().length > 0 && corrected.trim().length > 0 && current.trim() !== corrected.trim(), invalidateOnEdit = () => {
       setPreview(null), setResult(null), setError("");
     }, onPreview = async () => {
       setBusy(!0), setError(""), setResult(null);
@@ -34063,9 +38439,9 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     })), items.sort((a, b) => !a.date && !b.date ? 0 : a.date ? b.date ? b.date.localeCompare(a.date) : -1 : 1);
   }
   function ModuleLeader({ data, onSave, onNavigate }) {
-    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react22.useState)(null), [tlExpanded, setTlExpanded] = (0, import_react22.useState)(!1), [tlFilter, setTlFilter] = (0, import_react22.useState)("all"), [editingMeta, setEditingMeta] = (0, import_react22.useState)(!1), [metaForm, setMetaForm] = (0, import_react22.useState)(null), [aiAssessing, setAiAssessing] = (0, import_react22.useState)(!1), [filterArchive, setFilterArchive] = (0, import_react22.useState)("active"), [renamingName, setRenamingName] = (0, import_react22.useState)(!1), selectLeader = (key2) => {
+    let { t: t2 } = useT(), [selected, setSelected] = (0, import_react23.useState)(null), [tlExpanded, setTlExpanded] = (0, import_react23.useState)(!1), [tlFilter, setTlFilter] = (0, import_react23.useState)("all"), [editingMeta, setEditingMeta] = (0, import_react23.useState)(!1), [metaForm, setMetaForm] = (0, import_react23.useState)(null), [aiAssessing, setAiAssessing] = (0, import_react23.useState)(!1), [filterArchive, setFilterArchive] = (0, import_react23.useState)("active"), [renamingName, setRenamingName] = (0, import_react23.useState)(!1), selectLeader = (key2) => {
       setSelected(key2), setTlExpanded(!1), setTlFilter("all"), setEditingMeta(!1), setMetaForm(null), setRenamingName(!1);
-    }, leaders = (0, import_react22.useMemo)(() => buildLeaderIndex(data), [data]), leaderList = Object.values(leaders), leadersMap = (0, import_react22.useMemo)(() => getLeadersMap(data), [data]), todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], topFocus = (0, import_react22.useMemo)(() => {
+    }, leaders = (0, import_react23.useMemo)(() => buildLeaderIndex(data), [data]), leaderList = Object.values(leaders), leadersMap = (0, import_react23.useMemo)(() => getLeadersMap(data), [data]), todayISO_top = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], topFocus = (0, import_react23.useMemo)(() => {
       let activeLeaders = leaderList.filter((l2) => !getMeta(l2.name, leadersMap).archived);
       return topFocusLeaders(activeLeaders, leadersMap, todayISO_top, 3);
     }, [leaderList, leadersMap, todayISO_top]), saveMeta = (name, patch) => {
@@ -34108,7 +38484,7 @@ ${ctx}`, 500);
         setAiAssessing(!1);
       }
     };
-    if ((0, import_react22.useEffect)(() => {
+    if ((0, import_react23.useEffect)(() => {
       let pending = sessionStorage.getItem("hrbpos:pendingLeader");
       if (!pending) return;
       sessionStorage.removeItem("hrbpos:pendingLeader");
@@ -35091,10 +39467,10 @@ ${ctx}`, 500);
   }
 
   // src/modules/Copilot.jsx
-  var import_react23 = __require("react");
+  var import_react24 = __require("react");
   function ModuleCopilot({ data }) {
-    let { t: t2 } = useT(), [situation, setSituation] = (0, import_react23.useState)(""), [loading, setLoading] = (0, import_react23.useState)(!1), [response, setResponse] = (0, import_react23.useState)(null), [error, setError] = (0, import_react23.useState)(""), [history, setHistory] = (0, import_react23.useState)([]), [copied, setCopied] = (0, import_react23.useState)(!1), [contextExpanded, setContextExpanded] = (0, import_react23.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react23.useState)(""), [apeMode, setApeMode] = (0, import_react23.useState)("diagnose"), responseRef = (0, import_react23.useRef)(null), situations = detectSituations(data).slice(0, 5), [tasksByCase, setTasksByCase] = (0, import_react23.useState)({});
-    (0, import_react23.useEffect)(() => {
+    let { t: t2 } = useT(), [situation, setSituation] = (0, import_react24.useState)(""), [loading, setLoading] = (0, import_react24.useState)(!1), [response, setResponse] = (0, import_react24.useState)(null), [error, setError] = (0, import_react24.useState)(""), [history, setHistory] = (0, import_react24.useState)([]), [copied, setCopied] = (0, import_react24.useState)(!1), [contextExpanded, setContextExpanded] = (0, import_react24.useState)(!1), [generatedPrompt, setGeneratedPrompt] = (0, import_react24.useState)(""), [apeMode, setApeMode] = (0, import_react24.useState)("diagnose"), responseRef = (0, import_react24.useRef)(null), situations = detectSituations(data).slice(0, 5), [tasksByCase, setTasksByCase] = (0, import_react24.useState)({});
+    (0, import_react24.useEffect)(() => {
       let cancelled = !1;
       return (async () => {
         let map = await fetchTasksForCases(data.cases || []);
@@ -35455,7 +39831,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
 
   // src/modules/Admin.jsx
-  var import_react25 = __toESM(__require("react"));
+  var import_react26 = __toESM(__require("react"));
 
   // src/services/orgExport.js
   var JSONB_TABLES = ["cases", "investigations", "meetings", "briefs"], FLAT_TABLES = ["employees", "case_tasks", "audit_logs"];
@@ -35527,7 +39903,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
 
   // src/modules/SaaSMetricsPanel.jsx
-  var import_react24 = __toESM(__require("react"));
+  var import_react25 = __toESM(__require("react"));
 
   // src/services/saasMetrics.js
   var NO_CLIENT8 = { ok: !1, reason: "no-client" }, DAY_MS = 864e5;
@@ -35615,7 +39991,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
 
   // src/modules/SaaSMetricsPanel.jsx
   function SaaSMetricsPanel() {
-    let [status, setStatus] = (0, import_react24.useState)("loading"), [metrics, setMetrics] = (0, import_react24.useState)(null), [errorMsg, setErrorMsg] = (0, import_react24.useState)(""), load = (0, import_react24.useCallback)(async () => {
+    let [status, setStatus] = (0, import_react25.useState)("loading"), [metrics, setMetrics] = (0, import_react25.useState)(null), [errorMsg, setErrorMsg] = (0, import_react25.useState)(""), load = (0, import_react25.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let res = await getSaaSMetrics();
       if (!res.ok) {
@@ -35626,9 +40002,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       setMetrics(res.metrics), setStatus("ready");
     }, []);
-    return (0, import_react24.useEffect)(() => {
+    return (0, import_react25.useEffect)(() => {
       load();
-    }, [load]), /* @__PURE__ */ import_react24.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "M\xE9triques SaaS", /* @__PURE__ */ import_react24.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 super_admin")), /* @__PURE__ */ import_react24.default.createElement("div", { style: { flex: 1 } }), /* @__PURE__ */ import_react24.default.createElement(
+    }, [load]), /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "M\xE9triques SaaS", /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 super_admin")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { flex: 1 } }), /* @__PURE__ */ import_react25.default.createElement(
       "button",
       {
         onClick: load,
@@ -35641,34 +40017,34 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       status === "loading" ? "\u2026" : "Rafra\xEEchir"
-    )), /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 12, lineHeight: 1.5 } }, "Cockpit sant\xE9 SaaS \u2014 comptages agr\xE9g\xE9s tous tenants. Lecture seule, pas d'appels Stripe."), status === "loading" && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "8px 0" } }, "Chargement\u2026"), status === "error" && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 12, color: C.red, padding: "8px 0" } }, errorMsg), status === "ready" && metrics && /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ import_react24.default.createElement(Group, { title: "Organisations", color: C.em }, /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Total", value: metrics.organizations.total }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Actives", value: metrics.organizations.active }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "En essai", value: metrics.organizations.trial }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Suspendues / annul\xE9es", value: metrics.organizations.suspendedOrCancelled })), /* @__PURE__ */ import_react24.default.createElement(Group, { title: "Abonnements", color: C.blue }, /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Active", value: metrics.subscriptions.active }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Trialing", value: metrics.subscriptions.trialing }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Past due", value: metrics.subscriptions.pastDue, accent: metrics.subscriptions.pastDue > 0 ? C.amber : null }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Canceled", value: metrics.subscriptions.canceled }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Unpaid / incomplete", value: metrics.subscriptions.unpaidOrIncomplete, accent: metrics.subscriptions.unpaidOrIncomplete > 0 ? C.red : null })), /* @__PURE__ */ import_react24.default.createElement(Group, { title: "Revenu estim\xE9", color: C.purple }, metrics.revenue.available ? /* @__PURE__ */ import_react24.default.createElement(import_react24.default.Fragment, null, /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "MRR", value: formatCurrency(metrics.revenue.mrrCents) }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "ARR", value: formatCurrency(metrics.revenue.arrCents) }), Object.entries(metrics.revenue.byPlanCents).map(([code, cents]) => /* @__PURE__ */ import_react24.default.createElement(
+    )), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 12, lineHeight: 1.5 } }, "Cockpit sant\xE9 SaaS \u2014 comptages agr\xE9g\xE9s tous tenants. Lecture seule, pas d'appels Stripe."), status === "loading" && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "8px 0" } }, "Chargement\u2026"), status === "error" && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.red, padding: "8px 0" } }, errorMsg), status === "ready" && metrics && /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ import_react25.default.createElement(Group, { title: "Organisations", color: C.em }, /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Total", value: metrics.organizations.total }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Actives", value: metrics.organizations.active }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "En essai", value: metrics.organizations.trial }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Suspendues / annul\xE9es", value: metrics.organizations.suspendedOrCancelled })), /* @__PURE__ */ import_react25.default.createElement(Group, { title: "Abonnements", color: C.blue }, /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Active", value: metrics.subscriptions.active }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Trialing", value: metrics.subscriptions.trialing }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Past due", value: metrics.subscriptions.pastDue, accent: metrics.subscriptions.pastDue > 0 ? C.amber : null }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Canceled", value: metrics.subscriptions.canceled }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Unpaid / incomplete", value: metrics.subscriptions.unpaidOrIncomplete, accent: metrics.subscriptions.unpaidOrIncomplete > 0 ? C.red : null })), /* @__PURE__ */ import_react25.default.createElement(Group, { title: "Revenu estim\xE9", color: C.purple }, metrics.revenue.available ? /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "MRR", value: formatCurrency(metrics.revenue.mrrCents) }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "ARR", value: formatCurrency(metrics.revenue.arrCents) }), Object.entries(metrics.revenue.byPlanCents).map(([code, cents]) => /* @__PURE__ */ import_react25.default.createElement(
       Kpi,
       {
         key: code,
         label: `Plan ${code}`,
         value: formatCurrency(cents)
       }
-    ))) : /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "MRR / ARR", value: "N/A", hint: "Aucun prix de plan ou aucun abonnement actif" })), /* @__PURE__ */ import_react24.default.createElement(Group, { title: "Essais (trials)", color: C.amber }, /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Actifs", value: metrics.trials.active }), /* @__PURE__ */ import_react24.default.createElement(
+    ))) : /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "MRR / ARR", value: "N/A", hint: "Aucun prix de plan ou aucun abonnement actif" })), /* @__PURE__ */ import_react25.default.createElement(Group, { title: "Essais (trials)", color: C.amber }, /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Actifs", value: metrics.trials.active }), /* @__PURE__ */ import_react25.default.createElement(
       Kpi,
       {
         label: "Expirent \u2264 7 jours",
         value: metrics.trials.expiringIn7Days,
         accent: metrics.trials.expiringIn7Days > 0 ? C.amber : null
       }
-    ), /* @__PURE__ */ import_react24.default.createElement(
+    ), /* @__PURE__ */ import_react25.default.createElement(
       Kpi,
       {
         label: "Expir\xE9s non convertis",
         value: metrics.trials.expiredNotConverted,
         accent: metrics.trials.expiredNotConverted > 0 ? C.red : null
       }
-    )), /* @__PURE__ */ import_react24.default.createElement(Group, { title: "Utilisation produit", color: C.teal }, /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Utilisateurs", value: metrics.usage.totalUsers }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Cases", value: metrics.usage.totalCases }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Rencontres", value: metrics.usage.totalMeetings }), /* @__PURE__ */ import_react24.default.createElement(Kpi, { label: "Enqu\xEAtes", value: metrics.usage.totalInvestigations })), /* @__PURE__ */ import_react24.default.createElement(Group, { title: "Adoption", color: C.pink }, /* @__PURE__ */ import_react24.default.createElement(
+    )), /* @__PURE__ */ import_react25.default.createElement(Group, { title: "Utilisation produit", color: C.teal }, /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Utilisateurs", value: metrics.usage.totalUsers }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Cases", value: metrics.usage.totalCases }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Rencontres", value: metrics.usage.totalMeetings }), /* @__PURE__ */ import_react25.default.createElement(Kpi, { label: "Enqu\xEAtes", value: metrics.usage.totalInvestigations })), /* @__PURE__ */ import_react25.default.createElement(Group, { title: "Adoption", color: C.pink }, /* @__PURE__ */ import_react25.default.createElement(
       Kpi,
       {
         label: "Cases / org (moy.)",
         value: formatRate(metrics.adoption.avgCasesPerOrg)
       }
-    ), /* @__PURE__ */ import_react24.default.createElement(
+    ), /* @__PURE__ */ import_react25.default.createElement(
       Kpi,
       {
         label: "Rencontres / org (moy.)",
@@ -35677,13 +40053,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     ))));
   }
   function Group({ title, color, children }) {
-    return /* @__PURE__ */ import_react24.default.createElement("div", null, /* @__PURE__ */ import_react24.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 6 } }, /* @__PURE__ */ import_react24.default.createElement("span", { style: { width: 6, height: 6, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react24.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 6 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 6, height: 6, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.4,
       textTransform: "uppercase",
       color: C.textM
-    } }, title)), /* @__PURE__ */ import_react24.default.createElement("div", { style: {
+    } }, title)), /* @__PURE__ */ import_react25.default.createElement("div", { style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
       gap: 8
@@ -35691,13 +40067,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function Kpi({ label, value, accent, hint }) {
     let valueColor = accent || C.text;
-    return /* @__PURE__ */ import_react24.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react25.default.createElement("div", { style: {
       background: C.surf,
       border: `1px solid ${C.border}`,
       borderRadius: 8,
       padding: "10px 12px",
       minWidth: 0
-    } }, /* @__PURE__ */ import_react24.default.createElement("div", { style: {
+    } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: {
       fontSize: 10,
       color: C.textM,
       marginBottom: 4,
@@ -35706,7 +40082,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
-    } }, label), /* @__PURE__ */ import_react24.default.createElement("div", { style: {
+    } }, label), /* @__PURE__ */ import_react25.default.createElement("div", { style: {
       fontSize: 18,
       fontWeight: 700,
       color: valueColor,
@@ -35714,7 +40090,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
-    } }, value), hint && /* @__PURE__ */ import_react24.default.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 4, lineHeight: 1.4 } }, hint));
+    } }, value), hint && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 10, color: C.textD, marginTop: 4, lineHeight: 1.4 } }, hint));
   }
   function formatCurrency(cents) {
     return `${((Number(cents) || 0) / 100).toFixed(2)} $ / mois`;
@@ -35730,7 +40106,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     hrbp: { bg: C.surfL, border: C.border, color: C.textM }
   };
   function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
-    let { t: t2 } = useT(), [profiles, setProfiles] = (0, import_react25.useState)([]), [organizations, setOrganizations] = (0, import_react25.useState)([]), [status, setStatus] = (0, import_react25.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react25.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react25.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react25.useState)({}), [busyById, setBusyById] = (0, import_react25.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react25.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react25.useCallback)(async () => {
+    let { t: t2 } = useT(), [profiles, setProfiles] = (0, import_react26.useState)([]), [organizations, setOrganizations] = (0, import_react26.useState)([]), [status, setStatus] = (0, import_react26.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react26.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react26.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react26.useState)({}), [busyById, setBusyById] = (0, import_react26.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react26.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react26.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
       if (!pRes.ok) {
@@ -35739,19 +40115,19 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       !oRes.ok && oRes.reason !== "no-client" && console.warn("[admin] listOrganizations failed:", oRes.reason, oRes.error), setProfiles(pRes.profiles), setOrganizations(oRes.ok ? oRes.organizations : []), setStatus("ready");
     }, [listOpts]);
-    (0, import_react25.useEffect)(() => {
+    (0, import_react26.useEffect)(() => {
       refresh();
     }, [refresh]);
-    let orgNameById = (0, import_react25.useMemo)(() => {
+    let orgNameById = (0, import_react26.useMemo)(() => {
       let m = {};
       for (let o of organizations) m[o.id] = o.name;
       return m;
-    }, [organizations]), orgChoices = (0, import_react25.useMemo)(() => {
+    }, [organizations]), orgChoices = (0, import_react26.useMemo)(() => {
       if (isSuperAdmin) return organizations;
       if (!currentProfile?.organization_id) return [];
       let own = organizations.find((o) => o.id === currentProfile.organization_id);
       return own ? [own] : [];
-    }, [isSuperAdmin, organizations, currentProfile?.organization_id]), buckets = (0, import_react25.useMemo)(() => {
+    }, [isSuperAdmin, organizations, currentProfile?.organization_id]), buckets = (0, import_react26.useMemo)(() => {
       let pending = [], approved = [], disabled = [], other = [];
       for (let p of profiles)
         p.status === "pending" ? pending.push(p) : p.status === "approved" ? approved.push(p) : p.status === "disabled" ? disabled.push(p) : other.push(p);
@@ -35778,7 +40154,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           return;
         }
       }
-      await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "\xC9chec d'approbation");
+      await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "\xC9chec d'approbation") && notifyApprovedUser(profile.id).then((res) => {
+        (!res?.ok || res?.sent === !1) && console.warn("[admin] notifyApprovedUser:", res?.reason || res?.payload || "unknown");
+      }).catch((err) => {
+        console.warn("[admin] notifyApprovedUser threw:", err);
+      });
     }, changeRole = async (profile, newRole) => {
       if (newRole === profile.role) return;
       setBusy(profile.id, !0);
@@ -35813,7 +40193,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       await applyPatch(profile, { organization_id: organization_id || null }, "\xC9chec d'assignation");
     };
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react25.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { maxWidth: 980 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 } }, t2("admin.title")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, t2("admin.subtitle"), currentProfile?.email && /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, " \xB7 ", t2("admin.connectedAs"), " : ", /* @__PURE__ */ import_react26.default.createElement("b", null, currentProfile.email)))), errorMsg && /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.red, marginBottom: 10 } }, errorMsg), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: refresh,
@@ -35826,9 +40206,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       t2(status === "loading" ? "common.loading" : "common.refresh")
-    )), status === "error" && /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, fontSize: 12, color: C.red } }, errorMsg || "Erreur inconnue."), status === "ready" && /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(Section, { title: t2("admin.section.pending"), count: buckets.pending.length, color: C.amber }, buckets.pending.length === 0 ? /* @__PURE__ */ import_react25.default.createElement(Empty2, null, t2("admin.empty.pending")) : buckets.pending.map((p) => {
+    )), status === "error" && /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, fontSize: 12, color: C.red } }, errorMsg || "Erreur inconnue."), status === "ready" && /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement(Section, { title: t2("admin.section.pending"), count: buckets.pending.length, color: C.amber }, buckets.pending.length === 0 ? /* @__PURE__ */ import_react26.default.createElement(Empty2, null, t2("admin.empty.pending")) : buckets.pending.map((p) => {
       let selectedRole = pendingRoleById[p.id] ?? (p.role || "hrbp"), selectedOrg = pendingOrgById[p.id] ?? (p.organization_id || ""), busy = !!busyById[p.id], roleOptions = isSuperAdmin ? ROLE_IDS : ROLE_IDS.filter((r) => r !== "super_admin");
-      return /* @__PURE__ */ import_react25.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react25.default.createElement(
+      return /* @__PURE__ */ import_react26.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react26.default.createElement(
         "select",
         {
           value: selectedRole,
@@ -35837,8 +40217,8 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           title: "R\xF4le",
           style: { ...css.select, width: 130, padding: "6px 8px", fontSize: 12 }
         },
-        roleOptions.map((r) => /* @__PURE__ */ import_react25.default.createElement("option", { key: r, value: r }, tRole(t2, r)))
-      ), /* @__PURE__ */ import_react25.default.createElement(
+        roleOptions.map((r) => /* @__PURE__ */ import_react26.default.createElement("option", { key: r, value: r }, tRole(t2, r)))
+      ), /* @__PURE__ */ import_react26.default.createElement(
         OrgSelect,
         {
           organizations: orgChoices,
@@ -35846,7 +40226,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           onChange: (v) => setOrgFor(p.id, v),
           disabled: busy || !isSuperAdmin
         }
-      ), /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement(
         "button",
         {
           onClick: () => approve(p),
@@ -35860,9 +40240,9 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.approve")
       ));
-    })), /* @__PURE__ */ import_react25.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react25.default.createElement(Section, { title: t2("admin.section.usersRoles"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react25.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
+    })), /* @__PURE__ */ import_react26.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react26.default.createElement(Section, { title: t2("admin.section.usersRoles"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react26.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
       let busy = !!busyById[p.id], isSelf = p.id === currentProfile?.id;
-      return /* @__PURE__ */ import_react25.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react25.default.createElement(
+      return /* @__PURE__ */ import_react26.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react26.default.createElement(
         RoleControl,
         {
           profile: p,
@@ -35871,7 +40251,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           isSelf,
           onChange: (role) => changeRole(p, role)
         }
-      ), /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement(
         OrgSelect,
         {
           organizations: orgChoices,
@@ -35879,7 +40259,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           onChange: (v) => assignOrg(p, v),
           disabled: busy || !isSuperAdmin
         }
-      ), /* @__PURE__ */ import_react25.default.createElement(
+      ), /* @__PURE__ */ import_react26.default.createElement(
         "button",
         {
           onClick: () => disable(p),
@@ -35895,18 +40275,18 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.disable")
       ));
-    })), /* @__PURE__ */ import_react25.default.createElement(Section, { title: t2("admin.section.disabled"), count: buckets.disabled.length, color: C.textM }, buckets.disabled.length === 0 ? /* @__PURE__ */ import_react25.default.createElement(Empty2, null, t2("admin.empty.disabled")) : buckets.disabled.map((p) => {
+    })), /* @__PURE__ */ import_react26.default.createElement(Section, { title: t2("admin.section.disabled"), count: buckets.disabled.length, color: C.textM }, buckets.disabled.length === 0 ? /* @__PURE__ */ import_react26.default.createElement(Empty2, null, t2("admin.empty.disabled")) : buckets.disabled.map((p) => {
       let busy = !!busyById[p.id];
-      return /* @__PURE__ */ import_react25.default.createElement(
+      return /* @__PURE__ */ import_react26.default.createElement(
         Row2,
         {
           key: p.id,
           profile: p,
           orgNameById,
-          badge: /* @__PURE__ */ import_react25.default.createElement(RevokedBadge, { disabledAt: p.disabled_at })
+          badge: /* @__PURE__ */ import_react26.default.createElement(RevokedBadge, { disabledAt: p.disabled_at })
         },
-        /* @__PURE__ */ import_react25.default.createElement(RoleBadge, { role: p.role }),
-        /* @__PURE__ */ import_react25.default.createElement(
+        /* @__PURE__ */ import_react26.default.createElement(RoleBadge, { role: p.role }),
+        /* @__PURE__ */ import_react26.default.createElement(
           OrgSelect,
           {
             organizations: orgChoices,
@@ -35915,7 +40295,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
             disabled: busy || !isSuperAdmin
           }
         ),
-        /* @__PURE__ */ import_react25.default.createElement(
+        /* @__PURE__ */ import_react26.default.createElement(
           "button",
           {
             onClick: () => reenable(p),
@@ -35930,7 +40310,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           busy ? "\u2026" : t2("admin.action.reenable")
         )
       );
-    })), buckets.other.length > 0 && /* @__PURE__ */ import_react25.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react25.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), isSuperAdmin && /* @__PURE__ */ import_react25.default.createElement(SaaSMetricsPanel, null), /* @__PURE__ */ import_react25.default.createElement(
+    })), buckets.other.length > 0 && /* @__PURE__ */ import_react26.default.createElement(Section, { title: t2("admin.section.other"), count: buckets.other.length, color: C.textD }, buckets.other.map((p) => /* @__PURE__ */ import_react26.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: 11, color: C.textD } }, "status: ", p.status || "\u2014")))), isSuperAdmin && /* @__PURE__ */ import_react26.default.createElement(SaaSMetricsPanel, null), /* @__PURE__ */ import_react26.default.createElement(
       OrganizationStatusPanel,
       {
         currentProfile,
@@ -35938,10 +40318,10 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         isSuperAdmin,
         onUpdated: onOrganizationUpdated
       }
-    ), /* @__PURE__ */ import_react25.default.createElement(BillingPanel, { currentProfile }), /* @__PURE__ */ import_react25.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react25.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react25.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react25.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
+    ), /* @__PURE__ */ import_react26.default.createElement(BillingPanel, { currentProfile }), /* @__PURE__ */ import_react26.default.createElement(ExportOrganizationPanel, { currentProfile }), /* @__PURE__ */ import_react26.default.createElement(RenameIdentityPanel, null), /* @__PURE__ */ import_react26.default.createElement(IdentityMergePanel, null)), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textD, lineHeight: 1.5, marginTop: 10 } }, "Seuls les utilisateurs avec status ", /* @__PURE__ */ import_react26.default.createElement("b", null, "approved"), " acc\xE8dent \xE0 HRBP OS. Les profils ne sont jamais supprim\xE9s ; un compte d\xE9sactiv\xE9 peut \xEAtre r\xE9activ\xE9."));
   }
   function IdentityMergePanel() {
-    let [source, setSource] = (0, import_react25.useState)(""), [target, setTarget] = (0, import_react25.useState)(""), [busy, setBusy] = (0, import_react25.useState)(!1), [result, setResult] = (0, import_react25.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
+    let [source, setSource] = (0, import_react26.useState)(""), [target, setTarget] = (0, import_react26.useState)(""), [busy, setBusy] = (0, import_react26.useState)(!1), [result, setResult] = (0, import_react26.useState)(null), canMerge = source.trim().length > 0 && target.trim().length > 0 && source.trim() !== target.trim(), onMerge = async () => {
       setBusy(!0), setResult(null);
       let sourceName = source.trim(), targetName = target.trim(), local;
       try {
@@ -35958,7 +40338,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       setBusy(!1), setResult({ ok: !0, local, remote });
     }, localTotal = result?.local ? result.local.cases + result.local.investigations + result.local.meetings + result.local.briefs : 0;
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.purple } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Fusion d'identit\xE9")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo ou fusionne deux variantes d'un m\xEAme nom. Met \xE0 jour les cases, rencontres, enqu\xEAtes et briefs (localStorage + Supabase si disponible). Append une entr\xE9e ", /* @__PURE__ */ import_react25.default.createElement("code", { style: { fontSize: 10 } }, "identity.merged"), " \xE0 l'audit log."), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.purple } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Fusion d'identit\xE9")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo ou fusionne deux variantes d'un m\xEAme nom. Met \xE0 jour les cases, rencontres, enqu\xEAtes et briefs (localStorage + Supabase si disponible). Append une entr\xE9e ", /* @__PURE__ */ import_react26.default.createElement("code", { style: { fontSize: 10 } }, "identity.merged"), " \xE0 l'audit log."), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement(
       "input",
       {
         type: "text",
@@ -35968,7 +40348,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         disabled: busy,
         style: { ...css.input, flex: "1 1 220px", minWidth: 200, padding: "6px 10px", fontSize: 12 }
       }
-    ), /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: C.textD, fontSize: 14 } }, "\u2192"), /* @__PURE__ */ import_react25.default.createElement(
+    ), /* @__PURE__ */ import_react26.default.createElement("span", { style: { color: C.textD, fontSize: 14 } }, "\u2192"), /* @__PURE__ */ import_react26.default.createElement(
       "input",
       {
         type: "text",
@@ -35978,7 +40358,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         disabled: busy,
         style: { ...css.input, flex: "1 1 220px", minWidth: 200, padding: "6px 10px", fontSize: 12 }
       }
-    ), /* @__PURE__ */ import_react25.default.createElement(
+    ), /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: onMerge,
@@ -35992,7 +40372,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       busy ? "\u2026" : "Fusionner"
-    )), result && /* @__PURE__ */ import_react25.default.createElement("div", { style: { marginTop: 12, fontSize: 12, lineHeight: 1.6 } }, result.ok === !1 ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { color: C.red } }, result.error) : /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { color: C.text, marginBottom: 4 } }, /* @__PURE__ */ import_react25.default.createElement("b", null, "Local"), " (", localTotal, " entit\xE9", localTotal > 1 ? "s" : "", " mise", localTotal > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", result.local.cases, " \xB7 meetings ", result.local.meetings, " \xB7 enqu\xEAtes ", result.local.investigations, " \xB7 briefs ", result.local.briefs), /* @__PURE__ */ import_react25.default.createElement(RemoteSummary, { remote: result.remote }), localTotal > 0 && /* @__PURE__ */ import_react25.default.createElement(
+    )), result && /* @__PURE__ */ import_react26.default.createElement("div", { style: { marginTop: 12, fontSize: 12, lineHeight: 1.6 } }, result.ok === !1 ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { color: C.red } }, result.error) : /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement("div", { style: { color: C.text, marginBottom: 4 } }, /* @__PURE__ */ import_react26.default.createElement("b", null, "Local"), " (", localTotal, " entit\xE9", localTotal > 1 ? "s" : "", " mise", localTotal > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", result.local.cases, " \xB7 meetings ", result.local.meetings, " \xB7 enqu\xEAtes ", result.local.investigations, " \xB7 briefs ", result.local.briefs), /* @__PURE__ */ import_react26.default.createElement(RemoteSummary, { remote: result.remote }), localTotal > 0 && /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: () => window.location.reload(),
@@ -36005,19 +40385,19 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     if (!remote) return null;
     if (remote.ok) {
       let b = remote.breakdown || {};
-      return /* @__PURE__ */ import_react25.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react25.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
+      return /* @__PURE__ */ import_react26.default.createElement("div", { style: { color: C.textM } }, /* @__PURE__ */ import_react26.default.createElement("b", null, "Supabase"), " (", remote.total, " ligne", remote.total > 1 ? "s" : "", " mise", remote.total > 1 ? "s" : "", " \xE0 jour) \xB7 cases ", b.cases || 0, " \xB7 meetings ", b.meetings || 0, " \xB7 enqu\xEAtes ", b.investigations || 0, " \xB7 briefs ", b.briefs || 0, " \xB7 case_tasks ", b.case_tasks || 0, " \xB7 employees ", (b.employees_full_name || 0) + (b.employees_manager_name || 0));
     }
-    return remote.reason === "no-client" ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.") : remote.reason === "not-authenticated" ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.") : /* @__PURE__ */ import_react25.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
+    return remote.reason === "no-client" ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9 \u2014 local uniquement.") : remote.reason === "not-authenticated" ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { color: C.textD, fontStyle: "italic" } }, "Supabase: session expir\xE9e \u2014 local uniquement.") : /* @__PURE__ */ import_react26.default.createElement("div", { style: { color: C.amber } }, "Supabase: \xE9chec (", remote.reason || "erreur", "). Le rewrite local a quand m\xEAme \xE9t\xE9 appliqu\xE9.");
   }
   function Section({ title, count, color, children }) {
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, title, " ", /* @__PURE__ */ import_react26.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, "(", count, ")"))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children));
   }
   function Empty2({ children }) {
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "6px 0" } }, children);
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.textM, padding: "6px 0" } }, children);
   }
   function Row2({ profile, orgNameById, badge, children }) {
     let orgName = profile.organization_id ? orgNameById[profile.organization_id] || "\u2014" : null;
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
@@ -36025,21 +40405,21 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       background: C.surf,
       border: `1px solid ${C.border}`,
       borderRadius: 8
-    } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       fontSize: 13,
       color: C.text,
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
-    } }, profile.email || /* @__PURE__ */ import_react25.default.createElement("em", { style: { color: C.textD } }, "(sans email)")), badge), /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    } }, profile.email || /* @__PURE__ */ import_react26.default.createElement("em", { style: { color: C.textD } }, "(sans email)")), badge), /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       fontSize: 10,
       color: C.textD,
       fontFamily: "'DM Mono',monospace",
       display: "flex",
       gap: 8,
       flexWrap: "wrap"
-    } }, /* @__PURE__ */ import_react25.default.createElement("span", null, profile.id), orgName && /* @__PURE__ */ import_react25.default.createElement("span", null, "\xB7 org: ", /* @__PURE__ */ import_react25.default.createElement("b", { style: { color: C.textM } }, orgName)))), children);
+    } }, /* @__PURE__ */ import_react26.default.createElement("span", null, profile.id), orgName && /* @__PURE__ */ import_react26.default.createElement("span", null, "\xB7 org: ", /* @__PURE__ */ import_react26.default.createElement("b", { style: { color: C.textM } }, orgName)))), children);
   }
   function RevokedBadge({ disabledAt }) {
     let { t: t2 } = useT(), suffix = "";
@@ -36047,7 +40427,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       let d = new Date(disabledAt);
       Number.isNaN(d.getTime()) || (suffix = ` \xB7 ${d.toLocaleDateString("fr-CA")}`);
     }
-    return /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement(
       "span",
       {
         style: {
@@ -36070,7 +40450,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function RoleBadge({ role }) {
     let { t: t2 } = useT(), r = ROLE_IDS.includes(role) ? role : "hrbp", s = ROLE_STYLE[r];
-    return /* @__PURE__ */ import_react25.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react26.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -36086,7 +40466,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function RoleControl({ profile, isSuperAdmin, busy, isSelf, onChange }) {
     let { t: t2 } = useT(), role = ROLE_IDS.includes(profile.role) ? profile.role : "hrbp";
-    return isSuperAdmin ? /* @__PURE__ */ import_react25.default.createElement(
+    return isSuperAdmin ? /* @__PURE__ */ import_react26.default.createElement(
       "select",
       {
         value: role,
@@ -36101,7 +40481,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           opacity: busy ? 0.6 : 1
         }
       },
-      ROLE_IDS.map((r) => /* @__PURE__ */ import_react25.default.createElement(
+      ROLE_IDS.map((r) => /* @__PURE__ */ import_react26.default.createElement(
         "option",
         {
           key: r,
@@ -36110,11 +40490,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         tRole(t2, r)
       ))
-    ) : /* @__PURE__ */ import_react25.default.createElement(RoleBadge, { role });
+    ) : /* @__PURE__ */ import_react26.default.createElement(RoleBadge, { role });
   }
   function OrgSelect({ organizations, value, onChange, disabled }) {
     let { t: t2 } = useT();
-    return !organizations || organizations.length === 0 ? /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" } }, t2("admin.noOrganization")) : /* @__PURE__ */ import_react25.default.createElement(
+    return !organizations || organizations.length === 0 ? /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic", width: 160, textAlign: "right" } }, t2("admin.noOrganization")) : /* @__PURE__ */ import_react26.default.createElement(
       "select",
       {
         value: value || "",
@@ -36123,16 +40503,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         title: "Organisation",
         style: { ...css.select, width: 180, padding: "6px 8px", fontSize: 12 }
       },
-      /* @__PURE__ */ import_react25.default.createElement("option", { value: "" }, t2("common.none")),
-      organizations.map((o) => /* @__PURE__ */ import_react25.default.createElement("option", { key: o.id, value: o.id }, o.name))
+      /* @__PURE__ */ import_react26.default.createElement("option", { value: "" }, t2("common.none")),
+      organizations.map((o) => /* @__PURE__ */ import_react26.default.createElement("option", { key: o.id, value: o.id }, o.name))
     );
   }
   function OrganizationStatusPanel({ currentProfile, currentOrganization, isSuperAdmin, onUpdated }) {
-    let [busy, setBusy] = (0, import_react25.useState)(!1), [msg, setMsg] = (0, import_react25.useState)(null), [draft, setDraft] = (0, import_react25.useState)(currentOrganization?.status || "");
-    if ((0, import_react25.useEffect)(() => {
+    let [busy, setBusy] = (0, import_react26.useState)(!1), [msg, setMsg] = (0, import_react26.useState)(null), [draft, setDraft] = (0, import_react26.useState)(currentOrganization?.status || "");
+    if ((0, import_react26.useEffect)(() => {
       setDraft(currentOrganization?.status || "");
     }, [currentOrganization?.status]), !currentProfile?.organization_id)
-      return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.textD } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "Aucune organisation assign\xE9e."));
+      return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.textD } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "Aucune organisation assign\xE9e."));
     let status = currentOrganization?.status || "\u2014", swatch = isOrgStatusActive(status) ? C.em : C.red, save = async () => {
       if (!draft || draft === status) return;
       setBusy(!0), setMsg(null);
@@ -36144,7 +40524,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       let detail = res.reason === "not-allowed" ? "r\xF4le super_admin requis" : res.reason === "invalid-status" ? "statut invalide" : res.reason === "no-client" ? "Supabase non configur\xE9" : res.reason || "erreur";
       setMsg({ kind: "err", text: `\xC9chec : ${detail}` });
     };
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: swatch } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation", currentOrganization?.name && /* @__PURE__ */ import_react25.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 ", currentOrganization.name))), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Les statuts ", /* @__PURE__ */ import_react25.default.createElement("b", null, "trialing"), " et ", /* @__PURE__ */ import_react25.default.createElement("b", null, "active"), " donnent acc\xE8s \xE0 l'application. Les statuts", /* @__PURE__ */ import_react25.default.createElement("b", null, " past_due"), ", ", /* @__PURE__ */ import_react25.default.createElement("b", null, "suspended"), " et ", /* @__PURE__ */ import_react25.default.createElement("b", null, "cancelled"), " bloquent l'acc\xE8s des membres."), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: swatch } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Statut de l'organisation", currentOrganization?.name && /* @__PURE__ */ import_react26.default.createElement("span", { style: { color: C.textM, fontWeight: 400 } }, " \xB7 ", currentOrganization.name))), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Les statuts ", /* @__PURE__ */ import_react26.default.createElement("b", null, "trialing"), " et ", /* @__PURE__ */ import_react26.default.createElement("b", null, "active"), " donnent acc\xE8s \xE0 l'application. Les statuts", /* @__PURE__ */ import_react26.default.createElement("b", null, " past_due"), ", ", /* @__PURE__ */ import_react26.default.createElement("b", null, "suspended"), " et ", /* @__PURE__ */ import_react26.default.createElement("b", null, "cancelled"), " bloquent l'acc\xE8s des membres."), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -36155,7 +40535,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       color: swatch,
       whiteSpace: "nowrap",
       fontFamily: "'DM Mono',monospace"
-    } }, status), isSuperAdmin ? /* @__PURE__ */ import_react25.default.createElement(import_react25.default.Fragment, null, /* @__PURE__ */ import_react25.default.createElement(
+    } }, status), isSuperAdmin ? /* @__PURE__ */ import_react26.default.createElement(import_react26.default.Fragment, null, /* @__PURE__ */ import_react26.default.createElement(
       "select",
       {
         value: draft,
@@ -36163,8 +40543,8 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         onChange: (e) => setDraft(e.target.value),
         style: { ...css.select, width: 160, padding: "6px 8px", fontSize: 12 }
       },
-      ORG_STATUSES.map((s) => /* @__PURE__ */ import_react25.default.createElement("option", { key: s, value: s }, s))
-    ), /* @__PURE__ */ import_react25.default.createElement(
+      ORG_STATUSES.map((s) => /* @__PURE__ */ import_react26.default.createElement("option", { key: s, value: s }, s))
+    ), /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: save,
@@ -36178,15 +40558,15 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       busy ? "\u2026" : "Enregistrer"
-    )) : /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Seul un super_admin peut modifier ce statut.")), msg && /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    )) : /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Seul un super_admin peut modifier ce statut.")), msg && /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       marginTop: 10,
       fontSize: 12,
       color: msg.kind === "ok" ? C.em : C.red
     } }, msg.text));
   }
   function BillingPanel({ currentProfile }) {
-    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react25.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react25.useState)(0), [trialBusy, setTrialBusy] = (0, import_react25.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react25.useState)(null), [stripeBusy, setStripeBusy] = (0, import_react25.useState)(!1), [stripeMsg, setStripeMsg] = (0, import_react25.useState)(null), [portalBusy, setPortalBusy] = (0, import_react25.useState)(!1), [portalMsg, setPortalMsg] = (0, import_react25.useState)(null), stripeEnabled = isStripeConfigured();
-    if ((0, import_react25.useEffect)(() => {
+    let orgId = currentProfile?.organization_id || null, isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", [state, setState] = (0, import_react26.useState)({ status: "idle", data: null, reason: null }), [reloadTick, setReloadTick] = (0, import_react26.useState)(0), [trialBusy, setTrialBusy] = (0, import_react26.useState)(!1), [trialMsg, setTrialMsg] = (0, import_react26.useState)(null), [stripeBusy, setStripeBusy] = (0, import_react26.useState)(!1), [stripeMsg, setStripeMsg] = (0, import_react26.useState)(null), [portalBusy, setPortalBusy] = (0, import_react26.useState)(!1), [portalMsg, setPortalMsg] = (0, import_react26.useState)(null), stripeEnabled = isStripeConfigured();
+    if ((0, import_react26.useEffect)(() => {
       let cancelled = !1;
       return orgId ? (setState({ status: "loading", data: null, reason: null }), getOrganizationBilling(orgId).then((res) => {
         if (!cancelled) {
@@ -36233,7 +40613,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }
       window.location.assign(res.url);
     }, hasSubscription = state.status === "ready" && !!state.data?.subscription, hasStripeCustomer = hasSubscription && !!state.data?.subscription?.stripe_customer_id;
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react25.default.createElement(BillingBody, { state, userEmail: currentProfile?.email }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react25.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Facturation")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Plan, statut d'abonnement, limites et consommation. Lecture seule \u2014 Stripe sera branch\xE9 dans une \xE9tape ult\xE9rieure."), /* @__PURE__ */ import_react26.default.createElement(BillingBody, { state, userEmail: currentProfile?.email }), stripeEnabled && state.status === "ready" && /* @__PURE__ */ import_react26.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: onStripeUpgrade,
@@ -36247,11 +40627,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       stripeBusy ? "\u2026" : "Upgrade with Stripe"
-    ), stripeMsg && /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    ), stripeMsg && /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       marginTop: 8,
       fontSize: 12,
       color: stripeMsg.kind === "ok" ? C.em : C.red
-    } }, stripeMsg.text)), hasStripeCustomer && /* @__PURE__ */ import_react25.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react25.default.createElement(
+    } }, stripeMsg.text)), hasStripeCustomer && /* @__PURE__ */ import_react26.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: onOpenPortal,
@@ -36265,11 +40645,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       portalBusy ? "\u2026" : "G\xE9rer la facturation"
-    ), portalMsg && /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    ), portalMsg && /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       marginTop: 8,
       fontSize: 12,
       color: portalMsg.kind === "ok" ? C.em : C.red
-    } }, portalMsg.text)), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react25.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react25.default.createElement(
+    } }, portalMsg.text)), isSuperAdmin && !hasSubscription && state.status === "ready" && /* @__PURE__ */ import_react26.default.createElement("div", { style: { marginTop: 12 } }, /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: onCreateTrial,
@@ -36283,7 +40663,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       trialBusy ? "\u2026" : "Create Starter Trial"
-    ), trialMsg && /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    ), trialMsg && /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       marginTop: 8,
       fontSize: 12,
       color: trialMsg.kind === "ok" ? C.em : C.red
@@ -36291,16 +40671,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
   }
   function BillingBody({ state, userEmail }) {
     if (state.status === "loading")
-      return /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Chargement\u2026");
+      return /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Chargement\u2026");
     if (state.status === "error")
-      return state.reason === "no-client" ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9.") : /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.red } }, "Erreur (", state.reason, ").");
+      return state.reason === "no-client" ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.textD, fontStyle: "italic" } }, "Supabase non configur\xE9.") : /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.red } }, "Erreur (", state.reason, ").");
     if (state.status !== "ready" || !state.data) return null;
     let { subscription, plan, usage } = state.data;
-    return subscription ? /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react25.default.createElement(BillingHeader, { subscription, plan, userEmail }), /* @__PURE__ */ import_react25.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react25.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
+    return subscription ? /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ import_react26.default.createElement(BillingHeader, { subscription, plan, userEmail }), /* @__PURE__ */ import_react26.default.createElement(BillingLimits, { plan }), /* @__PURE__ */ import_react26.default.createElement(BillingUsage, { usage, plan })) : /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.textM } }, "Aucun abonnement provisionn\xE9 pour cette organisation.");
   }
   function BillingHeader({ subscription, plan, userEmail }) {
     let access = getBillingAccess(subscription, userEmail), status = subscription.status || "\u2014", swatch = access.hasFullAccess ? C.em : C.amber, accessLabel = access.hasFullAccess ? "Acc\xE8s complet" : "Acc\xE8s limit\xE9";
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: {
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: {
       fontSize: 11,
       fontWeight: 600,
       letterSpacing: 0.3,
@@ -36311,28 +40691,28 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       color: swatch,
       whiteSpace: "nowrap",
       fontFamily: "'DM Mono',monospace"
-    } }, status), /* @__PURE__ */ import_react25.default.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: swatch } }, accessLabel), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react25.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
+    } }, status), /* @__PURE__ */ import_react26.default.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: swatch } }, accessLabel), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 12, color: C.text } }, "Plan : ", /* @__PURE__ */ import_react26.default.createElement("b", null, plan ? `${plan.name} (${plan.code})` : "\u2014")), subscription.current_period_end && /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin de p\xE9riode : ", new Date(subscription.current_period_end).toLocaleDateString("fr-CA")), subscription.trial_ends_at && /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM } }, "fin d'essai : ", new Date(subscription.trial_ends_at).toLocaleDateString("fr-CA")));
   }
   function BillingLimits({ plan }) {
     if (!plan) return null;
     let fmt = (v) => v == null ? "illimit\xE9" : String(v), price = (plan.monthly_price_cents || 0) / 100;
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.6 } }, /* @__PURE__ */ import_react25.default.createElement("b", null, "Limites :"), " utilisateurs ", fmt(plan.max_users), " \xB7 dossiers ", fmt(plan.max_cases), " \xB7 requ\xEAtes IA ", fmt(plan.max_ai_requests), " \xB7 prix ", price.toFixed(2), " $ / mois");
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, lineHeight: 1.6 } }, /* @__PURE__ */ import_react26.default.createElement("b", null, "Limites :"), " utilisateurs ", fmt(plan.max_users), " \xB7 dossiers ", fmt(plan.max_cases), " \xB7 requ\xEAtes IA ", fmt(plan.max_ai_requests), " \xB7 prix ", price.toFixed(2), " $ / mois");
   }
   function BillingUsage({ usage, plan }) {
     if (!usage || usage.length === 0)
-      return /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Aucune donn\xE9e d'usage encore enregistr\xE9e.");
+      return /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textD, fontStyle: "italic" } }, "Aucune donn\xE9e d'usage encore enregistr\xE9e.");
     let latestPeriod = usage[0].period_start, current = usage.filter((u) => u.period_start === latestPeriod), limitByMetric = plan ? {
       users: plan.max_users,
       cases: plan.max_cases,
       ai_requests: plan.max_ai_requests
     } : {};
-    return /* @__PURE__ */ import_react25.default.createElement("div", null, /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 4 } }, /* @__PURE__ */ import_react25.default.createElement("b", null, "Usage"), " \xB7 p\xE9riode : ", new Date(latestPeriod).toLocaleDateString("fr-CA")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, current.map((row) => {
+    return /* @__PURE__ */ import_react26.default.createElement("div", null, /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 4 } }, /* @__PURE__ */ import_react26.default.createElement("b", null, "Usage"), " \xB7 p\xE9riode : ", new Date(latestPeriod).toLocaleDateString("fr-CA")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, current.map((row) => {
       let limit = limitByMetric[row.metric], limitStr = limit ?? "illimit\xE9";
-      return /* @__PURE__ */ import_react25.default.createElement("div", { key: row.id, style: { fontSize: 11, color: C.text, fontFamily: "'DM Mono',monospace" } }, row.metric, " : ", String(row.value), " / ", limitStr);
+      return /* @__PURE__ */ import_react26.default.createElement("div", { key: row.id, style: { fontSize: 11, color: C.text, fontFamily: "'DM Mono',monospace" } }, row.metric, " : ", String(row.value), " / ", limitStr);
     })));
   }
   function ExportOrganizationPanel({ currentProfile }) {
-    let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react25.useState)(!1), [msg, setMsg] = (0, import_react25.useState)(null);
+    let role = currentProfile?.role, allowed = role === "admin" || role === "super_admin", [busy, setBusy] = (0, import_react26.useState)(!1), [msg, setMsg] = (0, import_react26.useState)(null);
     if (!allowed) return null;
     let onExport = async () => {
       setBusy(!0), setMsg(null);
@@ -36350,7 +40730,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         setBusy(!1);
       }
     };
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Export Organization Data")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "T\xE9l\xE9charge un instantan\xE9 JSON de toutes les donn\xE9es de votre organisation (employ\xE9s, dossiers, rencontres, enqu\xEAtes, briefs, t\xE2ches, journal d'audit)."), /* @__PURE__ */ import_react25.default.createElement(
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.blue } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Export Organization Data")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "T\xE9l\xE9charge un instantan\xE9 JSON de toutes les donn\xE9es de votre organisation (employ\xE9s, dossiers, rencontres, enqu\xEAtes, briefs, t\xE2ches, journal d'audit)."), /* @__PURE__ */ import_react26.default.createElement(
       "button",
       {
         onClick: onExport,
@@ -36364,14 +40744,14 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         }
       },
       busy ? "\u2026" : "Export Organization Data"
-    ), msg && /* @__PURE__ */ import_react25.default.createElement("div", { style: {
+    ), msg && /* @__PURE__ */ import_react26.default.createElement("div", { style: {
       marginTop: 10,
       fontSize: 12,
       color: msg.kind === "ok" ? C.em : C.red
     } }, msg.text));
   }
   function RenameIdentityPanel() {
-    return /* @__PURE__ */ import_react25.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react25.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react25.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Renommer un employ\xE9 / gestionnaire")), /* @__PURE__ */ import_react25.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo dans un nom (ex\xA0: ", /* @__PURE__ */ import_react25.default.createElement("i", null, "CHanny Tremblay"), " \u2192 ", /* @__PURE__ */ import_react25.default.createElement("i", null, "Channy Tremblay"), ").", /* @__PURE__ */ import_react25.default.createElement("b", null, " Preview"), " compte les occurrences sans rien \xE9crire ; ", /* @__PURE__ */ import_react25.default.createElement("b", null, "Appliquer"), " ex\xE9cute le rename sur localStorage et Supabase (si disponible)."), /* @__PURE__ */ import_react25.default.createElement(IdentityRenameForm, null));
+    return /* @__PURE__ */ import_react26.default.createElement("div", { style: { ...css.card, marginBottom: 14 } }, /* @__PURE__ */ import_react26.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ import_react26.default.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: C.teal } }), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: C.text } }, "Renommer un employ\xE9 / gestionnaire")), /* @__PURE__ */ import_react26.default.createElement("div", { style: { fontSize: 11, color: C.textM, marginBottom: 10, lineHeight: 1.5 } }, "Corrige une typo dans un nom (ex\xA0: ", /* @__PURE__ */ import_react26.default.createElement("i", null, "CHanny Tremblay"), " \u2192 ", /* @__PURE__ */ import_react26.default.createElement("i", null, "Channy Tremblay"), ").", /* @__PURE__ */ import_react26.default.createElement("b", null, " Preview"), " compte les occurrences sans rien \xE9crire ; ", /* @__PURE__ */ import_react26.default.createElement("b", null, "Appliquer"), " ex\xE9cute le rename sur localStorage et Supabase (si disponible)."), /* @__PURE__ */ import_react26.default.createElement(IdentityRenameForm, null));
   }
 
   // src/index.jsx
@@ -36470,7 +40850,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     )));
   }
   function LimitedAccessScreen({ subscription, isAdmin, onGoAdmin, onSignOut }) {
-    let { t: t2 } = useT(), [busyKind, setBusyKind] = (0, import_react26.useState)(null), [errMsg, setErrMsg] = (0, import_react26.useState)(""), hasStripeCustomer = !!subscription?.stripe_customer_id, stripeEnabled = isStripeConfigured(), onPortal = async () => {
+    let { t: t2 } = useT(), [busyKind, setBusyKind] = (0, import_react27.useState)(null), [errMsg, setErrMsg] = (0, import_react27.useState)(""), hasStripeCustomer = !!subscription?.stripe_customer_id, stripeEnabled = isStripeConfigured(), onPortal = async () => {
       setBusyKind("portal"), setErrMsg("");
       let res = await openBillingPortal();
       if (!res.ok) {
@@ -36612,7 +40992,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     )));
   }
   function LoginScreen() {
-    let { t: t2 } = useT(), [email, setEmail] = (0, import_react26.useState)(""), [status, setStatus] = (0, import_react26.useState)("idle"), [errorReason, setErrorReason] = (0, import_react26.useState)(""), send = async () => {
+    let { t: t2 } = useT(), [email, setEmail] = (0, import_react27.useState)(""), [status, setStatus] = (0, import_react27.useState)("idle"), [errorReason, setErrorReason] = (0, import_react27.useState)(""), send = async () => {
       if (!email || status === "sending") return;
       setStatus("sending"), setErrorReason("");
       let res = await signIn(email);
@@ -36685,11 +41065,12 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       fontSize: 11
     } }, /* @__PURE__ */ React.createElement("a", { href: "/privacy", style: { color: C.textM, textDecoration: "none" } }, "Confidentialit\xE9"), /* @__PURE__ */ React.createElement("a", { href: "/terms", style: { color: C.textM, textDecoration: "none" } }, "Conditions"), /* @__PURE__ */ React.createElement("a", { href: "/subprocessors", style: { color: C.textM, textDecoration: "none" } }, "Sous-traitants"), /* @__PURE__ */ React.createElement("a", { href: "/support", style: { color: C.textM, textDecoration: "none" } }, "Support"))));
   }
-  function HRBPOS() {
-    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react26.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react26.useState)(!1), [denied, setDenied] = (0, import_react26.useState)(null), [userProfile, setUserProfile] = (0, import_react26.useState)(null), [profileChecked, setProfileChecked] = (0, import_react26.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react26.useState)(null), [orgChecked, setOrgChecked] = (0, import_react26.useState)(!1), [userSubscription, setUserSubscription] = (0, import_react26.useState)(null), [subscriptionChecked, setSubscriptionChecked] = (0, import_react26.useState)(!1), [module, setModule] = (0, import_react26.useState)("home"), [showMore, setShowMore] = (0, import_react26.useState)(!1), [data, setData] = (0, import_react26.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react26.useState)(!1), [loaded, setLoaded] = (0, import_react26.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react26.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react26.useState)(null), [focusExitId, setFocusExitId] = (0, import_react26.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react26.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react26.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react26.useState)(null), [settingsOpen, setSettingsOpen] = (0, import_react26.useState)(!1), settingsBtnRef = (0, import_react26.useRef)(null), handleNavigate = (0, import_react26.useCallback)((id, ctx) => {
+  initSentry();
+  function HRBPOSInner() {
+    let { t: t2, lang, setLang: setLang2 } = useT(), [supaSession, setSupaSession] = (0, import_react27.useState)(null), [sessionChecked, setSessionChecked] = (0, import_react27.useState)(!1), [denied, setDenied] = (0, import_react27.useState)(null), [userProfile, setUserProfile] = (0, import_react27.useState)(null), [profileChecked, setProfileChecked] = (0, import_react27.useState)(!1), [userOrganization, setUserOrganization] = (0, import_react27.useState)(null), [orgChecked, setOrgChecked] = (0, import_react27.useState)(!1), [userSubscription, setUserSubscription] = (0, import_react27.useState)(null), [subscriptionChecked, setSubscriptionChecked] = (0, import_react27.useState)(!1), [module, setModule] = (0, import_react27.useState)("home"), [showMore, setShowMore] = (0, import_react27.useState)(!1), [data, setData] = (0, import_react27.useState)({ cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }), [toast, setToast] = (0, import_react27.useState)(!1), [loaded, setLoaded] = (0, import_react27.useState)(!1), [focusCaseId, setFocusCaseId] = (0, import_react27.useState)(null), [focusMeetingId, setFocusMeetingId] = (0, import_react27.useState)(null), [focusExitId, setFocusExitId] = (0, import_react27.useState)(null), [focusSignalId, setFocusSignalId] = (0, import_react27.useState)(null), [focusDecisionId, setFocusDecisionId] = (0, import_react27.useState)(null), [focusInvestigationId, setFocusInvestigationId] = (0, import_react27.useState)(null), [settingsOpen, setSettingsOpen] = (0, import_react27.useState)(!1), settingsBtnRef = (0, import_react27.useRef)(null), handleNavigate = (0, import_react27.useCallback)((id, ctx) => {
       ctx?.focusCaseId && setFocusCaseId(ctx.focusCaseId), ctx?.focusMeetingId && setFocusMeetingId(ctx.focusMeetingId), ctx?.focusExitId && setFocusExitId(ctx.focusExitId), ctx?.focusSignalId && setFocusSignalId(ctx.focusSignalId), ctx?.focusDecisionId && setFocusDecisionId(ctx.focusDecisionId), ctx?.focusInvestigationId && setFocusInvestigationId(ctx.focusInvestigationId), setModule(id);
     }, []);
-    (0, import_react26.useEffect)(() => {
+    (0, import_react27.useEffect)(() => {
       let defaults = { cases: [], meetings: [], signals: [], decisions: [], coaching: [], exits: [], investigations: [], briefs: [], prep1on1: [], sentRecaps: [], portfolio: [], leaders: {}, radars: [], nextWeekLocks: [], plans306090: [], profile: { defaultProvince: "QC" } }, timeout = setTimeout(() => setLoaded(!0), 1500);
       Promise.allSettled(
         Object.entries(SK).map(async ([k, sk]) => {
@@ -36761,7 +41142,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch(() => {
         clearTimeout(timeout), setLoaded(!0);
       });
-    }, []), (0, import_react26.useEffect)(() => {
+    }, []), (0, import_react27.useEffect)(() => {
       let cancelled = !1;
       (async () => {
         if (typeof window < "u") {
@@ -36800,7 +41181,16 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       return () => {
         cancelled = !0, unsubscribe();
       };
-    }, []), (0, import_react26.useEffect)(() => {
+    }, []), (0, import_react27.useEffect)(() => {
+      supaSession?.user ? setUserContext({
+        id: supaSession.user.id,
+        email: supaSession.user.email,
+        org: userProfile?.organization_id,
+        role: userProfile?.role
+      }) : clearUserContext();
+    }, [supaSession, userProfile?.organization_id, userProfile?.role]), (0, import_react27.useEffect)(() => {
+      setRouteContext(module);
+    }, [module]), (0, import_react27.useEffect)(() => {
       if (!hasSupabase) {
         setProfileChecked(!0);
         return;
@@ -36822,7 +41212,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       })(), () => {
         cancelled = !0;
       };
-    }, [supaSession]), (0, import_react26.useEffect)(() => {
+    }, [supaSession]), (0, import_react27.useEffect)(() => {
       if (!hasSupabase) {
         setOrgChecked(!0);
         return;
@@ -36839,7 +41229,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       })(), () => {
         cancelled = !0;
       };
-    }, [profileChecked, userProfile]), (0, import_react26.useEffect)(() => {
+    }, [profileChecked, userProfile]), (0, import_react27.useEffect)(() => {
       if (!hasSupabase) {
         setSubscriptionChecked(!0);
         return;
@@ -36859,7 +41249,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     }, [profileChecked, userProfile]);
     let showToast = () => {
       setToast(!0), setTimeout(() => setToast(!1), 2e3);
-    }, handleSave = (0, import_react26.useCallback)(async (key2, value) => {
+    }, handleSave = (0, import_react27.useCallback)(async (key2, value) => {
       let skKey = SK[key2];
       if (!skKey) return;
       let toSave = value;
@@ -36880,7 +41270,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch((err) => {
         console.warn("[supabase] saveBriefs threw:", err);
       });
-    }, []), handleSaveMeeting = (0, import_react26.useCallback)(async (session, caseEntry) => {
+    }, []), handleSaveMeeting = (0, import_react27.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
       let meetingCheck = checkUsage(userSubscription, "meetings", (data.meetings || []).length, userProfile?.email);
       if (!meetingCheck.allowed) {
@@ -36938,7 +41328,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         });
       }
       showToast();
-    }, [data, userSubscription]), handleUpdateMeeting = (0, import_react26.useCallback)(async (updatedSession) => {
+    }, [data, userSubscription]), handleUpdateMeeting = (0, import_react27.useCallback)(async (updatedSession) => {
       let newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
@@ -36947,7 +41337,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       }).catch((err) => {
         console.warn("[supabase] saveMeetings threw:", err);
       }), showToast();
-    }, [data]), transitionCase = (0, import_react26.useCallback)(async (caseId, newStatus, extraPatch) => {
+    }, [data]), transitionCase = (0, import_react27.useCallback)(async (caseId, newStatus, extraPatch) => {
       let allCases = data.cases || [], target = allCases.find((c) => c.id === caseId);
       if (!target)
         return console.warn("[transition] case not found:", caseId), { ok: !1, reason: "not-found" };
@@ -37202,17 +41592,29 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           handleSave("profile", updated);
         }
       }
-    ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(
-      LimitedAccessScreen,
+    ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, /* @__PURE__ */ React.createElement(
+      ErrorBoundary,
       {
-        subscription: userSubscription,
-        isAdmin,
-        onGoAdmin: () => setModule("admin"),
-        onSignOut: async () => {
-          await signOut();
+        key: safeModule,
+        scope: `module:${safeModule}`,
+        compact: !0,
+        onRetry: () => setModule("home")
+      },
+      loaded ? gateModule ? /* @__PURE__ */ React.createElement(
+        LimitedAccessScreen,
+        {
+          subscription: userSubscription,
+          isAdmin,
+          onGoAdmin: () => setModule("admin"),
+          onSignOut: async () => {
+            await signOut();
+          }
         }
-      }
-    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, { data }) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+      ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, { data }) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" }))
+    ))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+  }
+  function HRBPOS() {
+    return /* @__PURE__ */ React.createElement(ErrorBoundary, { scope: "root" }, /* @__PURE__ */ React.createElement(HRBPOSInner, null));
   }
   return __toCommonJS(index_exports);
 })();

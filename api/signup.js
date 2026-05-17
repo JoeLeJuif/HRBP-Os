@@ -18,6 +18,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { sendTransactionalEmail } from "./lib/email.js";
 import { welcomeTrialEmail } from "./lib/emailTemplates.js";
+import { requireEnv } from "./lib/env.js";
+import { withSentry } from "./lib/sentry.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ||
@@ -105,7 +107,7 @@ function trimStr(v, max) {
   return t.length > max ? t.slice(0, max) : t;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -115,6 +117,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: { message: "Method not allowed" } });
   }
 
+  if (requireEnv("supabase-admin", res, "api/signup")) return;
   if (!admin || !anon) {
     logEvent({ event: "misconfigured", status: 500, reason: "supabase-not-configured" });
     return res.status(500).json({ error: { message: GENERIC_ERR } });
@@ -303,3 +306,5 @@ export default async function handler(req, res) {
   logEvent({ event: "success", status: 200, org_id: orgId, magic_link_sent: magicLinkSent });
   return res.status(200).json({ ok: true });
 }
+
+export default withSentry(handler);

@@ -254,6 +254,36 @@ function rpcReason(error) {
   return "rpc-error";
 }
 
+// Best-effort: tells the server to send the "access approved" notification
+// email to a freshly approved profile. Never throws. Returns the server's
+// response shape (with `ok`, `sent`, `skipped`, `reason`) for logging only —
+// callers should NOT block the UI on this. Requires a live Supabase session;
+// the access token is forwarded so /api/notify-approved can re-check the
+// caller's admin rights server-side.
+export async function notifyApprovedUser(targetUserId) {
+  if (!supabase) return { ok: false, reason: "no-client" };
+  if (!targetUserId) return { ok: false, reason: "invalid-id" };
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return { ok: false, reason: "no-session" };
+    const res = await fetch("/api/notify-approved", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ target_user_id: targetUserId }),
+    });
+    let payload = null;
+    try { payload = await res.json(); } catch {}
+    if (!res.ok) return { ok: false, reason: `http_${res.status}`, payload };
+    return { ok: true, ...(payload || {}) };
+  } catch (err) {
+    return { ok: false, reason: "network-error", error: err };
+  }
+}
+
 export async function listOrganizations() {
   if (!supabase) return NO_CLIENT;
   const { data, error } = await supabase

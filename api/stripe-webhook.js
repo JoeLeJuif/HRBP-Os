@@ -15,6 +15,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { sendTransactionalEmail } from "./lib/email.js";
+import { requireEnv } from "./lib/env.js";
+import { withSentry, captureException } from "./lib/sentry.js";
 import {
   paymentFailedEmail,
   subscriptionCancelledEmail,
@@ -354,13 +356,11 @@ async function sendInvoicePaidEmailSafe(stripe, invoice) {
   }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: { message: "Method not allowed" } });
   }
-  if (!STRIPE_SECRET_KEY || !STRIPE_WEBHOOK_SECRET) {
-    return res.status(500).json({ error: { message: "Stripe non configuré" } });
-  }
+  if (requireEnv("stripe-webhook", res, "api/stripe-webhook")) return;
 
   const signature = req.headers["stripe-signature"];
   if (!signature) {
@@ -447,9 +447,12 @@ export default async function handler(req, res) {
         break;
     }
   } catch (err) {
+    captureException(err, { scope: "stripe-webhook", event_type: event?.type });
     console.error("[stripe-webhook] handler error:", err?.message);
     return res.status(500).json({ error: { message: "Handler failed" } });
   }
 
   return res.status(200).json({ received: true });
 }
+
+export default withSentry(handler);

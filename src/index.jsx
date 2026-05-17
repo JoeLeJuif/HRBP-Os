@@ -32,6 +32,8 @@ import Divider       from './components/Divider.jsx';
 import AILoader      from './components/AILoader.jsx';
 import Spotlight     from './components/Spotlight.jsx';
 import SettingsDropdown from './components/SettingsDropdown.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { initSentry, setUserContext, setRouteContext, clearUserContext } from './lib/sentry.js';
 // import Card         from './components/Card.jsx';
 // import Badge        from './components/Badge.jsx';
 // import ProvinceBadge  from './components/ProvinceBadge.jsx';
@@ -371,8 +373,11 @@ function LoginScreen() {
   );
 }
 
+// Sentry boots once at module load — no-op if VITE_SENTRY_DSN is not set.
+initSentry();
+
 // ── Root component (Source: HRBP_OS.jsx L.10743-11097) ────────────────────────
-export default function HRBPOS() {
+function HRBPOSInner() {
   const { t, lang, setLang } = useT();
   const [supaSession, setSupaSession] = useState(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -590,6 +595,22 @@ export default function HRBPOS() {
     }
     return () => { cancelled = true; unsubscribe(); };
   }, []);
+
+  // Keep Sentry user/route context in sync with session + module changes.
+  useEffect(() => {
+    if (supaSession?.user) {
+      setUserContext({
+        id: supaSession.user.id,
+        email: supaSession.user.email,
+        org: userProfile?.organization_id,
+        role: userProfile?.role,
+      });
+    } else {
+      clearUserContext();
+    }
+  }, [supaSession, userProfile?.organization_id, userProfile?.role]);
+
+  useEffect(() => { setRouteContext(module); }, [module]);
 
   // Fetch the current user's profile after session is established. If no row
   // exists in public.profiles, fetchOrCreateProfile inserts one with defaults
@@ -1101,6 +1122,12 @@ export default function HRBPOS() {
 
         {/* Module area — stubs until migration complete */}
         <div style={{ flex:1, overflowY:"auto", padding:"24px" }} className="fadein">
+          <ErrorBoundary
+            key={safeModule}
+            scope={`module:${safeModule}`}
+            compact
+            onRetry={() => setModule("home")}
+          >
           {!loaded ? (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
               <AILoader label="Chargement du système"/>
@@ -1131,11 +1158,23 @@ export default function HRBPOS() {
           : safeModule === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
           : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile} currentOrganization={userOrganization} onOrganizationUpdated={setUserOrganization} subscription={userSubscription}/> : null)
           : null}
+          </ErrorBoundary>
         </div>
       </div>
 
       <SavedToast show={toast}/>
       <Spotlight data={data} onNavigate={handleNavigate}/>
     </div>
+  );
+}
+
+// Global Error Boundary wraps the entire app — any uncaught render error inside
+// HRBPOSInner (including the module-level boundary fallback itself) bubbles up
+// to a full-screen retry/reload surface.
+export default function HRBPOS() {
+  return (
+    <ErrorBoundary scope="root">
+      <HRBPOSInner />
+    </ErrorBoundary>
   );
 }

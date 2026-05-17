@@ -264,3 +264,37 @@ export function trialEndingSoonEmail({ firstName, trialEndsAt, daysRemaining } =
     }),
   };
 }
+
+export function accessApprovedEmail({ firstName, organizationName, appUrl } = {}) {
+  const nameFr = firstName ? `, ${firstName}` : "";
+  const nameEn = firstName ? `, ${firstName}` : "";
+  const orgFr = organizationName ? ` (${organizationName})` : "";
+  const orgEn = organizationName ? ` (${organizationName})` : "";
+  const url = appUrl || APP_URL;
+  return {
+    subject: `Accès approuvé / Access approved — ${APP_NAME}`,
+    html: buildBilingualHtml({
+      heading: "Accès approuvé / Access approved",
+      fr: `<p>Bonjour${escapeHtml(nameFr)},</p>
+        <p>Votre accès à ${escapeHtml(APP_NAME)}${escapeHtml(orgFr)} a été approuvé. Vous pouvez maintenant vous connecter.</p>`,
+      en: `<p>Hello${escapeHtml(nameEn)},</p>
+        <p>Your access to ${escapeHtml(APP_NAME)}${escapeHtml(orgEn)} has been approved. You can now sign in.</p>`,
+      ctaLabel: "Ouvrir / Open",
+      ctaHref: url,
+    }),
+    text: buildBilingualText({
+      frLines: [
+        `Bonjour${nameFr},`,
+        "",
+        `Votre accès à ${APP_NAME}${orgFr} a été approuvé.`,
+        `Connectez-vous : ${url}`,
+      ],
+      enLines: [
+        `Hello${nameEn},`,
+        "",
+        `Your access to ${APP_NAME}${orgEn} has been approved.`,
+        `Sign in: ${url}`,
+      ],
+    }),
+  };
+}

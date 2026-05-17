@@ -13,6 +13,8 @@
 // read-only view. Free/trial orgs that never hit this endpoint are unaffected.
 
 import { createClient } from "@supabase/supabase-js";
+import { requireEnv } from "./lib/env.js";
+import { withSentry } from "./lib/sentry.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ||
@@ -35,19 +37,15 @@ function applyCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   applyCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") {
     return res.status(405).json({ error: { message: "Method not allowed" } });
   }
 
-  if (!STRIPE_SECRET_KEY) {
-    return res.status(500).json({ error: { message: "Stripe non configuré" } });
-  }
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return res.status(500).json({ error: { message: "Supabase non configuré" } });
-  }
+  if (requireEnv("stripe", res, "api/stripe-checkout")) return;
+  if (requireEnv("supabase-read", res, "api/stripe-checkout")) return;
 
   const authHeader = req.headers["authorization"] || req.headers["Authorization"] || "";
   const match = /^Bearer\s+(.+)$/i.exec(String(authHeader).trim());
@@ -142,3 +140,5 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ url: session.url });
 }
+
+export default withSentry(handler);
