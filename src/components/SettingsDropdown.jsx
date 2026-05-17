@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { C } from "../theme.js";
 import { useT } from "../lib/i18n.js";
+import ProvinceSelect from "./ProvinceSelect.jsx";
 
 export const APP_VERSION = "v1.0.0";
 
@@ -130,6 +131,8 @@ export default function SettingsDropdown({
   userProfile,
   onNavigateAdmin,
   onSignOut,
+  currentProvince,
+  onProvinceChange,
 }) {
   const { t, lang, setLang } = useT();
   const panelRef = useRef(null);
@@ -245,6 +248,15 @@ export default function SettingsDropdown({
           value={lang}
           onChange={setLang}
           options={[{ value: "en", label: "EN" }, { value: "fr", label: "FR" }]}
+        />
+      </SectionRow>
+
+      {/* Province par défaut — persisté dans profile.defaultProvince */}
+      <SectionRow icon="📍" label={t("common.province")}>
+        <ProvinceSelect
+          value={currentProvince || "QC"}
+          onChange={(e) => onProvinceChange?.(e.target.value)}
+          style={{ width: "100%", padding: "6px 8px", fontSize: 11, borderRadius: 6 }}
         />
       </SectionRow>
 

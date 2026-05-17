@@ -21049,30 +21049,6 @@ Do not translate employee names, case notes, job titles, or user-entered content
     } }), /* @__PURE__ */ React.createElement(Mono, { color: C.textD }, label));
   }
 
-  // src/components/ProvinceSelect.jsx
-  function ProvinceSelect({ value, onChange, style = {} }) {
-    return /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: value || "QC",
-        onChange,
-        style: {
-          background: C.surfL,
-          border: `1px solid ${C.border}`,
-          borderRadius: 7,
-          padding: "9px 10px",
-          color: C.text,
-          fontSize: 13,
-          fontFamily: "'DM Sans',sans-serif",
-          outline: "none",
-          cursor: "pointer",
-          ...style
-        }
-      },
-      PROVINCES.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }, p))
-    );
-  }
-
   // src/components/Spotlight.jsx
   var import_react2 = __require("react");
   var TYPE_META = {
@@ -21270,6 +21246,32 @@ Do not translate employee names, case notes, job titles, or user-entered content
 
   // src/components/SettingsDropdown.jsx
   var import_react3 = __require("react");
+
+  // src/components/ProvinceSelect.jsx
+  function ProvinceSelect({ value, onChange, style = {} }) {
+    return /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: value || "QC",
+        onChange,
+        style: {
+          background: C.surfL,
+          border: `1px solid ${C.border}`,
+          borderRadius: 7,
+          padding: "9px 10px",
+          color: C.text,
+          fontSize: 13,
+          fontFamily: "'DM Sans',sans-serif",
+          outline: "none",
+          cursor: "pointer",
+          ...style
+        }
+      },
+      PROVINCES.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }, p))
+    );
+  }
+
+  // src/components/SettingsDropdown.jsx
   var APP_VERSION = "v1.0.0", ROLE_LABEL_KEYS = {
     admin: "settings.role.admin",
     super_admin: "settings.role.super_admin",
@@ -21374,7 +21376,9 @@ Do not translate employee names, case notes, job titles, or user-entered content
     anchorRef,
     userProfile,
     onNavigateAdmin,
-    onSignOut
+    onSignOut,
+    currentProvince,
+    onProvinceChange
   }) {
     let { t: t2, lang, setLang: setLang2 } = useT(), panelRef = (0, import_react3.useRef)(null);
     if ((0, import_react3.useEffect)(() => {
@@ -21455,6 +21459,14 @@ Do not translate employee names, case notes, job titles, or user-entered content
           value: lang,
           onChange: setLang2,
           options: [{ value: "en", label: "EN" }, { value: "fr", label: "FR" }]
+        }
+      )),
+      /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F4CD}", label: t2("common.province") }, /* @__PURE__ */ React.createElement(
+        ProvinceSelect,
+        {
+          value: currentProvince || "QC",
+          onChange: (e) => onProvinceChange?.(e.target.value),
+          style: { width: "100%", padding: "6px 8px", fontSize: 11, borderRadius: 6 }
         }
       )),
       /* @__PURE__ */ React.createElement(SectionRow, { icon: "\u{1F3A8}", label: t2("settings.section.theme"), hint: comingSoon }, /* @__PURE__ */ React.createElement(
@@ -36948,26 +36960,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         fontWeight: module === n.id ? 600 : 400,
         color: module === n.id ? n.color : C.textM
       } }, navLabel(n))
-    ))), /* @__PURE__ */ React.createElement("div", { style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "7px 12px",
-      marginBottom: 8,
-      background: C.surfL,
-      borderRadius: 8,
-      border: `1px solid ${C.border}`
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.textM, flex: 1, fontWeight: 500 } }, t2("common.province")), /* @__PURE__ */ React.createElement(
-      ProvinceSelect,
-      {
-        value: data.profile?.defaultProvince || "QC",
-        onChange: (e) => {
-          let updated = { ...data.profile || {}, defaultProvince: e.target.value };
-          handleSave("profile", updated);
-        },
-        style: { padding: "4px 6px", fontSize: 11, borderRadius: 5 }
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 } }, [
+    ))), /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 } }, [
       [t2("sidebar.stat.activeCases"), (data.cases || []).filter(isCaseActive).length, C.em],
       [t2("sidebar.stat.meetings"), (data.meetings || []).length, C.blue],
       [t2("sidebar.stat.signals"), (data.signals || []).length, C.purple],
@@ -37025,6 +37018,11 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         onNavigateAdmin: () => setModule("admin"),
         onSignOut: async () => {
           await signOut();
+        },
+        currentProvince: data.profile?.defaultProvince || "QC",
+        onProvinceChange: (prov) => {
+          let updated = { ...data.profile || {}, defaultProvince: prov };
+          handleSave("profile", updated);
         }
       }
     ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, overflowY: "auto", padding: "24px" }, className: "fadein" }, loaded ? gateModule ? /* @__PURE__ */ React.createElement(

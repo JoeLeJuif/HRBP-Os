@@ -30,7 +30,6 @@ import { isCaseActive } from './utils/caseStatus.js';
 import Mono          from './components/Mono.jsx';
 import Divider       from './components/Divider.jsx';
 import AILoader      from './components/AILoader.jsx';
-import ProvinceSelect from './components/ProvinceSelect.jsx';
 import Spotlight     from './components/Spotlight.jsx';
 import SettingsDropdown from './components/SettingsDropdown.jsx';
 // import Card         from './components/Card.jsx';
@@ -1030,20 +1029,6 @@ export default function HRBPOS() {
           ))}
         </div>
 
-        {/* Province par défaut */}
-        <div style={{ display:"flex", alignItems:"center", gap:8,
-          padding:"7px 12px", marginBottom:8,
-          background:C.surfL, borderRadius:8, border:`1px solid ${C.border}` }}>
-          <span style={{ fontSize:11, color:C.textM, flex:1, fontWeight:500 }}>{t("common.province")}</span>
-          <ProvinceSelect
-            value={data.profile?.defaultProvince||"QC"}
-            onChange={e => {
-              const updated = { ...(data.profile||{}), defaultProvince: e.target.value };
-              handleSave("profile", updated);
-            }}
-            style={{ padding:"4px 6px", fontSize:11, borderRadius:5 }}/>
-        </div>
-
         {/* Footer stats */}
         <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginTop:8 }}>
           {[
@@ -1105,6 +1090,11 @@ export default function HRBPOS() {
                 userProfile={userProfile}
                 onNavigateAdmin={() => setModule("admin")}
                 onSignOut={async () => { await supaSignOut(); }}
+                currentProvince={data.profile?.defaultProvince || "QC"}
+                onProvinceChange={(prov) => {
+                  const updated = { ...(data.profile||{}), defaultProvince: prov };
+                  handleSave("profile", updated);
+                }}
               />
             </div>
           )}
