@@ -287,7 +287,7 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
 
           {/* ── APPROVED (users & roles) ───────────────────────────────── */}
           <div id="admin-users"/>
-          <Section title={t("admin.section.approved")} count={buckets.approved.length} color={C.em}>
+          <Section title={t("admin.section.usersRoles")} count={buckets.approved.length} color={C.em}>
             {buckets.approved.length === 0 ? (
               <Empty>{t("admin.empty.approved")}</Empty>
             ) : buckets.approved.map(p => {

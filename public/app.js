@@ -538,7 +538,7 @@ ${LEGAL_GUARDRAIL}`;
       "admin.subtitle": "Approve, disable and assign organizations.",
       "admin.connectedAs": "Signed in",
       "admin.section.pending": "Pending requests",
-      "admin.section.approved": "Users & roles",
+      "admin.section.usersRoles": "Users & roles",
       "admin.section.disabled": "Disabled users",
       "admin.section.other": "Other",
       "admin.empty.pending": "No pending requests.",
@@ -1730,7 +1730,7 @@ It will be removed from active lists but kept in the history.`,
       "admin.subtitle": "Approuver, d\xE9sactiver et assigner les organisations.",
       "admin.connectedAs": "Connect\xE9",
       "admin.section.pending": "Demandes en attente",
-      "admin.section.approved": "Utilisateurs & r\xF4les",
+      "admin.section.usersRoles": "Utilisateurs & r\xF4les",
       "admin.section.disabled": "Utilisateurs d\xE9sactiv\xE9s",
       "admin.section.other": "Autres",
       "admin.empty.pending": "Aucune demande en attente.",
@@ -35663,7 +35663,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         },
         busy ? "\u2026" : t2("admin.action.approve")
       ));
-    })), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.approved"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
+    })), /* @__PURE__ */ import_react24.default.createElement("div", { id: "admin-users" }), /* @__PURE__ */ import_react24.default.createElement(Section, { title: t2("admin.section.usersRoles"), count: buckets.approved.length, color: C.em }, buckets.approved.length === 0 ? /* @__PURE__ */ import_react24.default.createElement(Empty2, null, t2("admin.empty.approved")) : buckets.approved.map((p) => {
       let busy = !!busyById[p.id], isSelf = p.id === currentProfile?.id;
       return /* @__PURE__ */ import_react24.default.createElement(Row2, { key: p.id, profile: p, orgNameById }, /* @__PURE__ */ import_react24.default.createElement(
         RoleControl,
