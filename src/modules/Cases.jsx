@@ -13,6 +13,7 @@ import ProvinceBadge from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import CaseBrief from '../components/CaseBrief.jsx';
 import { listCaseTasks, createCaseTask, updateCaseTask } from '../services/caseTasks.js';
+import { checkUsage } from '../services/planLimits.js';
 import { getNextOpenTask, getCaseFollowUp, fetchTasksForCases } from '../utils/caseFollowUp.js';
 import { getLeadersMap, anyPersonArchived } from '../utils/leaderStore.js';
 import { useT, t as tFn } from '../lib/i18n.js';
@@ -539,7 +540,7 @@ function formatCaseForClipboard(c, data, tasks) {
   return lines.join("\n");
 }
 
-export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus }) {
+export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription }) {
   const { t } = useT();
   const [view, setView] = useState("list"); // list | form | detail
   const [form, setForm] = useState({...EMPTY_FORM});
@@ -606,6 +607,14 @@ export default function ModuleCases({ data, onSave, onTransitionCase, onNavigate
     const allCases = data.cases || [];
     const existingCase = editId ? allCases.find(c => c.id === editId) : null;
     if (editId && existingCase?.status === "archived") { setView("list"); setForm({...EMPTY_FORM}); setEditId(null); return; }
+    // Sprint 3 — Étape 4: plan quota check on case creation only (edits skip).
+    if (!editId) {
+      const check = checkUsage(subscription, "cases", allCases.length);
+      if (!check.allowed) {
+        if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
+        return;
+      }
+    }
     const newCase = { ...form, closedDate, id: editId || Date.now().toString(), updatedAt: today,
       dateCreated: existingCase?.dateCreated || today };
     // Phase 2.5: when editing an existing case AND the form changed the

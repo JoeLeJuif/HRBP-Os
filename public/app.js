@@ -20741,7 +20741,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
     "trial_ends_at",
     "created_at",
     "updated_at"
-  ].join(", "), PLAN_COLS = [
+  ].join(", "), SUBSCRIPTION_SELECT = `${SUBSCRIPTION_COLS}, plan:plans(code, name)`, PLAN_COLS = [
     "id",
     "code",
     "name",
@@ -20763,7 +20763,7 @@ Do not translate employee names, case notes, job titles, or user-entered content
   async function fetchSubscription(orgId) {
     if (!supabase) return NO_CLIENT6;
     if (!orgId) return { ok: !1, reason: "invalid-id" };
-    let { data, error } = await supabase.from("subscriptions").select(SUBSCRIPTION_COLS).eq("organization_id", orgId).maybeSingle();
+    let { data, error } = await supabase.from("subscriptions").select(SUBSCRIPTION_SELECT).eq("organization_id", orgId).maybeSingle();
     return error ? { ok: !1, reason: "query-error", error } : { ok: !0, subscription: data || null };
   }
   async function fetchPlan(planId) {
@@ -20873,6 +20873,68 @@ Do not translate employee names, case notes, job titles, or user-entered content
       status,
       reason: full ? "billing_active" : "billing_limited"
     };
+  }
+
+  // src/services/planLimits.js
+  var PLAN_LIMITS = {
+    trial: {
+      cases: 10,
+      meetings: 10,
+      users: 3,
+      investigations: 2
+    },
+    starter: {
+      cases: 50,
+      meetings: 50,
+      users: 10,
+      investigations: 5
+    },
+    pro: {
+      cases: null,
+      meetings: null,
+      users: 50,
+      investigations: 25
+    },
+    enterprise: {
+      cases: null,
+      meetings: null,
+      users: null,
+      investigations: null
+    }
+  }, RESOURCE_LABELS = {
+    cases: "dossiers",
+    meetings: "rencontres",
+    users: "utilisateurs",
+    investigations: "enqu\xEAtes"
+  }, PLAN_KEYS = new Set(Object.keys(PLAN_LIMITS));
+  function resolvePlanKey(subscription) {
+    if (!subscription || typeof subscription != "object" || subscription.status === "trialing") return "trial";
+    let code = subscription.plan && subscription.plan.code || subscription.plan_code || null;
+    return code && PLAN_KEYS.has(code) ? code : "trial";
+  }
+  function getPlanLimits(subscription) {
+    return PLAN_LIMITS[resolvePlanKey(subscription)] || PLAN_LIMITS.trial;
+  }
+  function getUsageLimit(subscription, resourceKey) {
+    let limits = getPlanLimits(subscription);
+    return Object.prototype.hasOwnProperty.call(limits, resourceKey) ? limits[resourceKey] : null;
+  }
+  function isUsageAllowed(subscription, resourceKey, currentCount) {
+    let limit = getUsageLimit(subscription, resourceKey);
+    if (limit === null) return !0;
+    let n = Number(currentCount);
+    return Number.isFinite(n) ? n < limit : !0;
+  }
+  function getLimitMessage(resourceKey, limit) {
+    if (limit === null || limit == null) return "";
+    let label = RESOURCE_LABELS[resourceKey] || resourceKey;
+    return `Limite de ${limit} ${label} atteinte pour votre plan. Veuillez mettre \xE0 niveau votre abonnement (Admin \u2192 Facturation).`;
+  }
+  function checkUsage(subscription, resourceKey, currentCount) {
+    if (isUsageAllowed(subscription, resourceKey, currentCount))
+      return { allowed: !0 };
+    let limit = getUsageLimit(subscription, resourceKey);
+    return { allowed: !1, message: getLimitMessage(resourceKey, limit), limit };
   }
 
   // src/utils/caseStatus.js
@@ -24741,7 +24803,7 @@ REGLES DE SPECIFICITE ABSOLUE pour themeOfWeek:
 - businessImpact doit nommer la consequence operationnelle concrete (depart, arret, sous-performance, escalade), pas un risque vague.`;
 
   // src/modules/Radar.jsx
-  function ModuleRadar({ data, onSave }) {
+  function ModuleRadar({ data, onSave, subscription }) {
     let [radar, setRadar] = (0, import_react11.useState)(() => (data.radars || [])[0]?.radar || null), [loading, setLoading] = (0, import_react11.useState)(!1), [error, setError] = (0, import_react11.useState)(""), [done, setDone] = (0, import_react11.useState)({}), [week, setWeek] = (0, import_react11.useState)(0), [generatedPrompt, setGeneratedPrompt] = (0, import_react11.useState)(""), [actionFeedback, setActionFeedback] = (0, import_react11.useState)({}), rC = (r) => ({ Critique: C.red, \u00C9lev\u00E9: C.amber, Eleve: C.amber, Mod\u00E9r\u00E9: C.blue, Modere: C.blue, Faible: C.em })[r] || C.textD, dC = (d) => ({ "Aujourd hui": C.red, "Aujourd'hui": C.red, "Cette semaine": C.amber, "Sous 30 jours": C.blue })[d] || C.blue, savedRadars = data.radars || [], buildContext = () => {
       let cases = (data.cases || []).filter(isCaseActive), meetings = (data.meetings || []).slice().reverse().slice(0, 15), signals = (data.signals || []).slice().reverse().slice(0, 10), prevPatterns = savedRadars[0]?.radar?.patternTracking, prevPatternsCtx = prevPatterns?.length ? `
 PATTERN TRACKING PRECEDENT (${fmtDate(savedRadars[0]?.savedAt) || "semaine precedente"}):
@@ -24805,7 +24867,12 @@ ${buildContext()}`, 3500), r = normalizeAIData(parsed);
         return delete n[idx], n;
       }), 3e3);
     }, convertToCase = (r, idx) => {
-      let cases = data.cases || [], newCase = {
+      let cases = data.cases || [], check = checkUsage(subscription, "cases", cases.length);
+      if (!check.allowed) {
+        typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
+        return;
+      }
+      let newCase = {
         id: Date.now().toString(),
         title: r.title || "Risque identifi\xE9 \u2014 Org Radar",
         type: r.category === "Performance" ? "performance" : r.category === "Retention" || r.category === "R\xE9tention" ? "retention" : "conflict_ee",
@@ -26038,7 +26105,7 @@ ${similarBlock}`;
     })), lines.push(""), lines.push(sep), lines.push(`Export\xE9 depuis HRBP OS \u2014 ${(/* @__PURE__ */ new Date()).toLocaleDateString("fr-CA")}`), lines.join(`
 `);
   }
-  function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus }) {
+  function ModuleCases({ data, onSave, onTransitionCase, onNavigate, focusCaseId, onClearFocus, subscription }) {
     let { t: t2 } = useT(), [view, setView] = (0, import_react13.useState)("list"), [form, setForm] = (0, import_react13.useState)({ ...EMPTY_FORM }), [editId, setEditId] = (0, import_react13.useState)(null), [detail, setDetail] = (0, import_react13.useState)(null), [copied, setCopied] = (0, import_react13.useState)(!1), [search, setSearch] = (0, import_react13.useState)(""), [filterStatus, setFilterStatus] = (0, import_react13.useState)("all"), [filterProvince, setFilterProvince] = (0, import_react13.useState)(""), [filterArchived, setFilterArchived] = (0, import_react13.useState)("active"), [tasksByCase, setTasksByCase] = (0, import_react13.useState)({});
     (0, import_react13.useEffect)(() => {
       if (!focusCaseId) return;
@@ -26061,6 +26128,13 @@ ${similarBlock}`;
       if (editId && existingCase?.status === "archived") {
         setView("list"), setForm({ ...EMPTY_FORM }), setEditId(null);
         return;
+      }
+      if (!editId) {
+        let check = checkUsage(subscription, "cases", allCases.length);
+        if (!check.allowed) {
+          typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
+          return;
+        }
       }
       let newCase = {
         ...form,
@@ -26636,7 +26710,7 @@ Reponds UNIQUEMENT en JSON valide. Aucun backtick. Aucune apostrophe dans les va
     organization: "",
     title: ""
   });
-  function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
+  function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription }) {
     let [view, setView] = (0, import_react14.useState)("list"), [complaint, setComplaint] = (0, import_react14.useState)(""), [context, setContext] = (0, import_react14.useState)(""), [parties, setParties] = (0, import_react14.useState)(""), [policy, setPolicy] = (0, import_react14.useState)(""), [evidence, setEvidence] = (0, import_react14.useState)(""), [invProvince, setInvProvince] = (0, import_react14.useState)("QC"), [invPrompt, setInvPrompt] = (0, import_react14.useState)(""), [activeTab, setActiveTab] = (0, import_react14.useState)("summary"), [caseData, setCaseData] = (0, import_react14.useState)(null), [error, setError] = (0, import_react14.useState)(""), [saved, setSaved] = (0, import_react14.useState)(!1), [gtab, setGtab] = (0, import_react14.useState)("complainant"), [people, setPeople] = (0, import_react14.useState)([]), [openInvId, setOpenInvId] = (0, import_react14.useState)(null), investigations = data.investigations || [], openInv = openInvId ? investigations.find((x) => x.id === openInvId) : null, isDraftOpen = !!(openInv && openInv.status === "draft");
     (0, import_react14.useEffect)(() => {
       if (!focusInvestigationId) return;
@@ -26700,6 +26774,11 @@ ${evidence}` : ""
           onSave("investigations", updated), setSaved(!0);
           return;
         }
+      }
+      let check = checkUsage(subscription, "investigations", investigations.length);
+      if (!check.allowed) {
+        typeof window < "u" && typeof window.alert == "function" && window.alert(check.message), setError(check.message);
+        return;
       }
       let inv = {
         id: Date.now().toString(),
@@ -29613,7 +29692,7 @@ INVESTIGATION LIEE (id=${inv.id}):`,
     ));
   }
   var DRAFT_KEY = "hrbpos_meeting_engine_draft";
-  function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
+  function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription }) {
     let { t: t2 } = useT(), [pTab, setPTab] = (0, import_react17.useState)("context"), [engineType, setEngineType] = (0, import_react17.useState)("1on1"), [niveau, setNiveau] = (0, import_react17.useState)("gestionnaire"), [ctx, setCtx] = (0, import_react17.useState)({
       managerName: "",
       team: "",
@@ -29632,7 +29711,12 @@ INVESTIGATION LIEE (id=${inv.id}):`,
       }
       return `ENQ-${year}-${rand3()}${Date.now().toString().slice(-2)}`;
     }, createDraftInvestigation = () => {
-      let invs = data.investigations || [], today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], subject = (ctx.purpose || "").trim().slice(0, 80) || (ctx.managerName ? `Dossier \u2014 ${ctx.managerName}` : "") || "Dossier brouillon", draft = {
+      let invs = data.investigations || [], invCheck = checkUsage(subscription, "investigations", invs.length);
+      if (!invCheck.allowed) {
+        typeof window < "u" && typeof window.alert == "function" && window.alert(invCheck.message);
+        return;
+      }
+      let today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], subject = (ctx.purpose || "").trim().slice(0, 80) || (ctx.managerName ? `Dossier \u2014 ${ctx.managerName}` : "") || "Dossier brouillon", draft = {
         id: Date.now().toString(),
         caseId: makeExpressCaseId(invs),
         caseTitle: subject,
@@ -29837,7 +29921,10 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
         typeof localStorage < "u" && localStorage.removeItem(DRAFT_KEY);
       } catch {
       }
-      try {
+      let meetingsQuota = checkUsage(subscription, "meetings", (data.meetings || []).length);
+      if (!meetingsQuota.allowed)
+        typeof window < "u" && typeof window.alert == "function" && window.alert(meetingsQuota.message);
+      else try {
         let meetingSession = {
           id: mtgId,
           savedAt: today,
@@ -29926,6 +30013,11 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
       updatedAt: today
     }), createCaseFromCandidate = (cand) => {
       if (candidateActions[cand.id]) return;
+      let check = checkUsage(subscription, "cases", (data.cases || []).length);
+      if (!check.allowed) {
+        typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
+        return;
+      }
       let today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       onSave("cases", [...data.cases || [], buildCaseFromCandidate(cand, today)]), setCandidateActions((prev) => ({ ...prev, [cand.id]: "created" }));
     }, ignoreCandidate = (cand) => {
@@ -29933,6 +30025,11 @@ Notes \u2014 Personnes: ${notes.people || "Aucune"}`,
     }, createAllCandidates = () => {
       let today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0], pending = caseCandidates.filter((c) => !candidateActions[c.id]);
       if (pending.length === 0) return;
+      let existingCount = (data.cases || []).length, check = checkUsage(subscription, "cases", existingCount + pending.length - 1);
+      if (!check.allowed) {
+        typeof window < "u" && typeof window.alert == "function" && window.alert(check.message);
+        return;
+      }
       let newCases = pending.map((c) => buildCaseFromCandidate(c, today));
       onSave("cases", [...data.cases || [], ...newCases]);
       let next = { ...candidateActions };
@@ -31531,7 +31628,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
     return null;
   }
   function EngineTab(props) {
-    return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate });
+    return /* @__PURE__ */ React.createElement(MeetingEngine, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, subscription: props.subscription });
   }
   function ModuleMeetings(props) {
     let { t: t2 } = useT(), [tab, setTab] = (0, import_react18.useState)(() => {
@@ -31563,7 +31660,7 @@ ${t3}`, parsed = await callAI(sp, prompt, t3.length);
         color: active ? t3.color : C.textM,
         fontWeight: active ? 600 : 400
       } }, /* @__PURE__ */ React.createElement("span", { style: { marginRight: 6 } }, t3.icon), t3.label.toUpperCase());
-    })), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props, onSwitchTab: setTab }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate }));
+    })), tab === "transcripts" && /* @__PURE__ */ React.createElement(MeetingsTranscripts, { ...props, onSwitchTab: setTab }), tab === "engine" && /* @__PURE__ */ React.createElement(EngineTab, { data: props.data, onSave: props.onSave, onNavigate: props.onNavigate, subscription: props.subscription }));
   }
 
   // src/modules/Brief.jsx
@@ -34961,7 +35058,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
     admin: { bg: C.amber + "18", border: C.amber + "55", color: C.amber },
     hrbp: { bg: C.surfL, border: C.border, color: C.textM }
   };
-  function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated }) {
+  function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
     let { t: t2 } = useT(), [profiles, setProfiles] = (0, import_react23.useState)([]), [organizations, setOrganizations] = (0, import_react23.useState)([]), [status, setStatus] = (0, import_react23.useState)("loading"), [errorMsg, setErrorMsg] = (0, import_react23.useState)(""), [pendingRoleById, setPendingRoleById] = (0, import_react23.useState)({}), [pendingOrgById, setPendingOrgById] = (0, import_react23.useState)({}), [busyById, setBusyById] = (0, import_react23.useState)({}), isSuperAdmin = currentProfile?.role === "super_admin" && currentProfile?.status === "approved", listOpts = (0, import_react23.useMemo)(() => isSuperAdmin ? {} : { organization_id: currentProfile?.organization_id || null }, [isSuperAdmin, currentProfile?.organization_id]), refresh = (0, import_react23.useCallback)(async () => {
       setStatus("loading"), setErrorMsg("");
       let [pRes, oRes] = await Promise.all([listAllProfiles(listOpts), listOrganizations()]);
@@ -35002,6 +35099,13 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       if (!isSuperAdmin && !canActOnProfile(currentProfile, { ...profile, organization_id: orgVal })) {
         setErrorMsg("Approbation refus\xE9e: cible hors de votre organisation.");
         return;
+      }
+      if (!isSuperAdmin) {
+        let activeUsers = profiles.filter((p) => p.status === "approved").length, check = checkUsage(subscription, "users", activeUsers);
+        if (!check.allowed) {
+          setErrorMsg(check.message);
+          return;
+        }
       }
       await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "\xC9chec d'approbation");
     }, changeRole = async (profile, newRole) => {
@@ -36107,12 +36211,22 @@ Best next move: ${sit.bestNextMove}` : ""}`;
       });
     }, []), handleSaveMeeting = (0, import_react24.useCallback)(async (session, caseEntry) => {
       if ((data.meetings || []).some((m) => m.id === session.id)) return;
+      let meetingCheck = checkUsage(userSubscription, "meetings", (data.meetings || []).length);
+      if (!meetingCheck.allowed) {
+        typeof window < "u" && typeof window.alert == "function" && window.alert(meetingCheck.message);
+        return;
+      }
       let newMeetings = [...data.meetings || [], session];
       if (await sSet(SK.meetings, newMeetings), setData((d) => ({ ...d, meetings: newMeetings })), saveMeetings(newMeetings).then((res) => {
         res && !res.ok && res.reason !== "no-client" && console.warn("[supabase] saveMeetings failed:", res.reason, res.error);
       }).catch((err) => {
         console.warn("[supabase] saveMeetings threw:", err);
       }), caseEntry) {
+        let caseCheck = checkUsage(userSubscription, "cases", (data.cases || []).length);
+        if (!caseCheck.allowed) {
+          typeof window < "u" && typeof window.alert == "function" && window.alert(caseCheck.message);
+          return;
+        }
         let newCase = {
           id: Date.now().toString(),
           title: caseEntry.title || session.analysis?.meetingTitle,
@@ -36153,7 +36267,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
         });
       }
       showToast();
-    }, [data]), handleUpdateMeeting = (0, import_react24.useCallback)(async (updatedSession) => {
+    }, [data, userSubscription]), handleUpdateMeeting = (0, import_react24.useCallback)(async (updatedSession) => {
       let newMeetings = (data.meetings || []).map(
         (m) => m.id === updatedSession.id ? updatedSession : m
       );
@@ -36460,7 +36574,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           await signOut();
         }
       }
-    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null) }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null) }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null) }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();

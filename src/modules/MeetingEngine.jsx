@@ -18,6 +18,7 @@ import Badge         from '../components/Badge.jsx';
 import AILoader      from '../components/AILoader.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
 import { isCaseActive } from '../utils/caseStatus.js';
+import { checkUsage } from '../services/planLimits.js';
 
 // ── Inline shared helper ──────────────────────────────────────────────────────
 function RiskBadge({ level }) {
@@ -424,7 +425,7 @@ function ManagerField({ data, ctx, setCtx, managerManual, setManagerManual, t })
 // ── Draft persistence (prevents loss of 1:1 Engine questions on refresh) ────
 const DRAFT_KEY = 'hrbpos_meeting_engine_draft';
 
-export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire" }) {
+export default function MeetingEngine({ data, onSave, onNavigate, level = "gestionnaire", subscription }) {
   const { t } = useT();
 
   // ── State ────────────────────────────────────────────────────────────────
@@ -481,6 +482,12 @@ export default function MeetingEngine({ data, onSave, onNavigate, level = "gesti
 
   const createDraftInvestigation = () => {
     const invs = data.investigations || [];
+    // Sprint 3 — Étape 4: plan quota check before creating a draft investigation.
+    const invCheck = checkUsage(subscription, "investigations", invs.length);
+    if (!invCheck.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(invCheck.message);
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
     const subject = (ctx.purpose || "").trim().slice(0, 80)
       || (ctx.managerName ? `Dossier — ${ctx.managerName}` : "")
@@ -753,7 +760,14 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     try { if (typeof localStorage !== "undefined") localStorage.removeItem(DRAFT_KEY); } catch {}
 
     // ── Double save: also create a Meetings Hub session in SK.meetings ───
-    try {
+    // Sprint 3 — Étape 4: skip the Meetings Hub mirror when the org has
+    // exhausted its meeting quota. The 1:1 archive itself is unaffected so
+    // historical work always stays saved; only the public Meetings Hub
+    // copy is gated by the plan.
+    const meetingsQuota = checkUsage(subscription, "meetings", (data.meetings || []).length);
+    if (!meetingsQuota.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(meetingsQuota.message);
+    } else try {
       const meetingSession = {
         id: mtgId,
         savedAt: today,
@@ -868,6 +882,12 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
 
   const createCaseFromCandidate = (cand) => {
     if (candidateActions[cand.id]) return;
+    // Sprint 3 — Étape 4: plan quota check before promoting a candidate.
+    const check = checkUsage(subscription, "cases", (data.cases || []).length);
+    if (!check.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
     onSave("cases", [...(data.cases || []), buildCaseFromCandidate(cand, today)]);
     setCandidateActions(prev => ({ ...prev, [cand.id]: "created" }));
@@ -882,6 +902,15 @@ Niveau de leadership : ${LEVEL_CONTEXT[niveau] || LEVEL_CONTEXT[level] || LEVEL_
     const today = new Date().toISOString().split("T")[0];
     const pending = caseCandidates.filter(c => !candidateActions[c.id]);
     if (pending.length === 0) return;
+    // Sprint 3 — Étape 4: plan quota check covering the whole batch. Block
+    // entirely if the org can't absorb all pending candidates at once; the
+    // user can fall back to individual creation up to the cap.
+    const existingCount = (data.cases || []).length;
+    const check = checkUsage(subscription, "cases", existingCount + pending.length - 1);
+    if (!check.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
+      return;
+    }
     const newCases = pending.map(c => buildCaseFromCandidate(c, today));
     onSave("cases", [...(data.cases || []), ...newCases]);
     const next = { ...candidateActions };

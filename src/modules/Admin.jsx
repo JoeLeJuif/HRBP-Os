@@ -32,6 +32,7 @@ import {
   openBillingPortal,
 } from "../services/billing.js";
 import { getBillingAccess } from "../services/billingAccess.js";
+import { checkUsage } from "../services/planLimits.js";
 import IdentityRenameForm from "../components/IdentityRenameForm.jsx";
 
 // Background / border / text — picked from theme colors so badges read at a
@@ -42,7 +43,7 @@ const ROLE_STYLE = {
   hrbp:        { bg: C.surfL,          border: C.border,        color: C.textM  },
 };
 
-export default function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated }) {
+export default function ModuleAdmin({ currentProfile, currentOrganization, onOrganizationUpdated, subscription }) {
   const { t } = useT();
   const [profiles, setProfiles]         = useState([]);
   const [organizations, setOrganizations] = useState([]);
@@ -139,6 +140,16 @@ export default function ModuleAdmin({ currentProfile, currentOrganization, onOrg
     if (!isSuperAdmin && !canActOnProfile(currentProfile, { ...profile, organization_id: orgVal })) {
       setErrorMsg(`Approbation refusée: cible hors de votre organisation.`);
       return;
+    }
+    // Sprint 3 — Étape 4: per-plan user quota. Super_admin bypasses (they may
+    // operate across orgs whose subscription isn't the one loaded here).
+    if (!isSuperAdmin) {
+      const activeUsers = profiles.filter(p => p.status === "approved").length;
+      const check = checkUsage(subscription, "users", activeUsers);
+      if (!check.allowed) {
+        setErrorMsg(check.message);
+        return;
+      }
     }
     await applyPatch(profile, { status: "approved", role, organization_id: orgVal }, "Échec d'approbation");
   };

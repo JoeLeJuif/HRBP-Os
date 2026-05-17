@@ -23,6 +23,11 @@ const SUBSCRIPTION_COLS = [
   "created_at", "updated_at",
 ].join(", ");
 
+// Sprint 3 — Étape 4: embed the plan code/name alongside the subscription so
+// quota checks in planLimits.js can resolve the plan key from a single fetch.
+// PostgREST embed via foreign key `subscriptions.plan_id → plans.id`.
+const SUBSCRIPTION_SELECT = `${SUBSCRIPTION_COLS}, plan:plans(code, name)`;
+
 const PLAN_COLS = [
   "id", "code", "name", "monthly_price_cents",
   "max_users", "max_cases", "max_ai_requests",
@@ -49,7 +54,7 @@ export async function fetchSubscription(orgId) {
   if (!orgId) return { ok: false, reason: "invalid-id" };
   const { data, error } = await supabase
     .from("subscriptions")
-    .select(SUBSCRIPTION_COLS)
+    .select(SUBSCRIPTION_SELECT)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (error) return { ok: false, reason: "query-error", error };

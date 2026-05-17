@@ -21,6 +21,7 @@ import { signIn as supaSignIn, signOut as supaSignOut, getSession as supaGetSess
 import { fetchOrCreateProfile, fetchOrganization, isOrgStatusActive } from './lib/profile.js';
 import { fetchSubscription, openBillingPortal, startStripeCheckout, isStripeConfigured } from './services/billing.js';
 import { getBillingAccess } from './services/billingAccess.js';
+import { checkUsage } from './services/planLimits.js';
 import { hasSupabase } from './lib/supabase.js';
 import { useT, SUPPORTED_LANGS } from './lib/i18n.js';
 import { isCaseActive } from './utils/caseStatus.js';
@@ -736,6 +737,12 @@ export default function HRBPOS() {
 
   const handleSaveMeeting = useCallback(async (session, caseEntry) => {
     if ((data.meetings||[]).some(m => m.id === session.id)) return;
+    // Sprint 3 — Étape 4: enforce per-plan quota on new meetings.
+    const meetingCheck = checkUsage(userSubscription, "meetings", (data.meetings||[]).length);
+    if (!meetingCheck.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(meetingCheck.message);
+      return;
+    }
     const newMeetings = [...(data.meetings||[]), session];
     await sSet(SK.meetings, newMeetings);
     setData(d => ({ ...d, meetings: newMeetings }));
@@ -747,6 +754,13 @@ export default function HRBPOS() {
       console.warn("[supabase] saveMeetings threw:", err);
     });
     if (caseEntry) {
+      // Sprint 3 — Étape 4: skip the chained case auto-create when the case
+      // quota is reached. The meeting itself was already saved above.
+      const caseCheck = checkUsage(userSubscription, "cases", (data.cases||[]).length);
+      if (!caseCheck.allowed) {
+        if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(caseCheck.message);
+        return;
+      }
       const newCase = {
         id: Date.now().toString(),
         title: caseEntry.title || session.analysis?.meetingTitle,
@@ -800,7 +814,7 @@ export default function HRBPOS() {
       });
     }
     showToast();
-  }, [data]);
+  }, [data, userSubscription]);
 
   const handleUpdateMeeting = useCallback(async (updatedSession) => {
     const newMeetings = (data.meetings||[]).map(m =>
@@ -1099,16 +1113,16 @@ export default function HRBPOS() {
               onGoAdmin={() => setModule("admin")}
               onSignOut={async () => { await supaSignOut(); }} />
           ) : safeModule === "home"         ? <ModuleHome data={data} onNavigate={handleNavigate}/>
-          : safeModule === "radar"          ? <ModuleRadar data={data} onSave={handleSave}/>
+          : safeModule === "radar"          ? <ModuleRadar data={data} onSave={handleSave} subscription={userSubscription}/>
           : safeModule === "copilot"        ? <ModuleCopilot data={data}/>
-          : safeModule === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={handleNavigate} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)}/>
+          : safeModule === "meetings"       ? <ModuleMeetings data={data} onSave={handleSave} onSaveSession={handleSaveMeeting} onUpdateMeeting={handleUpdateMeeting} onNavigate={handleNavigate} focusMeetingId={focusMeetingId} onClearFocus={() => setFocusMeetingId(null)} subscription={userSubscription}/>
           : safeModule === "prep1on1"       ? <Module1on1Prep data={data} onSave={handleSave} onNavigate={handleNavigate}/>
-          : safeModule === "cases"          ? <ModuleCases data={data} onSave={handleSave} onTransitionCase={transitionCase} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)}/>
+          : safeModule === "cases"          ? <ModuleCases data={data} onSave={handleSave} onTransitionCase={transitionCase} onNavigate={handleNavigate} focusCaseId={focusCaseId} onClearFocus={() => setFocusCaseId(null)} subscription={userSubscription}/>
           : safeModule === "signals"        ? <ModuleSignals data={data} onSave={handleSave} focusSignalId={focusSignalId} onClearFocus={() => setFocusSignalId(null)}/>
           : safeModule === "brief"          ? <ModuleBrief data={data} onSave={handleSave}/>
           : safeModule === "decisions"      ? <ModuleDecisions data={data} onSave={handleSave} onNavigate={handleNavigate} focusDecisionId={focusDecisionId} onClearFocus={() => setFocusDecisionId(null)}/>
           : safeModule === "coaching"       ? <ModuleCoaching data={data} onSave={handleSave}/>
-          : safeModule === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={handleNavigate} focusInvestigationId={focusInvestigationId} onClearFocus={() => setFocusInvestigationId(null)}/>
+          : safeModule === "investigation"  ? <ModuleInvestigation data={data} onSave={handleSave} onNavigate={handleNavigate} focusInvestigationId={focusInvestigationId} onClearFocus={() => setFocusInvestigationId(null)} subscription={userSubscription}/>
           : safeModule === "exit"           ? <ModuleExit data={data} onSave={handleSave} focusExitId={focusExitId} onClearFocus={() => setFocusExitId(null)}/>
           : safeModule === "workshop"       ? <ModuleWorkshop />
           : safeModule === "autoprompt"     ? <ModuleAutoPrompt data={data}/>
@@ -1116,7 +1130,7 @@ export default function HRBPOS() {
           : safeModule === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
           : safeModule === "knowledge"      ? <ModuleKnowledge />
           : safeModule === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
-          : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile} currentOrganization={userOrganization} onOrganizationUpdated={setUserOrganization}/> : null)
+          : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile} currentOrganization={userOrganization} onOrganizationUpdated={setUserOrganization} subscription={userSubscription}/> : null)
           : null}
         </div>
       </div>

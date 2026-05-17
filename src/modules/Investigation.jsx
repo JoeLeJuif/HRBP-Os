@@ -12,6 +12,7 @@ import Mono from '../components/Mono.jsx';
 import AILoader from '../components/AILoader.jsx';
 import ProvinceBadge from '../components/ProvinceBadge.jsx';
 import ProvinceSelect from '../components/ProvinceSelect.jsx';
+import { checkUsage } from '../services/planLimits.js';
 
 // B-26 — Titre structuré [Type] – [Sujet]. Utilise uniquement les champs déjà persistés.
 export function generateInvestigationTitle(inv) {
@@ -234,7 +235,7 @@ const newPerson = (role="plaignant") => ({
   role, fullName:"", organization:"", title:"",
 });
 
-export default function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus }) {
+export default function ModuleInvestigation({ data, onSave, onNavigate, focusInvestigationId, onClearFocus, subscription }) {
   const [view, setView] = useState("list"); // list | input | loading | case
   const [complaint, setComplaint] = useState("");
   const [context, setContext] = useState("");
@@ -340,6 +341,15 @@ ${evidence}` : "",
         setSaved(true);
         return;
       }
+    }
+    // Sprint 3 — Étape 4: plan quota check before creating a brand-new
+    // investigation (the in-place draft-promotion path above edits an
+    // existing row and is unaffected).
+    const check = checkUsage(subscription, "investigations", investigations.length);
+    if (!check.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
+      setError(check.message);
+      return;
     }
     const inv = { id:Date.now().toString(), savedAt:today,
       caseId:caseData.caseId, caseTitle:caseData.caseTitle, caseType:caseData.caseType,

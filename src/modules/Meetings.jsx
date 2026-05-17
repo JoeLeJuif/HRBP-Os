@@ -1591,7 +1591,7 @@ function MeetingsTranscripts({ data, onSaveSession, onUpdateMeeting, onNavigate,
 // ── 8 MEETING TYPES — content ────────────────────────────────────────────────
 // ── ENGINE TAB — renders MeetingEngine inline ──────────────────────────────
 function EngineTab(props) {
-  return <MeetingEngine data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />;
+  return <MeetingEngine data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} subscription={props.subscription} />;
 }
 
 // ── SHELL: 2 tabs (Meetings / 1:1 Engine) ───────────────────────────────────
@@ -1633,7 +1633,7 @@ export default function ModuleMeetings(props) {
         })}
       </div>
       {tab === "transcripts" && <MeetingsTranscripts {...props} onSwitchTab={setTab} />}
-      {tab === "engine" && <EngineTab data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} />}
+      {tab === "engine" && <EngineTab data={props.data} onSave={props.onSave} onNavigate={props.onNavigate} subscription={props.subscription} />}
     </div>
   );
 }

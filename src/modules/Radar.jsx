@@ -10,8 +10,9 @@ import Card from '../components/Card.jsx';
 import Mono from '../components/Mono.jsx';
 import AILoader from '../components/AILoader.jsx';
 import { isCaseActive } from '../utils/caseStatus.js';
+import { checkUsage } from '../services/planLimits.js';
 
-export default function ModuleRadar({ data, onSave }) {
+export default function ModuleRadar({ data, onSave, subscription }) {
   const [radar, setRadar]     = useState(() => (data.radars||[])[0]?.radar || null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
@@ -102,6 +103,12 @@ ${signals.map(s=>`- ${s.analysis?.category} ${s.analysis?.title} (${s.analysis?.
   // Convert risk to case
   const convertToCase = (r, idx) => {
     const cases = data.cases || [];
+    // Sprint 3 — Étape 4: plan quota check before promoting a risk to a case.
+    const check = checkUsage(subscription, "cases", cases.length);
+    if (!check.allowed) {
+      if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(check.message);
+      return;
+    }
     const newCase = {
       id: Date.now().toString(),
       title: r.title || "Risque identifié — Org Radar",
