@@ -14,6 +14,9 @@
 
 import { createClient } from "@supabase/supabase-js";
 
+import { sendTransactionalEmail } from "./lib/email.js";
+import { paymentFailedEmail } from "./lib/emailTemplates.js";
+
 export const config = { api: { bodyParser: false } };
 
 const STRIPE_SECRET_KEY     = process.env.STRIPE_SECRET_KEY     || "";
@@ -24,6 +27,8 @@ const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL ||
   "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+const APP_URL = (process.env.HRBPOS_ORIGIN || "https://hrbp-os.vercel.app").trim();
 
 const admin =
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
@@ -153,6 +158,107 @@ async function resyncSubscriptionFromInvoice(stripe, invoice) {
   await upsertSubscriptionFromStripe(subscription);
 }
 
+async function lookupOrgForCustomer(stripeCustomerId) {
+  if (!admin || !stripeCustomerId) return { organizationId: null, organizationName: null };
+  const { data: subRow, error: sErr } = await admin
+    .from("subscriptions")
+    .select("organization_id")
+    .eq("stripe_customer_id", stripeCustomerId)
+    .maybeSingle();
+  if (sErr || !subRow?.organization_id) return { organizationId: null, organizationName: null };
+  const { data: org, error: oErr } = await admin
+    .from("organizations")
+    .select("name")
+    .eq("id", subRow.organization_id)
+    .maybeSingle();
+  if (oErr) return { organizationId: subRow.organization_id, organizationName: null };
+  return { organizationId: subRow.organization_id, organizationName: org?.name || null };
+}
+
+async function lookupOrgOwnerEmail(organizationId) {
+  if (!admin || !organizationId) return null;
+  const { data: profile, error } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("organization_id", organizationId)
+    .eq("status", "approved")
+    .in("role", ["super_admin", "admin"])
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error || !profile?.email) return null;
+  return profile.email;
+}
+
+async function resolveCustomerEmail(stripe, invoice, organizationId) {
+  if (invoice?.customer_email) return invoice.customer_email;
+  if (invoice?.customer_details?.email) return invoice.customer_details.email;
+  const customerId = pickCustomerId(invoice?.customer);
+  if (customerId) {
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (customer && !customer.deleted && customer.email) return customer.email;
+    } catch (err) {
+      console.warn("[stripe-webhook] customer retrieve failed:", err?.message);
+    }
+  }
+  const ownerEmail = await lookupOrgOwnerEmail(organizationId);
+  return ownerEmail || null;
+}
+
+async function buildManageBillingUrl(stripe, customerId) {
+  if (!customerId) return APP_URL;
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${APP_URL}/?billing=portal-return`,
+    });
+    if (session?.url) return session.url;
+  } catch (err) {
+    console.warn("[stripe-webhook] billing portal session create failed:", err?.message);
+  }
+  return APP_URL;
+}
+
+// Sends the payment-failed email. Wrapped in try/catch so a failure here never
+// bubbles up — Stripe must always get a 200 from the webhook regardless.
+async function sendPaymentFailedEmailSafe(stripe, invoice) {
+  try {
+    const customerId = pickCustomerId(invoice?.customer);
+    const subscriptionId = pickSubscriptionId(invoice?.subscription);
+    const { organizationId, organizationName } = await lookupOrgForCustomer(customerId);
+    const to = await resolveCustomerEmail(stripe, invoice, organizationId);
+    if (!to) {
+      console.warn("[stripe-webhook] payment_failed: no recipient email resolved — skipping email");
+      return;
+    }
+    const manageBillingUrl = await buildManageBillingUrl(stripe, customerId);
+    const template = paymentFailedEmail({ organizationName, manageBillingUrl });
+    const result = await sendTransactionalEmail({
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      type: "payment_failed",
+      metadata: {
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        stripe_invoice_id: invoice?.id || null,
+        organization_id: organizationId,
+      },
+    });
+    if (result?.ok) {
+      console.log(`[stripe-webhook] payment_failed email sent to ${to} (id=${result.id || "n/a"})`);
+    } else if (result?.skipped) {
+      console.warn(`[stripe-webhook] payment_failed email skipped: ${result.reason}`);
+    } else {
+      console.error(`[stripe-webhook] payment_failed email failed: ${result?.error || "unknown"}`);
+    }
+  } catch (err) {
+    console.error("[stripe-webhook] payment_failed email error:", err?.message || String(err));
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: { message: "Method not allowed" } });
@@ -227,7 +333,13 @@ export default async function handler(req, res) {
         break;
       }
 
-      case "invoice.payment_failed":
+      case "invoice.payment_failed": {
+        const invoice = event.data.object;
+        await resyncSubscriptionFromInvoice(stripe, invoice);
+        await sendPaymentFailedEmailSafe(stripe, invoice);
+        break;
+      }
+
       case "invoice.payment_succeeded": {
         await resyncSubscriptionFromInvoice(stripe, event.data.object);
         break;
