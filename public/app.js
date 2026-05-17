@@ -22980,8 +22980,173 @@ CLOSING: ${s.closing}`;
 
   // src/modules/Knowledge.jsx
   var import_react6 = __require("react");
-  function ModuleKnowledge() {
-    let { t: t2 } = useT(), [activeSection, setActiveSection] = (0, import_react6.useState)("home"), [search, setSearch] = (0, import_react6.useState)(""), [openCards, setOpenCards] = (0, import_react6.useState)({}), [selected9, setSelected9] = (0, import_react6.useState)(null), [openKpi, setOpenKpi] = (0, import_react6.useState)(null), [openCase, setOpenCase] = (0, import_react6.useState)(null), [copiedCase, setCopiedCase] = (0, import_react6.useState)(null), [templateSel, setTemplateSel] = (0, import_react6.useState)(0), [templateCopied, setTemplateCopied] = (0, import_react6.useState)(!1), toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] })), SECTIONS = [
+  function ModuleKnowledge({ data } = {}) {
+    let { t: t2 } = useT(), [activeSection, setActiveSection] = (0, import_react6.useState)("home"), [search, setSearch] = (0, import_react6.useState)(""), [openCards, setOpenCards] = (0, import_react6.useState)({}), [selected9, setSelected9] = (0, import_react6.useState)(null), [openKpi, setOpenKpi] = (0, import_react6.useState)(null), [openCase, setOpenCase] = (0, import_react6.useState)(null), [copiedCase, setCopiedCase] = (0, import_react6.useState)(null), [templateSel, setTemplateSel] = (0, import_react6.useState)(0), [templateCopied, setTemplateCopied] = (0, import_react6.useState)(!1), [selectedProvince, setSelectedProvince] = (0, import_react6.useState)(data?.profile?.defaultProvince || ""), toggleCard = (id) => setOpenCards((p) => ({ ...p, [id]: !p[id] })), knowledgeByProvince = {
+      QC: {
+        label: "Qu\xE9bec",
+        laws: [
+          "Loi sur les normes du travail (LNT)",
+          "Loi sur la sant\xE9 et la s\xE9curit\xE9 du travail (LSST)",
+          "Charte des droits et libert\xE9s de la personne",
+          "Loi 25 \u2014 protection des renseignements personnels",
+          "Charte de la langue fran\xE7aise (Loi 96 / Loi 14)"
+        ],
+        bodies: [
+          "CNESST \u2014 normes du travail + sant\xE9/s\xE9curit\xE9",
+          "Commission des droits de la personne et de la jeunesse (CDPDJ)",
+          "Tribunal administratif du travail (TAT)",
+          "Commission d'acc\xE8s \xE0 l'information (CAI)",
+          "Office qu\xE9b\xE9cois de la langue fran\xE7aise (OQLF)"
+        ],
+        duties: [
+          "Pr\xE9avis minimum selon LNT (1 sem./an, 8 sem. max.)",
+          "Politique de pr\xE9vention du harc\xE8lement psychologique (LNT art. 81.19) \u2014 \xE0 valider",
+          "Programme de pr\xE9vention SST / plan d'action (LSST)",
+          "Obligation d'accommodement raisonnable (Charte)",
+          "D\xE9signation responsable Loi 25 + registre des incidents"
+        ],
+        attention: [
+          "Art. 124 LNT : protection cong\xE9diement sans cause juste (2 ans+) \u2014 r\xE9vision juridique recommand\xE9e",
+          "D\xE9lais de plainte courts (ex. 45 jours harc\xE8lement) \u2014 \xE0 surveiller",
+          "Langue fran\xE7aise au travail : exigences renforc\xE9es (Loi 96)",
+          "Indemnit\xE9 n\xE9goci\xE9e g\xE9n\xE9ralement sup\xE9rieure au minimum LNT"
+        ]
+      },
+      ON: {
+        label: "Ontario",
+        laws: [
+          "Employment Standards Act (ESA, 2000)",
+          "Occupational Health and Safety Act (OHSA)",
+          "Ontario Human Rights Code",
+          "Workplace Safety and Insurance Act (WSIA)",
+          "Pay Equity Act"
+        ],
+        bodies: [
+          "Ministry of Labour, Immigration, Training and Skills Development",
+          "Workplace Safety and Insurance Board (WSIB)",
+          "Human Rights Tribunal of Ontario (HRTO)",
+          "Ontario Labour Relations Board (OLRB)"
+        ],
+        duties: [
+          "ESA : pr\xE9avis + indemnit\xE9 de cessation d'emploi",
+          "Politique de pr\xE9vention du harc\xE8lement et de la violence (Bill 132)",
+          "Politique sur la d\xE9connexion (25+ employ\xE9s) \u2014 \xE0 valider",
+          "Plan d'accommodement (Human Rights Code)"
+        ],
+        attention: [
+          "Severance pay distincte du termination pay (5 ans+, masse salariale > 2,5 M$) \u2014 \xE0 valider",
+          "Pr\xE9avis common law souvent sup\xE9rieur au minimum ESA",
+          "R\xE8gles sp\xE9cifiques aux mass terminations",
+          "D\xE9lais de plainte HRTO : 1 an"
+        ]
+      },
+      BC: {
+        label: "Colombie-Britannique",
+        laws: [
+          "Employment Standards Act (ESA)",
+          "Workers Compensation Act",
+          "BC Human Rights Code",
+          "Occupational Health and Safety Regulation",
+          "Pay Transparency Act (2023)"
+        ],
+        bodies: [
+          "Employment Standards Branch",
+          "WorkSafeBC",
+          "BC Human Rights Tribunal",
+          "BC Labour Relations Board"
+        ],
+        duties: [
+          "Notice / compensation per ESA",
+          "Politique anti-intimidation et harc\xE8lement (WorkSafeBC)",
+          "D\xE9claration de transparence salariale (\xE9chelonnement progressif)",
+          "Plan de retour au travail (WorkSafeBC)"
+        ],
+        attention: [
+          "Enqu\xEAtes obligatoires en cas de bullying / harassment \u2014 \xE0 documenter",
+          "Common law notice souvent au-dessus du minimum statutaire",
+          "Pay transparency : exigences qui s'\xE9tendent dans le temps \u2014 \xE0 surveiller"
+        ]
+      },
+      AB: {
+        label: "Alberta",
+        laws: [
+          "Employment Standards Code",
+          "Occupational Health and Safety Act",
+          "Alberta Human Rights Act",
+          "Workers' Compensation Act"
+        ],
+        bodies: [
+          "Alberta Employment Standards",
+          "OHS Alberta",
+          "Alberta Human Rights Commission",
+          "WCB-Alberta"
+        ],
+        duties: [
+          "Termination pay selon l'Employment Standards Code",
+          "Programmes de pr\xE9vention de la violence et du harc\xE8lement (OHS)",
+          "Cong\xE9s prot\xE9g\xE9s (job-protected leaves)",
+          "Plan de modified work / retour progressif (WCB)"
+        ],
+        attention: [
+          "Pas de \xAB at-will \xBB au Canada : common law notice s'applique",
+          "Group termination : r\xE8gles sp\xE9cifiques selon le nombre d'employ\xE9s",
+          "Clauses restrictives : analyser leur port\xE9e \u2014 r\xE9vision juridique recommand\xE9e"
+        ]
+      },
+      FED: {
+        label: "Federal / Canada Labour Code",
+        laws: [
+          "Code canadien du travail (Parties I, II, III)",
+          "Loi canadienne sur les droits de la personne",
+          "Loi sur l'\xE9quit\xE9 en mati\xE8re d'emploi",
+          "Loi sur l'\xE9quit\xE9 salariale (f\xE9d\xE9rale)",
+          "LPRPDE (PIPEDA)"
+        ],
+        bodies: [
+          "Programme du travail (EDSC)",
+          "Conseil canadien des relations industrielles (CCRI)",
+          "Commission / Tribunal canadien des droits de la personne",
+          "Commissaire \xE0 l'\xE9quit\xE9 salariale"
+        ],
+        duties: [
+          "Recours en cong\xE9diement injuste (Code canadien \u2014 art. 240, 12 mois+)",
+          "R\xE8glement sur la pr\xE9vention du harc\xE8lement et de la violence dans le lieu de travail",
+          "Plan d'\xE9quit\xE9 salariale (10+ employ\xE9s) \u2014 \xE0 valider",
+          "Rapports d'\xE9quit\xE9 en mati\xE8re d'emploi"
+        ],
+        attention: [
+          "Art. 240 : protection forte \u2014 r\xE9int\xE9gration possible",
+          "S'applique aux secteurs f\xE9d\xE9raux (banques, t\xE9l\xE9coms, transport interprovincial, etc.)",
+          "Obligations linguistiques possibles (Loi sur les langues officielles)",
+          "V\xE9rifier la juridiction r\xE9elle de l'employeur avant d'agir"
+        ]
+      },
+      CA: {
+        label: "Canada \u2014 vue g\xE9n\xE9rique",
+        laws: [
+          "Normes d'emploi provinciales applicables",
+          "L\xE9gislation provinciale en sant\xE9 et s\xE9curit\xE9 du travail",
+          "Code / charte des droits de la personne (provincial ou f\xE9d\xE9ral)",
+          "L\xE9gislation en protection des renseignements personnels"
+        ],
+        bodies: [
+          "Minist\xE8re du travail provincial",
+          "Organisme provincial SST",
+          "Tribunal / commission des droits de la personne"
+        ],
+        duties: [
+          "Pr\xE9avis minimum selon la juridiction",
+          "Politique anti-harc\xE8lement",
+          "Plan SST",
+          "Obligation d'accommodement raisonnable"
+        ],
+        attention: [
+          "Confirmer la province et le r\xE9gime applicable avant toute action \u2014 \xE0 valider",
+          "Common law notice souvent sup\xE9rieur au minimum statutaire",
+          "D\xE9lais de prescription variables d'une juridiction \xE0 l'autre"
+        ]
+      }
+    }, SUPPORTED_PROV = ["QC", "ON", "BC", "AB", "FED"], provinceKnowledge = selectedProvince ? knowledgeByProvince[selectedProvince] || knowledgeByProvince.CA : null, SECTIONS = [
       { id: "home", icon: "\u{1F3E0}", labelKey: "knowledge.section.home", group: "NAV" },
       { id: "rhythms", icon: "\u{1F5D3}", labelKey: "knowledge.section.rhythms", group: "foundations" },
       { id: "model", icon: "\u2699\uFE0F", labelKey: "knowledge.section.model", group: "foundations" },
@@ -23385,20 +23550,30 @@ CLOSING: ${s.closing}`;
       ], color: C.amber, icon: "\u2192" }), /* @__PURE__ */ React.createElement(Alert, { type: "danger", text: "Une promotion annonc\xE9e avant l'approbation immigration cr\xE9e une attente que tu ne peux pas toujours tenir. G\xE9rer la communication avec soin." })));
     }
     function renderLegal() {
-      let blocks = [
-        { titleKey: "knowledge.title.legalTermination", level: "danger", items: ["Anciennet\xE9 2 ans+ : protection contre cong\xE9diement sans cause juste (LNT art. 124)", "Processus disciplinaire progressif doit \xEAtre respect\xE9 et document\xE9", "Calcul LNT minimum : 1 semaine par ann\xE9e de service", "R\xE9vocation acc\xE8s TI le jour m\xEAme de la terminaison \u2014 coordonner avec IT", "Ne jamais promettre verbalement une terminaison avant la validation l\xE9gale"] },
-        { titleKey: "knowledge.title.legalCnesst", level: "warn", items: ["Tout accident ou l\xE9sion doit \xEAtre d\xE9clar\xE9 \xE0 la CNESST \u2014 aucune exception", "L'employeur a l'obligation de maintenir le lien d'emploi pendant la r\xE9cup\xE9ration", "Plan de retour au travail progressif obligatoire \u2014 ne pas attendre le 100%", "Documenter tous les accommodements offerts \u2014 c'est ta protection l\xE9gale"] },
-        { titleKey: "knowledge.title.legalHarassment", level: "danger", items: ["Obligation d'agir d\xE8s qu'une plainte est re\xE7ue \u2014 formelle ou informelle (LNT art. 81.19)", "L'inaction constitue elle-m\xEAme une violation l\xE9gale", "Enqu\xEAte interne impartiale obligatoire", "D\xE9lai de prescription : 2 ans \xE0 partir du dernier acte reproch\xE9", "Ne jamais promettre la confidentialit\xE9 totale \u2014 tu as une obligation d'agir"] },
-        { titleKey: "knowledge.title.legalLaw25", level: "info", items: ["Les donn\xE9es RH (salaire, \xE9valuations, dossiers m\xE9dicaux, immigration) sont prot\xE9g\xE9es", "Acc\xE8s restreint et document\xE9 pour chaque type de donn\xE9es", "L'employ\xE9 a le droit d'acc\xE8s \xE0 son propre dossier", "Tout incident de s\xE9curit\xE9 sur des donn\xE9es RH doit \xEAtre d\xE9clar\xE9"] }
-      ], lmap = { danger: C.red, warn: C.amber, info: C.blue };
-      return /* @__PURE__ */ React.createElement("div", null, blocks.map((b, i) => /* @__PURE__ */ React.createElement(SectionCard, { key: i, id: `legal-${i}`, title: t2(b.titleKey), accent: lmap[b.level], defaultOpen: i < 2 }, /* @__PURE__ */ React.createElement(KList, { items: b.items, color: lmap[b.level] }))), /* @__PURE__ */ React.createElement(SectionCard, { id: "legal-calc", title: t2("knowledge.title.legalCalc"), accent: C.blue }, /* @__PURE__ */ React.createElement(KTable, { headers: ["Anciennet\xE9", "Pr\xE9avis minimum LNT", "Notes"], rows: [
-        ["< 3 mois", "Aucun (probation)", "V\xE9rifier la politique interne \u2014 peut \xEAtre plus g\xE9n\xE9reuse"],
-        ["3 mois \u2013 1 an", "1 semaine", "LNT minimum"],
-        ["1 \u2013 5 ans", "2 semaines", "LNT minimum"],
-        ["5 \u2013 10 ans", "4 semaines", "LNT minimum"],
-        ["10 \u2013 15 ans", "6 semaines", "LNT minimum"],
-        ["> 15 ans", "8 semaines", "LNT minimum"]
-      ] }), /* @__PURE__ */ React.createElement(Alert, { type: "warn", text: "Les indemnit\xE9s n\xE9goci\xE9es (package) d\xE9passent toujours le minimum LNT. Art. 124 (2 ans+) peut donner droit \xE0 r\xE9int\xE9gration ou dommages \u2014 pr\xE9voir la consultation l\xE9gale." })));
+      if (!provinceKnowledge)
+        return /* @__PURE__ */ React.createElement("div", { style: {
+          border: `1px dashed ${C.border}`,
+          borderRadius: 10,
+          padding: "28px 20px",
+          textAlign: "center",
+          background: C.surfL
+        } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, marginBottom: 8 } }, "\u{1F5FA}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.textM, lineHeight: 1.6 } }, "S\xE9lectionnez une province pour afficher les connaissances applicables."));
+      let isFallback = !!selectedProvince && !knowledgeByProvince[selectedProvince], blocks = [
+        { id: "laws", title: "Lois applicables", items: provinceKnowledge.laws, accent: C.purple },
+        { id: "bodies", title: "Organismes de r\xE9f\xE9rence", items: provinceKnowledge.bodies, accent: C.blue },
+        { id: "duties", title: "Obligations / sujets cl\xE9s", items: provinceKnowledge.duties, accent: C.em },
+        { id: "attention", title: "Points d'attention", items: provinceKnowledge.attention, accent: C.amber }
+      ];
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 12,
+        padding: "8px 12px",
+        background: C.blue + "0a",
+        border: `1px solid ${C.blue}22`,
+        borderRadius: 8
+      } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: C.blue, letterSpacing: 1 } }, provinceKnowledge.label), isFallback && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, fontWeight: 600, color: C.amber } }, "Province non support\xE9e \u2014 fallback Canada"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: 10, color: C.textD } }, "R\xE9f\xE9rence utile \u2014 \xE0 valider selon le dossier")), blocks.map((b, i) => /* @__PURE__ */ React.createElement(SectionCard, { key: b.id, id: `legal-${b.id}`, title: b.title, accent: b.accent, defaultOpen: i < 2 }, /* @__PURE__ */ React.createElement(KList, { items: b.items, color: b.accent }))), /* @__PURE__ */ React.createElement(Alert, { type: "info", text: "Contenu indicatif. Toujours valider avec un conseiller juridique avant action \u2014 normes minimales l\xE9gales vs. politique interne vs. recommandation HRBP." }));
     }
     function renderAnalytics() {
       let kpis = [
@@ -23950,7 +24125,7 @@ Signature gestionnaire : _____ Date : _____`
       cases: renderCases,
       templates: renderTemplates
     }, current = SECTIONS.find((s) => s.id === activeSection);
-    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 980, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16, position: "relative" } }, /* @__PURE__ */ React.createElement("span", { style: {
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 980, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, alignItems: "stretch" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, position: "relative" } }, /* @__PURE__ */ React.createElement("span", { style: {
       position: "absolute",
       left: 12,
       top: "50%",
@@ -23990,7 +24165,28 @@ Signature gestionnaire : _____ Date : _____`
       cursor: "pointer",
       color: C.textD,
       fontSize: 16
-    } }, "\xD7")), search.trim().length > 1 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, searchResults.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, padding: "8px 0" } }, t2("knowledge.search.noResults"), " \xAB ", search, " \xBB") : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, searchResults.map((s) => /* @__PURE__ */ React.createElement(
+    } }, "\xD7")), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: selectedProvince,
+        onChange: (e) => setSelectedProvince(e.target.value),
+        title: "Province applicable",
+        style: {
+          background: C.surfL,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          padding: "0 12px",
+          color: C.text,
+          fontSize: 13,
+          fontFamily: "inherit",
+          outline: "none",
+          cursor: "pointer",
+          minWidth: 180
+        }
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 Province \u2014"),
+      SUPPORTED_PROV.map((p) => /* @__PURE__ */ React.createElement("option", { key: p, value: p }, p, " \u2014 ", knowledgeByProvince[p].label))
+    )), search.trim().length > 1 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, searchResults.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.textD, padding: "8px 0" } }, t2("knowledge.search.noResults"), " \xAB ", search, " \xBB") : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, searchResults.map((s) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: s.id,
@@ -36841,7 +37037,7 @@ Best next move: ${sit.bestNextMove}` : ""}`;
           await signOut();
         }
       }
-    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, null) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
+    ) : safeModule === "home" ? /* @__PURE__ */ React.createElement(ModuleHome, { data, onNavigate: handleNavigate }) : safeModule === "radar" ? /* @__PURE__ */ React.createElement(ModuleRadar, { data, onSave: handleSave, subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "copilot" ? /* @__PURE__ */ React.createElement(ModuleCopilot, { data }) : safeModule === "meetings" ? /* @__PURE__ */ React.createElement(ModuleMeetings, { data, onSave: handleSave, onSaveSession: handleSaveMeeting, onUpdateMeeting: handleUpdateMeeting, onNavigate: handleNavigate, focusMeetingId, onClearFocus: () => setFocusMeetingId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "prep1on1" ? /* @__PURE__ */ React.createElement(Module1on1Prep, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "cases" ? /* @__PURE__ */ React.createElement(ModuleCases, { data, onSave: handleSave, onTransitionCase: transitionCase, onNavigate: handleNavigate, focusCaseId, onClearFocus: () => setFocusCaseId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "signals" ? /* @__PURE__ */ React.createElement(ModuleSignals, { data, onSave: handleSave, focusSignalId, onClearFocus: () => setFocusSignalId(null) }) : safeModule === "brief" ? /* @__PURE__ */ React.createElement(ModuleBrief, { data, onSave: handleSave }) : safeModule === "decisions" ? /* @__PURE__ */ React.createElement(ModuleDecisions, { data, onSave: handleSave, onNavigate: handleNavigate, focusDecisionId, onClearFocus: () => setFocusDecisionId(null) }) : safeModule === "coaching" ? /* @__PURE__ */ React.createElement(ModuleCoaching, { data, onSave: handleSave }) : safeModule === "investigation" ? /* @__PURE__ */ React.createElement(ModuleInvestigation, { data, onSave: handleSave, onNavigate: handleNavigate, focusInvestigationId, onClearFocus: () => setFocusInvestigationId(null), subscription: userSubscription, userEmail: userProfile?.email }) : safeModule === "exit" ? /* @__PURE__ */ React.createElement(ModuleExit, { data, onSave: handleSave, focusExitId, onClearFocus: () => setFocusExitId(null) }) : safeModule === "workshop" ? /* @__PURE__ */ React.createElement(ModuleWorkshop, null) : safeModule === "autoprompt" ? /* @__PURE__ */ React.createElement(ModuleAutoPrompt, { data }) : safeModule === "convkit" ? /* @__PURE__ */ React.createElement(ModuleConvKit, null) : safeModule === "plans306090" ? /* @__PURE__ */ React.createElement(Module306090, { data, onSave: handleSave }) : safeModule === "knowledge" ? /* @__PURE__ */ React.createElement(ModuleKnowledge, { data }) : safeModule === "leaders" ? /* @__PURE__ */ React.createElement(ModuleLeader, { data, onSave: handleSave, onNavigate: handleNavigate }) : safeModule === "admin" && isAdmin ? /* @__PURE__ */ React.createElement(ModuleAdmin, { currentProfile: userProfile, currentOrganization: userOrganization, onOrganizationUpdated: setUserOrganization, subscription: userSubscription }) : null : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100%" } }, /* @__PURE__ */ React.createElement(AILoader, { label: "Chargement du syst\xE8me" })))), /* @__PURE__ */ React.createElement(SavedToast, { show: toast }), /* @__PURE__ */ React.createElement(Spotlight, { data, onNavigate: handleNavigate }));
   }
   return __toCommonJS(index_exports);
 })();

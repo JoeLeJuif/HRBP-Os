@@ -3,7 +3,7 @@ import { useState } from "react";
 import { C } from '../theme.js';
 import { useT } from '../lib/i18n.js';
 
-export default function ModuleKnowledge() {
+export default function ModuleKnowledge({ data } = {}) {
   const { t } = useT();
   const [activeSection, setActiveSection] = useState("home");
   const [search, setSearch] = useState("");
@@ -14,7 +14,181 @@ export default function ModuleKnowledge() {
   const [copiedCase, setCopiedCase] = useState(null);
   const [templateSel, setTemplateSel] = useState(0);
   const [templateCopied, setTemplateCopied] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState(data?.profile?.defaultProvince || "");
   const toggleCard = (id) => setOpenCards(p => ({ ...p, [id]: !p[id] }));
+
+  // ── KNOWLEDGE BY PROVINCE ─────────────────────────────────────────────────
+  // Contenu indicatif — à valider par un conseiller juridique selon le dossier.
+  const knowledgeByProvince = {
+    QC: {
+      label: "Québec",
+      laws: [
+        "Loi sur les normes du travail (LNT)",
+        "Loi sur la santé et la sécurité du travail (LSST)",
+        "Charte des droits et libertés de la personne",
+        "Loi 25 — protection des renseignements personnels",
+        "Charte de la langue française (Loi 96 / Loi 14)",
+      ],
+      bodies: [
+        "CNESST — normes du travail + santé/sécurité",
+        "Commission des droits de la personne et de la jeunesse (CDPDJ)",
+        "Tribunal administratif du travail (TAT)",
+        "Commission d'accès à l'information (CAI)",
+        "Office québécois de la langue française (OQLF)",
+      ],
+      duties: [
+        "Préavis minimum selon LNT (1 sem./an, 8 sem. max.)",
+        "Politique de prévention du harcèlement psychologique (LNT art. 81.19) — à valider",
+        "Programme de prévention SST / plan d'action (LSST)",
+        "Obligation d'accommodement raisonnable (Charte)",
+        "Désignation responsable Loi 25 + registre des incidents",
+      ],
+      attention: [
+        "Art. 124 LNT : protection congédiement sans cause juste (2 ans+) — révision juridique recommandée",
+        "Délais de plainte courts (ex. 45 jours harcèlement) — à surveiller",
+        "Langue française au travail : exigences renforcées (Loi 96)",
+        "Indemnité négociée généralement supérieure au minimum LNT",
+      ],
+    },
+    ON: {
+      label: "Ontario",
+      laws: [
+        "Employment Standards Act (ESA, 2000)",
+        "Occupational Health and Safety Act (OHSA)",
+        "Ontario Human Rights Code",
+        "Workplace Safety and Insurance Act (WSIA)",
+        "Pay Equity Act",
+      ],
+      bodies: [
+        "Ministry of Labour, Immigration, Training and Skills Development",
+        "Workplace Safety and Insurance Board (WSIB)",
+        "Human Rights Tribunal of Ontario (HRTO)",
+        "Ontario Labour Relations Board (OLRB)",
+      ],
+      duties: [
+        "ESA : préavis + indemnité de cessation d'emploi",
+        "Politique de prévention du harcèlement et de la violence (Bill 132)",
+        "Politique sur la déconnexion (25+ employés) — à valider",
+        "Plan d'accommodement (Human Rights Code)",
+      ],
+      attention: [
+        "Severance pay distincte du termination pay (5 ans+, masse salariale > 2,5 M$) — à valider",
+        "Préavis common law souvent supérieur au minimum ESA",
+        "Règles spécifiques aux mass terminations",
+        "Délais de plainte HRTO : 1 an",
+      ],
+    },
+    BC: {
+      label: "Colombie-Britannique",
+      laws: [
+        "Employment Standards Act (ESA)",
+        "Workers Compensation Act",
+        "BC Human Rights Code",
+        "Occupational Health and Safety Regulation",
+        "Pay Transparency Act (2023)",
+      ],
+      bodies: [
+        "Employment Standards Branch",
+        "WorkSafeBC",
+        "BC Human Rights Tribunal",
+        "BC Labour Relations Board",
+      ],
+      duties: [
+        "Notice / compensation per ESA",
+        "Politique anti-intimidation et harcèlement (WorkSafeBC)",
+        "Déclaration de transparence salariale (échelonnement progressif)",
+        "Plan de retour au travail (WorkSafeBC)",
+      ],
+      attention: [
+        "Enquêtes obligatoires en cas de bullying / harassment — à documenter",
+        "Common law notice souvent au-dessus du minimum statutaire",
+        "Pay transparency : exigences qui s'étendent dans le temps — à surveiller",
+      ],
+    },
+    AB: {
+      label: "Alberta",
+      laws: [
+        "Employment Standards Code",
+        "Occupational Health and Safety Act",
+        "Alberta Human Rights Act",
+        "Workers' Compensation Act",
+      ],
+      bodies: [
+        "Alberta Employment Standards",
+        "OHS Alberta",
+        "Alberta Human Rights Commission",
+        "WCB-Alberta",
+      ],
+      duties: [
+        "Termination pay selon l'Employment Standards Code",
+        "Programmes de prévention de la violence et du harcèlement (OHS)",
+        "Congés protégés (job-protected leaves)",
+        "Plan de modified work / retour progressif (WCB)",
+      ],
+      attention: [
+        "Pas de « at-will » au Canada : common law notice s'applique",
+        "Group termination : règles spécifiques selon le nombre d'employés",
+        "Clauses restrictives : analyser leur portée — révision juridique recommandée",
+      ],
+    },
+    FED: {
+      label: "Federal / Canada Labour Code",
+      laws: [
+        "Code canadien du travail (Parties I, II, III)",
+        "Loi canadienne sur les droits de la personne",
+        "Loi sur l'équité en matière d'emploi",
+        "Loi sur l'équité salariale (fédérale)",
+        "LPRPDE (PIPEDA)",
+      ],
+      bodies: [
+        "Programme du travail (EDSC)",
+        "Conseil canadien des relations industrielles (CCRI)",
+        "Commission / Tribunal canadien des droits de la personne",
+        "Commissaire à l'équité salariale",
+      ],
+      duties: [
+        "Recours en congédiement injuste (Code canadien — art. 240, 12 mois+)",
+        "Règlement sur la prévention du harcèlement et de la violence dans le lieu de travail",
+        "Plan d'équité salariale (10+ employés) — à valider",
+        "Rapports d'équité en matière d'emploi",
+      ],
+      attention: [
+        "Art. 240 : protection forte — réintégration possible",
+        "S'applique aux secteurs fédéraux (banques, télécoms, transport interprovincial, etc.)",
+        "Obligations linguistiques possibles (Loi sur les langues officielles)",
+        "Vérifier la juridiction réelle de l'employeur avant d'agir",
+      ],
+    },
+    CA: {
+      label: "Canada — vue générique",
+      laws: [
+        "Normes d'emploi provinciales applicables",
+        "Législation provinciale en santé et sécurité du travail",
+        "Code / charte des droits de la personne (provincial ou fédéral)",
+        "Législation en protection des renseignements personnels",
+      ],
+      bodies: [
+        "Ministère du travail provincial",
+        "Organisme provincial SST",
+        "Tribunal / commission des droits de la personne",
+      ],
+      duties: [
+        "Préavis minimum selon la juridiction",
+        "Politique anti-harcèlement",
+        "Plan SST",
+        "Obligation d'accommodement raisonnable",
+      ],
+      attention: [
+        "Confirmer la province et le régime applicable avant toute action — à valider",
+        "Common law notice souvent supérieur au minimum statutaire",
+        "Délais de prescription variables d'une juridiction à l'autre",
+      ],
+    },
+  };
+  const SUPPORTED_PROV = ["QC","ON","BC","AB","FED"];
+  const provinceKnowledge = selectedProvince
+    ? (knowledgeByProvince[selectedProvince] || knowledgeByProvince.CA)
+    : null;
 
   // ── DATA ──────────────────────────────────────────────────────────────────
 
@@ -506,31 +680,47 @@ export default function ModuleKnowledge() {
   }
 
   function renderLegal() {
+    // Empty state — aucune province sélectionnée
+    if (!provinceKnowledge) {
+      return (
+        <div style={{ border:`1px dashed ${C.border}`, borderRadius:10, padding:"28px 20px",
+          textAlign:"center", background:C.surfL }}>
+          <div style={{ fontSize:22, marginBottom:8 }}>🗺️</div>
+          <div style={{ fontSize:13, color:C.textM, lineHeight:1.6 }}>
+            Sélectionnez une province pour afficher les connaissances applicables.
+          </div>
+        </div>
+      );
+    }
+    const isFallback = !!selectedProvince && !knowledgeByProvince[selectedProvince];
     const blocks = [
-      { titleKey:"knowledge.title.legalTermination", level:"danger", items:["Ancienneté 2 ans+ : protection contre congédiement sans cause juste (LNT art. 124)","Processus disciplinaire progressif doit être respecté et documenté","Calcul LNT minimum : 1 semaine par année de service","Révocation accès TI le jour même de la terminaison — coordonner avec IT","Ne jamais promettre verbalement une terminaison avant la validation légale"] },
-      { titleKey:"knowledge.title.legalCnesst",      level:"warn",   items:["Tout accident ou lésion doit être déclaré à la CNESST — aucune exception","L'employeur a l'obligation de maintenir le lien d'emploi pendant la récupération","Plan de retour au travail progressif obligatoire — ne pas attendre le 100%","Documenter tous les accommodements offerts — c'est ta protection légale"] },
-      { titleKey:"knowledge.title.legalHarassment",  level:"danger", items:["Obligation d'agir dès qu'une plainte est reçue — formelle ou informelle (LNT art. 81.19)","L'inaction constitue elle-même une violation légale","Enquête interne impartiale obligatoire","Délai de prescription : 2 ans à partir du dernier acte reproché","Ne jamais promettre la confidentialité totale — tu as une obligation d'agir"] },
-      { titleKey:"knowledge.title.legalLaw25",       level:"info",   items:["Les données RH (salaire, évaluations, dossiers médicaux, immigration) sont protégées","Accès restreint et documenté pour chaque type de données","L'employé a le droit d'accès à son propre dossier","Tout incident de sécurité sur des données RH doit être déclaré"] },
+      { id:"laws",      title:"Lois applicables",         items: provinceKnowledge.laws,      accent: C.purple },
+      { id:"bodies",    title:"Organismes de référence",  items: provinceKnowledge.bodies,    accent: C.blue   },
+      { id:"duties",    title:"Obligations / sujets clés",items: provinceKnowledge.duties,    accent: C.em     },
+      { id:"attention", title:"Points d'attention",       items: provinceKnowledge.attention, accent: C.amber  },
     ];
-    const lmap = { danger:C.red, warn:C.amber, info:C.blue };
     return (
       <div>
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12,
+          padding:"8px 12px", background:C.blue+"0a", border:`1px solid ${C.blue}22`, borderRadius:8 }}>
+          <span style={{ fontSize:11, fontWeight:700, color:C.blue, letterSpacing:1 }}>
+            {provinceKnowledge.label}
+          </span>
+          {isFallback && (
+            <span style={{ fontSize:10, fontWeight:600, color:C.amber }}>
+              Province non supportée — fallback Canada
+            </span>
+          )}
+          <span style={{ marginLeft:"auto", fontSize:10, color:C.textD }}>
+            Référence utile — à valider selon le dossier
+          </span>
+        </div>
         {blocks.map((b,i) => (
-          <SectionCard key={i} id={`legal-${i}`} title={t(b.titleKey)} accent={lmap[b.level]} defaultOpen={i<2}>
-            <KList items={b.items} color={lmap[b.level]}/>
+          <SectionCard key={b.id} id={`legal-${b.id}`} title={b.title} accent={b.accent} defaultOpen={i<2}>
+            <KList items={b.items} color={b.accent}/>
           </SectionCard>
         ))}
-        <SectionCard id="legal-calc" title={t("knowledge.title.legalCalc")} accent={C.blue}>
-          <KTable headers={["Ancienneté","Préavis minimum LNT","Notes"]} rows={[
-            ["< 3 mois","Aucun (probation)","Vérifier la politique interne — peut être plus généreuse"],
-            ["3 mois – 1 an","1 semaine","LNT minimum"],
-            ["1 – 5 ans","2 semaines","LNT minimum"],
-            ["5 – 10 ans","4 semaines","LNT minimum"],
-            ["10 – 15 ans","6 semaines","LNT minimum"],
-            ["> 15 ans","8 semaines","LNT minimum"],
-          ]}/>
-          <Alert type="warn" text="Les indemnités négociées (package) dépassent toujours le minimum LNT. Art. 124 (2 ans+) peut donner droit à réintégration ou dommages — prévoir la consultation légale."/>
-        </SectionCard>
+        <Alert type="info" text="Contenu indicatif. Toujours valider avec un conseiller juridique avant action — normes minimales légales vs. politique interne vs. recommandation HRBP."/>
       </div>
     );
   }
@@ -929,19 +1119,31 @@ Signature gestionnaire : _____ Date : _____` },
 
   return (
     <div style={{ maxWidth:980, margin:"0 auto" }}>
-      {/* Search bar */}
-      <div style={{ marginBottom:16, position:"relative" }}>
-        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
-          fontSize:15, pointerEvents:"none" }}>🔍</span>
-        <input value={search} onChange={e=>{ setSearch(e.target.value); }}
-          placeholder={t("knowledge.search.placeholder")}
-          style={{ width:"100%", padding:"10px 14px 10px 38px", borderRadius:10, boxSizing:"border-box",
-            border:`1px solid ${C.border}`, fontSize:13, fontFamily:"inherit",
-            background:C.surfL, color:C.text, outline:"none" }}
-          onFocus={e=>e.target.style.borderColor=C.blue} onBlur={e=>e.target.style.borderColor=C.border}/>
-        {search && <button onClick={()=>setSearch("")} style={{ position:"absolute", right:12, top:"50%",
-          transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer",
-          color:C.textD, fontSize:16 }}>×</button>}
+      {/* Search bar + province selector */}
+      <div style={{ display:"flex", gap:10, marginBottom:16, alignItems:"stretch" }}>
+        <div style={{ flex:1, position:"relative" }}>
+          <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
+            fontSize:15, pointerEvents:"none" }}>🔍</span>
+          <input value={search} onChange={e=>{ setSearch(e.target.value); }}
+            placeholder={t("knowledge.search.placeholder")}
+            style={{ width:"100%", padding:"10px 14px 10px 38px", borderRadius:10, boxSizing:"border-box",
+              border:`1px solid ${C.border}`, fontSize:13, fontFamily:"inherit",
+              background:C.surfL, color:C.text, outline:"none" }}
+            onFocus={e=>e.target.style.borderColor=C.blue} onBlur={e=>e.target.style.borderColor=C.border}/>
+          {search && <button onClick={()=>setSearch("")} style={{ position:"absolute", right:12, top:"50%",
+            transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer",
+            color:C.textD, fontSize:16 }}>×</button>}
+        </div>
+        <select value={selectedProvince} onChange={e=>setSelectedProvince(e.target.value)}
+          title="Province applicable"
+          style={{ background:C.surfL, border:`1px solid ${C.border}`, borderRadius:10,
+            padding:"0 12px", color:C.text, fontSize:13, fontFamily:"inherit",
+            outline:"none", cursor:"pointer", minWidth:180 }}>
+          <option value="">— Province —</option>
+          {SUPPORTED_PROV.map(p => (
+            <option key={p} value={p}>{p} — {knowledgeByProvince[p].label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Search results */}

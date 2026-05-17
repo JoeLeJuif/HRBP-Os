@@ -1138,7 +1138,7 @@ export default function HRBPOS() {
           : safeModule === "autoprompt"     ? <ModuleAutoPrompt data={data}/>
           : safeModule === "convkit"        ? <ModuleConvKit />
           : safeModule === "plans306090"    ? <Module306090 data={data} onSave={handleSave}/>
-          : safeModule === "knowledge"      ? <ModuleKnowledge />
+          : safeModule === "knowledge"      ? <ModuleKnowledge data={data}/>
           : safeModule === "leaders"        ? <ModuleLeader data={data} onSave={handleSave} onNavigate={handleNavigate}/>
           : safeModule === "admin"          ? (isAdmin ? <ModuleAdmin currentProfile={userProfile} currentOrganization={userOrganization} onOrganizationUpdated={setUserOrganization} subscription={userSubscription}/> : null)
           : null}
