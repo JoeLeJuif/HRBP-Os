@@ -15,7 +15,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { sendTransactionalEmail } from "./lib/email.js";
-import { paymentFailedEmail } from "./lib/emailTemplates.js";
+import {
+  paymentFailedEmail,
+  subscriptionCancelledEmail,
+  invoicePaidEmail,
+} from "./lib/emailTemplates.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -206,6 +210,21 @@ async function resolveCustomerEmail(stripe, invoice, organizationId) {
   return ownerEmail || null;
 }
 
+// Resolver for events that don't carry an invoice (e.g. subscription.deleted):
+// Stripe customer.email → org owner/admin email.
+async function resolveEmailForCustomer(stripe, customerId, organizationId) {
+  if (customerId) {
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (customer && !customer.deleted && customer.email) return customer.email;
+    } catch (err) {
+      console.warn("[stripe-webhook] customer retrieve failed:", err?.message);
+    }
+  }
+  const ownerEmail = await lookupOrgOwnerEmail(organizationId);
+  return ownerEmail || null;
+}
+
 async function buildManageBillingUrl(stripe, customerId) {
   if (!customerId) return APP_URL;
   try {
@@ -256,6 +275,82 @@ async function sendPaymentFailedEmailSafe(stripe, invoice) {
     }
   } catch (err) {
     console.error("[stripe-webhook] payment_failed email error:", err?.message || String(err));
+  }
+}
+
+async function sendSubscriptionCancelledEmailSafe(stripe, subscription) {
+  try {
+    const customerId = pickCustomerId(subscription?.customer);
+    const subscriptionId = pickSubscriptionId(subscription);
+    const { organizationId, organizationName } = await lookupOrgForCustomer(customerId);
+    const to = await resolveEmailForCustomer(stripe, customerId, organizationId);
+    if (!to) {
+      console.warn("[stripe-webhook] subscription_cancelled: no recipient email resolved — skipping email");
+      return;
+    }
+    const template = subscriptionCancelledEmail({ organizationName });
+    const result = await sendTransactionalEmail({
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      type: "subscription_cancelled",
+      metadata: {
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        organization_id: organizationId,
+      },
+    });
+    if (result?.ok) {
+      console.log(`[stripe-webhook] subscription_cancelled email sent to ${to} (id=${result.id || "n/a"})`);
+    } else if (result?.skipped) {
+      console.warn(`[stripe-webhook] subscription_cancelled email skipped: ${result.reason}`);
+    } else {
+      console.error(`[stripe-webhook] subscription_cancelled email failed: ${result?.error || "unknown"}`);
+    }
+  } catch (err) {
+    console.error("[stripe-webhook] subscription_cancelled email error:", err?.message || String(err));
+  }
+}
+
+async function sendInvoicePaidEmailSafe(stripe, invoice) {
+  try {
+    const customerId = pickCustomerId(invoice?.customer);
+    const subscriptionId = pickSubscriptionId(invoice?.subscription);
+    const { organizationId, organizationName } = await lookupOrgForCustomer(customerId);
+    const to = await resolveCustomerEmail(stripe, invoice, organizationId);
+    if (!to) {
+      console.warn("[stripe-webhook] invoice_paid: no recipient email resolved — skipping email");
+      return;
+    }
+    const invoiceUrl = invoice?.hosted_invoice_url || APP_URL;
+    const amount = typeof invoice?.amount_paid === "number"
+      ? (invoice.amount_paid / 100).toFixed(2)
+      : null;
+    const currency = invoice?.currency || null;
+    const template = invoicePaidEmail({ organizationName, amount, currency, invoiceUrl });
+    const result = await sendTransactionalEmail({
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      type: "invoice_paid",
+      metadata: {
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        stripe_invoice_id: invoice?.id || null,
+        organization_id: organizationId,
+      },
+    });
+    if (result?.ok) {
+      console.log(`[stripe-webhook] invoice_paid email sent to ${to} (id=${result.id || "n/a"})`);
+    } else if (result?.skipped) {
+      console.warn(`[stripe-webhook] invoice_paid email skipped: ${result.reason}`);
+    } else {
+      console.error(`[stripe-webhook] invoice_paid email failed: ${result?.error || "unknown"}`);
+    }
+  } catch (err) {
+    console.error("[stripe-webhook] invoice_paid email error:", err?.message || String(err));
   }
 }
 
@@ -330,6 +425,7 @@ export default async function handler(req, res) {
         const overrides = { status: "canceled" };
         if (!sub?.canceled_at) overrides.canceled_at = new Date().toISOString();
         await upsertSubscriptionFromStripe(sub, overrides);
+        await sendSubscriptionCancelledEmailSafe(stripe, sub);
         break;
       }
 
@@ -341,7 +437,9 @@ export default async function handler(req, res) {
       }
 
       case "invoice.payment_succeeded": {
-        await resyncSubscriptionFromInvoice(stripe, event.data.object);
+        const invoice = event.data.object;
+        await resyncSubscriptionFromInvoice(stripe, invoice);
+        await sendInvoicePaidEmailSafe(stripe, invoice);
         break;
       }
 
